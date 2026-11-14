@@ -69,7 +69,9 @@ object DataImporter {
         val imported = mutableListOf<String>()
         val skipped = mutableListOf<String>()
         if (isZip(displayName)) {
-            val stashed = PackageStore.stashActive(dataDir)
+            // the active package is set aside only when the zip really brings package files (not for a style-only zip)
+            var stashed: String? = null
+            var stashTried = false
             try {
                 ZipInputStream(input.buffered()).use { zip ->
                     while (true) {
@@ -77,21 +79,25 @@ object DataImporter {
                         if (e.isDirectory) continue
                         val target = targetPath(e.name)
                         if (target == null) { skipped += e.name.substringAfterLast('/'); continue }
+                        if (!stashTried && PackageStore.isPackageRootName(target)) {
+                            stashTried = true
+                            stashed = PackageStore.stashActive(dataDir, forImport = true)
+                        }
                         onProgress(target)
                         write(zip, File(dataDir, target), e.size)
                         imported += target
                     }
                 }
                 if (imported.isEmpty()) throw ImportException(Txt.s(Res.string.maps_import_none_found, displayName))
-                if (File(dataDir, DataFiles.PACKAGE_FILE).isFile) {
+                val wasStashed = stashed
+                if (stashTried && File(dataDir, DataFiles.PACKAGE_FILE).isFile) {
                     PackageStore.removeDuplicateOfActive(dataDir)
-                } else if (stashed != null) {
-                    PackageStore.restoreMissingFromStash(dataDir, stashed)
+                } else if (wasStashed != null) {
+                    PackageStore.restoreMissingFromStash(dataDir, wasStashed)
                 }
+                PackageStore.importFinished(dataDir)
             } catch (e: Throwable) {
-                if (stashed != null) {
-                    PackageStore.rollbackFailedImport(dataDir, stashed, imported)
-                }
+                stashed?.let { PackageStore.rollbackFailedImport(dataDir, it, imported) }
                 throw e
             }
         } else {

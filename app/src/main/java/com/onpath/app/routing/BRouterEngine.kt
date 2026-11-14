@@ -77,7 +77,7 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
     }
 
     /** Official marked hiking, cycling and MTB route preference: 0 = off, 1 = normal, 2 = strong. */
-    @Volatile var officialRouteStrength: Int = 2
+    @Volatile var officialRouteStrength: Int = 1
 
     /** Legacy boolean helper mapped onto [officialRouteStrength]. */
     var preferOfficialRoutes: Boolean

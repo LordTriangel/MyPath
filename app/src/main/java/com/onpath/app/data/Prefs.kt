@@ -168,15 +168,15 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
             waymarkedTrails = sp.getBoolean("waymarkedTrails", false),
             officialRouteStrength = try {
                 when {
-                    sp.contains("officialRouteStrength") -> sp.getInt("officialRouteStrength", AppSettings.OFFICIAL_STRONG)
+                    sp.contains("officialRouteStrength") -> sp.getInt("officialRouteStrength", AppSettings.OFFICIAL_NORMAL)
                         .coerceIn(AppSettings.OFFICIAL_OFF, AppSettings.OFFICIAL_STRONG)
                     sp.contains("preferOfficialRoutes") ->
-                        if (sp.getBoolean("preferOfficialRoutes", true)) AppSettings.OFFICIAL_STRONG else AppSettings.OFFICIAL_OFF
-                    else -> AppSettings.OFFICIAL_STRONG
+                        if (sp.getBoolean("preferOfficialRoutes", true)) AppSettings.OFFICIAL_NORMAL else AppSettings.OFFICIAL_OFF
+                    else -> AppSettings.OFFICIAL_NORMAL
                 }
             } catch (e: Exception) {
-                Problems.warn("settings", "Setting officialRouteStrength unreadable, using strong", e)
-                AppSettings.OFFICIAL_STRONG
+                Problems.warn("settings", "Setting officialRouteStrength unreadable, using normal", e)
+                AppSettings.OFFICIAL_NORMAL
             },
         )
         set(v) = sp.edit()

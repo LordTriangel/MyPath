@@ -22,6 +22,11 @@ data class LocalMapPackage(
  *
  * Moving files between [dataDir] and `dataDir/packages/<region>/` happens on the same filesystem via [AtomicFiles.replace],
  * so switching regions takes milliseconds and never duplicates gigabytes of data.
+ *
+ * Crash safety: every change that moves more than one file first writes a small journal (`packages/.pending.json`:
+ * phase + the regions involved). The moves themselves can be repeated; [recover] (called at app start, before the map
+ * reads any file) finishes or rolls back a change the app did not survive, so the data folder never stays half one
+ * package and half another.
  */
 object PackageStore {
     const val PACKAGES_DIR = "packages"
@@ -31,6 +36,90 @@ object PackageStore {
             f.name == "addresses.sqlite" ||
             f.name.endsWith(".pmtiles") ||
             f.name.endsWith(".geojson"))
+
+    /** [DataImporter] target path of a file that belongs to one package (not the shared segments / styles). */
+    fun isPackageRootName(target: String): Boolean =
+        !target.contains('/') && (target == DataFiles.PACKAGE_FILE || target == "addresses.sqlite" ||
+            target.endsWith(".pmtiles") || target.endsWith(".geojson"))
+
+    private const val JOURNAL = ".pending.json"
+    internal const val PHASE_STASH = "stash"       // root -> packages/<out>/ (then, with "in", packages/<in>/ -> root)
+    internal const val PHASE_ACTIVATE = "activate" // packages/<in>/ -> root
+    internal const val PHASE_IMPORT = "import"     // <out> is stashed, a zip is being written into the root
+    internal const val PHASE_RESTORE = "restore"   // packages/<in>/ fills what the zip did not bring
+
+    private fun journalFile(dataDir: File) = File(File(dataDir, PACKAGES_DIR), JOURNAL)
+
+    internal fun writeJournal(dataDir: File, phase: String, out: String?, into: String?) {
+        val f = journalFile(dataDir)
+        f.parentFile?.mkdirs()
+        val o = JSONObject().put("phase", phase)
+        if (out != null) o.put("out", out)
+        if (into != null) o.put("in", into)
+        AtomicFiles.writeText(f, o.toString())
+    }
+
+    private fun clearJournal(dataDir: File) { journalFile(dataDir).delete() }
+
+    /** An import that stashed the active package is complete: nothing left to recover. */
+    fun importFinished(dataDir: File) = clearJournal(dataDir)
+
+    /** Moves every package file of [from] into [to]; package.json goes last (while it is there, the folder is "the" package). */
+    private fun moveAll(from: File, to: File) {
+        val files = (from.listFiles { f -> isPackageRootFile(f) } ?: emptyArray()).sortedBy { it.name == DataFiles.PACKAGE_FILE }
+        if (files.isEmpty()) return
+        to.mkdirs()
+        for (f in files) moveOrCopy(f, File(to, f.name))
+    }
+
+    /**
+     * Finishes or rolls back a package change the app did not survive (journal present). Returns true when something
+     * was repaired. Safe to call at every start: without a journal it only checks that one file is absent.
+     */
+    fun recover(dataDir: File): Boolean {
+        val jf = journalFile(dataDir)
+        if (!jf.isFile) return false
+        return try {
+            val o = JSONObject(jf.readText())
+            val phase = o.optString("phase")
+            val out = o.optString("out").takeIf { it.isNotEmpty() }
+            val into = o.optString("in").takeIf { it.isNotEmpty() }
+            when (phase) {
+                PHASE_STASH -> if (out != null) {
+                    if (into != null && File(packageDir(dataDir, into), DataFiles.PACKAGE_FILE).isFile) {
+                        // a switch: finish it
+                        moveAll(dataDir, packageDir(dataDir, out))
+                        writeJournal(dataDir, PHASE_ACTIVATE, null, into)
+                        moveAll(packageDir(dataDir, into), dataDir)
+                        packageDir(dataDir, into).delete()
+                    } else {
+                        // stashed for an import that never started writing: everything back
+                        moveAll(packageDir(dataDir, out), dataDir)
+                        packageDir(dataDir, out).delete()
+                    }
+                }
+                PHASE_ACTIVATE -> if (into != null) {
+                    moveAll(packageDir(dataDir, into), dataDir)
+                    packageDir(dataDir, into).delete()
+                }
+                PHASE_IMPORT -> if (out != null && packageDir(dataDir, out).isDirectory) {
+                    // the zip was not written completely: its files go, the package from before comes back
+                    (dataDir.listFiles { f -> isPackageRootFile(f) || (f.isFile && f.name.endsWith(".importing")) } ?: emptyArray())
+                        .forEach { it.delete() }
+                    moveAll(packageDir(dataDir, out), dataDir)
+                    packageDir(dataDir, out).delete()
+                }
+                PHASE_RESTORE -> if (into != null) restoreMissingFromStash(dataDir, into)
+            }
+            clearJournal(dataDir)
+            Problems.warn("data", "An interrupted map package change ($phase) was repaired at start")
+            true
+        } catch (e: Exception) {
+            // the journal stays: the next start tries again
+            Problems.error("data", "An interrupted map package change could not be repaired", e)
+            false
+        }
+    }
 
     private fun sanitizeRegion(raw: String): String =
         raw.trim().replace(Regex("[^a-zA-Z0-9._-]"), "_").ifBlank { "package" }
@@ -103,18 +192,18 @@ object PackageStore {
     /**
      * Moves the currently active package out of [dataDir] into `packages/<region>/`.
      * Returns the stashed region name, or null if no `package.json` was active in [dataDir].
+     * [forImport]: a zip is written into [dataDir] next – the journal stays ("import") until [importFinished] or
+     * [rollbackFailedImport], so a start after a crash brings the stashed package back.
      */
-    fun stashActive(dataDir: File): String? {
+    fun stashActive(dataDir: File, forImport: Boolean = false): String? {
         val pkgFile = File(dataDir, DataFiles.PACKAGE_FILE)
         if (!pkgFile.isFile) return null
         val meta = parseMeta(pkgFile, 0L, active = true) ?: return null
         val destDir = packageDir(dataDir, meta.region)
         if (destDir.exists()) deleteDirContents(destDir)
-        destDir.mkdirs()
-        val files = dataDir.listFiles { f -> isPackageRootFile(f) } ?: emptyArray()
-        for (f in files) {
-            moveOrCopy(f, File(destDir, f.name))
-        }
+        writeJournal(dataDir, PHASE_STASH, meta.region, null)
+        moveAll(dataDir, destDir)
+        if (forImport) writeJournal(dataDir, PHASE_IMPORT, meta.region, null) else clearJournal(dataDir)
         return meta.region
     }
 
@@ -137,6 +226,7 @@ object PackageStore {
     fun restoreMissingFromStash(dataDir: File, stashedRegion: String) {
         val stashDir = packageDir(dataDir, stashedRegion)
         if (!stashDir.isDirectory) return
+        writeJournal(dataDir, PHASE_RESTORE, null, stashedRegion)
         val files = stashDir.listFiles { f -> isPackageRootFile(f) } ?: emptyArray()
         for (f in files) {
             val target = File(dataDir, f.name)
@@ -148,6 +238,7 @@ object PackageStore {
         }
         deleteDirContents(stashDir)
         stashDir.delete()
+        clearJournal(dataDir)
     }
 
     /** Rolls back partially written root files after a failed zip import and re-activates [stashedRegion]. */
@@ -157,7 +248,10 @@ object PackageStore {
                 File(dataDir, rel).delete()
             }
         }
-        activate(dataDir, stashedRegion)
+        if (!activate(dataDir, stashedRegion)) {
+            Problems.error("data", "Map package $stashedRegion could not be brought back after a failed import")
+        }
+        clearJournal(dataDir)
     }
 
     /** Activates a stored package by stashing any active package first and moving [targetRegion] into [dataDir]. */
@@ -168,16 +262,18 @@ object PackageStore {
         val currentRegion = if (currentFile.isFile) parseMeta(currentFile, 0L, active = true)?.region else null
         if (currentRegion == sanitizeRegion(targetRegion)) return true
         if (currentRegion != null) {
-            stashActive(dataDir)
+            val destDir = packageDir(dataDir, currentRegion)
+            if (destDir.exists()) deleteDirContents(destDir)
+            writeJournal(dataDir, PHASE_STASH, currentRegion, sanitizeRegion(targetRegion))
+            moveAll(dataDir, destDir)
         } else {
             // Clean stray package root files left without a package.json so packages don't mix
             (dataDir.listFiles { f -> isPackageRootFile(f) } ?: emptyArray()).forEach { it.delete() }
         }
-        val files = srcDir.listFiles { f -> isPackageRootFile(f) } ?: emptyArray()
-        for (f in files) {
-            moveOrCopy(f, File(dataDir, f.name))
-        }
+        writeJournal(dataDir, PHASE_ACTIVATE, null, sanitizeRegion(targetRegion))
+        moveAll(srcDir, dataDir)
         srcDir.delete()
+        clearJournal(dataDir)
         return true
     }
 

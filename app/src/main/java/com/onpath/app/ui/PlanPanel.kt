@@ -246,7 +246,7 @@ data class PlanUi(
     /** Auto-snap to official marked hiking/cycling/MTB route networks. */
     val preferOfficialRoutes: Boolean = true,
     /** Auto-snap strength onto official routes (0=off, 1=normal, 2=strong). */
-    val officialRouteStrength: Int = 2,
+    val officialRouteStrength: Int = 1,
     /** Active 5-level fitness pace label shown on the clickable time header. */
     val paceLabel: String? = null,
 ) {

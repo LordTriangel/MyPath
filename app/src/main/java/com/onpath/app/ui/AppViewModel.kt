@@ -144,6 +144,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val tracker = LocationTracker(app)
 
     // --- data check ---
+    // first: a map package switch / import the app did not survive is finished or rolled back before anything reads files
+    private val packagesRepaired = dataFiles.ready() && com.onpath.app.data.PackageStore.recover(dataFiles.dir)
     var missing by mutableStateOf(dataFiles.missing())
         private set
 

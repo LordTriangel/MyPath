@@ -98,7 +98,7 @@ data class AppSettings(
     /** Online Waymarked Trails overlay (off by default: the offline packages already carry the marked routes). */
     val waymarkedTrails: Boolean = false,
     /** Auto-snap routing strength onto official marked hiking, cycling, and MTB networks (0=off, 1=normal, 2=strong). */
-    val officialRouteStrength: Int = OFFICIAL_STRONG,
+    val officialRouteStrength: Int = OFFICIAL_NORMAL,
 ) {
     /** True when any official-route auto-snap preference (normal or strong) is active. */
     val preferOfficialRoutes: Boolean get() = officialRouteStrength > OFFICIAL_OFF

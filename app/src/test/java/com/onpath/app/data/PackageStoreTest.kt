@@ -119,4 +119,66 @@ class PackageStoreTest {
         assertTrue(pkgs[0].active)
         assertEquals("BASE-OB", File(dir, "base.pmtiles").readText())
     }
+
+    private fun put(dir: File, name: String, text: String) { dir.mkdirs(); File(dir, name).writeText(text) }
+
+    @Test
+    fun aSwitchInterruptedHalfwayIsFinishedAtTheNextStart() {
+        val dir = tmp.newFolder("onpath")
+        // the app died while "a" was being stashed for a switch to "b": one file already moved, package.json not yet
+        put(dir, "package.json", pkgJson("a")); put(dir, "terrain.pmtiles", "TERRAIN-A")
+        put(File(dir, "packages/a"), "base.pmtiles", "BASE-A")
+        put(File(dir, "packages/b"), "package.json", pkgJson("b")); put(File(dir, "packages/b"), "base.pmtiles", "BASE-B")
+        PackageStore.writeJournal(dir, PackageStore.PHASE_STASH, "a", "b")
+
+        assertTrue(PackageStore.recover(dir))
+
+        assertEquals("BASE-B", File(dir, "base.pmtiles").readText())
+        assertFalse("nothing of a left in the active folder", File(dir, "terrain.pmtiles").exists())
+        assertEquals("BASE-A", File(dir, "packages/a/base.pmtiles").readText())
+        assertEquals("TERRAIN-A", File(dir, "packages/a/terrain.pmtiles").readText())
+        val pkgs = PackageStore.list(dir)
+        assertEquals(listOf("b" to true, "a" to false), pkgs.map { it.region to it.active })
+        assertFalse("the journal is gone", PackageStore.recover(dir))
+    }
+
+    @Test
+    fun anActivationInterruptedHalfwayIsFinished() {
+        val dir = tmp.newFolder("onpath")
+        put(dir, "base.pmtiles", "BASE-B") // already moved; package.json (moved last) still in the stash
+        put(File(dir, "packages/b"), "package.json", pkgJson("b")); put(File(dir, "packages/b"), "terrain.pmtiles", "TERRAIN-B")
+        PackageStore.writeJournal(dir, PackageStore.PHASE_ACTIVATE, null, "b")
+
+        assertTrue(PackageStore.recover(dir))
+
+        assertEquals("TERRAIN-B", File(dir, "terrain.pmtiles").readText())
+        assertEquals(listOf("b" to true), PackageStore.list(dir).map { it.region to it.active })
+        assertFalse(File(dir, "packages/b").exists())
+    }
+
+    @Test
+    fun anImportTheAppDidNotSurviveBringsTheOldPackageBack() {
+        val dir = tmp.newFolder("onpath")
+        put(File(dir, "packages/a"), "package.json", pkgJson("a")); put(File(dir, "packages/a"), "base.pmtiles", "BASE-A")
+        put(dir, "base.pmtiles", "BASE-NEW-HALF"); put(dir, ".terrain.pmtiles.importing", "PART")
+        put(File(dir, "segments"), "E10_N45.rd5", "RD5")
+        PackageStore.writeJournal(dir, PackageStore.PHASE_IMPORT, "a", null)
+
+        assertTrue(PackageStore.recover(dir))
+
+        assertEquals("BASE-A", File(dir, "base.pmtiles").readText())
+        assertFalse(File(dir, ".terrain.pmtiles.importing").exists())
+        assertEquals("shared routing data untouched", "RD5", File(dir, "segments/E10_N45.rd5").readText())
+        assertEquals(listOf("a" to true), PackageStore.list(dir).map { it.region to it.active })
+    }
+
+    @Test
+    fun aStyleOnlyZipLeavesTheActivePackageWhereItIs() {
+        val dir = tmp.newFolder("onpath")
+        put(dir, "package.json", pkgJson("a")); put(dir, "base.pmtiles", "BASE-A")
+        DataImporter.import(ByteArrayInputStream(zipBytes("styles/onpath.json" to "{}")), "style.zip", dir)
+        assertEquals("BASE-A", File(dir, "base.pmtiles").readText())
+        assertFalse("nothing was stashed", File(dir, "packages").exists())
+        assertEquals("{}", File(dir, "styles/onpath.json").readText())
+    }
 }
