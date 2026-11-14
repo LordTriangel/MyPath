@@ -27,7 +27,7 @@ object OnPathColors {
      * Primary: the muted forest green of onpath.earth (white on it 7.5:1). The launcher icon keeps its brighter
      * `#1F6E43` (res/values/colors.xml) – the logo is separate from the UI palette.
      */
-    val Green = Color(0xFF245F46)
+    val Green = Color(0xFF1F5C4A) // MyPath: Tannengrün (palette Alpenrand, owner 2026-11-14)
     /**
      * Light olive container: the selection – selected chips / segments / picker rows, the activity chip (the theme's
      * secondary + primary container, owner 2026-11-12 palette D "wie die Webseite"; was walnut) and the "easy" badge.
@@ -35,7 +35,7 @@ object OnPathColors {
      */
     val GreenLight = Color(0xFFE1EAD5)
     /** Text on light surfaces: the website's dark green-grey (11.4:1 on [Paper], 10.3:1 on the sage page [PaperDim]). */
-    val Ink = Color(0xFF243C31)
+    val Ink = Color(0xFF26302B) // MyPath: Fels
     /** Secondary text: detail lines, explanations (Material `onSurfaceVariant`); ≥ 6.7:1 on every ground. */
     val InkMuted = Color(0xFF4A4F4A)
     /** White: fields one types into, rings around point signs and text / icons on a coloured button – no surfaces. */
@@ -47,12 +47,12 @@ object OnPathColors {
      * The paper of every surface – menus, dialogs, sheets, what floats over the map (search pill, message boxes,
      * Navigate's cards): the website's `#FAFAF6`.
      */
-    val Paper = Color(0xFFFAFAF6)
+    val Paper = Color(0xFFF7F5EF) // MyPath: Kalkstein
     /**
      * Cards in lists (Settings, Meine Touren): the same paper as [Paper] – they lift off the sage page ([PaperDim], 1.1:1)
      * with the warm low shadow.
      */
-    val CardPaper = Color(0xFFFAFAF6)
+    val CardPaper = Color(0xFFF7F5EF)
     /**
      * A deeper sage for groups inside a paper surface: the plan sheet's pill row, filled fields, a lifted row (the theme's
      * surfaceContainerHighest), 1.2:1 against [Paper]; plan blue on it 5.7:1.
@@ -78,7 +78,7 @@ object OnPathColors {
      * app's dark green, stops near black, the goal dark red – no white ring; they stand apart from the blue route by hue.
      * Keep in step with MapController.POINT_*.
      */
-    val PointStart = Color(0xFF245F46)
+    val PointStart = Color(0xFF1F5C4A)
     val PointStop = Color(0xFF262A2E)
     val PointGoal = Color(0xFFA32020)
     val Gpx = Color(0xFF8E24AA)
@@ -119,7 +119,7 @@ object OnPathColors {
      * one green (owner 2026-11-06: "alles blau, und was zur Navigation geht, grün"; white 7.5:1). It is [Green]: the big
      * green buttons used to take the theme's primary, which is [Walnut] now.
      */
-    val ActionGo = Color(0xFF245F46)
+    val ActionGo = Color(0xFF1F5C4A)
     /**
      * Edit / plan: change the route – ink blue (owner 2026-11-06 23:00, variant C of the blue page: "das Blau sieht
      * verspielt aus"; like the trail marks on a printed map), a tick lighter since 2026-11-07 09:50 (owner: #2B4C6F "sieht

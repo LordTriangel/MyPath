@@ -85,8 +85,8 @@ class PlanColourTest {
      */
     @Test fun websiteGroundsAreReadable() {
         assertEquals(Color(0xFFEEF0E8), OnPathColors.PaperDim)
-        assertEquals(Color(0xFFFAFAF6), OnPathColors.Paper)
-        assertEquals(Color(0xFFFAFAF6), OnPathColors.CardPaper)
+        assertEquals(Color(0xFFF7F5EF), OnPathColors.Paper)
+        assertEquals(Color(0xFFF7F5EF), OnPathColors.CardPaper)
         assertEquals(Color(0xFFE4E8DD), OnPathColors.PaperDeep)
         val c = OnPathThemeValues.colors
         assertEquals(OnPathColors.PaperDim, c.background)

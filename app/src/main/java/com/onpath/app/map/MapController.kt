@@ -48,7 +48,7 @@ class MapController(private val context: Context, val map: MapLibreMap, val styl
 
         const val ROUTE_COLOR = "#1E3FAE"     // deep blue, high contrast on green/beige
         /** The plan's points (owner 2026-11-01, like Komoot; same as OnPathColors.Point*): start, stops, goal – no ring. */
-        const val POINT_START_COLOR = "#245F46"
+        const val POINT_START_COLOR = "#1F5C4A"
         const val POINT_STOP_COLOR = "#262A2E"
         const val POINT_GOAL_COLOR = "#A32020"
         /** Turn badge / U-turn sign: a soft blue, clearly lighter than the position dot (owner). */

@@ -20,8 +20,8 @@ import androidx.compose.ui.unit.em
  * the name = "OnPath" bold, letter spacing −0.05 em like the planner's header, in Walnuss.
  */
 object Brand {
-    const val NAME = "OnPath"
-    val Tile = Color(0xFF1F6E43)
+    const val NAME = "MyPath"
+    val Tile = Color(0xFF1F5C4A)
     /** The wordmark's letter spacing (the planner's header, the splash wordmark). */
     val Tracking = (-0.05).em
 }
@@ -30,6 +30,8 @@ object Brand {
 @Composable
 fun OnPathLogo(size: Dp, modifier: Modifier = Modifier) {
     Box(modifier.size(size).clip(RoundedCornerShape(size * (24f / 108f))).background(Brand.Tile)) {
+        // MyPath: the icon's relief background, then the logo (owner 2026-11-14)
+        Image(painterResource(com.onpath.app.R.drawable.ic_launcher_background), null, Modifier.size(size))
         Image(painterResource(com.onpath.app.R.drawable.ic_launcher_foreground), null, Modifier.size(size))
     }
 }
