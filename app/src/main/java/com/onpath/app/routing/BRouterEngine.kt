@@ -386,21 +386,22 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
         // is further away, instead of BRouter widening the search up to 60 km
         kv["use_dynamic_range"] = "0"
         kv["waypointCatchingRange"] = MAX_SNAP_M.toInt().toString()
+        // 0 (off) sets nothing: the profile's own value applies – the same routes as upstream and the web planner
         val s = officialStrength.coerceIn(0, 2)
         when (activity) {
             Activity.EBIKE -> {
                 kv["bikerPower"] = "180"; kv["maxSpeed"] = "25"; kv["totalMass"] = "110"
-                kv["stick_to_cycleroutes"] = if (s > 0) "1" else "0"
+                if (s > 0) kv["stick_to_cycleroutes"] = "1"
             }
             Activity.EMTB -> {
                 kv["bikerPower"] = "180"; kv["maxSpeed"] = "25"; kv["totalMass"] = "115"
-                kv["cycleroutes_pref"] = when (s) { 0 -> "0.0"; 1 -> "0.4"; else -> "1.0" }
+                if (s > 0) kv["cycleroutes_pref"] = if (s == 1) "0.4" else "1.0"
             }
             Activity.BIKE_TOURING, Activity.BIKE_TREKKING -> {
-                kv["stick_to_cycleroutes"] = if (s > 0) "1" else "0"
+                if (s > 0) kv["stick_to_cycleroutes"] = "1"
             }
             Activity.MTB -> {
-                kv["cycleroutes_pref"] = when (s) { 0 -> "0.0"; 1 -> "0.4"; else -> "1.0" }
+                if (s > 0) kv["cycleroutes_pref"] = if (s == 1) "0.4" else "1.0"
             }
             Activity.HIKE -> {
                 // above the limit = forbidden (profile). Preferred = the limit but at most T3: a marked T2/T3 trail beats the
@@ -408,7 +409,7 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
                 val sac = sacLimit.coerceIn(1, 5)
                 kv["SAC_scale_limit"] = sac.toString()
                 kv["SAC_scale_preferred"] = minOf(sac, 3).toString()
-                kv["hiking_routes_preference"] = when (s) { 0 -> "0.0"; 1 -> "0.8"; else -> "2.0" }
+                if (s > 0) kv["hiking_routes_preference"] = if (s == 1) "0.8" else "2.0"
             }
         }
         return kv

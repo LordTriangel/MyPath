@@ -178,6 +178,8 @@
     <string name="settings_group_screen">Bildschirm und Karte</string>
     <string name="settings_group_lock">Sperre während der Tour</string>
     <string name="settings_phone_missing">Fehlt: %1$s</string>
+    <string name="settings_privacy_online_tiles_what">Welchen Kartenausschnitt du ansiehst (nicht deine Position)</string>
+    <string name="settings_privacy_online_tiles_when">nur wenn du die Online-Radkarte oder das Waymarked-Trails-Overlay einschaltest</string>
     <string name="settings_map_online_bike">Online-Radkarte (CyclOSM)</string>
     <string name="settings_map_online_bike_sub">Nur mit Internet. Offline bleibt immer die OnPath-Karte.</string>
     <string name="settings_map_base_cyclosm">Online-Radkarte</string>

@@ -905,6 +905,11 @@ val PRIVACY_FLOWS: List<PrivacyFlow> get() = listOfNotNull(
     PrivacyFlow(Txt.s(Res.string.settings_privacy_maps_what), Txt.s(Res.string.settings_privacy_maps_to),
         Txt.s(Res.string.settings_privacy_when_maps)),
     PrivacyFlow(Txt.s(Res.string.settings_privacy_routing_what), "brouter.de", Txt.s(Res.string.settings_privacy_when_maps)),
+    // map/StyleLoader.withExternalRasters: only while the switch is on and the phone is online
+    PrivacyFlow(Txt.s(Res.string.settings_privacy_online_tiles_what), "CyclOSM (OpenStreetMap France)",
+        Txt.s(Res.string.settings_privacy_online_tiles_when)),
+    PrivacyFlow(Txt.s(Res.string.settings_privacy_online_tiles_what), "Waymarked Trails",
+        Txt.s(Res.string.settings_privacy_online_tiles_when)),
     PrivacyFlow(Txt.s(Res.string.settings_privacy_search_what), Txt.s(Res.string.settings_privacy_search_to, "komoot"),
         Txt.s(Res.string.settings_privacy_search_when)),
     // update/AppUpdater – the Play build (A-003) has no own updater: no row there

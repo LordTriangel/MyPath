@@ -702,13 +702,21 @@ private fun MapSync(vm: AppViewModel, c: MapController?, rec: RecState?, fix: an
     LaunchedEffect(c, changingRoute, planPuck) { c.setPlanPuck(planPuck.takeIf { changingRoute }) }
     // the GPS accuracy circle only in Navigate (owner 2026-11-06: in Plan it only gets in the way)
     LaunchedEffect(c, vm.mode) { c.setNavigateMode(vm.mode == AppMode.NAVIGATE) }
-    var online by remember { mutableStateOf(com.onpath.app.cells.AndroidNetworkStatus(context).connected()) }
+    // online = a validated internet connection (a Wi-Fi without internet / a captive portal counts as offline)
+    fun reallyOnline(): Boolean = try {
+        val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val caps = cm.getNetworkCapabilities(cm.activeNetwork)
+        caps != null && caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    } catch (e: Exception) {
+        com.onpath.app.debug.Problems.warn("map", "Network state unreadable; online map layers stay hidden", e); false
+    }
+    var online by remember { mutableStateOf(reallyOnline()) }
     DisposableEffect(context) {
-        val net = com.onpath.app.cells.AndroidNetworkStatus(context)
         val main = android.os.Handler(android.os.Looper.getMainLooper())
         val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
         val refresh = Runnable {
-            val isOnline = net.connected()
+            val isOnline = reallyOnline()
             online = isOnline
             try { org.maplibre.android.net.ConnectivityReceiver.instance(context).setConnected(isOnline) } catch (_: Throwable) {}
         }
