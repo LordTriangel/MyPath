@@ -89,7 +89,7 @@ class SetupTextsTest {
             assertTrue(Txt.s(Res.string.setup_bat_do).contains("„Uneingeschränkt“"))
             assertEquals("Für den Punkt auf der Karte und deine Spur. Standort und Touren bleiben auf deinem Handy.", Txt.s(Res.string.setup_loc_why))
             assertEquals("Auf der nächsten Seite: „Genau“ und „Bei Nutzung der App“ wählen.", Txt.s(Res.string.setup_loc_do))
-            assertEquals("OnPath zeigt dir die Karte auch ohne Netz und führt dich unterwegs. Dafür braucht OnPath ein paar " +
+            assertEquals("MyPath zeigt dir die Karte auch ohne Netz und führt dich unterwegs. Dafür braucht MyPath ein paar " +
                 "Einstellungen am Handy – etwa eine Minute.", Txt.s(Res.string.setup_welcome_text))
         } finally { java.util.Locale.setDefault(old) }
     }

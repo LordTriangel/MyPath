@@ -12,7 +12,7 @@
     <string name="sync_waiting_browser">Wartet auf den Browser …</string>
     <string name="sync_menu_synced">abgeglichen %1$s</string>
     <string name="sync_intro">Deine gespeicherten Pläne und importierten GPX-Tracks können auch im Web-Planer auf deinem Computer sein – in beide Richtungen, verschlüsselt, bevor sie das Gerät verlassen.</string>
-    <string name="sync_steps">Öffne auf dem Computer plan.onpath.earth und klicke oben auf „Handy verbinden“. Scanne den Code dort mit der Kamera deines Handys – OnPath öffnet sich und zeigt sechs Prüfziffern.</string>
+    <string name="sync_steps">Öffne auf dem Computer plan.onpath.earth und klicke oben auf „Handy verbinden“. Scanne den Code dort mit der Kamera deines Handys – MyPath öffnet sich und zeigt sechs Prüfziffern.</string>
     <string name="sync_open_camera">Kamera öffnen</string>
     <string name="sync_no_camera">Keine Kamera-App gefunden – öffne die Kamera selbst und scanne den Code.</string>
     <string name="sync_pair_hint">Öffne am PC plan.onpath.earth → ‚Handy verbinden‘ und scanne den Code</string>
@@ -35,8 +35,8 @@
     <string name="sync_refused">Der Sync-Server hat die Pläne nicht angenommen (%1$s). Versuch es später noch einmal.</string>
     <string name="sync_full">Der Browser-Abgleich ist voll – lösche ein paar Pläne oder Tracks und versuch es dann noch einmal.</string>
     <plurals name="sync_newer_app">
-        <item quantity="one">%1$d abgeglichener Plan stammt aus einer neueren App – aktualisiere OnPath, um ihn zu sehen.</item>
-        <item quantity="other">%1$d abgeglichene Pläne stammen aus einer neueren App – aktualisiere OnPath, um sie zu sehen.</item>
+        <item quantity="one">%1$d abgeglichener Plan stammt aus einer neueren App – aktualisiere MyPath, um ihn zu sehen.</item>
+        <item quantity="other">%1$d abgeglichene Pläne stammen aus einer neueren App – aktualisiere MyPath, um sie zu sehen.</item>
     </plurals>
     <plurals name="sync_not_saved">
         <item quantity="one">%1$d Plan aus dem Browser konnte nicht auf dem Handy gespeichert werden – er wird noch einmal versucht.</item>
@@ -57,7 +57,7 @@
     <string name="sync_untitled_route">Plan</string>
     <string name="sync_untitled_track">Track</string>
     <string name="sync_sum_off">Nicht verbunden · deine Pläne auch im Web-Planer</string>
-    <string name="sync_routing_other">Im Browser mit einer anderen OnPath-Version geplant – Route kann leicht abweichen</string>
+    <string name="sync_routing_other">Im Browser mit einer anderen MyPath-Version geplant – Route kann leicht abweichen</string>
     <string name="sync_menu_attention">Browser-Kopplung – %1$s</string>
     <string name="sync_since_today">Verbunden seit heute %1$s</string>
     <string name="sync_since_yesterday">Verbunden seit gestern %1$s</string>

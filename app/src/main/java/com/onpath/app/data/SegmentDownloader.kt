@@ -21,7 +21,7 @@ object SegmentDownloader {
     val USER_AGENT: String get() = userAgent(com.onpath.app.BuildConfig.VERSION_NAME)
 
     /** `OnPath/<version> (+https://onpath.earth)` – pure, for the test. */
-    fun userAgent(version: String): String = "OnPath/$version (+https://onpath.earth)"
+    fun userAgent(version: String): String = "MyPath/$version (+https://github.com/LordTriangel/OnPath)"
 
     /** Tile name for a position: 5° steps, west/south as W/S. Bozen (46.5, 11.35) → "E10_N45". */
     fun tileName(lat: Double, lon: Double): String = com.onpath.app.routing.Rd5Parts.tileName(lat, lon)

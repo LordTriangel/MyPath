@@ -241,7 +241,7 @@
     <string name="plan_err_too_long">Route zu lang für die Berechnung auf dem Handy. Setze Zwischenpunkte oder wähle näher liegende Punkte.</string>
     <string name="plan_err_profile_folder">Ordner für Routing-Profile kann nicht angelegt werden.</string>
     <string name="plan_err_profile_install">Routing-Profil %1$s kann nicht installiert werden.</string>
-    <string name="plan_err_profiles">Die Routenplanung konnte nicht eingerichtet werden – der Speicher ist evtl. voll. Starte OnPath neu, um es erneut zu versuchen.</string>
+    <string name="plan_err_profiles">Die Routenplanung konnte nicht eingerichtet werden – der Speicher ist evtl. voll. Starte MyPath neu, um es erneut zu versuchen.</string>
     <string name="plan_err_coordinates">Ungültige Koordinaten.</string>
     <string name="plan_err_start_point">Startpunkt</string>
     <string name="plan_err_a_stop">Ein Zwischenpunkt</string>

@@ -13,7 +13,7 @@
     <string name="sync_waiting_browser">Waiting for the browser …</string>
     <string name="sync_menu_synced">synced %1$s</string>
     <string name="sync_intro">Your saved plans and imported GPX tracks can also be in the web planner on your computer – both ways, encrypted on the device before they leave it.</string>
-    <string name="sync_steps">On the computer, open plan.onpath.earth and click “Pair phone” at the top. Scan the code shown there with your phone's camera – OnPath opens and shows six check digits.</string>
+    <string name="sync_steps">On the computer, open plan.onpath.earth and click “Pair phone” at the top. Scan the code shown there with your phone's camera – MyPath opens and shows six check digits.</string>
     <string name="sync_open_camera">Open camera</string>
     <string name="sync_no_camera">No camera app found – open the camera yourself and scan the code.</string>
     <string name="sync_pair_hint">On your computer open plan.onpath.earth → ‘Pair phone’ and scan the code</string>
@@ -36,8 +36,8 @@
     <string name="sync_refused">The sync server did not accept the plans (%1$s). Try again later.</string>
     <string name="sync_full">The browser sync is full – delete some plans or tracks, then try again.</string>
     <plurals name="sync_newer_app">
-        <item quantity="one">%1$d synced plan comes from a newer app – update OnPath to see it.</item>
-        <item quantity="other">%1$d synced plans come from a newer app – update OnPath to see them.</item>
+        <item quantity="one">%1$d synced plan comes from a newer app – update MyPath to see it.</item>
+        <item quantity="other">%1$d synced plans come from a newer app – update MyPath to see them.</item>
     </plurals>
     <plurals name="sync_not_saved">
         <item quantity="one">%1$d plan from the browser could not be saved on the phone – it is tried again.</item>
@@ -58,7 +58,7 @@
     <string name="sync_untitled_route">Plan</string>
     <string name="sync_untitled_track">Track</string>
     <string name="sync_sum_off">Not paired · your plans in the web planner too</string>
-    <string name="sync_routing_other">Planned in the browser with another OnPath version – the route may differ slightly</string>
+    <string name="sync_routing_other">Planned in the browser with another MyPath version – the route may differ slightly</string>
     <string name="sync_menu_attention">Browser pairing – %1$s</string>
     <string name="sync_since_today">Paired since today %1$s</string>
     <string name="sync_since_yesterday">Paired since yesterday %1$s</string>

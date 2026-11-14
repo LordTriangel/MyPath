@@ -207,7 +207,7 @@
     <string name="maps_err_area_failed">Karte für dieses Gebiet konnte nicht erstellt werden</string>
     <string name="maps_err_refused">Der Kartenserver hat die Anfrage abgelehnt – bitte aktualisiere die App.</string>
     <string name="maps_err_other_version">Dieses Gebiet gibt es nur für eine andere App-Version.</string>
-    <string name="maps_err_needs_app">Aktualisiere OnPath, um dieses Gebiet zu laden (benötigt %1$s).</string>
+    <string name="maps_err_needs_app">Aktualisiere MyPath, um dieses Gebiet zu laden (benötigt %1$s).</string>
     <string name="maps_err_space_needs">Nicht genug Speicherplatz (benötigt %1$d MB). Lösche alte Gebiete unter Einstellungen → Offline-Karten.</string>
     <string name="maps_err_damaged">Download beschädigt – bitte versuche es später noch einmal.</string>
     <string name="maps_err_stopped">Download unterbrochen – geht weiter, sobald du verbunden bist.</string>
@@ -243,7 +243,7 @@
     <string name="maps_import_nothing">Nichts importiert.</string>
     <string name="maps_import_done">%1$d Datei(en) importiert: %2$s.</string>
     <string name="maps_import_skipped">Übersprungen: %1$s.</string>
-    <string name="maps_import_not_map_data">„%1$s“ sind keine OnPath-Kartendaten. Wähle die ZIP-Datei onpath-data oder eine .pmtiles-, .geojson-, .rd5-, Adress-.sqlite- oder Stil-.json-Datei.</string>
+    <string name="maps_import_not_map_data">„%1$s“ sind keine MyPath-Kartendaten. Wähle die ZIP-Datei onpath-data oder eine .pmtiles-, .geojson-, .rd5-, Adress-.sqlite- oder Stil-.json-Datei.</string>
     <string name="maps_import_none_found">Keine Kartendaten in „%1$s“ gefunden.</string>
     <string name="maps_import_no_space">Nicht genug freier Speicher für %1$s (benötigt %2$d MB).</string>
     <string name="maps_import_empty">%1$s ist leer.</string>

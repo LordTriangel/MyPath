@@ -30,6 +30,7 @@ class OnPathLinksTest {
     @Test fun shownWithoutSchemeAndLastSlash() {
         assertEquals("onpath.earth/de/hilfe", OnPathLinks.shown(OnPathLinks.help("de")))
         assertEquals("onpath.earth", OnPathLinks.shown(OnPathLinks.website("en")))
-        assertEquals("github.com/happychriss/OnPath", OnPathLinks.shown(OnPathLinks.SOURCE))
+        assertEquals("github.com/LordTriangel/OnPath", OnPathLinks.shown(OnPathLinks.SOURCE))
+        assertEquals("github.com/happychriss/OnPath", OnPathLinks.shown(OnPathLinks.ORIGINAL))
     }
 }

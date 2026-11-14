@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="routes_missing_title">Offline-Kartendaten fehlen</string>
-    <string name="routes_missing_body">OnPath funktioniert komplett offline. Kopiere das Kartenpaket einmal aufs Handy, danach läuft alles ohne Netz.</string>
+    <string name="routes_missing_body">MyPath funktioniert komplett offline. Kopiere das Kartenpaket einmal aufs Handy, danach läuft alles ohne Netz.</string>
     <string name="routes_missing_found">gefunden</string>
     <string name="routes_missing_missing">fehlt</string>
     <string name="routes_missing_adb">Oder von einem Computer mit aktiviertem USB-Debugging:</string>

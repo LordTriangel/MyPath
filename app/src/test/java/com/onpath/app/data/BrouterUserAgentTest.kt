@@ -7,11 +7,11 @@ import java.io.File
 
 /**
  * Review Arch 7 / owner 2026-11-02 (onpath.private#5 A): every request to brouter.de says who asks –
- * `OnPath/<versionName> (+https://onpath.earth)`.
+ * `MyPath/<versionName> (+https://github.com/LordTriangel/OnPath)`.
  */
 class BrouterUserAgentTest {
     @Test fun theExactString() {
-        assertEquals("OnPath/0.14.0 (+https://onpath.earth)", SegmentDownloader.userAgent("0.14.0"))
+        assertEquals("MyPath/0.14.0 (+https://github.com/LordTriangel/OnPath)", SegmentDownloader.userAgent("0.14.0"))
         assertEquals(SegmentDownloader.userAgent(com.onpath.app.BuildConfig.VERSION_NAME), SegmentDownloader.USER_AGENT)
     }
 

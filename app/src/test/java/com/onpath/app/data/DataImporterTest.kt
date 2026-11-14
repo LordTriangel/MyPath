@@ -63,7 +63,7 @@ class DataImporterTest {
         try {
             DataImporter.import(ByteArrayInputStream("x".toByteArray()), "holiday.jpg", dir); fail()
         } catch (e: DataImporter.ImportException) {
-            assertTrue(e.message!!.contains("not OnPath map data"))
+            assertTrue(e.message!!.contains("not MyPath map data"))
         }
     }
 

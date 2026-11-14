@@ -138,25 +138,25 @@
     <string name="nav_channel_off_route_desc">Asks when you leave the route you follow: take a new route or keep the original</string>
     <string name="nav_rec_stopped_title">Tour stopped</string>
     <string name="nav_rec_fail_read">The tour could not start: your saved tours cannot be read.</string>
-    <string name="nav_rec_fail_permission">Tour stopped: OnPath needs precise location. Allow it in Settings → Apps → OnPath → Permissions.</string>
+    <string name="nav_rec_fail_permission">Tour stopped: MyPath needs precise location. Allow it in Settings → Apps → MyPath → Permissions.</string>
     <string name="nav_rec_fail_no_gps">Tour stopped: this device has no GPS.</string>
-    <string name="nav_rec_fail_blocked">The tour could not start – Android blocked it. Open OnPath and try again.</string>
+    <string name="nav_rec_fail_blocked">The tour could not start – Android blocked it. Open MyPath and try again.</string>
     <string name="nav_rec_fail_storage">The tour could not start: it cannot be saved (phone storage full or damaged).</string>
     <string name="nav_rec_save_failed_title">Tour cannot be saved</string>
-    <string name="nav_rec_save_failed">The tour cannot be saved any more (phone storage full or damaged). Free up space; OnPath keeps trying.</string>
+    <string name="nav_rec_save_failed">The tour cannot be saved any more (phone storage full or damaged). Free up space; MyPath keeps trying.</string>
     <string name="nav_rec_paused_title">Stopped</string>
     <string name="nav_rec_paused_moving">You are on the way – continue?</string>
     <string name="nav_rec_rescued_title">Tour rescued</string>
-    <string name="nav_rec_rescued">The phone's storage had a problem. OnPath put your tour back together – it goes on. Details: Settings → Diagnostics.</string>
+    <string name="nav_rec_rescued">The phone's storage had a problem. MyPath put your tour back together – it goes on. Details: Settings → Diagnostics.</string>
     <string name="nav_saver_title">Battery saver stops GPS</string>
     <string name="nav_saver_text">On this phone battery saver switches GPS off while the screen is off – your tour gets gaps. Turn battery saver off for the tour.</string>
     <string name="nav_watchdog_title">Tour gets no GPS</string>
-    <string name="nav_watchdog_text">OnPath restarted the tour but has had no GPS position for 5 minutes. Open OnPath and check the tour.</string>
+    <string name="nav_watchdog_text">MyPath restarted the tour but has had no GPS position for 5 minutes. Open MyPath and check the tour.</string>
     <string name="nav_interrupted_title">Tour interrupted</string>
-    <string name="nav_interrupted_boot">The phone restarted – open OnPath and tap Continue to go on.</string>
-    <string name="nav_interrupted_update">OnPath was updated – open OnPath and tap Continue to go on.</string>
-    <string name="nav_interrupted_boot_long">The phone restarted while “%1$s” was running. The tour so far is saved. Open OnPath and tap Continue to go on.</string>
-    <string name="nav_interrupted_update_long">OnPath was updated while “%1$s” was running. The tour so far is saved. Open OnPath and tap Continue to go on.</string>
+    <string name="nav_interrupted_boot">The phone restarted – open MyPath and tap Continue to go on.</string>
+    <string name="nav_interrupted_update">MyPath was updated – open MyPath and tap Continue to go on.</string>
+    <string name="nav_interrupted_boot_long">The phone restarted while “%1$s” was running. The tour so far is saved. Open MyPath and tap Continue to go on.</string>
+    <string name="nav_interrupted_update_long">MyPath was updated while “%1$s” was running. The tour so far is saved. Open MyPath and tap Continue to go on.</string>
 
     <!-- GPS status -->
     <string name="nav_gps_no_permission">No location permission</string>

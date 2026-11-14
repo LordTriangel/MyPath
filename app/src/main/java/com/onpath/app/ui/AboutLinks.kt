@@ -47,7 +47,10 @@ import com.onpath.strings.*
  */
 object OnPathLinks {
     const val MAIL = "info@onpath.earth"
-    const val SOURCE = "https://github.com/happychriss/OnPath"
+    /** MyPath's own source (owner's fork, 2026-11-14). */
+    const val SOURCE = "https://github.com/LordTriangel/OnPath"
+    /** The project MyPath is based on (Apache-2.0) – named on the About page. */
+    const val ORIGINAL = "https://github.com/happychriss/OnPath"
     private const val SITE = "https://onpath.earth"
 
     private fun de(lang: String) = lang == "de"
@@ -86,45 +89,36 @@ object OnPathLinks {
     }
 }
 
-/** About → the links card under version and licence: help, website, contact, privacy notice, legal notice, source. */
+/**
+ * About → the links card (MyPath, owner 2026-11-14): the help of the original project (its pages still describe every
+ * feature), MyPath's source, and the project it is based on (Apache-2.0 asks to name it). The original author's
+ * website, contact address, privacy notice and legal notice are his, not MyPath's – not linked.
+ */
 @Composable
 internal fun AboutLinksSection() {
     val context = LocalContext.current
     val help = OnPathLinks.help()
-    val site = OnPathLinks.website()
-    val privacy = OnPathLinks.privacy()
-    val legal = OnPathLinks.legal()
-    var copied by remember { mutableStateOf(false) }
     Section(str(Res.string.settings_links)) {
         LinkRow(Icons.AutoMirrored.Outlined.HelpOutline, str(Res.string.settings_link_help), OnPathLinks.shown(help)) {
             OnPathLinks.open(context, help)
         }
-        LinkRow(Icons.Outlined.Language, str(Res.string.settings_link_website), OnPathLinks.shown(site)) {
-            OnPathLinks.open(context, site)
-        }
-        // the address stays readable: without a mail app it goes to the clipboard, "Adresse kopiert" in its place
-        LinkRow(Icons.Outlined.MailOutline, str(Res.string.settings_link_contact),
-            if (copied) str(Res.string.settings_link_copied) else OnPathLinks.MAIL, accent = copied) {
-            if (!OnPathLinks.open(context, "mailto:${OnPathLinks.MAIL}")) copied = OnPathLinks.copyMail(context)
-        }
-        LinkRow(Icons.Outlined.Lock, str(Res.string.settings_link_privacy), OnPathLinks.shown(privacy)) {
-            OnPathLinks.open(context, privacy)
-        }
-        LinkRow(Icons.Outlined.Gavel, str(Res.string.settings_link_legal), OnPathLinks.shown(legal)) {
-            OnPathLinks.open(context, legal)
-        }
         LinkRow(Icons.Outlined.Code, str(Res.string.settings_link_source), OnPathLinks.shown(OnPathLinks.SOURCE)) {
             OnPathLinks.open(context, OnPathLinks.SOURCE)
+        }
+        LinkRow(Icons.Outlined.Gavel, str(Res.string.settings_link_original), OnPathLinks.shown(OnPathLinks.ORIGINAL)) {
+            OnPathLinks.open(context, OnPathLinks.ORIGINAL)
         }
     }
 }
 
-/** Privacy page, last row: the full privacy notice on the website. */
+/**
+ * Privacy page, last row: MyPath has no privacy notice of its own on a website – the list above is the whole of it.
+ * The original's notice described its own servers, so it is no longer linked (owner 2026-11-14).
+ */
 @Composable
 internal fun PrivacyNoticeLink() {
-    val context = LocalContext.current
-    val privacy = OnPathLinks.privacy()
-    LinkRow(null, str(Res.string.settings_privacy_full), OnPathLinks.shown(privacy)) { OnPathLinks.open(context, privacy) }
+    Text(str(Res.string.settings_privacy_list_is_all), style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 }
 
 /**

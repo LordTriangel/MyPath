@@ -209,7 +209,7 @@
     <string name="maps_err_area_failed">Map for this area failed</string>
     <string name="maps_err_refused">Map server refused the request – update the app.</string>
     <string name="maps_err_other_version">This area is only available for another app version.</string>
-    <string name="maps_err_needs_app">Update OnPath to load this area (needs %1$s).</string>
+    <string name="maps_err_needs_app">Update MyPath to load this area (needs %1$s).</string>
     <string name="maps_err_space_needs">Not enough space (needs %1$d MB). Delete old areas in Settings → Offline maps.</string>
     <string name="maps_err_damaged">Download damaged – please try again later.</string>
     <string name="maps_err_stopped">Download stopped – continues when connected.</string>
@@ -245,7 +245,7 @@
     <string name="maps_import_nothing">Nothing imported.</string>
     <string name="maps_import_done">Imported %1$d file(s): %2$s.</string>
     <string name="maps_import_skipped">Skipped: %1$s.</string>
-    <string name="maps_import_not_map_data">“%1$s” is not OnPath map data. Pick the onpath-data zip, or a .pmtiles, .geojson, .rd5, addresses .sqlite or style .json file.</string>
+    <string name="maps_import_not_map_data">“%1$s” is not MyPath map data. Pick the onpath-data zip, or a .pmtiles, .geojson, .rd5, addresses .sqlite or style .json file.</string>
     <string name="maps_import_none_found">No map data found in “%1$s”.</string>
     <string name="maps_import_no_space">Not enough free storage for %1$s (needs %2$d MB).</string>
     <string name="maps_import_empty">%1$s is empty.</string>

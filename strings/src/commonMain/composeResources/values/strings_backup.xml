@@ -10,7 +10,7 @@
     <string name="backup_bin_delete_now">Delete now</string>
     <string name="backup_date">d MMM yyyy</string>
     <string name="backup_date_time">d MMM yyyy, HH:mm</string>
-    <string name="backup_intro">Every tour and saved plan is also saved as a GPX file – it stays when OnPath is removed and can be restored on a new phone.</string>
+    <string name="backup_intro">Every tour and saved plan is also saved as a GPX file – it stays when MyPath is removed and can be restored on a new phone.</string>
     <string name="backup_folder">Folder: %1$s</string>
     <string name="backup_not_yet">not yet</string>
     <string name="backup_last_failed">Last backup failed – %1$s</string>
@@ -38,7 +38,7 @@
     <string name="backup_err_android10">needs Android 10</string>
     <string name="backup_err_documents">the Documents folder cannot be written</string>
     <string name="backup_err_documents_storage">the Documents folder cannot be written (storage not available)</string>
-    <string name="backup_err_documents_not_ready">the phone's storage has not been ready for a while – OnPath keeps trying; if this stays, restart the phone</string>
+    <string name="backup_err_documents_not_ready">the phone's storage has not been ready for a while – MyPath keeps trying; if this stays, restart the phone</string>
     <string name="backup_err_storage_full">storage full</string>
     <string name="backup_err_file_storage">the file could not be written – the phone's storage may be full</string>
     <string name="backup_err_no_access">storage access not allowed – Settings → Backup → Allow</string>

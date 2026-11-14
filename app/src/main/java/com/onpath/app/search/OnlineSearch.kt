@@ -88,7 +88,7 @@ class PhotonProvider(
             return out
         }
 
-        fun userAgent(version: String) = "OnPath-Android/$version (github.com/happychriss/OnPath)"
+        fun userAgent(version: String) = "MyPath-Android/$version (github.com/LordTriangel/OnPath)"
 
         /** A coordinate rounded to 2 decimals (~1.1 km latitude) for the request; "46.68". */
         fun coarse(v: Double): String = String.format(Locale.ROOT, "%.2f", Math.round(v * 100.0) / 100.0)

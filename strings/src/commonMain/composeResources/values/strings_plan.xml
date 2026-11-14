@@ -242,7 +242,7 @@
     <string name="plan_err_too_long">Route too long for on-phone routing. Add via points or choose closer points.</string>
     <string name="plan_err_profile_folder">Cannot create routing profile folder.</string>
     <string name="plan_err_profile_install">Cannot install routing profile %1$s.</string>
-    <string name="plan_err_profiles">The route planner could not be set up – the phone's storage may be full. Restart OnPath to try again.</string>
+    <string name="plan_err_profiles">The route planner could not be set up – the phone's storage may be full. Restart MyPath to try again.</string>
     <string name="plan_err_coordinates">Invalid coordinates.</string>
     <string name="plan_err_start_point">Start point</string>
     <string name="plan_err_a_stop">A stop</string>

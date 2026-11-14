@@ -2,7 +2,7 @@
 <!-- My routes, activity picker, tour dialogs, missing-data screen, GPX import (ui/Screens.kt, data/TourDb.kt, gpx/). Context: tools/i18n/meta/strings_routes.json -->
 <resources>
     <string name="routes_missing_title">Offline map data is missing</string>
-    <string name="routes_missing_body">OnPath works fully offline. Copy the map package to the phone once, then everything runs without network.</string>
+    <string name="routes_missing_body">MyPath works fully offline. Copy the map package to the phone once, then everything runs without network.</string>
     <string name="routes_missing_found">found</string>
     <string name="routes_missing_missing">missing</string>
     <string name="routes_missing_adb">Or, from a computer with USB debugging on:</string>

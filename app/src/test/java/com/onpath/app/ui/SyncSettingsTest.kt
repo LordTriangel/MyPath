@@ -97,7 +97,7 @@ class SyncSettingsTest {
         assertTrue(syncProblemText(PlanSync.Problem.Refused(503, "x")).first.contains("HTTP 503"))
         assertEquals("The browser sync is full – delete some plans or tracks, then try again.",
             syncProblemText(PlanSync.Problem.Refused(507, "too many saved plans")).first)
-        assertEquals("1 synced plan comes from a newer app – update OnPath to see it.", syncProblemText(PlanSync.Problem.NewerApp(1)).first)
+        assertEquals("1 synced plan comes from a newer app – update MyPath to see it.", syncProblemText(PlanSync.Problem.NewerApp(1)).first)
         assertEquals(NoticeKind.ERROR, syncProblemText(PlanSync.Problem.Storage).second)
     }
 

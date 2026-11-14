@@ -137,25 +137,25 @@
     <string name="nav_channel_off_route_desc">Fragt nach, wenn du die Route verlässt: neue Route nehmen oder die ursprüngliche behalten</string>
     <string name="nav_rec_stopped_title">Tour gestoppt</string>
     <string name="nav_rec_fail_read">Die Tour konnte nicht starten: Deine gespeicherten Touren sind nicht lesbar.</string>
-    <string name="nav_rec_fail_permission">Tour gestoppt: OnPath braucht den genauen Standort. Erlaube ihn unter Einstellungen → Apps → OnPath → Berechtigungen.</string>
+    <string name="nav_rec_fail_permission">Tour gestoppt: MyPath braucht den genauen Standort. Erlaube ihn unter Einstellungen → Apps → MyPath → Berechtigungen.</string>
     <string name="nav_rec_fail_no_gps">Tour gestoppt: Dieses Gerät hat kein GPS.</string>
-    <string name="nav_rec_fail_blocked">Die Tour konnte nicht starten – Android hat sie blockiert. Öffne OnPath und versuche es noch einmal.</string>
+    <string name="nav_rec_fail_blocked">Die Tour konnte nicht starten – Android hat sie blockiert. Öffne MyPath und versuche es noch einmal.</string>
     <string name="nav_rec_fail_storage">Die Tour konnte nicht starten: Sie kann nicht gespeichert werden (Speicher voll oder beschädigt).</string>
     <string name="nav_rec_save_failed_title">Tour kann nicht gespeichert werden</string>
-    <string name="nav_rec_save_failed">Die Tour kann nicht mehr gespeichert werden (Speicher voll oder beschädigt). Gib Speicher frei – OnPath versucht es weiter.</string>
+    <string name="nav_rec_save_failed">Die Tour kann nicht mehr gespeichert werden (Speicher voll oder beschädigt). Gib Speicher frei – MyPath versucht es weiter.</string>
     <string name="nav_rec_paused_title">Angehalten</string>
     <string name="nav_rec_paused_moving">Du bist unterwegs – weiter?</string>
     <string name="nav_rec_rescued_title">Tour gerettet</string>
-    <string name="nav_rec_rescued">Der Speicher des Handys hatte ein Problem. OnPath hat deine Tour wiederhergestellt – sie läuft weiter. Details: Einstellungen → Diagnose.</string>
+    <string name="nav_rec_rescued">Der Speicher des Handys hatte ein Problem. MyPath hat deine Tour wiederhergestellt – sie läuft weiter. Details: Einstellungen → Diagnose.</string>
     <string name="nav_saver_title">Energiesparmodus stoppt GPS</string>
     <string name="nav_saver_text">Auf diesem Handy schaltet der Energiesparmodus GPS bei ausgeschaltetem Bildschirm ab – deine Tour bekommt Lücken. Schalte ihn für die Tour aus.</string>
     <string name="nav_watchdog_title">Tour bekommt kein GPS</string>
-    <string name="nav_watchdog_text">OnPath hat die Tour neu gestartet, aber seit 5 Minuten keine GPS-Position. Öffne OnPath und prüfe die Tour.</string>
+    <string name="nav_watchdog_text">MyPath hat die Tour neu gestartet, aber seit 5 Minuten keine GPS-Position. Öffne MyPath und prüfe die Tour.</string>
     <string name="nav_interrupted_title">Tour unterbrochen</string>
-    <string name="nav_interrupted_boot">Das Handy wurde neu gestartet – öffne OnPath und tippe auf „Weiter“, um weiterzumachen.</string>
-    <string name="nav_interrupted_update">OnPath wurde aktualisiert – öffne OnPath und tippe auf „Weiter“, um weiterzumachen.</string>
-    <string name="nav_interrupted_boot_long">Das Handy wurde neu gestartet, während „%1$s“ lief. Die Tour bis hierhin ist gespeichert. Öffne OnPath und tippe auf „Weiter“, um weiterzumachen.</string>
-    <string name="nav_interrupted_update_long">OnPath wurde aktualisiert, während „%1$s“ lief. Die Tour bis hierhin ist gespeichert. Öffne OnPath und tippe auf „Weiter“, um weiterzumachen.</string>
+    <string name="nav_interrupted_boot">Das Handy wurde neu gestartet – öffne MyPath und tippe auf „Weiter“, um weiterzumachen.</string>
+    <string name="nav_interrupted_update">MyPath wurde aktualisiert – öffne MyPath und tippe auf „Weiter“, um weiterzumachen.</string>
+    <string name="nav_interrupted_boot_long">Das Handy wurde neu gestartet, während „%1$s“ lief. Die Tour bis hierhin ist gespeichert. Öffne MyPath und tippe auf „Weiter“, um weiterzumachen.</string>
+    <string name="nav_interrupted_update_long">MyPath wurde aktualisiert, während „%1$s“ lief. Die Tour bis hierhin ist gespeichert. Öffne MyPath und tippe auf „Weiter“, um weiterzumachen.</string>
 
     <!-- GPS status -->
     <string name="nav_gps_no_permission">Keine Standortberechtigung</string>
