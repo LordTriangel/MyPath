@@ -362,7 +362,7 @@ private fun PlanMode(
                 onSettings = { vm.openSettings() },
                 // plan sync (A-007), owner 2026-10-30: not paired → the camera at once (first time the step line
                 // before it); paired / a problem → Settings → Browser sync ([PairEntry])
-                onPairBrowser = { vm.startPairing(pairCamera) },
+                onPairBrowser = if (com.onpath.app.plansync.WebPlanner.ENABLED) ({ vm.startPairing(pairCamera) }) else null,
                 // owner 2026-10-30: "Paired with browser ✓ · Pixel 8 ↔ Chrome · 1 min ago"; amber + ☰ dot on a real problem
                 sync = SyncMenuUi.of(vm.sync.state.collectAsState().value, vm.sync.deviceName,
                     System.currentTimeMillis()),

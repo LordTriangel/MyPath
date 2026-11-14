@@ -4877,7 +4877,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         viewModelScope.launchSafe("app", "start-up work", Dispatchers.IO) { sync.files.marks.all() } // marks.txt → syncMarks (small file, never throws)
-        sync.start()
+        // MyPath: no plan sync with the original's browser planner (plansync/WebPlanner)
+        if (com.onpath.app.plansync.WebPlanner.ENABLED) sync.start()
         // a tour ended: what waited for it comes now
         viewModelScope.launchSafe("app", "start-up work") {
             var was = recState.value != null

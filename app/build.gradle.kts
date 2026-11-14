@@ -23,7 +23,8 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.onpath.app"
+        // MyPath (owner 2026-11-14): its own app next to OnPath; the code package stays com.onpath.app
+        applicationId = "de.lordtriangel.mypath"
         minSdk = 26
         // Google Play: since 2026-08-31 new apps and updates must target Android 16 (API 36) – A-003 Play build.
         targetSdk = 36

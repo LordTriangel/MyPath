@@ -362,7 +362,8 @@ class MainActivity : ComponentActivity() {
                                     needsStorageAccess = remember(b) { needsStorageAccess() },
                                     backingUp = vm.busy == com.onpath.app.ui.Busy.BACKUP)
                             },
-                            sync = com.onpath.app.ui.SyncUi.of(vm.sync.state.collectAsState().value,
+                            // MyPath: the browser planner is off (plansync/WebPlanner) – no Browser sync page
+                            sync = if (!com.onpath.app.plansync.WebPlanner.ENABLED) null else com.onpath.app.ui.SyncUi.of(vm.sync.state.collectAsState().value,
                                 vm.pairAsk?.let { com.onpath.app.sync.SyncKeys(it).check }, vm.pairJoining),
                             syncCb = com.onpath.app.ui.SyncCallbacks(
                                 onOpenCamera = { vm.openPairCamera(::startPairCamera, fromSettings = true) },

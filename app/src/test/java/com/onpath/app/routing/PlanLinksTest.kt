@@ -2,6 +2,7 @@ package com.onpath.app.routing
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -126,14 +127,12 @@ class PlanLinksTest {
         assertNull(PlanLinks.fromText(""))
     }
 
-    @Test fun manifestOpensPlannerLinksAsAppLinks() {
-        // the camera hands the link to the app only with this filter; autoVerify for App Links (assetlinks.json on the host)
+    @Test fun myPathOpensNoPlannerLinks() {
+        // MyPath (owner 2026-11-14): the original's browser planner is off (plansync/WebPlanner) – its links are not
+        // claimed by the app any more; the parser stays for a planner of MyPath's own later
         val manifest = File("src/main/AndroidManifest.xml").readText()
-        val filter = Regex("""<intent-filter android:autoVerify="true">(.*?)</intent-filter>""", RegexOption.DOT_MATCHES_ALL)
-            .find(manifest)?.groupValues?.get(1) ?: error("no autoVerify intent filter")
-        for (part in listOf("android.intent.action.VIEW", "android.intent.category.BROWSABLE", "android.intent.category.DEFAULT",
-            """android:scheme="https"""", """android:host="${PlanLinks.HOST}"""", """android:path="/""""))
-            assertTrue(part, part in filter)
+        assertFalse(com.onpath.app.plansync.WebPlanner.ENABLED)
+        assertFalse("""android:host="${PlanLinks.HOST}"""" in manifest)
         assertTrue(PlanLinks.BASE == "https://${PlanLinks.HOST}/")
     }
 }

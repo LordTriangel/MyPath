@@ -553,7 +553,7 @@ fun RoutesScreen(
                         onFavourite = { onFavourite(t, it) },
                         onRename = { rename = t }, onExport = { onExport(t) },
                         onCopy = if (has(RouteRowActions.Action.COPY)) ({ onCopy(t) }) else null,
-                        onShare = if (has(RouteRowActions.Action.SHARE)) ({ onShare(t) }) else null,
+                        onShare = if (com.onpath.app.plansync.WebPlanner.ENABLED && has(RouteRowActions.Action.SHARE)) ({ onShare(t) }) else null,
                         // straight to the recycle bin, no question (owner 2026-11-06: the bin is the net)
                         onDelete = if (has(RouteRowActions.Action.DELETE)) ({ onDelete(t) }) else null,
                         onEditRides = if (has(RouteRowActions.Action.EDIT_RIDES)) ({ onEditRides(t) }) else null,
