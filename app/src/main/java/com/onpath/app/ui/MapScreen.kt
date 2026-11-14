@@ -334,7 +334,7 @@ fun MapScreen(
     vm.selectedPoi?.let { poi ->
         // Read-only details (Navigate, or a shown track): no "add to route" here.
         androidx.compose.material3.ModalBottomSheet(onDismissRequest = { vm.selectedPoi = null }) {
-            com.onpath.app.poi.PoiDetails(poi = poi, onClose = { vm.selectedPoi = null })
+            com.onpath.app.poi.PoiDetails(poi = poi, onClose = { vm.selectedPoi = null }, pictures = vm.settings.onlinePictures)
         }
     }
 }

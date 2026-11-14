@@ -99,6 +99,8 @@ data class AppSettings(
     val waymarkedTrails: Boolean = false,
     /** Auto-snap routing strength onto official marked hiking, cycling, and MTB networks (0=off, 1=normal, 2=strong). */
     val officialRouteStrength: Int = OFFICIAL_NORMAL,
+    /** Online extra: a POI's / peak's picture from Wikipedia in its details (only when online; owner 2026-11-14). */
+    val onlinePictures: Boolean = true,
 ) {
     /** True when any official-route auto-snap preference (normal or strong) is active. */
     val preferOfficialRoutes: Boolean get() = officialRouteStrength > OFFICIAL_OFF

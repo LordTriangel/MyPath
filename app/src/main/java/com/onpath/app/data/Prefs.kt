@@ -166,6 +166,7 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
             baseMapStyle = sp.getString("baseMapStyle", AppSettings.BASE_MAP_ONPATH)
                 ?.takeIf { it in AppSettings.BASE_MAPS } ?: AppSettings.BASE_MAP_ONPATH,
             waymarkedTrails = sp.getBoolean("waymarkedTrails", false),
+            onlinePictures = sp.getBoolean("onlinePictures", true),
             officialRouteStrength = try {
                 when {
                     sp.contains("officialRouteStrength") -> sp.getInt("officialRouteStrength", AppSettings.OFFICIAL_NORMAL)
@@ -203,6 +204,7 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
             .putString("baseMapStyle", v.baseMapStyle)
             .putBoolean("waymarkedTrails", v.waymarkedTrails)
             .putInt("officialRouteStrength", v.officialRouteStrength)
+            .putBoolean("onlinePictures", v.onlinePictures)
             .putBoolean("preferOfficialRoutes", v.preferOfficialRoutes)
             .apply()
 

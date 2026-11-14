@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- POI kinds and the POI details sheet (poi/). Context: tools/i18n/meta/strings_poi.json -->
 <resources>
+    <string name="poi_picture_credit">Picture: Wikipedia · %1$s ›</string>
     <string name="poi_kind_peak">Peak</string>
     <string name="poi_kind_saddle">Pass</string>
     <string name="poi_kind_viewpoint">Viewpoint</string>

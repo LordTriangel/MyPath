@@ -178,6 +178,10 @@
     <string name="settings_group_screen">Bildschirm und Karte</string>
     <string name="settings_group_lock">Sperre während der Tour</string>
     <string name="settings_phone_missing">Fehlt: %1$s</string>
+    <string name="settings_poi_pictures">Bilder von Wikipedia</string>
+    <string name="settings_poi_pictures_sub">Zeigt im POI- und Gipfelfenster das Bild des Wikipedia-Artikels. Nur mit Internet.</string>
+    <string name="settings_privacy_pictures_what">Name eines POI oder Gipfels bzw. seine ungefähre Lage (ca. 100 m)</string>
+    <string name="settings_privacy_pictures_when">beim Öffnen eines POI-Fensters, wenn „Bilder von Wikipedia“ an ist</string>
     <string name="settings_privacy_online_tiles_what">Welchen Kartenausschnitt du ansiehst (nicht deine Position)</string>
     <string name="settings_privacy_online_tiles_when">nur wenn du die Online-Radkarte oder das Waymarked-Trails-Overlay einschaltest</string>
     <string name="settings_map_online_bike">Online-Radkarte (CyclOSM)</string>

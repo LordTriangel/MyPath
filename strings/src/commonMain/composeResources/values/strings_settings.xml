@@ -179,6 +179,10 @@
     <string name="settings_group_screen">Screen and map</string>
     <string name="settings_group_lock">Lock during a tour</string>
     <string name="settings_phone_missing">Missing: %1$s</string>
+    <string name="settings_poi_pictures">Pictures from Wikipedia</string>
+    <string name="settings_poi_pictures_sub">Shows the Wikipedia article picture in the POI and peak details. Only with internet.</string>
+    <string name="settings_privacy_pictures_what">Name of a POI or peak, or its rough position (about 100 m)</string>
+    <string name="settings_privacy_pictures_when">when you open a POI’s details with “Pictures from Wikipedia” on</string>
     <string name="settings_privacy_online_tiles_what">Which part of the map you look at (not your position)</string>
     <string name="settings_privacy_online_tiles_when">only when you switch on the online cycling map or the Waymarked Trails overlay</string>
     <string name="settings_map_online_bike">Online cycling map (CyclOSM)</string>

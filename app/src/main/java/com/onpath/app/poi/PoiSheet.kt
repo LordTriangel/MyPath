@@ -4,6 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -50,8 +54,16 @@ import com.onpath.strings.*
  * All data shown is OpenStreetMap; Google Maps is only an external link.
  */
 @Composable
-fun PoiDetails(poi: Poi, onClose: () -> Unit, modifier: Modifier = Modifier) {
+fun PoiDetails(poi: Poi, onClose: () -> Unit, modifier: Modifier = Modifier, pictures: Boolean = false) {
     val context = LocalContext.current
+    // online extra: the Wikipedia picture, loaded off the main thread; the sheet is complete without it
+    val picture by androidx.compose.runtime.produceState<Pair<WikiPictures.Picture, androidx.compose.ui.graphics.ImageBitmap>?>(null, poi.id, pictures) {
+        if (!pictures || poi.name == null) return@produceState
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            val ua = WikiPictures.userAgent(com.onpath.app.BuildConfig.VERSION_NAME)
+            WikiPictures.find(poi, ua)?.let { p -> WikiPictures.loadBitmap(p.thumbUrl, ua)?.let { p to it.asImageBitmap() } }
+        }
+    }
     val kind = poi.kindInfo
     val color = Color(kind.group.argb)
 
@@ -89,6 +101,18 @@ fun PoiDetails(poi: Poi, onClose: () -> Unit, modifier: Modifier = Modifier) {
             }
         }
 
+        picture?.let { (p, img) ->
+            Spacer(Modifier.size(10.dp))
+            androidx.compose.foundation.Image(img, contentDescription = p.title,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp)
+                    .aspectRatio((img.width.toFloat() / img.height.coerceAtLeast(1)).coerceIn(1f, 2f))
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { PoiIntents.openWebsite(context, p.articleUrl) })
+            Text(str(Res.string.poi_picture_credit, p.title), style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp).clickable { PoiIntents.openWebsite(context, p.articleUrl) })
+        }
         Spacer(Modifier.size(8.dp))
         HorizontalDivider()
 

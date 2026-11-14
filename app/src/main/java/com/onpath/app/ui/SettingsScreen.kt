@@ -392,6 +392,8 @@ private fun PoiSection(settings: AppSettings, onChange: (AppSettings) -> Unit, i
     val hidden = settings.hiddenPoiKinds
     fun setHidden(h: Set<String>) = onChange(settings.copy(hiddenPoiKinds = h))
     Section(SettingsPage.POI.title) {
+        SwitchRow(str(Res.string.settings_poi_pictures), str(Res.string.settings_poi_pictures_sub),
+            settings.onlinePictures) { onChange(settings.copy(onlinePictures = it)) }
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             TextButton(onClick = { setHidden(emptySet()) }) { Text(str(Res.string.common_show_all)) }
             TextButton(onClick = { setHidden(PoiKinds.all.map { it.key }.toSet()) }) { Text(str(Res.string.settings_poi_hide_all)) }
@@ -905,6 +907,9 @@ val PRIVACY_FLOWS: List<PrivacyFlow> get() = listOfNotNull(
     PrivacyFlow(Txt.s(Res.string.settings_privacy_maps_what), Txt.s(Res.string.settings_privacy_maps_to),
         Txt.s(Res.string.settings_privacy_when_maps)),
     PrivacyFlow(Txt.s(Res.string.settings_privacy_routing_what), "brouter.de", Txt.s(Res.string.settings_privacy_when_maps)),
+    // poi/WikiPictures: a POI's name or its position (~100 m) when its details open – only with the switch on
+    PrivacyFlow(Txt.s(Res.string.settings_privacy_pictures_what), "Wikipedia (Wikimedia)",
+        Txt.s(Res.string.settings_privacy_pictures_when)),
     // map/StyleLoader.withExternalRasters: only while the switch is on and the phone is online
     PrivacyFlow(Txt.s(Res.string.settings_privacy_online_tiles_what), "CyclOSM (OpenStreetMap France)",
         Txt.s(Res.string.settings_privacy_online_tiles_when)),
