@@ -80,3 +80,19 @@ fun Poi.Companion.fromFeature(feature: Feature): Poi? {
     }
     return fromProperties(props, point.latitude(), point.longitude())
 }
+
+/**
+ * A peak or pass label of the base map (OpenMapTiles mountain_peak: class, name, name:de, ele) as a [Poi], so a tap opens
+ * the details sheet with its height and the Google Maps link. The id is made from the position (the layer has none).
+ */
+fun Poi.Companion.fromPeakFeature(feature: Feature): Poi? {
+    val point = feature.geometry() as? Point ?: return null
+    val json = feature.properties() ?: return null
+    fun str(k: String): String? = json.get(k)?.takeIf { it.isJsonPrimitive }?.asString?.trim()?.takeIf { it.isNotEmpty() }
+    val kind = if (str("class") == "saddle") "saddle" else "peak"
+    val name = (if (isGerman()) str("name:de") else null) ?: str("name") ?: return null
+    val ele = json.get("ele")?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }?.asDouble?.let { Math.round(it).toInt() }
+    val lat = point.latitude(); val lon = point.longitude()
+    return Poi(id = "$kind@${"%.5f".format(java.util.Locale.ROOT, lat)},${"%.5f".format(java.util.Locale.ROOT, lon)}",
+        kind = kind, name = name, lat = lat, lon = lon, ele = ele)
+}

@@ -135,12 +135,15 @@ class ShownPois {
             pending = false
             val ids = style.layers.map { it.id }.filter { it.startsWith(POI_LAYER_PREFIX) }
             val (nameIds, iconIds) = ids.partition { it.endsWith("-name") }
+            val peakIds = style.layers.map { it.id }.filter { it in PEAK_LAYERS }
             val box = RectF(0f, 0f, view.width.toFloat(), view.height.toFloat())
             fun query(layers: List<String>): List<Feature> =
                 if (layers.isEmpty()) emptyList() else map.queryRenderedFeatures(box, *layers.toTypedArray())
             // main thread (MapLibre's rule) – only the two queries
             val iconFeatures = query(iconIds)
             val nameFeatures = query(nameIds)
+            // peaks and passes: their label is the target (a name, no icon)
+            val peakFeatures = query(peakIds)
             val ms = SystemClock.uptimeMillis() - t0
             if (ms > 100) Problems.trace("poi", "Shown POIs read in $ms ms on the main thread (map idle)")
             val mine = ++seq
@@ -149,8 +152,11 @@ class ShownPois {
                     val icons = iconFeatures.mapNotNull { Poi.fromFeature(it) }.distinctBy { it.id }
                     val named = nameFeatures.mapNotNull { Poi.fromFeature(it) }.associateBy { it.id }
                     val iconIds2 = icons.map { it.id }.toSet()
+                    val peaks = peakFeatures.mapNotNull { Poi.fromPeakFeature(it) }.distinctBy { it.id }
                     icons.map { Entry(it, true, named[it.id]?.name?.length ?: 0) } +
-                        named.values.filter { it.id !in iconIds2 }.map { Entry(it, false, it.name?.length ?: 0) }
+                        named.values.filter { it.id !in iconIds2 }.map { Entry(it, false, it.name?.length ?: 0) } +
+                        // the ▲ sits on the point, the name under it: counted as icon + name
+                        peaks.map { Entry(it, true, it.name?.length ?: 0) }
                 } catch (e: Exception) {
                     Problems.warn("poi", "Shown POIs not read, a tap or hold uses the last list", e); null
                 }

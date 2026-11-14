@@ -55,7 +55,15 @@ object PoiKinds {
         PoiKind("bike_shop", PoiGroup.FACILITY, "⚙", Res.string.poi_kind_bike_shop),
         PoiKind("charging", PoiGroup.FACILITY, "⚡", Res.string.poi_kind_charging),
     )
-    private val byKey = list.associateBy { it.key }
+    /**
+     * Named places of the base map that open the same details sheet (name, height, Google Maps): peaks and passes.
+     * Not POI kinds of the filter (they are labels of the base map, not in pois.geojson), so not in [all].
+     */
+    private val baseMapKinds = listOf(
+        PoiKind("peak", PoiGroup.SIGHT, "▲", Res.string.poi_kind_peak),
+        PoiKind("saddle", PoiGroup.SIGHT, "⌒", Res.string.poi_kind_saddle),
+    )
+    private val byKey = (list + baseMapKinds).associateBy { it.key }
 
     val all: List<PoiKind> get() = list
 
@@ -95,3 +103,6 @@ object PoiKinds {
 
 /** Layer ids in the style that carry POIs all start with this prefix. */
 const val POI_LAYER_PREFIX = "poi-"
+
+/** Base map label layers whose places a tap opens like a POI ([Poi.Companion.fromPeakFeature]). */
+val PEAK_LAYERS = listOf("peak-label", "pass-label")

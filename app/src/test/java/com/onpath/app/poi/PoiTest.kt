@@ -114,3 +114,23 @@ internal fun <T> inGerman(block: () -> T): T {
     java.util.Locale.setDefault(java.util.Locale.GERMAN)
     try { return block() } finally { java.util.Locale.setDefault(old) }
 }
+
+class PeakPoiTest {
+    @Test
+    fun aPeakLabelOpensLikeAPoi() {
+        val f = org.maplibre.geojson.Feature.fromJson(
+            """{"type":"Feature","geometry":{"type":"Point","coordinates":[12.2101,47.5402]},""" +
+                """"properties":{"class":"peak","name":"Pendling","ele":1563.4}}""")
+        val p = Poi.fromPeakFeature(f)!!
+        assertEquals("peak", p.kind)
+        assertEquals("Pendling", p.name)
+        assertEquals(1563, p.ele)
+        assertEquals("peak@47.54020,12.21010", p.id)
+        val pass = org.maplibre.geojson.Feature.fromJson(
+            """{"type":"Feature","geometry":{"type":"Point","coordinates":[11.3,47.4]},"properties":{"class":"saddle","name":"Joch"}}""")
+        assertEquals("saddle", Poi.fromPeakFeature(pass)!!.kind)
+        val unnamed = org.maplibre.geojson.Feature.fromJson(
+            """{"type":"Feature","geometry":{"type":"Point","coordinates":[11.3,47.4]},"properties":{"class":"peak"}}""")
+        assertNull("a peak without a name is not a target", Poi.fromPeakFeature(unnamed))
+    }
+}

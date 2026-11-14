@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="poi_kind_peak">Gipfel</string>
+    <string name="poi_kind_saddle">Pass / Sattel</string>
     <string name="poi_kind_viewpoint">Aussichtspunkt</string>
     <string name="poi_kind_hut">Schutzhütte</string>
     <string name="poi_kind_bivouac">Biwak / Selbstversorgerhütte</string>
