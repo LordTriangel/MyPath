@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.material.icons.outlined.LocationSearching
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.runtime.LaunchedEffect
@@ -597,7 +598,10 @@ private fun PlanBottom(vm: AppViewModel, rec: RecState?, onStartNavigation: () -
             points = rows,
             routingSlow = vm.routingSlow, routeProgress = vm.routeProgress, routeShare = vm.routeShare, notRouted = vm.notRouted, gapText = vm.planGapText(), warnText = vm.warningLineText(), warnCount = vm.warningCount(),
             changedText = vm.routeChangedLineText(), syncRoutingText = vm.syncRoutingNote, tapHint = vm.tapHoldHint,
-            offlineInfo = vm.offlineReady?.takeIf { vm.offlineInfo }?.let { OfflineReady.explain(it) }),
+            offlineInfo = vm.offlineReady?.takeIf { vm.offlineInfo }?.let { OfflineReady.explain(it) },
+            preferOfficialRoutes = vm.settings.preferOfficialRoutes,
+            officialRouteStrength = vm.settings.officialRouteStrength,
+            paceLabel = com.onpath.app.time.TimeEstimate.pace(vm.activity, vm.settings).label),
         PlanCallbacks(
             onSheetDrag = { if (it) vm.tapHoldHint = false; vm.mapGesture(it) }, onUndo = vm::undoStep, onClear = vm::requestClear,
             onStartNavigation = onStartNavigation, onContinue = vm::continueNavigation,
@@ -613,6 +617,7 @@ private fun PlanBottom(vm: AppViewModel, rec: RecState?, onStartNavigation: () -
             onPause = vm::pauseRecording, onEndTour = onEndTour,
             onMovePoint = vm::movePointInList, onDeletePoint = vm::deletePointFromList, onShowPoint = vm::showPointFromList,
             onSearch = vm::openSearch, onMyRoutes = vm::openRoutes,
+            onTogglePreferOfficial = vm::togglePreferOfficialRoutes,
         ),
     )
     if (vm.spotsOpen) {
@@ -697,7 +702,30 @@ private fun MapSync(vm: AppViewModel, c: MapController?, rec: RecState?, fix: an
     LaunchedEffect(c, changingRoute, planPuck) { c.setPlanPuck(planPuck.takeIf { changingRoute }) }
     // the GPS accuracy circle only in Navigate (owner 2026-11-06: in Plan it only gets in the way)
     LaunchedEffect(c, vm.mode) { c.setNavigateMode(vm.mode == AppMode.NAVIGATE) }
-    LaunchedEffect(c, vm.settings) { c.layers.apply(vm.settings) }
+    var online by remember { mutableStateOf(com.onpath.app.cells.AndroidNetworkStatus(context).connected()) }
+    DisposableEffect(context) {
+        val net = com.onpath.app.cells.AndroidNetworkStatus(context)
+        val main = android.os.Handler(android.os.Looper.getMainLooper())
+        val cm = context.getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+        val refresh = Runnable {
+            val isOnline = net.connected()
+            online = isOnline
+            try { org.maplibre.android.net.ConnectivityReceiver.instance(context).setConnected(isOnline) } catch (_: Throwable) {}
+        }
+        refresh.run()
+        val cb = object : android.net.ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) { main.post(refresh) }
+            override fun onLost(network: android.net.Network) { main.post(refresh) }
+            override fun onCapabilitiesChanged(network: android.net.Network, caps: android.net.NetworkCapabilities) { main.post(refresh) }
+        }
+        val registered = try { cm.registerDefaultNetworkCallback(cb); true } catch (_: Exception) { false }
+        onDispose {
+            main.removeCallbacks(refresh)
+            if (registered) try { cm.unregisterNetworkCallback(cb) } catch (_: Exception) {}
+            try { org.maplibre.android.net.ConnectivityReceiver.instance(context).setConnected(null) } catch (_: Throwable) {}
+        }
+    }
+    LaunchedEffect(c, vm.settings, vm.activity, online) { c.layers.apply(vm.settings, vm.activity, online) }
     // Re-routing: thin grey original while a new route is followed, dashed proposal while asking, dashed guide to
     // the route when no way was found / the original was kept (see NavigateScreen, navigation/Navigator).
     val nav = rec?.nav

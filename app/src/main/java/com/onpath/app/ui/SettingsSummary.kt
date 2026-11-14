@@ -78,8 +78,16 @@ object SettingsSummary {
         })
     }
 
-    fun map(s: AppSettings): Summary = Summary(Txt.s(Res.string.settings_sum_map, onOff(s.contours), onOff(s.hillshade),
-        Txt.s(if (s.navHeadingUp) Res.string.settings_map_travel else Res.string.settings_map_north)))
+    fun map(s: AppSettings): Summary {
+        val core = Txt.s(Res.string.settings_sum_map, onOff(s.contours), onOff(s.hillshade),
+            Txt.s(if (s.navHeadingUp) Res.string.settings_map_travel else Res.string.settings_map_north))
+        val prefix = when (s.baseMapStyle) {
+            AppSettings.BASE_MAP_OPENTOPOMAP -> Txt.s(Res.string.settings_map_base_opentopomap)
+            AppSettings.BASE_MAP_CYCLOSM -> Txt.s(Res.string.settings_map_base_cyclosm)
+            else -> null
+        }
+        return Summary(if (prefix != null) "$prefix · $core" else core)
+    }
 
     fun navigation(s: AppSettings): Summary = Summary(
         if (!s.offRouteWarning) Txt.s(Res.string.settings_sum_nav_off, onOff(s.junctionGuide != com.onpath.app.data.JunctionGuide.OFF))
@@ -89,6 +97,10 @@ object SettingsSummary {
     fun offlineMaps(ui: OfflineMapsUi): Summary {
         val waiting = ui.waiting?.let { w -> (w.regions + w.routingParts).takeIf { it > 0 } }
         val base = when {
+            ui.areas.isEmpty() && ui.localPackages.isNotEmpty() -> {
+                val active = ui.localPackages.firstOrNull { it.active } ?: ui.localPackages.first()
+                Txt.p(Res.plurals.settings_sum_maps_packages, ui.localPackages.size, active.region, ui.localPackages.size)
+            }
             ui.areas.isEmpty() && !ui.available -> Txt.s(Res.string.settings_sum_maps_unavailable)
             ui.areas.isEmpty() -> Txt.s(Res.string.settings_sum_maps_none)
             else -> Txt.p(Res.plurals.settings_sum_maps_areas, ui.areas.size, sizeText(ui.areas.sumOf { it.bytes }), ui.areas.size)

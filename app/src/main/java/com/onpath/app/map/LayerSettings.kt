@@ -5,6 +5,7 @@ import com.onpath.app.debug.Problems
 import com.onpath.app.poi.POI_LAYER_PREFIX
 import com.onpath.app.poi.PoiFilter
 import com.onpath.app.poi.PoiKinds
+import com.onpath.app.routing.Activity
 import org.json.JSONObject
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
@@ -27,7 +28,7 @@ class LayerSettings(private val style: Style) {
     private val originalPoiFilters: Map<String, String?> = readPoiFilters()
     private var lastHidden: Set<String>? = null
 
-    fun apply(s: AppSettings) {
+    fun apply(s: AppSettings, activity: Activity = Activity.HIKE, online: Boolean = true) {
         // After a style reload (map data arrived, theme change, import) this object still points at the
         // old style; MapLibre then throws on every access. The new style gets its own MapController and
         // LayerSettings, which apply the settings again – so here we just skip.
@@ -36,6 +37,15 @@ class LayerSettings(private val style: Style) {
             if (s.hiddenPoiKinds != lastHidden) { applyPoi(s.hiddenPoiKinds); lastHidden = s.hiddenPoiKinds }
             setVisible("contour-", s.contours)
             setVisible("hillshade", s.hillshade)
+            val effectiveBase = if (online) s.baseMapStyle else AppSettings.BASE_MAP_ONPATH
+            setLayerVisible(StyleLoader.LAYER_OPENTOPOMAP, effectiveBase == AppSettings.BASE_MAP_OPENTOPOMAP)
+            setLayerVisible(StyleLoader.LAYER_CYCLOSM, effectiveBase == AppSettings.BASE_MAP_CYCLOSM)
+            val wm = online && s.waymarkedTrails
+            val mtb = activity == Activity.MTB || activity == Activity.EMTB
+            val hike = activity == Activity.HIKE
+            setLayerVisible(StyleLoader.LAYER_WAYMARKED_HIKING, wm && hike)
+            setLayerVisible(StyleLoader.LAYER_WAYMARKED_CYCLING, wm && !hike && !mtb)
+            setLayerVisible(StyleLoader.LAYER_WAYMARKED_MTB, wm && mtb)
         } catch (e: Exception) {
             Problems.warn("settings", "Map layer settings not applied, map keeps its previous look", e)
         }
@@ -65,6 +75,12 @@ class LayerSettings(private val style: Style) {
             try { it.setProperties(PropertyFactory.visibility(if (visible) Property.VISIBLE else Property.NONE)) }
             catch (e: Exception) { Problems.warn("settings", "Visibility of map layer ${it.id} not changed", e) }
         }
+    }
+
+    private fun setLayerVisible(id: String, visible: Boolean) {
+        val layer = try { style.getLayer(id) } catch (_: Exception) { null } ?: return
+        try { layer.setProperties(PropertyFactory.visibility(if (visible) Property.VISIBLE else Property.NONE)) }
+        catch (e: Exception) { Problems.warn("settings", "Visibility of map layer $id not changed", e) }
     }
 
     private fun setFilter(layer: Layer, e: Expression) {

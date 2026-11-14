@@ -179,4 +179,21 @@
     <string name="settings_group_screen">Screen and map</string>
     <string name="settings_group_lock">Lock during a tour</string>
     <string name="settings_phone_missing">Missing: %1$s</string>
+    <string name="settings_map_base">Base map</string>
+    <string name="settings_map_base_onpath">OnPath Vector</string>
+    <string name="settings_map_base_opentopomap">OpenTopoMap (Topo)</string>
+    <string name="settings_map_base_cyclosm">CyclOSM (Cycling / MTB)</string>
+    <string name="settings_map_waymarked">Waymarked Trails overlay</string>
+    <string name="settings_map_waymarked_sub">Marked hiking, cycling and MTB routes</string>
+    <string name="settings_map_prefer_official">Auto-snap to official routes</string>
+    <string name="settings_map_prefer_official_sub">Prefer marked hiking, cycling and MTB networks when routing</string>
+    <string name="settings_map_official_off">Off</string>
+    <string name="settings_map_official_off_sub">Direct paths without preferring marked routes</string>
+    <string name="settings_map_official_normal">Normal (balanced)</string>
+    <string name="settings_map_official_normal_sub">Moderately prefer marked hiking, cycling and MTB routes</string>
+    <string name="settings_map_official_strong">Strong</string>
+    <string name="settings_map_official_strong_sub">Strongly snap routes onto official marked networks</string>
+    <string name="settings_map_manage_offline">Manage offline map packages (.zip)</string>
+    <string name="settings_map_manage_offline_sub">Import, view or switch local map regions</string>
+    <plurals name="settings_sum_maps_packages"><item quantity="one">%1$s · %2$d package</item><item quantity="other">%1$s · %2$d packages</item></plurals>
 </resources>

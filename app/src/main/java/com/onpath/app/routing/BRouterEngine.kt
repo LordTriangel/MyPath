@@ -76,11 +76,19 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
         return if (r.engine.airDistanceCostFactor > 0.0) pass * GUIDE_SHARE else GUIDE_SHARE + pass * (1.0 - GUIDE_SHARE)
     }
 
+    /** Official marked hiking, cycling and MTB route preference: 0 = off, 1 = normal, 2 = strong. */
+    @Volatile var officialRouteStrength: Int = 2
+
+    /** Legacy boolean helper mapped onto [officialRouteStrength]. */
+    var preferOfficialRoutes: Boolean
+        get() = officialRouteStrength > 0
+        set(value) { officialRouteStrength = if (value) 2 else 0 }
+
     private val cache = object : LinkedHashMap<CacheKey, RouteResult>(CACHE_SIZE + 1, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<CacheKey, RouteResult>?) = size > CACHE_SIZE
     }
 
-    private data class CacheKey(val coords: List<Long>, val activity: Activity, val sac: Int)
+    private data class CacheKey(val coords: List<Long>, val activity: Activity, val sac: Int, val officialStrength: Int)
 
     override fun route(waypoints: List<GeoPoint>, activity: Activity, sacLimit: Int): RouteResult =
         routeWith(waypoints, activity, sacLimit, null)
@@ -96,10 +104,11 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
             else if (!LOCK.tryLock(limits.timeoutMs, TimeUnit.MILLISECONDS)) throw RoutingException(BUSY, timedOut = true)
             lastLockWait.set(System.currentTimeMillis() - start)
             try {
-                val key = cacheKey(waypoints, activity, sacLimit)
+                val strength = officialRouteStrength.coerceIn(0, 2)
+                val key = cacheKey(waypoints, activity, sacLimit, strength)
                 cache[key] ?: run {
                     val budget = limits?.let { (it.timeoutMs - (System.currentTimeMillis() - start)).coerceAtLeast(MIN_BUDGET_MS) }
-                    routeLocked(waypoints, activity, sacLimit, budget, limits?.cancel, limits?.rounds ?: 1)
+                    routeLocked(waypoints, activity, sacLimit, budget, limits?.cancel, limits?.rounds ?: 1, strength)
                 }.also { cache[key] = it }
             } finally {
                 LOCK.unlock()
@@ -124,17 +133,18 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
             throw RoutingException(UNEXPECTED)
         }
 
-    private fun cacheKey(waypoints: List<GeoPoint>, activity: Activity, sacLimit: Int): CacheKey {
+    private fun cacheKey(waypoints: List<GeoPoint>, activity: Activity, sacLimit: Int,
+                         officialStrength: Int = officialRouteStrength.coerceIn(0, 2)): CacheKey {
         val c = ArrayList<Long>(waypoints.size * 2)
         for (p in waypoints) {
             c.add(Math.round(p.lat * 1_000_000.0)); c.add(Math.round(p.lon * 1_000_000.0))
         }
-        return CacheKey(c, activity, if (activity == Activity.HIKE) sacLimit.coerceIn(1, 5) else 0)
+        return CacheKey(c, activity, if (activity == Activity.HIKE) sacLimit.coerceIn(1, 5) else 0, officialStrength)
     }
 
     private fun routeLocked(
         waypoints: List<GeoPoint>, activity: Activity, sacLimit: Int, budgetMs: Long? = null, cancel: RouteCancel? = null,
-        rounds: Int = 1,
+        rounds: Int = 1, officialStrength: Int = officialRouteStrength.coerceIn(0, 2),
     ): RouteResult {
         if (waypoints.size < 2) throw RoutingException(Txt.s(Res.string.plan_err_set_start_dest))
         checkSegments(waypoints)
@@ -144,7 +154,7 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
         if (cancel?.isCancelled == true) throw RoutingException(CANCELLED)
 
         val (track, nodes) = try {
-            search(waypoints, activity, sacLimit, timeoutMs, cancel)
+            search(waypoints, activity, sacLimit, timeoutMs, cancel, officialStrength)
         } catch (e: RoutingException) {
             throw e
         } catch (e: OutOfMemoryError) {
@@ -166,13 +176,14 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
      */
     private fun search(
         waypoints: List<GeoPoint>, activity: Activity, sacLimit: Int, timeoutMs: Long, cancel: RouteCancel?,
+        officialStrength: Int = officialRouteStrength.coerceIn(0, 2),
     ): Pair<OsmTrack, List<OsmNodeNamed>> {
         val t0 = System.currentTimeMillis()
         val skipWays = ArrayList<LongArray>()
         while (true) {
             val rc = RoutingContext()
             rc.localFunction = File(profileDir, profileFile(activity)).absolutePath
-            rc.keyValues = keyValues(activity, sacLimit)
+            rc.keyValues = keyValues(activity, sacLimit, officialStrength)
             val nodes = bRouterNodes(waypoints)
             val engine = BRouter(null, null, segmentsDir, nodes, rc)
             engine.quite = true
@@ -360,7 +371,7 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
     }
 
     /** Profile parameter overrides; BRouter injects these as numeric `assign`s that win over the .brf. */
-    private fun keyValues(activity: Activity, sacLimit: Int): MutableMap<String, String> {
+    private fun keyValues(activity: Activity, sacLimit: Int, officialStrength: Int = officialRouteStrength.coerceIn(0, 2)): MutableMap<String, String> {
         val kv = HashMap<String, String>()
         // BRouter's turn instructions at real junctions → GeoPoint.turn (junction vibration + lock screen, owner).
         // A mode > 1 makes BRouter compute them (1 = "auto-choose" leaves the field 0 = none in RoutingContext); the mode
@@ -375,12 +386,21 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
         // is further away, instead of BRouter widening the search up to 60 km
         kv["use_dynamic_range"] = "0"
         kv["waypointCatchingRange"] = MAX_SNAP_M.toInt().toString()
+        val s = officialStrength.coerceIn(0, 2)
         when (activity) {
             Activity.EBIKE -> {
                 kv["bikerPower"] = "180"; kv["maxSpeed"] = "25"; kv["totalMass"] = "110"
+                kv["stick_to_cycleroutes"] = if (s > 0) "1" else "0"
             }
             Activity.EMTB -> {
                 kv["bikerPower"] = "180"; kv["maxSpeed"] = "25"; kv["totalMass"] = "115"
+                kv["cycleroutes_pref"] = when (s) { 0 -> "0.0"; 1 -> "0.4"; else -> "1.0" }
+            }
+            Activity.BIKE_TOURING, Activity.BIKE_TREKKING -> {
+                kv["stick_to_cycleroutes"] = if (s > 0) "1" else "0"
+            }
+            Activity.MTB -> {
+                kv["cycleroutes_pref"] = when (s) { 0 -> "0.0"; 1 -> "0.4"; else -> "1.0" }
             }
             Activity.HIKE -> {
                 // above the limit = forbidden (profile). Preferred = the limit but at most T3: a marked T2/T3 trail beats the
@@ -388,8 +408,8 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
                 val sac = sacLimit.coerceIn(1, 5)
                 kv["SAC_scale_limit"] = sac.toString()
                 kv["SAC_scale_preferred"] = minOf(sac, 3).toString()
+                kv["hiking_routes_preference"] = when (s) { 0 -> "0.0"; 1 -> "0.8"; else -> "2.0" }
             }
-            else -> Unit
         }
         return kv
     }

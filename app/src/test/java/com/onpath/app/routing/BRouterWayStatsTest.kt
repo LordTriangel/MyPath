@@ -109,6 +109,26 @@ class BRouterWayStatsTest {
         assertFalse(BRouterWayStats.attrs(t("highway=footway")).cycleRoute)
     }
 
+    @Test fun hikingMtbAndOfficialRouteFlags() {
+        for (n in listOf("iwn", "nwn", "rwn", "lwn")) {
+            val a = BRouterWayStats.attrs(t("highway=path route_hiking_$n=yes"))
+            assertTrue(n, a.hikingRoute)
+            assertFalse(n, a.cycleRoute)
+            assertTrue(n, a.officialRoute)
+            assertEquals(a, WayAttrs.parse(a.code()))
+        }
+        val mtb = BRouterWayStats.attrs(t("highway=path route_bicycle_mtb=yes"))
+        assertTrue(mtb.mtbRoute)
+        assertFalse(mtb.cycleRoute)
+        assertTrue(mtb.officialRoute)
+        assertEquals(mtb, WayAttrs.parse(mtb.code()))
+
+        val plain = BRouterWayStats.attrs(t("highway=path"))
+        assertFalse(plain.hikingRoute)
+        assertFalse(plain.mtbRoute)
+        assertFalse(plain.officialRoute)
+    }
+
     @Test fun pedestrianZoneIsMarked() {
         val zone = BRouterWayStats.attrs(t("highway=pedestrian route_bicycle_lcn=yes"))
         assertEquals("footway", zone.wayType)

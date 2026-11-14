@@ -21,6 +21,12 @@ class OnPathApp : Application() {
         installMapLibreLogger()
         // Must happen before any MapView is created. No API key / network needed.
         MapLibre.getInstance(this)
+        // Cache up to 250 MB of ambient raster/vector tiles (OpenTopoMap, CyclOSM, Waymarked Trails) for offline fallback.
+        try {
+            org.maplibre.android.offline.OfflineManager.getInstance(this).setMaximumAmbientCacheSize(250L * 1024 * 1024, null)
+        } catch (e: Exception) {
+            Problems.warn("map", "MapLibre ambient tile cache size could not be increased", e)
+        }
         RecordingService.createChannels(this)
         // on screen or not: the off-route question is a heads-up only when the app is not on screen (AppVisibility)
         registerActivityLifecycleCallbacks(com.onpath.app.recording.AppVisibility.callbacks)

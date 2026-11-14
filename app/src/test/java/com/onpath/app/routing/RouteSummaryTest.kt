@@ -280,4 +280,20 @@ class RouteSummaryTest {
         assertTrue(RouteSummary.steepness(doubleArrayOf(0.0), doubleArrayOf(1.0)).isEmpty())
         assertEquals(listOf(Steepness.VERY_STEEP), RouteSummary.steepness(doubleArrayOf(0.0, 10.0), doubleArrayOf(0.0, 2.0)))
     }
+
+    @Test fun officialRouteShareAndSlopePct() {
+        val plain = runs(1_000.0 to path(), 1_000.0 to road())
+        assertEquals(null, RouteSummary.officialRouteShare(plain))
+
+        val hikingWay = WayAttrs("path", "natural_trail", hikingRoute = true)
+        val mixed = runs(1_500.0 to hikingWay, 500.0 to road())
+        val share = RouteSummary.officialRouteShare(mixed)!!
+        assertEquals(1_500.0, share.first, 5.0)
+        assertEquals(75, share.second)
+
+        val dist = DoubleArray(11) { it * 10.0 }
+        val ele = DoubleArray(11) { 500.0 + it * 1.0 }
+        val profile = ProfileData(dist, ele, IntArray(11) { it }, 500.0, 510.0, 100.0)
+        assertEquals(10, RouteSummary.slopePct(profile, 5))
+    }
 }

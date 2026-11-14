@@ -105,14 +105,22 @@ data class WayAttrs(
     val barrier: String? = null,
     /** highway=construction: the way is being built or rebuilt and may be closed. */
     val construction: Boolean = false,
+    /** Part of a marked hiking route (iwn / nwn / rwn / lwn / route=hiking|foot). */
+    val hikingRoute: Boolean = false,
+    /** Part of a marked MTB route (route_bicycle_mtb=yes / route=mtb). */
+    val mtbRoute: Boolean = false,
 ) {
+    /** True when the way belongs to any official marked cycle, hiking or MTB route network. */
+    val officialRoute: Boolean get() = cycleRoute || hikingRoute || mtbRoute
+
     /**
      * Compact text form for files ("path|natural_trail|3|-1||bad||yes|r|stile"; field 9 = flags: r cycle route,
-     * p pedestrian zone, f ford, c construction; field 10 = [barrier]); [parse] reads it back (older codes: no bike
-     * access, not on a cycle route, no pedestrian zone, no ford / barrier / construction).
+     * h hiking route, m MTB route, p pedestrian zone, f ford, c construction; field 10 = [barrier]); [parse] reads
+     * it back (older codes default missing flags to false).
      */
     fun code(): String = listOf(wayType, surface, sac.toString(), mtb.toString(), smoothness.orEmpty(), visibility.orEmpty(),
-        rough.orEmpty(), bicycle.orEmpty(), (if (cycleRoute) "r" else "") + (if (pedestrian) "p" else "") +
+        rough.orEmpty(), bicycle.orEmpty(), (if (cycleRoute) "r" else "") + (if (hikingRoute) "h" else "") +
+            (if (mtbRoute) "m" else "") + (if (pedestrian) "p" else "") +
             (if (ford) "f" else "") + (if (construction) "c" else ""), barrier.orEmpty()).joinToString("|")
 
     companion object {
@@ -123,7 +131,9 @@ data class WayAttrs(
                 c.getOrNull(4)?.ifEmpty { null }, c.getOrNull(5)?.ifEmpty { null }, c.getOrNull(6)?.ifEmpty { null },
                 c.getOrNull(7)?.ifEmpty { null }, c.getOrNull(8)?.contains('r') == true, c.getOrNull(8)?.contains('p') == true,
                 ford = c.getOrNull(8)?.contains('f') == true, barrier = c.getOrNull(9)?.ifEmpty { null },
-                construction = c.getOrNull(8)?.contains('c') == true)
+                construction = c.getOrNull(8)?.contains('c') == true,
+                hikingRoute = c.getOrNull(8)?.contains('h') == true,
+                mtbRoute = c.getOrNull(8)?.contains('m') == true)
         } catch (_: Exception) { null } // expected: an unknown / old code = no attributes
     }
 }

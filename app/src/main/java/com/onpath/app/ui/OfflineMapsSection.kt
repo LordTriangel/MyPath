@@ -4,13 +4,21 @@ import com.onpath.strings.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
@@ -54,6 +62,10 @@ data class OfflineMapsUi(
     val clearAllBlocked: String? = null,
     /** What the last Clean up / Clear all removed – a plain line on the page until it is left ([OfflineResult]). */
     val result: String? = null,
+    /** Locally imported .zip region packages (active + stored in packages/<region>/). */
+    val localPackages: List<com.onpath.app.data.LocalMapPackage> = emptyList(),
+    /** Active import / copy status text, null when idle. */
+    val dataBusy: String? = null,
 )
 
 /** The result line of Clean up / Clear all: on the page, not a message box on the map. */
@@ -107,18 +119,93 @@ class OfflineMapsCallbacks(
     val onCleanUpCancel: () -> Unit = {},
     /** "Clear all", after the second confirmation. */
     val onClearAll: () -> Unit = {},
+    /** Pick one or more offline map .zip packages from phone storage. */
+    val onImportZip: () -> Unit = {},
+    /** Switch active offline map package to [region]. */
+    val onActivatePackage: (String) -> Unit = {},
+    /** Delete stored (inactive) offline map package [region]. */
+    val onDeletePackage: (String) -> Unit = {},
 )
 
-/** Settings → Offline maps: installed areas, total size, delete (asked in the page), Wi-Fi only, update now. */
+/** Settings → Offline maps: local .zip map packages, server-downloaded areas, Wi-Fi only, update now. */
 @Composable
 fun OfflineMapsSection(ui: OfflineMapsUi, cb: OfflineMapsCallbacks, initialConfirm: String? = null,
                        initialClearAll: Boolean = false) {
     var confirm by remember { mutableStateOf(initialConfirm) }
+    var confirmPkg by remember { mutableStateOf<String?>(null) }
     var askClearAll by remember { mutableStateOf(initialClearAll) }
     val variant = MaterialTheme.colorScheme.onSurfaceVariant
     val small = MaterialTheme.typography.bodySmall
     val body = MaterialTheme.typography.bodyLarge
-    Section(str(Res.string.maps_offline_title)) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Section(str(Res.string.maps_local_packages_title)) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(str(Res.string.maps_local_packages_title), style = MaterialTheme.typography.titleSmall, color = OnPathColors.Green)
+                if (ui.localPackages.isEmpty()) {
+                    Text(str(Res.string.maps_local_packages_empty), style = body)
+                } else {
+                    ui.localPackages.forEach { pkg ->
+                        HorizontalDivider(Modifier.padding(vertical = 2.dp))
+                        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(pkg.region, style = body, fontWeight = if (pkg.active) FontWeight.SemiBold else FontWeight.Normal)
+                                val meta = listOfNotNull(
+                                    mbText(pkg.bytes),
+                                    pkg.area.takeIf { it.isNotBlank() },
+                                    pkg.osmDate?.let { "OSM $it" },
+                                ).joinToString(" · ")
+                                Text(meta, style = small, color = variant)
+                            }
+                            if (pkg.active) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.CheckCircle, null, tint = OnPathColors.Good, modifier = Modifier.size(18.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(str(Res.string.maps_package_active), style = small, color = OnPathColors.Good, fontWeight = FontWeight.SemiBold)
+                                }
+                            } else {
+                                TextButton(
+                                    onClick = { confirmPkg = null; cb.onActivatePackage(pkg.region) },
+                                    enabled = ui.dataBusy == null && ui.clearAllBlocked == null,
+                                    modifier = Modifier.heightIn(min = 48.dp),
+                                ) { Text(str(Res.string.maps_package_activate), fontWeight = FontWeight.SemiBold) }
+                                if (confirmPkg != pkg.region) {
+                                    TextButton(
+                                        onClick = { confirmPkg = pkg.region },
+                                        enabled = ui.dataBusy == null,
+                                        modifier = Modifier.heightIn(min = 48.dp),
+                                    ) { Text(str(Res.string.common_delete)) }
+                                }
+                            }
+                        }
+                        if (!pkg.active && confirmPkg == pkg.region) {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(str(Res.string.maps_package_delete_question, pkg.region, mbText(pkg.bytes)),
+                                    style = small, modifier = Modifier.weight(1f))
+                                TextButton(onClick = { confirmPkg = null }, modifier = Modifier.heightIn(min = 48.dp)) { Text(str(Res.string.common_cancel)) }
+                                TextButton(onClick = { confirmPkg = null; cb.onDeletePackage(pkg.region) }, modifier = Modifier.heightIn(min = 48.dp)) {
+                                    Text(str(Res.string.common_delete), color = OnPathColors.Bad, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
+                }
+                Button(
+                    onClick = cb.onImportZip,
+                    enabled = ui.dataBusy == null,
+                    shape = OnPathShapes.Pill,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
+                ) { Text(str(Res.string.routes_data_import)) }
+                ui.dataBusy?.let { busyText ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(10.dp))
+                        Text(busyText, style = small)
+                    }
+                }
+                Text(ui.clearAllBlocked ?: str(Res.string.maps_local_packages_note), style = small, color = variant)
+            }
+        }
+        Section(str(Res.string.maps_offline_title)) {
         Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             // no intro: the page shows what is there
             if (!ui.available) Text(str(Res.string.maps_not_available), style = small, color = variant)
@@ -185,6 +272,7 @@ fun OfflineMapsSection(ui: OfflineMapsUi, cb: OfflineMapsCallbacks, initialConfi
             Text(ui.clearAllBlocked ?: str(Res.string.maps_clear_all_note),
                 style = small, color = variant)
         }
+    }
     }
     ui.cleanup?.let { c ->
         AlertDialog(onDismissRequest = cb.onCleanUpCancel,

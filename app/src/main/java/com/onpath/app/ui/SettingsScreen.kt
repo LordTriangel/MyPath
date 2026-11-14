@@ -275,7 +275,7 @@ fun SettingsScreen(
                     when (page) {
                         SettingsPage.PACE -> item { PaceSection(settings, onChange, activity) } // PaceSettings.kt
                         SettingsPage.POI -> item { PoiSection(settings, onChange, initiallyExpanded) }
-                        SettingsPage.MAP -> item { MapSection(settings, onChange, themes) }
+                        SettingsPage.MAP -> item { MapSection(settings, onChange, themes, onOpenOfflineMaps = { onPage(SettingsPage.OFFLINE_MAPS) }) }
                         SettingsPage.NAVIGATION -> item {
                             NavigationSection(settings, onChange, onPhoneSetup = { onPage(SettingsPage.PHONE) },
                                 onTestVibration = { onPhoneFix(com.onpath.app.setup.CheckId.VIBRATION) },
@@ -431,12 +431,33 @@ private fun PoiSection(settings: AppSettings, onChange: (AppSettings) -> Unit, i
     }
 }
 
-/** Map: contours, hill shading, map direction (Plan and Navigate) and – for planning – the vibration on hold. */
+/** Map: base map, overlays, contours, hill shading, map direction, offline packages link, and routing/planning. */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun MapSection(settings: AppSettings, onChange: (AppSettings) -> Unit, themes: List<String>) {
+private fun MapSection(
+    settings: AppSettings,
+    onChange: (AppSettings) -> Unit,
+    themes: List<String>,
+    onOpenOfflineMaps: () -> Unit = {},
+) {
+    val officialChoices = listOf(
+        Choice(AppSettings.OFFICIAL_STRONG, str(Res.string.settings_map_official_strong), str(Res.string.settings_map_official_strong_sub)),
+        Choice(AppSettings.OFFICIAL_NORMAL, str(Res.string.settings_map_official_normal), str(Res.string.settings_map_official_normal_sub)),
+        Choice(AppSettings.OFFICIAL_OFF, str(Res.string.settings_map_official_off), str(Res.string.settings_map_official_off_sub)),
+    )
+    val selectedOfficial = officialChoices.firstOrNull { it.value == settings.officialRouteStrength } ?: officialChoices.first()
     Section(SettingsPage.MAP.title) {
         // value rows (owner 2026-11-06 23:05): the choice opens as a sheet ([ChoiceRow])
+        ChoiceRow(str(Res.string.settings_map_base), null,
+            listOf(
+                Choice(AppSettings.BASE_MAP_ONPATH, str(Res.string.settings_map_base_onpath)),
+                Choice(AppSettings.BASE_MAP_OPENTOPOMAP, str(Res.string.settings_map_base_opentopomap)),
+                Choice(AppSettings.BASE_MAP_CYCLOSM, str(Res.string.settings_map_base_cyclosm)),
+            ),
+            settings.baseMapStyle,
+            onPick = { onChange(settings.copy(baseMapStyle = it)) })
+        SwitchRow(str(Res.string.settings_map_waymarked), str(Res.string.settings_map_waymarked_sub),
+            settings.waymarkedTrails) { onChange(settings.copy(waymarkedTrails = it)) }
         if (themes.size > 1) ChoiceRow(str(Res.string.settings_map_style), null,
             themes.map { Choice(it, com.onpath.app.map.StyleLoader.label(it)) }, settings.mapTheme,
             onPick = { onChange(settings.copy(mapTheme = it)) })
@@ -445,9 +466,23 @@ private fun MapSection(settings: AppSettings, onChange: (AppSettings) -> Unit, t
         ChoiceRow(str(Res.string.settings_map_direction), null,
             listOf(Choice(true, str(Res.string.settings_map_travel)), Choice(false, str(Res.string.settings_map_north))),
             settings.navHeadingUp, onPick = { onChange(settings.copy(navHeadingUp = it)) })
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(role = Role.Button, onClick = onOpenOfflineMaps)
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(str(Res.string.settings_map_manage_offline), style = MaterialTheme.typography.bodyLarge)
+                Text(str(Res.string.settings_map_manage_offline_sub), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         HorizontalDivider(Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
         Text(str(Res.string.settings_map_planning), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = OnPathColors.Green,
             modifier = Modifier.padding(start = 16.dp, top = 2.dp))
+        ChoiceRow(str(Res.string.settings_map_prefer_official), selectedOfficial.line, officialChoices,
+            settings.officialRouteStrength, onPick = { onChange(settings.copy(officialRouteStrength = it)) })
         SwitchRow(str(Res.string.settings_map_vibrate), str(Res.string.settings_map_vibrate_sub),
             settings.planVibrate) { onChange(settings.copy(planVibrate = it)) }
     }

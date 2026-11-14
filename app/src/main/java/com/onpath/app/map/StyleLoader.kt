@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.onpath.app.data.DataFiles
 import com.onpath.app.debug.Problems
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 
@@ -27,6 +28,12 @@ object StyleLoader {
     const val DEFAULT_THEME = "classic"
     private const val ASSET_DIR = "style"
     const val OVERRIDE_DIR = "styles"
+
+    const val LAYER_OPENTOPOMAP = "raster-opentopomap"
+    const val LAYER_CYCLOSM = "raster-cyclosm"
+    const val LAYER_WAYMARKED_HIKING = "raster-waymarked-hiking"
+    const val LAYER_WAYMARKED_CYCLING = "raster-waymarked-cycling"
+    const val LAYER_WAYMARKED_MTB = "raster-waymarked-mtb"
 
     /** Which style the last [load] used ("override onpath.json", "asset onpath.json", "fallback") – diagnostics. */
     @Volatile var lastLoaded: String? = null
@@ -183,14 +190,92 @@ object StyleLoader {
                 if (!json.trimStart().startsWith("{")) error("not JSON")
                 Log.i("OnPath", "Map style: $what")
                 lastLoaded = what
-                return withOverview(json.replace("{DATA_DIR}", dir), Overview.bundled(context), cover = cover, packages = packages)
+                val withOv = withOverview(json.replace("{DATA_DIR}", dir), Overview.bundled(context), cover = cover, packages = packages)
+                return withExternalRasters(withOv)
             } catch (e: Exception) {
                 Problems.warn("map", "Map style $what not usable, trying the next one", e)
             }
         }
         Problems.error("map", "No map style file usable – minimal fallback style used, map mostly empty")
         lastLoaded = "fallback"
-        return fallback(mapDir)
+        return withExternalRasters(fallback(mapDir))
+    }
+
+    /**
+     * Injects selectable raster base maps (OpenTopoMap, CyclOSM) and transparent Waymarked Trails
+     * route overlays into [styleJson]. All injected layers start hidden and are toggled by [LayerSettings].
+     */
+    fun withExternalRasters(styleJson: String): String {
+        return try {
+            val root = JSONObject(styleJson)
+            val sources = root.optJSONObject("sources") ?: JSONObject().also { root.put("sources", it) }
+            val layers = root.optJSONArray("layers") ?: return styleJson
+            fun addSource(id: String, tiles: List<String>, maxZoom: Int, attribution: String) {
+                if (sources.has(id)) return
+                sources.put(id, JSONObject().apply {
+                    put("type", "raster")
+                    put("tiles", JSONArray(tiles))
+                    put("tileSize", 256)
+                    put("maxzoom", maxZoom)
+                    put("attribution", attribution)
+                })
+            }
+            addSource("opentopomap-source",
+                listOf("https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+                    "https://b.tile.opentopomap.org/{z}/{x}/{y}.png",
+                    "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"),
+                17, "© OpenTopoMap (CC-BY-SA)")
+            addSource("cyclosm-source",
+                listOf("https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
+                    "https://b.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
+                    "https://c.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"),
+                20, "© CyclOSM · OpenStreetMap contributors")
+            addSource("waymarked-hiking-source",
+                listOf("https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png"), 18, "© Waymarked Trails")
+            addSource("waymarked-cycling-source",
+                listOf("https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png"), 18, "© Waymarked Trails")
+            addSource("waymarked-mtb-source",
+                listOf("https://tile.waymarkedtrails.org/mtb/{z}/{x}/{y}.png"), 18, "© Waymarked Trails")
+
+            val extraSpecs = listOf(
+                Triple(LAYER_OPENTOPOMAP, "opentopomap-source", 1.0),
+                Triple(LAYER_CYCLOSM, "cyclosm-source", 1.0),
+                Triple(LAYER_WAYMARKED_HIKING, "waymarked-hiking-source", 0.85),
+                Triple(LAYER_WAYMARKED_CYCLING, "waymarked-cycling-source", 0.85),
+                Triple(LAYER_WAYMARKED_MTB, "waymarked-mtb-source", 0.85),
+            )
+            val existingIds = buildSet {
+                for (i in 0 until layers.length()) add(layers.optJSONObject(i)?.optString("id").orEmpty())
+            }
+            val toInsert = extraSpecs.filter { it.first !in existingIds }.map { (id, src, opacity) ->
+                JSONObject().apply {
+                    put("id", id)
+                    put("type", "raster")
+                    put("source", src)
+                    put("layout", JSONObject().put("visibility", "none"))
+                    if (opacity < 1.0) put("paint", JSONObject().put("raster-opacity", opacity))
+                }
+            }
+            if (toInsert.isNotEmpty()) {
+                val out = JSONArray()
+                var inserted = false
+                for (i in 0 until layers.length()) {
+                    val layer = layers.get(i)
+                    val id = (layer as? JSONObject)?.optString("id").orEmpty()
+                    if (!inserted && (id.startsWith("poi-") || id.startsWith("routes-") || id.startsWith("sac-"))) {
+                        toInsert.forEach { out.put(it) }
+                        inserted = true
+                    }
+                    out.put(layer)
+                }
+                if (!inserted) toInsert.forEach { out.put(it) }
+                root.put("layers", out)
+            }
+            root.toString()
+        } catch (e: Exception) {
+            Problems.warn("map", "External raster layers not added", e)
+            styleJson
+        }
     }
 
     /**

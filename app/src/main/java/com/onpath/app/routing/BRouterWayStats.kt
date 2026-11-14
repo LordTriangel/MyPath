@@ -76,6 +76,8 @@ object BRouterWayStats {
         pedestrian = tags["highway"] == "pedestrian",
         ford = tags["ford"] in FORDS,
         construction = tags["highway"] == "construction",
+        hikingRoute = HIKING_ROUTES.any { tags[it] == "yes" } || tags["route"] == "hiking" || tags["route"] == "foot",
+        mtbRoute = tags["route_bicycle_mtb"] == "yes" || tags["route"] == "mtb",
     )
 
     /**
@@ -201,6 +203,7 @@ object BRouterWayStats {
     )
     /** BRouter's pseudo-tags for cycle route relations (lookups.dat); route_bicycle_mtb is not a touring route. */
     private val CYCLE_ROUTES = listOf("route_bicycle_icn", "route_bicycle_ncn", "route_bicycle_rcn", "route_bicycle_lcn")
+    private val HIKING_ROUTES = listOf("route_hiking_iwn", "route_hiking_nwn", "route_hiking_rwn", "route_hiking_lwn", "route_hiking_")
     private val FORDS = setOf("yes", "stepping_stones")
     /** Barriers a bike does not simply pass (bollards, gates, lift gates, cycle barriers do not count). */
     val HARD_BARRIERS = setOf("stile", "kissing_gate", "turnstile", "full-height_turnstile")

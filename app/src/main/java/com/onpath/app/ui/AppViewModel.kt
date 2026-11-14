@@ -151,7 +151,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launchSafe("app", "start-up work", Dispatchers.IO) {
             val note = packageNote()
             val p = dataFiles.packageCheck()
-            withContext(Dispatchers.Main) { packageCheck = p; if (note.isNotEmpty() && errorCard == null) sayError(note.trim(), NoticePlace.BACKGROUND) }
+            val pkgs = if (dataFiles.ready()) com.onpath.app.data.PackageStore.list(dataFiles.dir) else emptyList()
+            withContext(Dispatchers.Main) {
+                packageCheck = p
+                localPackages = pkgs
+                if (note.isNotEmpty() && errorCard == null) sayError(note.trim(), NoticePlace.BACKGROUND)
+            }
         }
     }
     var dataScreenDismissed by mutableStateOf(false)
@@ -654,7 +659,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun cancelAllDownloads() = mapData.cancelAllDownloads()
     fun loadAreaNames() = mapData.loadAreaNames()
     fun offlineMapsUi(states: Map<com.onpath.app.cells.CellId, com.onpath.app.cells.CellState>,
-                      installed: List<com.onpath.app.cells.CellStore.InstalledCell>): OfflineMapsUi = mapData.offlineMapsUi(states, installed)
+                      installed: List<com.onpath.app.cells.CellStore.InstalledCell>): OfflineMapsUi =
+        mapData.offlineMapsUi(states, installed).copy(localPackages = localPackages, dataBusy = dataBusy)
     fun updateMapsNow() = mapData.updateMapsNow()
     fun deleteMapArea(id: String) = mapData.deleteMapArea(id)
     /** Settings → Diagnostics → "Download routing data" (normally routing data comes by itself with the map). */
@@ -1198,6 +1204,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     @Synchronized // two routing threads ([backgroundRouting]): one engine
     private fun routingEngine(): RoutingEngine =
         engine ?: EngineProvider.create(getApplication(), dataFiles.segmentsDir).also {
+            (it as? com.onpath.app.routing.BRouterEngine)?.officialRouteStrength = settings.officialRouteStrength
             // a new engine = new routing data (or a failed start): the legs of the old one are routed again
             if (EngineProvider.isRealRouter) { engine = it; legCache.clear() }
         }
@@ -1207,7 +1214,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * changed; the plan, the tour's follow line and browser plans share it. Cleared with the engine ([routingEngine]).
      */
     private val legCache = com.onpath.app.routing.LegCache(store = com.onpath.app.data.LegFiles(
-        java.io.File(app.filesDir, "legs"), fingerprint = { legFingerprint },
+        java.io.File(app.filesDir, "legs"),
+        fingerprint = { legFingerprint?.let { "$it|off=${settings.officialRouteStrength}" } },
         partVersion = { mapData.routingData.store.partVersion(it) }))
 
     /**
@@ -1463,10 +1471,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun recheckData() {
         missing = dataFiles.missing()
         packageCheck = dataFiles.packageCheck()
+        localPackages = if (dataFiles.ready()) com.onpath.app.data.PackageStore.list(dataFiles.dir) else emptyList()
     }
 
     /** Installed map package and files that do not belong to it (Settings → About; message when mixed). */
     var packageCheck by mutableStateOf<com.onpath.app.data.DataFiles.PackageCheck?>(null)
+        private set
+
+    /** Locally imported .zip packages (active + stashed in files/onpath/packages/). */
+    var localPackages by mutableStateOf<List<com.onpath.app.data.LocalMapPackage>>(emptyList())
         private set
 
     /** After importing new .pmtiles: MainActivity restarts the app so MapLibre opens the new files. */
@@ -1573,6 +1586,98 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Imports one or multiple selected `.zip` map packages or single map files sequentially. */
+    fun importDataUris(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        if (uris.size == 1) { importData(uris.first()); return }
+        if (dataBusy != null) return
+        val app = getApplication<Application>()
+        dataBusy = Txt.s(Res.string.msg_import_busy)
+        viewModelScope.launchSafe("app", "importDataUris", Dispatchers.IO) {
+            var anyTiles = false
+            var anyPois = false
+            val importedNames = mutableListOf<String>()
+            val msg: Pair<String, Boolean> = try {
+                uris.forEachIndexed { idx, uri ->
+                    val name = displayName(uri) ?: "import-${idx + 1}.zip"
+                    val prefix = "${idx + 1}/${uris.size} · "
+                    withContext(Dispatchers.Main) { dataBusy = Txt.s(Res.string.msg_import_busy_file, "$prefix$name") }
+                    val input = app.contentResolver.openInputStream(uri) ?: error("Cannot open $name.")
+                    val r = com.onpath.app.data.DataImporter.import(input, name, dataFiles.dir) { f ->
+                        dataBusy = Txt.s(Res.string.msg_import_busy_file, "$prefix$f")
+                    }
+                    if (r.imported.any { it.endsWith(".pmtiles") }) anyTiles = true
+                    if (r.imported.contains("pois.geojson")) anyPois = true
+                    importedNames += name
+                }
+                if (anyTiles || anyPois) cells.regionChanged()
+                withContext(Dispatchers.Main) {
+                    recheckData()
+                    if (anyTiles && recState.value == null) restartForData = true else styleVersion++
+                }
+                (Txt.s(Res.string.msg_import_multi_done, importedNames.size, importedNames.joinToString()) + packageNote() +
+                    if (anyTiles && recState.value != null) " " + Txt.s(Res.string.msg_import_restart_after_tour) else "") to false
+            } catch (e: com.onpath.app.data.DataImporter.ImportException) {
+                Problems.warn("data", "Multi map data import rejected", e)
+                com.onpath.app.debug.UserText.of(e, Txt.s(Res.string.msg_import_failed_unchanged)) to true
+            } catch (e: Exception) {
+                Problems.error("data", "Multi map data import failed; existing data kept", e)
+                Txt.s(Res.string.msg_import_failed_damaged) to true
+            }
+            withContext(Dispatchers.Main) {
+                recheckData()
+                dataBusy = null
+                say(msg.first, if (msg.second) NoticeKind.ERROR else NoticeKind.INFO, NoticePlace.SETTINGS)
+            }
+        }
+    }
+
+    /** Switches the active offline `.zip` map package in Settings → Offline maps. */
+    fun activateMapPackage(region: String) {
+        if (dataBusy != null) return
+        if (recState.value != null) {
+            sayError(Txt.s(Res.string.maps_package_switch_blocked), NoticePlace.SETTINGS)
+            return
+        }
+        dataBusy = Txt.s(Res.string.msg_import_busy)
+        viewModelScope.launchSafe("app", "activateMapPackage", Dispatchers.IO) {
+            val ok = try {
+                com.onpath.app.data.PackageStore.activate(dataFiles.dir, region)
+            } catch (e: Exception) {
+                Problems.error("data", "Activating map package $region failed", e)
+                false
+            }
+            if (ok) cells.regionChanged()
+            withContext(Dispatchers.Main) {
+                recheckData()
+                dataBusy = null
+                if (ok) {
+                    say(Txt.s(Res.string.maps_package_activated, region), NoticeKind.INFO, NoticePlace.SETTINGS)
+                    restartForData = true
+                } else {
+                    sayError(Txt.s(Res.string.msg_import_failed_unchanged), NoticePlace.SETTINGS)
+                }
+            }
+        }
+    }
+
+    /** Deletes a stashed (inactive) `.zip` map package from Settings → Offline maps. */
+    fun deleteMapPackage(region: String) {
+        if (dataBusy != null) return
+        viewModelScope.launchSafe("app", "deleteMapPackage", Dispatchers.IO) {
+            val ok = try {
+                com.onpath.app.data.PackageStore.deleteStored(dataFiles.dir, region)
+            } catch (e: Exception) {
+                Problems.warn("data", "Deleting stored map package $region failed", e)
+                false
+            }
+            withContext(Dispatchers.Main) {
+                recheckData()
+                if (ok) say(Txt.s(Res.string.maps_package_deleted, region), NoticeKind.INFO, NoticePlace.SETTINGS)
+            }
+        }
+    }
+
     private fun displayName(uri: Uri): String? = try {
         getApplication<Application>().contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
             ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
@@ -1618,6 +1723,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateSettings(s: AppSettings) {
         val paceChanged = s.hikePace != settings.hikePace || s.bikePace != settings.bikePace
+        val officialChanged = s.officialRouteStrength != settings.officialRouteStrength
         // Relief set by hand (Settings → Map): the user's choice wins, the app never switches it off again (ReliefAuto)
         if (s.hillshade != settings.hillshade) {
             reliefAuto = com.onpath.app.map.ReliefAuto.userSet(reliefAuto); prefs.reliefAuto = reliefAuto
@@ -1625,8 +1731,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         settings = s; prefs.settings = s
         cells.wifiOnly = s.mapsWifiOnly
+        (engine as? com.onpath.app.routing.BRouterEngine)?.officialRouteStrength = s.officialRouteStrength
+        if (officialChanged) { legCache.clear(); recalc() }
         if (paceChanged) retime()
         if (recState.value != null) RecordingService.send(getApplication(), RecordingService.ACTION_SETTINGS)
+    }
+
+    /** Cycles official-route auto-snap strength from the planner sheet: Strong -> Normal -> Off -> Strong. */
+    fun togglePreferOfficialRoutes() {
+        val next = when (settings.officialRouteStrength) {
+            AppSettings.OFFICIAL_STRONG -> AppSettings.OFFICIAL_NORMAL
+            AppSettings.OFFICIAL_NORMAL -> AppSettings.OFFICIAL_OFF
+            else -> AppSettings.OFFICIAL_STRONG
+        }
+        updateSettings(settings.copy(officialRouteStrength = next))
     }
 
     /**
@@ -2687,7 +2805,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val pace = com.onpath.app.time.TimeEstimate.pace(activity, settings)
         timeDetails = TimeDetailsUi(
             com.onpath.app.time.TimeBreakdown.of(r.points, activity, planFactors()),
-            pace.label, pace.factor, technical,
+            pace.label, pace.factor, technical, pace,
+        )
+    }
+
+    /** Changes the 5-level fitness pace for the active activity and updates [timeDetails] live. */
+    fun selectPace(pace: com.onpath.app.time.Pace) {
+        val updated = if (com.onpath.app.time.TimeEstimate.isBike(activity)) settings.copy(bikePace = pace)
+        else settings.copy(hikePace = pace)
+        updateSettings(updated)
+        val cur = timeDetails ?: return
+        val r = route ?: return
+        timeDetails = TimeDetailsUi(
+            com.onpath.app.time.TimeBreakdown.of(r.points, activity, planFactors()),
+            pace.label, pace.factor, cur.technical, pace,
         )
     }
 

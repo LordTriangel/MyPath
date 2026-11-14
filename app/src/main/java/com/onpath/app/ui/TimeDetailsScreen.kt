@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -21,14 +23,18 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.onpath.app.data.Format
+import com.onpath.app.time.Pace
 import com.onpath.app.time.PaceModel
 import com.onpath.app.time.TimeBreakdown
 import com.onpath.app.time.TimeEstimate
@@ -40,6 +46,8 @@ data class TimeDetailsUi(
     val paceFactor: Double,
     /** Settings → Diagnostics → Developer tools: the formulas and tables too; false = route sheet ⋯ (plain lines only). */
     val technical: Boolean = false,
+    /** Active 5-level fitness pace; shown in the interactive pace selector. */
+    val pace: Pace = Pace.DEFAULT,
 )
 
 /** The plain lines of ⋯ → Time details: moving time, with breaks, pace level. */
@@ -50,13 +58,12 @@ internal fun timeDetailsPlainLines(ui: TimeDetailsUi): List<Pair<String, String>
 )
 
 /**
- * "Time details" (route sheet ⋯): moving time, with breaks and the pace level in plain words. With [TimeDetailsUi.technical]
- * (Settings → Diagnostics → Developer tools) the debug view of the estimate – which slope bands the
- * route has, how long each takes at Average pace, which factor (the pace setting) is applied, and how it is calculated.
- * Read-only.
+ * "Time details" (route sheet ⋯): moving time, with breaks, pace level and interactive 5-level fitness selector. With
+ * [TimeDetailsUi.technical] (Settings → Diagnostics → Developer tools) the debug view of the estimate – which slope
+ * bands the route has, how long each takes at Average pace, which factor is applied, and how it is calculated.
  */
 @Composable
-fun TimeDetailsScreen(ui: TimeDetailsUi, onBack: () -> Unit) {
+fun TimeDetailsScreen(ui: TimeDetailsUi, onBack: () -> Unit, onPaceChange: ((Pace) -> Unit)? = null) {
     val r = ui.result
     val bike = TimeEstimate.isBike(r.activity)
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
@@ -67,9 +74,38 @@ fun TimeDetailsScreen(ui: TimeDetailsUi, onBack: () -> Unit) {
                 Text(if (ui.technical) "Time estimate (technical)" else str(Res.string.nav_time_details), style = MaterialTheme.typography.titleLarge)
             }
             if (!ui.technical) {
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Column(
+                    Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
                     TdSection(r.activity.navName) {
                         timeDetailsPlainLines(ui).forEachIndexed { i, (k, v) -> TdKV(k, v, bold = i == 0) }
+                    }
+                    if (onPaceChange != null) {
+                        TdSection(str(Res.string.plan_fitness_level)) {
+                            Column(Modifier.selectableGroup()) {
+                                Pace.entries.forEach { level ->
+                                    val selected = level == ui.pace
+                                    Row(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .clip(MaterialTheme.shapes.small)
+                                            .selectable(selected = selected, role = Role.RadioButton, onClick = { onPaceChange(level) })
+                                            .padding(vertical = 6.dp, horizontal = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        RadioButton(selected = selected, onClick = null)
+                                        Spacer(Modifier.width(8.dp))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(level.label, style = MaterialTheme.typography.bodyLarge,
+                                                fontWeight = if (selected) FontWeight.SemiBold else null)
+                                            Text(level.meaning(r.activity), style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 return@Column

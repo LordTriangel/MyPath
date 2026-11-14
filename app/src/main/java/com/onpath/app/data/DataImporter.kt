@@ -69,16 +69,30 @@ object DataImporter {
         val imported = mutableListOf<String>()
         val skipped = mutableListOf<String>()
         if (isZip(displayName)) {
-            ZipInputStream(input.buffered()).use { zip ->
-                while (true) {
-                    val e = zip.nextEntry ?: break
-                    if (e.isDirectory) continue
-                    val target = targetPath(e.name)
-                    if (target == null) { skipped += e.name.substringAfterLast('/'); continue }
-                    onProgress(target)
-                    write(zip, File(dataDir, target), e.size)
-                    imported += target
+            val stashed = PackageStore.stashActive(dataDir)
+            try {
+                ZipInputStream(input.buffered()).use { zip ->
+                    while (true) {
+                        val e = zip.nextEntry ?: break
+                        if (e.isDirectory) continue
+                        val target = targetPath(e.name)
+                        if (target == null) { skipped += e.name.substringAfterLast('/'); continue }
+                        onProgress(target)
+                        write(zip, File(dataDir, target), e.size)
+                        imported += target
+                    }
                 }
+                if (imported.isEmpty()) throw ImportException(Txt.s(Res.string.maps_import_none_found, displayName))
+                if (File(dataDir, DataFiles.PACKAGE_FILE).isFile) {
+                    PackageStore.removeDuplicateOfActive(dataDir)
+                } else if (stashed != null) {
+                    PackageStore.restoreMissingFromStash(dataDir, stashed)
+                }
+            } catch (e: Throwable) {
+                if (stashed != null) {
+                    PackageStore.rollbackFailedImport(dataDir, stashed, imported)
+                }
+                throw e
             }
         } else {
             val target = targetPath(displayName) ?: throw ImportException(
@@ -86,8 +100,8 @@ object DataImporter {
             onProgress(target)
             input.use { write(it, File(dataDir, target), -1) }
             imported += target
+            if (imported.isEmpty()) throw ImportException(Txt.s(Res.string.maps_import_none_found, displayName))
         }
-        if (imported.isEmpty()) throw ImportException(Txt.s(Res.string.maps_import_none_found, displayName))
         return Result(imported, skipped)
     }
 

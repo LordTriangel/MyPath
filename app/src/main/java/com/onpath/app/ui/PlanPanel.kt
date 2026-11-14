@@ -130,6 +130,8 @@ class PlanCallbacks(
     val onSearch: () -> Unit = {},
     /** The empty sheet's guide, "Meine Touren öffnen". */
     val onMyRoutes: () -> Unit = {},
+    /** Toggles auto-snap to official marked routes from the plan sheet. */
+    val onTogglePreferOfficial: () -> Unit = {},
 )
 
 /** Recording status shown at the top of the plan sheet during a tour. */
@@ -241,6 +243,12 @@ data class PlanUi(
     val tapHint: Boolean = false,
     /** A tap on the plan's mode pill: the offline state explained in one line ([OfflineReady.explain]); null = none. */
     val offlineInfo: String? = null,
+    /** Auto-snap to official marked hiking/cycling/MTB route networks. */
+    val preferOfficialRoutes: Boolean = true,
+    /** Auto-snap strength onto official routes (0=off, 1=normal, 2=strong). */
+    val officialRouteStrength: Int = 2,
+    /** Active 5-level fitness pace label shown on the clickable time header. */
+    val paceLabel: String? = null,
 ) {
     /** What Start does (the shown track has its own panel): navigate the line, wait for it, or only record. */
     val start: PlanStart get() = PlanStart.of(trackPoints = null, hasRoute = route != null, pointCount = pointCount)
@@ -473,8 +481,27 @@ private fun PlanHead(ui: PlanUi, cb: PlanCallbacks) {
             RoutingBar(ui.routeProgress, ui.routeShare, Modifier.fillMaxWidth().height(3.dp).clip(CircleShape))
         else HorizontalDivider(thickness = 1.dp, color = OnPathColors.PlanAccent.copy(alpha = 0.18f))
     }
+    val officialLabel = when (ui.officialRouteStrength) {
+        1 -> str(Res.string.plan_auto_snap_official_normal)
+        2 -> str(Res.string.plan_auto_snap_official_strong)
+        else -> str(Res.string.plan_auto_snap_official)
+    }
+    val officialOn = ui.officialRouteStrength > 0 && ui.preferOfficialRoutes
     val route = ui.route
-    if (route == null) { Title(ui, null, cb.onTimeDetails); return }
+    if (route == null) {
+        androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.Center) {
+            Box(Modifier.align(Alignment.CenterVertically)) { Title(ui, null, cb.onTimeDetails) }
+            if (ui.pointCount >= 1) {
+                Box(Modifier.align(Alignment.CenterVertically)) {
+                    PlanAction(Icons.Outlined.RadioButtonUnchecked, officialLabel,
+                        enabled = true, onClick = cb.onTogglePreferOfficial,
+                        on = officialOn, onDesc = str(Res.string.plan_auto_snap_official_desc))
+                }
+            }
+        }
+        return
+    }
     val oneLine = factsOneLine(route)
     androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         Box(Modifier.align(Alignment.CenterVertically)) { Title(ui, route, cb.onTimeDetails) }
@@ -485,6 +512,11 @@ private fun PlanHead(ui: PlanUi, cb: PlanCallbacks) {
         if (!oneLine) DifficultyBadge(rememberRating(route, ui.activity),
             Modifier.align(Alignment.CenterVertically).calculating(ui.routing)
                 .clickable(enabled = !ui.routing, role = Role.Button, onClickLabel = str(Res.string.plan_show_route_details), onClick = cb.onDetails))
+        Box(Modifier.align(Alignment.CenterVertically)) {
+            PlanAction(Icons.Outlined.RadioButtonUnchecked, officialLabel,
+                enabled = true, onClick = cb.onTogglePreferOfficial,
+                on = officialOn, onDesc = str(Res.string.plan_auto_snap_official_desc))
+        }
     }
 }
 
@@ -806,6 +838,14 @@ private fun Title(ui: PlanUi, route: PlannedRoute?, onTimeDetails: () -> Unit) {
         Text(instrument(Format.distance(route.distanceM), MaterialTheme.typography.titleMedium),
             style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
             overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 1.dp))
+        if (!ui.paceLabel.isNullOrEmpty()) {
+            Spacer(Modifier.width(6.dp))
+            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                Text(ui.paceLabel, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                    modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp))
+            }
+        }
     }
 }
 

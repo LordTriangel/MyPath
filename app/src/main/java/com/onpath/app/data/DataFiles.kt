@@ -99,6 +99,9 @@ class DataFiles internal constructor(private val storage: DataStorage) {
         /** Format 2 (docs/design/map-data-size.md): routes, trails, paths, ways, trail names as one vector tile file. */
         const val OVERLAYS = "overlays.pmtiles"
 
+        /** Vectorized overlays for format-1 packages (replaces separate large GeoJSON files). */
+        const val OVERLAYS_F1 = "overlays_f1.pmtiles"
+
         /** Map package format: 2 when [OVERLAYS] exists (it wins over leftover format-1 GeoJSON files), else 1. */
         fun formatOf(exists: (String) -> Boolean): Int = if (exists(OVERLAYS)) 2 else 1
 
@@ -109,7 +112,7 @@ class DataFiles internal constructor(private val storage: DataStorage) {
          */
         fun styleFormatOf(exists: (String) -> Boolean): Int = when {
             exists(OVERLAYS) -> 2
-            exists("base.pmtiles") || exists("routes.geojson") || exists("trails.geojson") -> 1
+            exists(OVERLAYS_F1) || exists("base.pmtiles") || exists("routes.geojson") || exists("trails.geojson") -> 1
             else -> 2
         }
 
@@ -124,12 +127,14 @@ class DataFiles internal constructor(private val storage: DataStorage) {
             if (overview && downloads) emptyList() else missing
 
         /**
-         * Required overlay data: either the format-2 [OVERLAYS] file or the format-1 pair routes.geojson + trails.geojson.
+         * Required overlay data: either the format-2 [OVERLAYS] file, format-1 vectorized [OVERLAYS_F1], or the
+         * format-1 pair routes.geojson + trails.geojson.
          * With neither, a format-1 pair partly present lists that pair (what is missing); an empty folder asks for
          * [OVERLAYS] (what new packages contain). Pure, unit-tested.
          */
         fun overlayChecks(present: (String) -> Boolean): List<Check> = when {
             present(OVERLAYS) -> listOf(Check(OVERLAYS, true, Txt.s(Res.string.maps_check_overlays)))
+            present(OVERLAYS_F1) -> listOf(Check(OVERLAYS_F1, true, Txt.s(Res.string.maps_check_overlays)))
             present("routes.geojson") || present("trails.geojson") -> listOf(
                 Check("routes.geojson", present("routes.geojson"), Txt.s(Res.string.maps_check_routes)),
                 Check("trails.geojson", present("trails.geojson"), Txt.s(Res.string.maps_check_trails)),

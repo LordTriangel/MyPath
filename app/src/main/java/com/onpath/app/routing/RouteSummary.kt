@@ -203,4 +203,33 @@ object RouteSummary {
             steepnessOf(if (run <= 0) 0.0 else (ele[b] - ele[a]) / run * 100)
         }
     }
+
+    /** Total meters and rounded percentage (1..100) along official marked routes, or null when none. */
+    fun officialRouteShare(points: List<GeoPoint>): Pair<Double, Int>? {
+        if (points.size < 2) return null
+        var totalM = 0.0
+        var officialM = 0.0
+        for (i in 0 until points.size - 1) {
+            val len = Geo.distance(points[i], points[i + 1])
+            if (len <= 0.0) continue
+            totalM += len
+            if (points[i].way?.officialRoute == true) officialM += len
+        }
+        if (officialM <= 0.0 || totalM <= 0.0) return null
+        return officialM to (officialM / totalM * 100.0).roundToInt().coerceIn(1, 100)
+    }
+
+    /** Local smoothed gradient in percent at [index] inside [data]. */
+    fun slopePct(data: ProfileData, index: Int, windowM: Double = 60.0): Int {
+        val n = data.dist.size
+        if (n < 2) return 0
+        val i = index.coerceIn(0, n - 1)
+        val center = data.dist[i]
+        var a = i; var b = i
+        while (data.dist[b] - data.dist[a] < windowM && (a > 0 || b < n - 1)) {
+            if (a > 0 && (b == n - 1 || center - data.dist[a - 1] <= data.dist[b + 1] - center)) a-- else b++
+        }
+        val run = data.dist[b] - data.dist[a]
+        return if (run <= 0.0) 0 else ((data.ele[b] - data.ele[a]) / run * 100.0).roundToInt()
+    }
 }

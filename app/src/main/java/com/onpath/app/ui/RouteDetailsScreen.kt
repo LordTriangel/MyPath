@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.onpath.app.data.Format
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.PlannedRoute
+import com.onpath.app.routing.RouteSummary
 
 /**
  * Route details: opened by tapping the profile or the difficulty badge in the plan sheet – the
@@ -66,6 +68,14 @@ fun RouteDetailsScreen(route: PlannedRoute, activity: Activity, onBack: () -> Un
                 Column {
                     ElevationProfile(route.points, height = 140.dp, gradient = true)
                     GradientLegend()
+                }
+                RouteSummary.officialRouteShare(route.points)?.let { (officialM, pct) ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(str(Res.string.plan_official_routes), style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                        Text(instrument(str(Res.string.plan_official_routes_share, Format.distance(officialM), pct), MaterialTheme.typography.bodyMedium),
+                            style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                    }
                 }
                 RouteBreakdown(route.wayTypes, route.surfaces, initiallyExpanded = true)
             }

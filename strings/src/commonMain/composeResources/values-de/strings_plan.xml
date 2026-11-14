@@ -278,4 +278,11 @@
     <string name="plan_tour_still_running">Tour läuft noch</string>
     <string name="plan_tour_new_target">Neues Ziel festlegen</string>
     <string name="plan_tour_new_target_line">Ziel suchen oder Karte gedrückt halten → Hierhin</string>
+    <string name="plan_official_routes">Offizielle Routen</string>
+    <string name="plan_official_routes_share">%1$s (%2$d %)</string>
+    <string name="plan_auto_snap_official">Offiziell</string>
+    <string name="plan_auto_snap_official_normal">Offiziell: Normal</string>
+    <string name="plan_auto_snap_official_strong">Offiziell: Stark</string>
+    <string name="plan_auto_snap_official_desc">Offizielle Routen bevorzugen</string>
+    <string name="plan_fitness_level">Fitnesslevel</string>
 </resources>

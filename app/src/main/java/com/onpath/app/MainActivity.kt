@@ -78,9 +78,9 @@ class MainActivity : ComponentActivity() {
     }
 
 
-    /** Map data / style import from the phone itself (no adb). */
-    private val openData = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) vm.importData(uri)
+    /** Map data / style import from the phone itself (no adb; supports multi-select). */
+    private val openData = registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        if (uris.isNotEmpty()) vm.importDataUris(uris)
     }
 
     private val openGpx = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -325,6 +325,8 @@ class MainActivity : ComponentActivity() {
                             offlineMaps = run {
                                 val installed by vm.cells.installed.collectAsState()
                                 val states by vm.cells.states.collectAsState()
+                                vm.localPackages
+                                vm.dataBusy
                                 vm.recState.collectAsState().value // Clear all is blocked while a tour runs
                                 LaunchedEffect(installed) { vm.loadAreaNames() }
                                 vm.offlineMapsUi(states, installed)
@@ -338,6 +340,9 @@ class MainActivity : ComponentActivity() {
                                 onCleanUpConfirm = vm::confirmCleanup,
                                 onCleanUpCancel = { vm.cleanupPreview = null },
                                 onClearAll = vm::clearAllMaps,
+                                onImportZip = { openData.launch(arrayOf("*/*")) },
+                                onActivatePackage = vm::activateMapPackage,
+                                onDeletePackage = vm::deleteMapPackage,
                             ),
                             dataDir = vm.dataFiles.dir.absolutePath,
                             version = "${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})",
@@ -383,7 +388,7 @@ class MainActivity : ComponentActivity() {
                     // over Settings too: Diagnostics → Developer tools opens the technical view
                     if (vm.timeDetails != null) BackHandler { vm.timeDetails = null }
                     PageFadeOf(vm.timeDetails) { td ->
-                        com.onpath.app.ui.TimeDetailsScreen(td, onBack = { vm.timeDetails = null })
+                        com.onpath.app.ui.TimeDetailsScreen(td, onBack = { vm.timeDetails = null }, onPaceChange = vm::selectPace)
                     }
                     // Back in Plan during a tour (owner 2026-11-05): the same as "‹ Zur Tour" – back to Navigate. Composed
                     // first, so a map overlay / shown track (below) and every open screen still close first.

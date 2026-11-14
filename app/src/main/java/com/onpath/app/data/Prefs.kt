@@ -163,6 +163,21 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
             hikePace = pace("hikePaceLevel", "hikePace"),
             bikePace = pace("bikePaceLevel", "bikePace"),
             mapsWifiOnly = sp.getBoolean("mapsWifiOnly", false),
+            baseMapStyle = sp.getString("baseMapStyle", AppSettings.BASE_MAP_ONPATH)
+                ?.takeIf { it in AppSettings.BASE_MAPS } ?: AppSettings.BASE_MAP_ONPATH,
+            waymarkedTrails = sp.getBoolean("waymarkedTrails", true),
+            officialRouteStrength = try {
+                when {
+                    sp.contains("officialRouteStrength") -> sp.getInt("officialRouteStrength", AppSettings.OFFICIAL_STRONG)
+                        .coerceIn(AppSettings.OFFICIAL_OFF, AppSettings.OFFICIAL_STRONG)
+                    sp.contains("preferOfficialRoutes") ->
+                        if (sp.getBoolean("preferOfficialRoutes", true)) AppSettings.OFFICIAL_STRONG else AppSettings.OFFICIAL_OFF
+                    else -> AppSettings.OFFICIAL_STRONG
+                }
+            } catch (e: Exception) {
+                Problems.warn("settings", "Setting officialRouteStrength unreadable, using strong", e)
+                AppSettings.OFFICIAL_STRONG
+            },
         )
         set(v) = sp.edit()
             .putStringSet("poiHidden", HashSet(v.hiddenPoiKinds))
@@ -185,6 +200,10 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
             .putString("bikePaceLevel", v.bikePace.name)
             .remove("hikePace").remove("bikePace") // the old three-level keys, migrated by [pace]
             .putBoolean("mapsWifiOnly", v.mapsWifiOnly)
+            .putString("baseMapStyle", v.baseMapStyle)
+            .putBoolean("waymarkedTrails", v.waymarkedTrails)
+            .putInt("officialRouteStrength", v.officialRouteStrength)
+            .putBoolean("preferOfficialRoutes", v.preferOfficialRoutes)
             .apply()
 
     var planWaypoints: List<GeoPoint>
