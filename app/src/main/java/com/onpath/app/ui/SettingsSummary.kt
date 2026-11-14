@@ -82,7 +82,6 @@ object SettingsSummary {
         val core = Txt.s(Res.string.settings_sum_map, onOff(s.contours), onOff(s.hillshade),
             Txt.s(if (s.navHeadingUp) Res.string.settings_map_travel else Res.string.settings_map_north))
         val prefix = when (s.baseMapStyle) {
-            AppSettings.BASE_MAP_OPENTOPOMAP -> Txt.s(Res.string.settings_map_base_opentopomap)
             AppSettings.BASE_MAP_CYCLOSM -> Txt.s(Res.string.settings_map_base_cyclosm)
             else -> null
         }

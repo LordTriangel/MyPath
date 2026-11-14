@@ -90,10 +90,13 @@ data class AppSettings(
     val bikePace: com.onpath.app.time.Pace = com.onpath.app.time.Pace.DEFAULT,
     /** Settings → Offline maps: map areas download only on Wi-Fi, not even the own area on mobile data (F-OFF-03). */
     val mapsWifiOnly: Boolean = false,
-    /** Base map source ("onpath" vector default, "opentopomap" topo raster, "cyclosm" cycling/MTB raster). */
+    /**
+     * Base map: the offline "onpath" vector map (default, always there) or – only when chosen and online – the
+     * "cyclosm" online cycling raster on top of it. Never switched by the app itself.
+     */
     val baseMapStyle: String = BASE_MAP_ONPATH,
-    /** Waymarked Trails overlay on top of the base map for official hiking, cycling, and MTB routes. */
-    val waymarkedTrails: Boolean = true,
+    /** Online Waymarked Trails overlay (off by default: the offline packages already carry the marked routes). */
+    val waymarkedTrails: Boolean = false,
     /** Auto-snap routing strength onto official marked hiking, cycling, and MTB networks (0=off, 1=normal, 2=strong). */
     val officialRouteStrength: Int = OFFICIAL_STRONG,
 ) {
@@ -106,9 +109,8 @@ data class AppSettings(
     companion object {
         val OFF_ROUTE_CHOICES = listOf(25, 40, 75)
         const val BASE_MAP_ONPATH = "onpath"
-        const val BASE_MAP_OPENTOPOMAP = "opentopomap"
         const val BASE_MAP_CYCLOSM = "cyclosm"
-        val BASE_MAPS = listOf(BASE_MAP_ONPATH, BASE_MAP_OPENTOPOMAP, BASE_MAP_CYCLOSM)
+        val BASE_MAPS = listOf(BASE_MAP_ONPATH, BASE_MAP_CYCLOSM)
         const val OFFICIAL_OFF = 0
         const val OFFICIAL_NORMAL = 1
         const val OFFICIAL_STRONG = 2

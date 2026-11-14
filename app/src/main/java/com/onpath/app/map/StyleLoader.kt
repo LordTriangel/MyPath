@@ -29,7 +29,6 @@ object StyleLoader {
     private const val ASSET_DIR = "style"
     const val OVERRIDE_DIR = "styles"
 
-    const val LAYER_OPENTOPOMAP = "raster-opentopomap"
     const val LAYER_CYCLOSM = "raster-cyclosm"
     const val LAYER_WAYMARKED_HIKING = "raster-waymarked-hiking"
     const val LAYER_WAYMARKED_CYCLING = "raster-waymarked-cycling"
@@ -202,7 +201,7 @@ object StyleLoader {
     }
 
     /**
-     * Injects selectable raster base maps (OpenTopoMap, CyclOSM) and transparent Waymarked Trails
+     * Injects the optional online cycling raster (CyclOSM) and the transparent Waymarked Trails
      * route overlays into [styleJson]. All injected layers start hidden and are toggled by [LayerSettings].
      */
     fun withExternalRasters(styleJson: String): String {
@@ -220,11 +219,6 @@ object StyleLoader {
                     put("attribution", attribution)
                 })
             }
-            addSource("opentopomap-source",
-                listOf("https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
-                    "https://b.tile.opentopomap.org/{z}/{x}/{y}.png",
-                    "https://c.tile.opentopomap.org/{z}/{x}/{y}.png"),
-                17, "© OpenTopoMap (CC-BY-SA)")
             addSource("cyclosm-source",
                 listOf("https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
                     "https://b.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png",
@@ -238,7 +232,6 @@ object StyleLoader {
                 listOf("https://tile.waymarkedtrails.org/mtb/{z}/{x}/{y}.png"), 18, "© Waymarked Trails")
 
             val extraSpecs = listOf(
-                Triple(LAYER_OPENTOPOMAP, "opentopomap-source", 1.0),
                 Triple(LAYER_CYCLOSM, "cyclosm-source", 1.0),
                 Triple(LAYER_WAYMARKED_HIKING, "waymarked-hiking-source", 0.85),
                 Triple(LAYER_WAYMARKED_CYCLING, "waymarked-cycling-source", 0.85),

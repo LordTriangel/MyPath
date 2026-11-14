@@ -178,12 +178,11 @@
     <string name="settings_group_screen">Bildschirm und Karte</string>
     <string name="settings_group_lock">Sperre während der Tour</string>
     <string name="settings_phone_missing">Fehlt: %1$s</string>
-    <string name="settings_map_base">Basiskarte</string>
-    <string name="settings_map_base_onpath">OnPath Vektor</string>
-    <string name="settings_map_base_opentopomap">OpenTopoMap (Topo)</string>
-    <string name="settings_map_base_cyclosm">CyclOSM (Rad / MTB)</string>
+    <string name="settings_map_online_bike">Online-Radkarte (CyclOSM)</string>
+    <string name="settings_map_online_bike_sub">Nur mit Internet. Offline bleibt immer die OnPath-Karte.</string>
+    <string name="settings_map_base_cyclosm">Online-Radkarte</string>
     <string name="settings_map_waymarked">Waymarked-Trails-Overlay</string>
-    <string name="settings_map_waymarked_sub">Markierte Wander-, Rad- und MTB-Routen</string>
+    <string name="settings_map_waymarked_sub">Online-Ebene: markierte Wander-, Rad- und MTB-Routen</string>
     <string name="settings_map_prefer_official">Offizielle Routen bevorzugen</string>
     <string name="settings_map_prefer_official_sub">Beim Planen markierte Wander-, Rad- und MTB-Netze vorziehen</string>
     <string name="settings_map_official_off">Aus</string>

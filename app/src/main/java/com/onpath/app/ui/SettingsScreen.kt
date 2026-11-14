@@ -448,14 +448,11 @@ private fun MapSection(
     val selectedOfficial = officialChoices.firstOrNull { it.value == settings.officialRouteStrength } ?: officialChoices.first()
     Section(SettingsPage.MAP.title) {
         // value rows (owner 2026-11-06 23:05): the choice opens as a sheet ([ChoiceRow])
-        ChoiceRow(str(Res.string.settings_map_base), null,
-            listOf(
-                Choice(AppSettings.BASE_MAP_ONPATH, str(Res.string.settings_map_base_onpath)),
-                Choice(AppSettings.BASE_MAP_OPENTOPOMAP, str(Res.string.settings_map_base_opentopomap)),
-                Choice(AppSettings.BASE_MAP_CYCLOSM, str(Res.string.settings_map_base_cyclosm)),
-            ),
-            settings.baseMapStyle,
-            onPick = { onChange(settings.copy(baseMapStyle = it)) })
+        // the offline map is always the base; the online cycling map is a deliberate switch, off by default
+        SwitchRow(str(Res.string.settings_map_online_bike), str(Res.string.settings_map_online_bike_sub),
+            settings.baseMapStyle == AppSettings.BASE_MAP_CYCLOSM) {
+            onChange(settings.copy(baseMapStyle = if (it) AppSettings.BASE_MAP_CYCLOSM else AppSettings.BASE_MAP_ONPATH))
+        }
         SwitchRow(str(Res.string.settings_map_waymarked), str(Res.string.settings_map_waymarked_sub),
             settings.waymarkedTrails) { onChange(settings.copy(waymarkedTrails = it)) }
         if (themes.size > 1) ChoiceRow(str(Res.string.settings_map_style), null,

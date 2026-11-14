@@ -179,12 +179,11 @@
     <string name="settings_group_screen">Screen and map</string>
     <string name="settings_group_lock">Lock during a tour</string>
     <string name="settings_phone_missing">Missing: %1$s</string>
-    <string name="settings_map_base">Base map</string>
-    <string name="settings_map_base_onpath">OnPath Vector</string>
-    <string name="settings_map_base_opentopomap">OpenTopoMap (Topo)</string>
-    <string name="settings_map_base_cyclosm">CyclOSM (Cycling / MTB)</string>
+    <string name="settings_map_online_bike">Online cycling map (CyclOSM)</string>
+    <string name="settings_map_online_bike_sub">Only with internet. Offline the OnPath map always stays.</string>
+    <string name="settings_map_base_cyclosm">Online cycling map</string>
     <string name="settings_map_waymarked">Waymarked Trails overlay</string>
-    <string name="settings_map_waymarked_sub">Marked hiking, cycling and MTB routes</string>
+    <string name="settings_map_waymarked_sub">Online layer: marked hiking, cycling and MTB routes</string>
     <string name="settings_map_prefer_official">Auto-snap to official routes</string>
     <string name="settings_map_prefer_official_sub">Prefer marked hiking, cycling and MTB networks when routing</string>
     <string name="settings_map_official_off">Off</string>

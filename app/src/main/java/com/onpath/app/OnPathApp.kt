@@ -21,7 +21,7 @@ class OnPathApp : Application() {
         installMapLibreLogger()
         // Must happen before any MapView is created. No API key / network needed.
         MapLibre.getInstance(this)
-        // Cache up to 250 MB of ambient raster/vector tiles (OpenTopoMap, CyclOSM, Waymarked Trails) for offline fallback.
+        // Cache up to 250 MB of ambient raster/vector tiles (CyclOSM, Waymarked Trails), so seen tiles load faster.
         try {
             org.maplibre.android.offline.OfflineManager.getInstance(this).setMaximumAmbientCacheSize(250L * 1024 * 1024, null)
         } catch (e: Exception) {

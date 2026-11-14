@@ -165,7 +165,7 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
             mapsWifiOnly = sp.getBoolean("mapsWifiOnly", false),
             baseMapStyle = sp.getString("baseMapStyle", AppSettings.BASE_MAP_ONPATH)
                 ?.takeIf { it in AppSettings.BASE_MAPS } ?: AppSettings.BASE_MAP_ONPATH,
-            waymarkedTrails = sp.getBoolean("waymarkedTrails", true),
+            waymarkedTrails = sp.getBoolean("waymarkedTrails", false),
             officialRouteStrength = try {
                 when {
                     sp.contains("officialRouteStrength") -> sp.getInt("officialRouteStrength", AppSettings.OFFICIAL_STRONG)

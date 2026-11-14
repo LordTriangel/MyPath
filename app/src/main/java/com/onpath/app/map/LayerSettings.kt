@@ -38,7 +38,6 @@ class LayerSettings(private val style: Style) {
             setVisible("contour-", s.contours)
             setVisible("hillshade", s.hillshade)
             val effectiveBase = if (online) s.baseMapStyle else AppSettings.BASE_MAP_ONPATH
-            setLayerVisible(StyleLoader.LAYER_OPENTOPOMAP, effectiveBase == AppSettings.BASE_MAP_OPENTOPOMAP)
             setLayerVisible(StyleLoader.LAYER_CYCLOSM, effectiveBase == AppSettings.BASE_MAP_CYCLOSM)
             val wm = online && s.waymarkedTrails
             val mtb = activity == Activity.MTB || activity == Activity.EMTB
