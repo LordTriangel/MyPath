@@ -180,6 +180,20 @@ object PlanPoints {
         return delete(plan, row)
     }
 
+    /**
+     * Plan point [index] moved to [to] – a map marker held and dragged. A round trip's ① and its closing point are the
+     * same spot: moving either moves both, so the loop stays closed. Shared rule, unit tested.
+     */
+    fun relocate(plan: List<GeoPoint>, index: Int, to: GeoPoint): List<GeoPoint> {
+        if (index !in plan.indices) return plan
+        val loopAt = PlanEdits.loopStart(plan)
+        val out = plan.toMutableList()
+        if (loopAt != null && (index == plan.lastIndex || index == loopAt)) {
+            out[loopAt] = to; out[plan.lastIndex] = to
+        } else out[index] = to
+        return out
+    }
+
     /** The row a row dragged from [from] by [offsetPx] lands on ([rowPx] = row height, 0 = not measured). */
     fun dropIndex(from: Int, offsetPx: Float, rowPx: Float, count: Int): Int {
         if (rowPx <= 0f || count <= 0) return from

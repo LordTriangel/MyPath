@@ -18,6 +18,21 @@ class PlanPointsTest {
 
     private fun names(i: Int): String? = if (i == 1) "Leiter Alm" else null
 
+    // ---------------------------------------------------------------- drag on the map
+
+    @Test fun aDraggedPointMovesAlone() {
+        val x = GeoPoint(46.70, 11.15)
+        assertEquals(listOf(a, x, c), PlanPoints.relocate(listOf(a, b, c), 1, x))
+        assertEquals("unknown index: unchanged", listOf(a, b, c), PlanPoints.relocate(listOf(a, b, c), 5, x))
+    }
+
+    @Test fun draggingTheStartOfARoundTripKeepsTheLoopClosed() {
+        val x = GeoPoint(46.70, 11.15)
+        assertEquals(listOf(x, b, c, x), PlanPoints.relocate(listOf(a, b, c, a), 0, x))
+        assertEquals(listOf(x, b, c, x), PlanPoints.relocate(listOf(a, b, c, a), 3, x))
+        assertEquals(listOf(a, x, c, a), PlanPoints.relocate(listOf(a, b, c, a), 1, x))
+    }
+
     // ---------------------------------------------------------------- rows
 
     @Test fun rowsOfAnOpenRoute() {

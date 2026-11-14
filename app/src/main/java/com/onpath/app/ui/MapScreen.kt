@@ -661,7 +661,11 @@ private fun MapSync(vm: AppViewModel, c: MapController?, rec: RecState?, fix: an
         // canEditMap is part of the key on its own: Navigate → Plan while the plan is followed must redraw the markers
         snapshotFlow {
             val (line, markers) = planLayers(vm.canEditMap, navigateWithPlan = vm.mode == AppMode.NAVIGATE && vm.planGuides)
-            PlanDrawing(vm.route, line, markers, vm.waypoints.toList(), vm.planGaps, passed, vm.pinnedPoiKinds())
+            // a point being dragged is drawn under the finger; the line follows when it is let go
+            val pts = vm.waypoints.toList().let { w ->
+                vm.dragPreview?.let { (i, p) -> com.onpath.app.routing.PlanPoints.relocate(w, i, p) } ?: w
+            }
+            PlanDrawing(vm.route, line, markers, pts, vm.planGaps, passed, vm.pinnedPoiKinds())
         }
             .collect { d ->
                 val r = if (d.showLine) d.route else null
