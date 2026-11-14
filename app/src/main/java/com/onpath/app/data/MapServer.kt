@@ -11,13 +11,15 @@ import com.onpath.app.BuildConfig
 object MapServer {
     val environment: String get() = BuildConfig.MAP_SERVER_ENV
     val baseUrl: String get() = BuildConfig.MAP_SERVER_URL.trimEnd('/')
-    val apiUrl: String get() = "$baseUrl/v1"
+    /** "" when the build names no server (MyPath default: own map packages only, no downloads). */
+    val apiUrl: String get() = if (baseUrl.isBlank()) "" else "$baseUrl/v1"
     val appKey: String get() = BuildConfig.MAP_SERVER_KEY
 
     /** One line for Settings → Diagnostics; never shows the whole key. */
     fun describe(): String = describe(environment, apiUrl, appKey)
 
-    fun describe(env: String, url: String, key: String): String = "$env · $url · key ${maskKey(key)}"
+    fun describe(env: String, url: String, key: String): String =
+        if (url.isBlank()) "$env · no map server (own map packages only)" else "$env · $url · key ${maskKey(key)}"
 
     fun maskKey(key: String): String = when {
         key.isBlank() -> "not set"

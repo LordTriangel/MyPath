@@ -20,9 +20,11 @@ class MapServerTest {
     @Test fun describeLine() = assertEquals("test · https://maps-test.example/v1 · key not set",
         MapServer.describe("test", "https://maps-test.example/v1", ""))
 
-    @Test fun debugBuildPointsAtTheTestServer() {
-        // unit tests run against the debug build type
+    @Test fun myPathBuildsNameNoMapServerByDefault() {
+        // unit tests run against the debug build type; MyPath ships without the original's map server
         assertEquals("test", MapServer.environment)
-        assertTrue(MapServer.apiUrl.startsWith("https://") && MapServer.apiUrl.endsWith("/v1"))
+        assertEquals("", MapServer.apiUrl)
+        assertEquals("test · no map server (own map packages only)", MapServer.describe("test", "", ""))
+        assertTrue(MapServer.describe().contains("no map server"))
     }
 }

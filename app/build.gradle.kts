@@ -35,7 +35,8 @@ android {
             .plus(listOf(0, 0, 0)).take(3)
         versionCode = vMaj * 10000 + vMin * 100 + vPatch
         versionName = appVersion
-        buildConfigField("String", "UPDATE_REPO", "\"happychriss/OnPath\"")
+        // MyPath: updates come from the owner's fork (no releases there yet = "no update"), never from the original
+        buildConfigField("String", "UPDATE_REPO", "\"LordTriangel/OnPath\"")
         // Own updater from GitHub Releases (update/AppUpdater). Off in the Google Play build (A-003): Play forbids an
         // app that updates itself past the store.
         buildConfigField("boolean", "SELF_UPDATE", "true")
@@ -83,7 +84,7 @@ android {
         debug {
             buildConfigField("String", "MAP_SERVER_ENV", quoted("test"))
             buildConfigField("String", "MAP_SERVER_URL", quoted(mapSetting("onpath.mapServer.test",
-                "ONPATH_MAP_SERVER_TEST", "https://maps-test.free-your-pictures.org")))
+                "ONPATH_MAP_SERVER_TEST", "")))
             buildConfigField("String", "MAP_SERVER_KEY", quoted(mapSetting("onpath.mapKey.test", "ONPATH_MAP_KEY_TEST", "")))
         }
         // The Google Play build (A-003, closed test): the app as the GitHub APK, but no own updater
@@ -103,14 +104,14 @@ android {
             buildConfigField("boolean", "SELF_UPDATE", "false")
             buildConfigField("String", "MAP_SERVER_ENV", quoted("test"))
             buildConfigField("String", "MAP_SERVER_URL", quoted(mapSetting("onpath.mapServer.test",
-                "ONPATH_MAP_SERVER_TEST", "https://maps-test.free-your-pictures.org")))
+                "ONPATH_MAP_SERVER_TEST", "")))
             buildConfigField("String", "MAP_SERVER_KEY", quoted(mapSetting("onpath.mapKey.test", "ONPATH_MAP_KEY_TEST", "")))
         }
         release {
             isMinifyEnabled = false
             buildConfigField("String", "MAP_SERVER_ENV", quoted("production"))
             buildConfigField("String", "MAP_SERVER_URL", quoted(mapSetting("onpath.mapServer.production",
-                "ONPATH_MAP_SERVER_PRODUCTION", "https://maps.free-your-pictures.org")))
+                "ONPATH_MAP_SERVER_PRODUCTION", "")))
             buildConfigField("String", "MAP_SERVER_KEY", quoted(mapSetting("onpath.mapKey.production",
                 "ONPATH_MAP_KEY_PRODUCTION", "")))
         }
