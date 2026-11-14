@@ -125,7 +125,7 @@ fun MissingDataScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Spacer(Modifier.height(12.dp))
-            Text("OnPath", style = MaterialTheme.typography.headlineMedium, color = OnPathColors.Green, fontWeight = FontWeight.Bold)
+            Text(androidx.compose.ui.res.stringResource(com.onpath.app.R.string.app_name), style = MaterialTheme.typography.headlineMedium, color = OnPathColors.Green, fontWeight = FontWeight.Bold)
             Text(str(Res.string.routes_missing_title), style = MaterialTheme.typography.titleLarge)
             Text(str(Res.string.routes_missing_body),
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

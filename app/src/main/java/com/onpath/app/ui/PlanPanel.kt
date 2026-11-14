@@ -392,6 +392,8 @@ private fun ColumnScope.PlanBody(sheet: StepSheetScope, ui: PlanUi, cb: PlanCall
                             .clickable(enabled = !ui.routing, role = Role.Button, onClickLabel = str(Res.string.plan_show_route_details), onClick = cb.onDetails))
                 } else ElevationProfile(route.points, height = PROFILE_HEIGHT, gradient = true,
                     onHighlight = highlight, onRelease = remember(highlight) { { highlight(null) } })
+                // way types and surfaces right under the profile: one summary line, a tap opens the two bars
+                RouteBreakdown(route.wayTypes, route.surfaces)
             }
         }
         Spacer(with(sheet) { Modifier.height(4.dp).stepEnd(PlanSize.COMPACT.step) { scroll.value.toFloat() } })
