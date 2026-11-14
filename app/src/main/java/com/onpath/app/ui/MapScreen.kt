@@ -781,6 +781,13 @@ private fun MapSync(vm: AppViewModel, c: MapController?, rec: RecState?, fix: an
     LaunchedEffect(c, passed, trackSize / 20) {
         snapshotFlow { vm.candidateJoin() }.distinctUntilChanged().collect { c.setCandidateJoin(it?.first, it?.second) }
     }
+    // a route point being dragged: dashed lines from its neighbours to the finger (owner 2026-11-14)
+    LaunchedEffect(c) {
+        snapshotFlow {
+            vm.dragPreview?.let { (i, p) -> com.onpath.app.routing.PlanPoints.dragNeighbours(vm.waypoints.toList(), i).map { it to p } }
+                ?: emptyList()
+        }.distinctUntilChanged().collect { c.setDragPreview(it) }
+    }
     // Google Maps place → go there (owner): the ring's menu opens by itself once the camera has arrived there (and the
     // map-download modal for it is gone) – checked on every camera stop while it waits (SharedPlaceMenu)
     LaunchedEffect(c, vm.sharedMenuWaiting, vm.cameraIdleTick, vm.loadModalOpen) {

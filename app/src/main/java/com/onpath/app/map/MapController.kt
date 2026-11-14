@@ -80,6 +80,8 @@ class MapController(private val context: Context, val map: MapLibreMap, val styl
         const val SRC_MARK = "search-mark"
         const val LAYER_MARK = "search-mark"
         const val SRC_MARK_JOIN = "candidate-join"
+        /** Dashed lines from a dragged route point's neighbours to the finger ([setDragPreview]). */
+        const val SRC_DRAG = "drag-preview"
         private const val IMG_CANDIDATE = "candidate-pin"
         /** MapLibre's own position layers (dot, accuracy circle, bearing) all start with this. */
         const val POSITION_LAYER_PREFIX = "mapbox-location"
@@ -963,6 +965,26 @@ class MapController(private val context: Context, val map: MapLibreMap, val styl
         if (from == null || to == null) src.setGeoJson(FeatureCollection.fromFeatures(emptyList()))
         else src.setGeoJson(Feature.fromGeometry(LineString.fromLngLats(listOf(
             Point.fromLngLat(from.lon, from.lat), Point.fromLngLat(to.lon, to.lat)))))
+    }
+
+    /**
+     * While a route point is dragged: thin dashed route-blue lines from its neighbours to the finger ([lines] = from → to
+     * pairs); empty removes them. Under the route points. Never throws.
+     */
+    fun setDragPreview(lines: List<Pair<GeoPoint, GeoPoint>>) = guarded("drag preview") {
+        if (style.getSource(SRC_DRAG) == null) {
+            if (lines.isEmpty()) return
+            style.addSource(GeoJsonSource(SRC_DRAG))
+            val l = LineLayer(SRC_DRAG, SRC_DRAG).withProperties(PF.lineColor(ROUTE_COLOR),
+                PF.lineWidth(CandidateMarker.JOIN_WIDTH), PF.lineDasharray(CandidateMarker.JOIN_DASH), PF.lineOpacity(0.9f),
+                PF.lineCap(Property.LINE_CAP_ROUND))
+            val below = style.layers.firstOrNull { it.id == LAYER_WPT }?.id
+            if (below != null) style.addLayerBelow(l, below) else addBelowPosition(l)
+        }
+        val src = source(SRC_DRAG) ?: return
+        src.setGeoJson(FeatureCollection.fromFeatures(lines.map { (a, b) ->
+            Feature.fromGeometry(LineString.fromLngLats(listOf(Point.fromLngLat(a.lon, a.lat), Point.fromLngLat(b.lon, b.lat))))
+        }))
     }
 
     /** The spot tapped in the route warnings list: its piece of route drawn wide amber under the markers; null = none. */

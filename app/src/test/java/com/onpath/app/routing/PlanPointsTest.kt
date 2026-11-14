@@ -26,6 +26,15 @@ class PlanPointsTest {
         assertEquals("unknown index: unchanged", listOf(a, b, c), PlanPoints.relocate(listOf(a, b, c), 5, x))
     }
 
+    @Test fun thePreviewJoinsTheDraggedPointToItsNeighbours() {
+        assertEquals(listOf(a, c), PlanPoints.dragNeighbours(listOf(a, b, c), 1))
+        assertEquals(listOf(b), PlanPoints.dragNeighbours(listOf(a, b, c), 0))
+        assertEquals(listOf(b), PlanPoints.dragNeighbours(listOf(a, b, c), 2))
+        // a round trip's start: the second point and the last loop point
+        assertEquals(listOf(b, d), PlanPoints.dragNeighbours(listOf(a, b, c, d, a), 0))
+        assertEquals(listOf(b, d), PlanPoints.dragNeighbours(listOf(a, b, c, d, a), 4))
+    }
+
     @Test fun draggingTheStartOfARoundTripKeepsTheLoopClosed() {
         val x = GeoPoint(46.70, 11.15)
         assertEquals(listOf(x, b, c, x), PlanPoints.relocate(listOf(a, b, c, a), 0, x))
