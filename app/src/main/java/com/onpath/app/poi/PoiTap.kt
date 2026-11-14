@@ -82,15 +82,28 @@ class ShownPois {
     @Volatile private var entries: List<Entry> = emptyList()
     private val trigger = PoiHit.ReadTrigger()
     private var seq = 0
+    /** A camera stop or change waits for its read ([fallbackRead] reads when no map idle came). */
+    private var pending = true
 
     /** The camera stopped: the next map idle reads. */
-    fun cameraIdle() = trigger.cameraIdle()
+    fun cameraIdle() { trigger.cameraIdle(); pending = true }
+
+    /**
+     * Called a moment after a camera stop: when no map idle came since (a source still loading or retrying – e.g. an
+     * online layer with failing requests keeps MapLibre from ever reporting idle), read anyway, so a tap on a POI is
+     * never left with an empty or stale list (field 2026-11-14: POI taps did nothing until the app was restarted).
+     */
+    fun fallbackRead(map: MapLibreMap, view: View) {
+        if (!pending) return
+        Problems.trace("poi", "No map idle after the camera stopped – shown POIs read anyway")
+        read(map, view)
+    }
 
     /** A new style / map data: forget the old list (it belongs to another style); the next map idle reads. */
-    fun styleChanged() { entries = emptyList(); seq++; trigger.changed() }
+    fun styleChanged() { entries = emptyList(); seq++; trigger.changed(); pending = true }
 
     /** Other POI settings (kinds shown): the next map idle reads. */
-    fun changed() = trigger.changed()
+    fun changed() { trigger.changed(); pending = true }
 
     /** The map became idle (render thread done, all tiles in): read what it shows when the trigger says so. */
     fun onMapIdle(map: MapLibreMap, view: View) { if (trigger.mapIdle()) read(map, view) }
@@ -116,8 +129,10 @@ class ShownPois {
     private fun read(map: MapLibreMap, view: View) {
         try {
             val t0 = SystemClock.uptimeMillis()
-            val style = map.style ?: return
-            if (!style.isFullyLoaded) return
+            // not ready yet: ask again at the next map idle (the trigger was used up by this one)
+            val style = map.style ?: run { trigger.changed(); return }
+            if (!style.isFullyLoaded) { trigger.changed(); return }
+            pending = false
             val ids = style.layers.map { it.id }.filter { it.startsWith(POI_LAYER_PREFIX) }
             val (nameIds, iconIds) = ids.partition { it.endsWith("-name") }
             val box = RectF(0f, 0f, view.width.toFloat(), view.height.toFloat())

@@ -191,6 +191,8 @@ fun MapHost(
             }
             map.addOnCameraIdleListener {
                 shownPois.cameraIdle()
+                // safety net: no map idle within 1.5 s (a source keeps loading) – the POI list is read anyway
+                mapView.postDelayed({ if (!host.isGone) shownPois.fallbackRead(map, mapView) }, 1500)
                 val c = map.cameraPosition
                 c.target?.let { vm.saveCamera(it.latitude, it.longitude, c.zoom) }
                 vm.mapGesture(false)
