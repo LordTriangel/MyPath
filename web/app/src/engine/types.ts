@@ -92,6 +92,10 @@ export interface PointRows { roundTrip: boolean; canRoundTrip?: boolean; canReve
 export interface Hit {
   id: string; title: string; name: string | null; kind: string; lat: number; lon: number;
   subtitle: string; address: string | null; glyph: string; color: string; online: boolean;
+  /** The place as the app's SearchStore line – what a kept place / „Zuletzt gesucht“ stores (keptplaces.ts). */
+  code?: string;
+  /** Shared into OnPath (the app's Place.shared): „Zuletzt gesucht“ shows the share sign. */
+  shared?: boolean;
 }
 /** The place card's "Add to route" line (the app's AddPreview). */
 /** What adding a place does (the app's AddPreview / placeCardUi): button text, reason, index; or its role when planned. */

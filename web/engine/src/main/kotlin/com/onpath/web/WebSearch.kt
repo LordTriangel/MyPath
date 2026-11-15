@@ -20,7 +20,7 @@ import java.io.File
  * per map area the same index entries as the phone ([OfflineIndex.readPois], trail names from overlays.pmtiles,
  * peaks and places from base.pmtiles via [BaseMapPlaces]), ranked by [SearchRanking]; online results parsed by
  * [PhotonParser], re-ranked by [OnlineRanking] and mixed in as the app's SearchSession does. Not yet: offline house
- * numbers (the app's addresses.sqlite needs SQLite), recents.
+ * numbers (the app's addresses.sqlite needs SQLite). Recents and kept places: [WebKept].
  */
 object WebSearch {
     private val areas = LinkedHashMap<String, List<OfflineIndex.Entry>>()
@@ -121,14 +121,15 @@ object WebSearch {
         return json(shownList(key, SearchRanking.mix(offline, lastOnline)))
     }
 
-    private fun json(hits: List<SearchHit>): String = hits.joinToString(",", "[", "]") { h ->
-        val p = h.place
+    private fun json(hits: List<SearchHit>): String = hits.joinToString(",", "[", "]") { h -> hitJson(h.place, subtitle(h)) }
+
+    /** One row of the list: the place's fields, the row's [subtitle] and its [WebKept] line (`code`, to keep it). */
+    internal fun hitJson(p: Place, subtitle: String): String =
         "{\"id\":" + s(p.id) + ",\"title\":" + s(p.title()) + ",\"name\":" + (p.name?.let { s(it) } ?: "null") +
             ",\"kind\":" + s(p.kind) + ",\"lat\":" + p.lat + ",\"lon\":" + p.lon +
-            ",\"subtitle\":" + s(subtitle(h)) + ",\"address\":" + (p.address?.let { s(it) } ?: "null") +
+            ",\"subtitle\":" + s(subtitle) + ",\"address\":" + (p.address?.let { s(it) } ?: "null") +
             ",\"glyph\":" + s(p.kindInfo.glyph) + ",\"color\":" + s(color(p.kind)) +
-            ",\"online\":" + (p.source == Place.Source.ONLINE) + "}"
-    }
+            ",\"online\":" + (p.source == Place.Source.ONLINE) + ",\"code\":" + s(WebKept.encode(p)) + "}"
 
     /** The app's result line (ui/search/SearchScreen.resultSubtitle – a Compose file, so the same pieces here). */
     private fun subtitle(h: SearchHit): String = buildString {
@@ -148,7 +149,7 @@ object WebSearch {
     private fun s(v: String): String = buildString {
         append('"')
         for (c in v) when (c) {
-            '"' -> append("\\\""); '\\' -> append("\\\\")
+            '"' -> append("\\\""); '\\' -> append("\\\\"); '\t' -> append("\\t") // a kept place's line keeps its tabs
             else -> if (c < ' ') append(' ') else append(c)
         }
         append('"')

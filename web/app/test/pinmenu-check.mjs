@@ -26,6 +26,7 @@ eq(P.pinRows(['SET_DESTINATION'], true), ['ADD', 'GOOGLE', 'REMOVE_PIN'], 'one p
 eq(P.pinRows(['ADD_STOP', 'NEW_DESTINATION'], true), ['ADD_STOP', 'NEW_DESTINATION', 'GOOGLE', 'REMOVE_PIN'], 'a clear stop: both, Insert first');
 eq(P.pinRows(['NEW_DESTINATION', 'ADD_STOP'], true), ['NEW_DESTINATION', 'ADD_STOP', 'GOOGLE', 'REMOVE_PIN'], 'far: both, New destination first');
 eq(P.pinRows(['ADD_STOP', 'NEW_DESTINATION'], false), ['ADD_STOP', 'NEW_DESTINATION', 'GOOGLE'], 'a map POI: no Remove pin');
+eq(P.pinRows(['START_HERE', 'GO_HERE'], true, true), ['START_HERE', 'GO_HERE', 'FAVOURITE', 'HOME', 'GOOGLE', 'REMOVE_PIN'], 'kept places (owner 2026-11-15): after the route rows, before Google');
 // the likelier row is tinted (PlaceAddMenu.Menu.emphasised)
 eq(P.emphasised(['ADD_STOP', 'NEW_DESTINATION']), 'ADD_STOP', 'Insert first: Insert tinted');
 eq(P.emphasised(['NEW_DESTINATION', 'ADD_STOP']), 'NEW_DESTINATION', 'New destination first: it is tinted');

@@ -25,6 +25,7 @@ for t in browser-compare ui-smoke share-smoke edit-smoke snap-smoke version-smok
   ( cd web/app && run node "test/$t.mjs" "$SEG" )
 done
 ( cd web/app && run node test/search-smoke.mjs "$SEG" "$CELLS" )
+( cd web/app && run node test/kept-smoke.mjs "$SEG" "$CELLS" )
 ( cd web/app && run node test/poipin-smoke.mjs "$SEG" "$CELLS" )
 ( cd web/app && run node test/routes-smoke.mjs "$SEG" "$CELLS" )
 ( cd web/host && run node --test )

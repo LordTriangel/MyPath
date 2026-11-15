@@ -40,16 +40,19 @@ export function cardPan(headY: number, tipY: number, cardTop: number, top: numbe
   return Math.min(0, Math.trunc(Math.max(want, most)));
 }
 
-export type PinRow = 'START_HERE' | 'GO_HERE' | 'ADD' | 'ADD_STOP' | 'NEW_DESTINATION' | 'GOOGLE' | 'REMOVE_PIN';
+export type PinRow = 'START_HERE' | 'GO_HERE' | 'ADD' | 'ADD_STOP' | 'NEW_DESTINATION' | 'FAVOURITE' | 'HOME' | 'GOOGLE' | 'REMOVE_PIN';
 
 /**
  * The app's PinMenuItems.of: the rows of a held place's menu in their order – the same for a hold and for a picked
  * search result. [main] = the add entries (the engine's placeMenu – PlaceAddMenu; the planner has no tour, so an empty
  * plan gives Start here · Go here; with 2+ points both „Einfügen“ and „Neues Ziel“, the likelier first – owner
- * 2026-11-15: nothing under „⋯ Mehr“ any more), [pin] = the found place's pin (the menu ends with "Remove pin").
+ * 2026-11-15: nothing under „⋯ Mehr“ any more), [pin] = the found place's pin (the menu ends with "Remove pin"),
+ * [keep] = the place can be kept (owner 2026-11-15, „Orte merken“): after the route rows „☆ Merken“ and „⌂ Als Zuhause
+ * festlegen“ – what is about the place itself.
  */
-export function pinRows(main: string[], pin: boolean): PinRow[] {
+export function pinRows(main: string[], pin: boolean, keep = false): PinRow[] {
   const rows: PinRow[] = main.map((i): PinRow => (i === 'SET_DESTINATION' ? 'ADD' : i as PinRow));
+  if (keep) rows.push('FAVOURITE', 'HOME');
   rows.push('GOOGLE');
   if (pin) rows.push('REMOVE_PIN');
   return rows;

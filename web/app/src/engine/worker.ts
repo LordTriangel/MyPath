@@ -30,6 +30,10 @@ interface WasmEngine {
   searchOnline(text: string, photonJson: string, category: string): string;
   searchCategories(): string;
   searchReset(): void;
+  keptState(home: string, favourites: string, code: string): string;
+  keptApply(home: string, favourites: string, op: string, code: string): string;
+  keptStart(home: string, favourites: string, recent: string, all: boolean, lat: number, lon: number): string;
+  recentAdd(recent: string, code: string): string;
   insertIndex(points: string, lat: number, lon: number, lineSnapM: number): number;
   historyRecord(points: string): void;
   historyStep(op: string, points: string): string;
@@ -80,6 +84,8 @@ const CALLS = new Set(['historyRecord', 'historySnap', 'historyStep', 'historySt
   'syncSaveRouted', 'routingInfo',
   // the app's search chips and a fresh search (WebSearch.kt: SearchKinds.Category, SearchSession's kept list)
   'searchCategories', 'searchReset',
+  // kept places and „Zuletzt gesucht“ (WebKept.kt – the app's SavedPlaces / SearchStore.addRecent, owner 2026-11-15)
+  'keptState', 'keptApply', 'keptStart', 'recentAdd',
   // the phone unpaired itself (its hello deleted – the app's guard)
   'syncPhoneGone',
   // the app's shared rules wired since main 2e50efbc: mailbox restart (M4), save as copy (H3), route names, route fit

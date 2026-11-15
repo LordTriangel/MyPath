@@ -43,6 +43,8 @@ search/AddressSearch.kt
 search/AddressQuery.kt
 search/AddPreview.kt
 search/PlaceIndex.kt
+# kept places (owner 2026-11-15, „Orte merken“, F-PLAN-14): Zuhause + favourites, the empty search's lists (WebKept.kt)
+search/SavedPlaces.kt
 poi/Poi.kt
 poi/PoiKinds.kt
 # web UI (docs/design/web-planner.md §13): route name proposal (Save), POI kind filters (Map content)
