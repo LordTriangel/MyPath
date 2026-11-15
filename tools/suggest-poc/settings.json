@@ -13,7 +13,7 @@
 
   "family": {
     "_about": "What differs between going on foot and on wheels. ground = how welcome [paved, firm, natural, rough] ground is at the gemütlich and the wild end. up_m_per_h = metres of ascent per hour up to which a tour is usual at the gemütlich and the wild end: when no ascent range is wished it is 0 … this x the longest wished time. ascent_m_per_h = time model: hours = km / pace + ascent / this. band_km = a single wished time is widened by this many kilometres either way to a range. free_stem_m = a way out and back this long costs nothing. road_walk_max_m = longest stretch along a road with cars outside a town (0 = no limit). reach_max_m / coarse = how much way network is loaded (wheels: minor ways left out unless a signed route runs on them). sectors / pairs / chains / lines = how many loops each generator tries.",
-    "foot":  {"ground": {"gemütlich": [0.8, 1.0, 0.8, 0.1], "wild": [0.1, 0.5, 1.0, 1.0]}, "up_m_per_h": [180, 600], "ascent_m_per_h": 500,
+    "foot":  {"ground": {"gemütlich": [0.8, 1.0, 0.8, 0.3], "wild": [0.1, 0.5, 1.0, 1.0]}, "up_m_per_h": [180, 600], "ascent_m_per_h": 500,
               "band_km": 1.0, "free_stem_m": 700, "road_walk_max_m": 300, "reach_max_m": 7000, "coarse": null,
               "sectors": 12, "pairs": 12, "chains": 8, "lines": 4},
     "wheel": {"ground": {"gemütlich": [1.0, 0.7, 0.1, 0.0], "wild": [0.3, 0.8, 1.0, 0.8]}, "up_m_per_h": [150, 600], "ascent_m_per_h": 1200,

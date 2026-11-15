@@ -53,6 +53,7 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
 | `service/` | the BRouter route service (Java) and the profile copies with the main-road cost |
 | `serve.py`, `page.html`, `run.py` | the page, its server, the terminal tool with pictures |
 | `cases.py`, `feedback.py` | the owner's comments as checks; his comments from the page |
+| `official.py` | measuring against official circular routes from OSM (see "Official loops") – not part of the method |
 | `region_ai.py` | optional: the AI's region tips per map area (one call per area, picks from our own list) |
 | `remote/` | the locked front and the test planner for testing on the road (services stopped; see its README) |
 | `settings.json` | every number of the method |
@@ -79,3 +80,49 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
   adapter is changed), the page's controls by hand (pictures are made from saved runs).
 - **Unmeasured guesses** in `settings.json`: the character table (axis weights at both ends, ground welcome, usual
   ascent per hour) and the search factors are first values that passed the checks, nothing more.
+
+## Official loops (2026-11-15)
+
+The owner's question: where do we land against official circular hiking routes – do settings suffice, is a step
+missing, or should the official loops be used directly?
+
+```
+python3 -m venv ~/onpath-suggest-poc/official-compare/venv && ~/onpath-suggest-poc/official-compare/venv/bin/pip install osmium
+<venv>/bin/python tools/suggest-poc/official.py extract rheinland-pfalz-latest.osm.pbf      # once, ~1 min
+python3 tools/suggest-poc/official.py compare --name Traumpf [--complete] [--png Saynsteig]  # ~15 s for 21 loops
+```
+
+Area: the 21 Traumpfade / Traumpfädchen around Mayen–Koblenz (closed OSM relations, 4–19 km, all with a parking
+place). Per loop a wish made from it (start at the parking place, hike T2 or the loop's own T level, its time ±15 %,
+60–130 % of its ascent); the official loop is laid onto our network (95–100 % for all 21) and judged as one more pool
+member with the same yardstick, but never chosen (`suggest(wish, S, extra)`).
+
+| Median over 21 loops | map as today | complete route lines + ring step |
+| --- | --- | --- |
+| share of the official loop on our **first** loop | 44 % | 69 % |
+| … on the best **shown** loop | 52 % | 82 % |
+| … on the best loop of the **pool** | 62 % | 99 % |
+| our first loop **is** the official one (≥ 80 %) | 4 of 21 | 9 of 21 |
+| rank of the official loop in our own points | 4 | 4 |
+
+What the official loops do differently (official / our first, medians): Natur 78 / 90 – they leave the deep forest on
+purpose for a valley rim with a view, a castle and its park, a maar, a heath; more ascent (13 of 21); more viewpoints;
+short stretches through villages and on roads to reach a highlight (two would even fail our 300 m road rule).
+
+- **Settings**: only a little. Tried view bonus ×3/×6, less depth, local routes like regional, half the taste in the
+  search, more lines, Besonderes ×1.6, Natur ×0.6, rough ground more welcome. Kept one: rough ground at the gemütlich
+  end 0.1 → 0.3 (first 39 → 44 %, 3 → 4 loops; `cases.py` stays 54 of 55). Besonderes ×1.6 helps more but turns a
+  `cases.py` check (Hilden walk no longer into the protected area). No setting moves the pool: the official loop is
+  mostly never built.
+- **A missing step** – built: follow a signed route that is itself a ring of fitting length all the way round
+  (`generate.pool`, origin "Rundweg"; the ways along the route that close into a ring are order enough). With today's
+  map it never fires; with complete route lines it builds the official loop at 17 of 21 places. Not built: a fact
+  "view / rim" from the elevation model and castles / chapels as Besonderes – where the official loop is in the pool
+  and still loses, it loses on Natur (10 of 11), because we reward deep forest and do not see the rim with a view.
+- **Official loops as candidates**: the biggest lever, but the map must carry them. Our overlays keep **one route per
+  way** (the most important; `extract_overlays.py`), so a Traumpfad on the Moselsteig loses those pieces (Schwalberstieg
+  20 % missing, one Traumpfädchen entirely). Smallest fix: every route of a way in the routes layer; cleaner: circular
+  relations as ordered lines with name, length, ascent and start per map area.
+
+Data and results outside git: `~/onpath-suggest-poc/official-compare/` (`loops.json`, `compare-partial.json`,
+`compare-complete.json`, `pictures/`).

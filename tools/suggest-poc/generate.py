@@ -7,11 +7,12 @@ choose the points:
   turning points  the most pleasant point per direction at the right distance, alone or in pairs;
                   when a climb is wished, also points high enough and near enough for the time
   chains          the stand-out areas of the place, in order around the start, each crossed through its heart
+  rings           a signed route that is itself a loop of the right length, walked whole
   lines           follow a known route, a rail trail or a bank, come home another way
 A loop inside one big area needs no generator of its own: there the pleasant turning points lie inside it.
 The wished time is a range: turning points are taken across all of it, and distance is counted in time.
 """
-from net import bearing, dijkstra, dist, path, INF
+from net import bearing, climb, dijkstra, dist, path, runs_along, INF
 
 
 def assemble(P, S, points, costs=None):
@@ -78,15 +79,7 @@ def measure(P, edges):
         at.append(at[-1] + F.ln[ei])
     if nodes[-1] != net.start:
         return None
-    up, ref = 0.0, None
-    for x in nodes:
-        ele = net.nodes[x][2]
-        if ele < -1000:  # no height here (bridges, tunnels)
-            continue
-        if ref is None or ele < ref - 6.0:
-            ref = ele
-        elif ele > ref + 6.0:
-            up, ref = up + ele - ref, ele
+    up = climb(net, nodes)
     free, total = ch.family["free_stem_m"], at[-1]
     stem = 0
     while stem < len(edges) // 2 and edges[stem] == edges[-1 - stem]:
@@ -178,6 +171,42 @@ def pool(P, S):
                 chains.append((-sum(a["m"] * a["good"] for a in seq), i, k, pts, [a["name"] for a in seq]))
     for _, _, _, pts, names in sorted(chains)[:fam["chains"]]:
         add(pts, "Kette", names)
+
+    # --- a signed route that is itself a loop of the right length: walk all of it. Our map knows a route's ways, not
+    #     their order – but the ways that run along it and close into a ring are order enough (short stubs that end
+    #     are dropped; a route with a gap or one that runs out of reach is not a ring).
+    F = P.F
+    for i, th in enumerate(F.things):
+        if th["kind"] != "route":
+            continue
+        on = runs_along(net, th["dense"], [e for e in range(len(net.edges)) if i in F.named[e] and P.d0[net.edges[e][0]] < INF])
+        whole = sum(F.ln[e] for e in on)
+        while True:
+            deg = {}
+            for e in on:
+                for x in net.edges[e][:2]:
+                    deg[x] = deg.get(x, 0) + 1
+            stubs = {e for e in on if 1 in (deg[net.edges[e][0]], deg[net.edges[e][1]])}
+            if not stubs:
+                break
+            on -= stubs
+        m = sum(F.ln[e] for e in on)
+        if not on or m < 0.85 * whole:
+            continue
+        entry = min(deg, key=P.len0.__getitem__)
+        ring = [F.ln[e] if e in on else -1.0 for e in range(len(net.edges))]
+        _, prev, _, way = dijkstra(net, entry, ring)
+        if any(way[x] == INF for x in deg) or not (1 - S["form"]["short_zero"]) * h_lo <= ch.time(m + 2 * P.len0[entry], 0.0) <= h_hi:
+            continue
+        third = lambda vs: min(vs, key=lambda v: abs(way[v] - m / 3.0))
+        a, first_third = third(deg), set()
+        v = a
+        while v >= 0:
+            first_third.add(v)
+            v = prev[v]
+        rest = [v for v in deg if v not in first_third]
+        if rest:
+            add([entry, a, third(rest)], "Rundweg", [th["name"]], {1: ring, 2: ring, 3: ring})
 
     # --- lines: join at the nearest point, follow it (both ways), come home another way
     for ln in P.lines[:fam["lines"]]:

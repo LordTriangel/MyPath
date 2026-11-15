@@ -18,7 +18,7 @@ import cells
 import named
 from character import Character, wish as make_wish
 from facts import Facts
-from generate import pool
+from generate import measure, pool
 from net import load, seat_start
 from place import Place
 from score import choose, explain, judge
@@ -89,7 +89,8 @@ def tips(wish, reach_m):
     return out
 
 
-def suggest(wish, S=None):
+def suggest(wish, S=None, extra=None):
+    """extra(P) -> loops from elsewhere ({edges, origin, aim}; official.py): judged with the pool, never chosen."""
     S = S or load_settings()
     t, times = time.time(), {}
 
@@ -117,12 +118,13 @@ def suggest(wish, S=None):
                      "Runde gleich und zählt bei der Bewertung nicht mit." % ("%.1f" % (P.access / 1000.0)).replace(".", ","))
     lap("place")
     cands = pool(P, S)
+    others = [dict(m, **o) for o in (extra(P) if extra else []) for m in [measure(P, o["edges"])] if m]
     lap("loops")
     views = [{"name": th["name"], "p": th["dense"][0]} for th in things if th["kind"] == "view"]
-    for i, c in enumerate(judge(P, S, cands, views)):
+    for i, c in enumerate(judge(P, S, cands + others, views)):
         c["id"] = i + 1
     shown = choose(P, S, cands)
-    for c in cands:
+    for c in cands + others:
         c["chosen"] = c in shown
         if c["chosen"]:
             explain(P, c)
@@ -147,7 +149,7 @@ def suggest(wish, S=None):
                       "high": {k: round(v, 2) for k, v in P.high.items()},
                       "areas": [[a["name"], round(a["m"] / 1000.0, 1)] for a in P.areas],
                       "lines": [[ln["name"], ln["kind"], round(ln["m"] / 1000.0, 1)] for ln in P.lines[:12]]},
-            "candidates": shown + sorted((c for c in cands if not c["chosen"]), key=lambda c: -c["score"])}
+            "candidates": shown + sorted((c for c in cands + others if not c["chosen"]), key=lambda c: -c["score"])}
 
 
 def save_run(result):
