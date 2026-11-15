@@ -359,41 +359,6 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
         profilesReady = true
     }
 
-    /** Profile parameter overrides; BRouter injects these as numeric `assign`s that win over the .brf. */
-    private fun keyValues(activity: Activity, sacLimit: Int): MutableMap<String, String> {
-        val kv = HashMap<String, String>()
-        // BRouter's turn instructions at real junctions → GeoPoint.turn (junction vibration + lock screen, owner).
-        // A mode > 1 makes BRouter compute them (1 = "auto-choose" leaves the field 0 = none in RoutingContext); the mode
-        // only changes output formats we do not use. 4 = comment style.
-        kv["turnInstructionMode"] = "4"
-        // remove out-and-back spikes at via points (BRouter reads these as global profile variables)
-        kv["correctMisplacedViaPoints"] = "1"
-        kv["correctMisplacedViaPointsDistance"] = viaCorrectionM(activity).toInt().toString()
-        // keep all way tags in the track messages (surface, tracktype, sac_scale ... for the breakdown)
-        kv["processUnusedTags"] = "1"
-        // snap points within MAX_SNAP_M in one pass and fail fast (before any search) when a point
-        // is further away, instead of BRouter widening the search up to 60 km
-        kv["use_dynamic_range"] = "0"
-        kv["waypointCatchingRange"] = MAX_SNAP_M.toInt().toString()
-        when (activity) {
-            Activity.EBIKE -> {
-                kv["bikerPower"] = "180"; kv["maxSpeed"] = "25"; kv["totalMass"] = "110"
-            }
-            Activity.EMTB -> {
-                kv["bikerPower"] = "180"; kv["maxSpeed"] = "25"; kv["totalMass"] = "115"
-            }
-            Activity.HIKE -> {
-                // above the limit = forbidden (profile). Preferred = the limit but at most T3: a marked T2/T3 trail beats the
-                // untagged path next to it ("unknown is not easy"), yet a T5 setting means "can do", not "seek T5".
-                val sac = sacLimit.coerceIn(1, 5)
-                kv["SAC_scale_limit"] = sac.toString()
-                kv["SAC_scale_preferred"] = minOf(sac, 3).toString()
-            }
-            else -> Unit
-        }
-        return kv
-    }
-
     // ---- errors -----------------------------------------------------------------------------
 
     private fun checkSegments(waypoints: List<GeoPoint>) {
@@ -520,6 +485,44 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
             "mtb.brf",
             "hiking-mountain.brf",
         )
+
+        /**
+         * Profile parameter overrides; BRouter injects these as numeric `assign`s that win over the .brf. Also read by the
+         * tour suggestions' network reader (suggest/NetReader), so a suggestion uses ways with the same verdict as routing.
+         */
+        internal fun keyValues(activity: Activity, sacLimit: Int): MutableMap<String, String> {
+            val kv = HashMap<String, String>()
+            // BRouter's turn instructions at real junctions → GeoPoint.turn (junction vibration + lock screen, owner).
+            // A mode > 1 makes BRouter compute them (1 = "auto-choose" leaves the field 0 = none in RoutingContext); the mode
+            // only changes output formats we do not use. 4 = comment style.
+            kv["turnInstructionMode"] = "4"
+            // remove out-and-back spikes at via points (BRouter reads these as global profile variables)
+            kv["correctMisplacedViaPoints"] = "1"
+            kv["correctMisplacedViaPointsDistance"] = viaCorrectionM(activity).toInt().toString()
+            // keep all way tags in the track messages (surface, tracktype, sac_scale ... for the breakdown)
+            kv["processUnusedTags"] = "1"
+            // snap points within MAX_SNAP_M in one pass and fail fast (before any search) when a point
+            // is further away, instead of BRouter widening the search up to 60 km
+            kv["use_dynamic_range"] = "0"
+            kv["waypointCatchingRange"] = MAX_SNAP_M.toInt().toString()
+            when (activity) {
+                Activity.EBIKE -> {
+                    kv["bikerPower"] = "180"; kv["maxSpeed"] = "25"; kv["totalMass"] = "110"
+                }
+                Activity.EMTB -> {
+                    kv["bikerPower"] = "180"; kv["maxSpeed"] = "25"; kv["totalMass"] = "115"
+                }
+                Activity.HIKE -> {
+                    // above the limit = forbidden (profile). Preferred = the limit but at most T3: a marked T2/T3 trail beats the
+                    // untagged path next to it ("unknown is not easy"), yet a T5 setting means "can do", not "seek T5".
+                    val sac = sacLimit.coerceIn(1, 5)
+                    kv["SAC_scale_limit"] = sac.toString()
+                    kv["SAC_scale_preferred"] = minOf(sac, 3).toString()
+                }
+                else -> Unit
+            }
+            return kv
+        }
 
         /**
          * Profile per activity. Bike (BIKE_TOURING) and E-bike = touring.brf, OnPath's copy of trekking.brf for a normal bike
