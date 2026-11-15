@@ -194,6 +194,26 @@ object MapGestures {
         return x to y
     }
 
+    /**
+     * A menu BESIDE a held spot (the hold menu „Einfügen“ / „Neues Ziel“, owner 2026-11-15): it never covers the spot
+     * (its ring shows where the point goes). Right of the spot when it fits left of the map's control column
+     * ([rightColumn] px wide at the right edge), else left of the spot, else right over the column, else above / below
+     * ([placeOverlay]). Vertically centred on the spot, kept inside [top]..[bottom]. Pure.
+     */
+    fun placeBeside(
+        ax: Float, ay: Float, w: Int, h: Int, left: Int, top: Int, right: Int, bottom: Int, gap: Int, rightColumn: Int,
+    ): Pair<Int, Int> {
+        val y = (ay - h / 2f).toInt().coerceIn(top, max(top, bottom - h))
+        val toRight = (ax + gap).toInt()
+        val toLeft = (ax - gap - w).toInt()
+        return when {
+            toRight + w <= right - rightColumn -> toRight to y
+            toLeft >= left -> toLeft to y
+            toRight + w <= right -> toRight to y
+            else -> placeOverlay(ax, ay, w, h, left, top, right, bottom, gap)
+        }
+    }
+
     /** True while the anchor is on the visible map area (else the overlay closes). */
     fun anchorVisible(ax: Float, ay: Float, width: Int, height: Int): Boolean =
         ax >= 0 && ay >= 0 && ax <= width && ay <= height

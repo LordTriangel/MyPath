@@ -68,6 +68,26 @@ object PlaceAddMenu {
      */
     fun asksOnHold(zone: Zone?): Boolean = zone == Zone.STOP_FIRST || zone == Zone.GOAL_FIRST
 
+    /** What a hold on the empty map does while planning ([planningHold]). */
+    enum class HoldAction { INSERT, NEW_GOAL, ASK }
+
+    /** "On the line": this close to the planned line on screen (the hold's smart insertion uses the same ~24 dp). */
+    const val LINE_SNAP_DP = 24.0
+
+    /**
+     * A hold on the empty map with 2+ points while PLANNING – no tour, no round trip (those keep [asksOnHold] on the zone).
+     * In screen terms the owner sees (field case 2026-11-15, Hilden: a spot clearly beside the goal of a long plan asked,
+     * because the zone's shares use the whole route and only its angle decided): on the line ([lineDp] ≤ [snapDp]) →
+     * [HoldAction.INSERT] at once (the smart insertion); else the plan point nearest on screen is the goal (the last of
+     * [pointDp]) → [HoldAction.NEW_GOAL] at once (appended); else → [HoldAction.ASK] („Einfügen“ / „Neues Ziel“, order by
+     * the zone). [lineDp] null = no line yet; [pointDp] = each plan point's distance to the spot in dp, in plan order.
+     */
+    fun planningHold(lineDp: Double?, pointDp: List<Double>, snapDp: Double = LINE_SNAP_DP): HoldAction = when {
+        lineDp != null && lineDp <= snapDp -> HoldAction.INSERT
+        pointDp.isNotEmpty() && pointDp.indices.minBy { pointDp[it] } == pointDp.lastIndex -> HoldAction.NEW_GOAL
+        else -> HoldAction.ASK
+    }
+
     fun menu(points: Int, touring: Boolean, zone: Zone?): Menu = when {
         points <= 0 -> Menu(if (touring) listOf(Item.GO_HERE) else listOf(Item.START_HERE, Item.GO_HERE))
         points == 1 || zone == null -> Menu(listOf(Item.SET_DESTINATION))

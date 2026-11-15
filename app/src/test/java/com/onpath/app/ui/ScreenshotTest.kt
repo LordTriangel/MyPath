@@ -1042,6 +1042,8 @@ class ScreenshotTest {
     @Composable
     private fun OverlayFrame(dotColor: androidx.compose.ui.graphics.Color?, anchorDp: androidx.compose.ui.unit.DpOffset, empty: Boolean = false,
                              ring: Boolean = false,
+                             /** The hold menu of a spot (owner 2026-11-15): its ring and the menu beside it ([HoldAddOverlay]). */
+                             beside: Boolean = false,
                              /** The found place's menu (MapOverlayHost → PinMenuOverlay: above the pin, else a card); null = its name chip. */
                              pinMenu: (@Composable (card: Boolean) -> Unit)? = null,
                              content: @Composable () -> Unit = {}) {
@@ -1069,6 +1071,8 @@ class ScreenshotTest {
             if (pinMenu == null) PinChipAt(a, topPx = top, bottomPx = bottom) { PinChip(shared.title(), onClick = {}) }
             else PinMenuOverlay("menu", a, with(d) { com.onpath.app.map.CandidateMarker.PIN_HEIGHT_DP.dp.toPx() }, top, bottom,
                 onGone = {}, onPan = { a = a.copy(y = a.y + it) }, content = pinMenu)
+        } else if (beside) {
+            HoldAddOverlay(a, topPx = top, bottomPx = bottom, content = content)
         } else {
             AnchoredOverlay(a, topPx = top, bottomPx = bottom, content = content)
         }
@@ -1118,7 +1122,8 @@ class ScreenshotTest {
         OnPathTheme {
             val items = if (stopFirst) listOf(PlaceAddMenu.Item.ADD_STOP, PlaceAddMenu.Item.NEW_DESTINATION)
                 else listOf(PlaceAddMenu.Item.NEW_DESTINATION, PlaceAddMenu.Item.ADD_STOP)
-            OverlayFrame(OnPathColors.Rec, androidx.compose.ui.unit.DpOffset(110.dp, 400.dp)) {
+            // the spot left of the middle: the menu right of it; the second case right of the middle: left of it
+            OverlayFrame(null, androidx.compose.ui.unit.DpOffset(if (stopFirst) 60.dp else 290.dp, 420.dp), beside = true) {
                 HoldAddMenu(PlaceAddMenu.Menu(items), onAddStop = {}, onNewDestination = {})
             }
         }

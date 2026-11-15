@@ -116,7 +116,11 @@ fun MapOverlayHost(
         }
     }
     vm.holdAddMenu?.let { a ->
-        Anchored(c, a.p, cameraTick, topPx, bottomPx, onGone = { com.onpath.app.debug.Problems.trace("plan", "Hold menu closed: held spot left the visible map (onGone)"); vm.holdAddMenu = null }) {
+        cameraTick() // re-read the projection on every camera move
+        val s = c.toScreen(a.p)
+        if (s == null) LaunchedEffect(a) { vm.holdAddMenu = null }
+        else HoldAddOverlay(Offset(s.x, s.y), topPx, bottomPx,
+            onGone = { com.onpath.app.debug.Problems.trace("plan", "Hold menu closed: held spot left the visible map (onGone)"); vm.holdAddMenu = null }) {
             HoldAddMenu(a.menu, onAddStop = vm::holdAsStop, onNewDestination = vm::holdAsNewDestination)
         }
     }
@@ -366,6 +370,43 @@ fun AnchoredOverlay(anchor: Offset, topPx: Int, bottomPx: Int, onGone: () -> Uni
         }
     }
 }
+
+/**
+ * The hold menu at a held spot (owner 2026-11-15): a small ring marks the spot and [content] sits beside it, never over it,
+ * clear of the map's control column at the right when it fits ([MapGestures.placeBeside]). [onGone] when the spot leaves
+ * the map.
+ */
+@Composable
+fun HoldAddOverlay(anchor: Offset, topPx: Int, bottomPx: Int, onGone: () -> Unit = {}, content: @Composable () -> Unit) {
+    val d = LocalDensity.current
+    val margin = with(d) { 12.dp.roundToPx() }
+    val gap = with(d) { HOLD_RING_DP.dp.roundToPx() + 10.dp.roundToPx() }
+    val column = with(d) { (ControlsPlacement.END_DP.dp + MAP_FAB + 8.dp).roundToPx() }
+    val maxW = with(d) { 320.dp.roundToPx() }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val w = constraints.maxWidth; val h = constraints.maxHeight
+        if (!MapGestures.anchorVisible(anchor.x, anchor.y, w, h)) {
+            LaunchedEffect(Unit) { onGone() }
+            return@BoxWithConstraints
+        }
+        val ring = OnPathColors.ActionEdit
+        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+            val r = HOLD_RING_DP.dp.toPx()
+            drawCircle(Color.White, radius = r, center = anchor, style = androidx.compose.ui.graphics.drawscope.Stroke(5.dp.toPx()))
+            drawCircle(ring, radius = r, center = anchor, style = androidx.compose.ui.graphics.drawscope.Stroke(2.5.dp.toPx()))
+            drawCircle(ring, radius = 3.dp.toPx(), center = anchor)
+        }
+        Layout(content = { Box { content() } }, modifier = Modifier.fillMaxSize()) { measurables, cs ->
+            val pl = measurables.first().measure(cs.copy(minWidth = 0, minHeight = 0, maxWidth = minOf(maxW, w - 2 * margin)))
+            val (x, y) = MapGestures.placeBeside(anchor.x, anchor.y, pl.width, pl.height, margin, topPx, w - margin, h - bottomPx,
+                gap, column)
+            layout(w, h) { pl.place(x, y) }
+        }
+    }
+}
+
+/** The ring at a held spot while its hold menu is open, dp radius. */
+private const val HOLD_RING_DP = 12
 
 /**
  * First hold on an empty plan: "Start here" or "Go here" (this spot = destination). The second

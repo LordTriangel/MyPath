@@ -1968,14 +1968,42 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun holdOnMap(p: GeoPoint, lineSnapM: Double) {
         closeMapOverlays("hold on the map (new point)")
         val n = waypoints.size
-        val zone = zoneFor(p)
-        if (!PlaceAddMenu.asksOnHold(zone)) {
-            Problems.trace("plan", "New point by a hold: plan $n → ${n + 1}" + (zone?.let { " (clear case $it: set at once)" } ?: ""))
+        val touring = recState.value != null
+        if (n < 2) {
+            Problems.trace("plan", "New point by a hold: plan $n → ${n + 1}")
             addPoint(p, lineSnapM)
             return
         }
-        holdAddMenu = HoldAdd(p, PlaceAddMenu.menu(n, recState.value != null, zone), lineSnapM)
-        Problems.trace("plan", "Hold on the map in doubt ($zone, $n points): asks Einfügen / Neues Ziel")
+        val zone = zoneFor(p)
+        if (touring || isRoundTrip()) {
+            // on a tour / a round trip: the zone on the route ahead decides (a loop is never dropped by one hold)
+            if (!PlaceAddMenu.asksOnHold(zone)) {
+                Problems.trace("plan", "New point by a hold: plan $n → ${n + 1} (clear case $zone: set at once)")
+                addPoint(p, lineSnapM)
+                return
+            }
+        } else {
+            // planning: what the owner sees on screen decides (field case 2026-11-15) – distances in dp at this zoom
+            val mPerDp = lineSnapM / PlaceAddMenu.LINE_SNAP_DP
+            val line = (if (routing) null else route?.points)?.takeIf { it.size >= 2 } ?: waypoints.toList()
+            val lineDp = Geo.distanceToLine(p, line) / mPerDp
+            val pointDp = waypoints.map { Geo.distance(it, p) / mPerDp }
+            val action = PlaceAddMenu.planningHold(lineDp, pointDp)
+            val why = "line ${lineDp.toInt()} dp, nearest point ${pointDp.indices.minBy { pointDp[it] } + 1} of $n"
+            when (action) {
+                PlaceAddMenu.HoldAction.INSERT -> {
+                    Problems.trace("plan", "New point by a hold: on the line, set at once ($why)")
+                    addPoint(p, lineSnapM); return
+                }
+                PlaceAddMenu.HoldAction.NEW_GOAL -> {
+                    Problems.trace("plan", "New point by a hold: nearest the goal, the new goal at once ($why)")
+                    asNewDestination(p); return
+                }
+                PlaceAddMenu.HoldAction.ASK -> Problems.trace("plan", "Hold on the map in doubt ($why, zone $zone)")
+            }
+        }
+        holdAddMenu = HoldAdd(p, PlaceAddMenu.menu(n, touring, zone), lineSnapM)
+        Problems.trace("plan", "Hold on the map: asks Einfügen / Neues Ziel ($zone, $n points)")
     }
 
     /** The hold menu's „Einfügen“. */

@@ -181,6 +181,46 @@ class PlaceAddMenuTest {
         org.junit.Assert.assertFalse(PlaceAddMenu.asksOnHold(null)) // fewer than 2 points / no route ahead
     }
 
+    // ---- while planning, in screen terms (owner's field case 2026-11-15 23:03, Hilden, 15 points, 4.3 km) ----
+
+    /** Screen layout in dp: x east, y south. Distances from the spot to a polyline and to each point. */
+    private fun dpTo(a: Pair<Double, Double>, b: Pair<Double, Double>) = kotlin.math.hypot(a.first - b.first, a.second - b.second)
+    private fun dpToSegment(p: Pair<Double, Double>, a: Pair<Double, Double>, b: Pair<Double, Double>): Double {
+        val dx = b.first - a.first; val dy = b.second - a.second
+        val t = (((p.first - a.first) * dx + (p.second - a.second) * dy) / (dx * dx + dy * dy)).coerceIn(0.0, 1.0)
+        return dpTo(p, a.first + t * dx to a.second + t * dy)
+    }
+    private fun hold(points: List<Pair<Double, Double>>, spot: Pair<Double, Double>) =
+        PlaceAddMenu.planningHold(points.zipWithNext().minOf { (a, b) -> dpToSegment(spot, a, b) }, points.map { dpTo(spot, it) })
+
+    /**
+     * The field case: the previous point 275 dp north of the goal, the spot 200 dp east-south-east of the goal – clearly
+     * beside the goal and off the line. It asked (GOAL_FIRST by the angle); the owner expects plain „Neues Ziel“.
+     */
+    @Test fun aSpotBesideTheGoalOfALongPlanIsTheNewGoalAtOnce() {
+        val goal = 0.0 to 0.0
+        val plan = listOf(0.0 to -2400.0, 0.0 to -1200.0, 0.0 to -275.0, goal)
+        val spot = 185.0 to 76.0 // 200 dp, east-south-east
+        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, hold(plan, spot))
+    }
+
+    @Test fun aSpotOnTheLineIsInsertedAtOnce() {
+        val plan = listOf(0.0 to -1000.0, 0.0 to -275.0, 0.0 to 0.0)
+        assertEquals(PlaceAddMenu.HoldAction.INSERT, hold(plan, 20.0 to -600.0)) // 20 dp beside the line
+    }
+
+    /** Off the line, nearest to the start or a middle stop: where it goes is unclear – the menu. */
+    @Test fun aSpotNearAMiddleStopOffTheLineAsks() {
+        val plan = listOf(0.0 to -1000.0, 0.0 to -275.0, 0.0 to 0.0)
+        assertEquals(PlaceAddMenu.HoldAction.ASK, hold(plan, 150.0 to -300.0)) // nearest: the middle stop
+        assertEquals(PlaceAddMenu.HoldAction.ASK, hold(plan, -120.0 to -1050.0)) // nearest: the start
+    }
+
+    @Test fun noLineYetDecidesByTheNearestPoint() {
+        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, PlaceAddMenu.planningHold(null, listOf(900.0, 80.0)))
+        assertEquals(PlaceAddMenu.HoldAction.ASK, PlaceAddMenu.planningHold(null, listOf(80.0, 900.0)))
+    }
+
     /** A round trip is never dropped by one hold: a spot far off its loop asks („Neues Ziel“ first, never silently). */
     @Test fun aHoldFarOffARoundTripAsks() {
         val loop = listOf(here, at(here, 2000.0, 0.0), at(here, 2000.0, 2000.0), here)
