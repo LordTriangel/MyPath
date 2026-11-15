@@ -23,6 +23,7 @@ release's notes) and the git history – this file keeps only the current state 
   offline corridor 10 km on foot, 20 km for bike activities (donald). Smaller open items: `docs/backlog.md`; open questions: backlog "Waiting for the owner"; the owner's own questions: the Fragenregister.
 
 ## Last session
+- **laptop, 2026-11-15 – planner follows the app's 11-15 changes (place menu, facts, unsaved rule), browser bin per the owner's decisions, kept places (browser-only, sync waits for donald's format), test cells with every route (19/21 Traumpfade):** `docs/history/handoff-laptop-2026-11-15.md`.
 - **donald, 2026-11-15 – the owner's hike findings, all on main, not released, not yet on the Pixel (unplugged):** place menu
   „Einfügen“ / „Neues Ziel“ both always, one line, the likelier first and tinted (laptop line in „For the roles“); a tap on a
   POI shows its details everywhere (menu open, POI that is a route point); Back while recording stays in the app („App
