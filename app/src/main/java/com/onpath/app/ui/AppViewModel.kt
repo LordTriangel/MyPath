@@ -1868,39 +1868,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /**
      * The add entries of a held place's menu ([PlaceAddMenu], owner 2026-11-07 / 2026-11-15): with 2+ points „Einfügen“ and
      * „Neues Ziel“, the likelier first by how clear the case is – measured on the route still to go (during a tour from my
-     * position) – each with where the point goes and about how far ([PlaceAddMenu.Line]).
+     * position).
      */
     fun placeMenu(poi: com.onpath.app.poi.Poi): PlaceAddMenu.Menu {
         val p = GeoPoint(poi.lat, poi.lon)
-        val plan = waypoints.toList()
-        val n = plan.size
+        val n = waypoints.size
         val touring = recState.value != null
         if (n < 2) return PlaceAddMenu.menu(n, touring, zone = null)
         val ins = insertionFor(p, 30.0)
         val pos = myPosition()
         // during a tour the route to go starts here (TourSplit's ahead list already does; else put my position first)
         val ahead = if (ins.inTour || !touring || pos == null) ins.points else listOf(pos) + ins.points
-        val menu = PlaceAddMenu.menu(n, touring, PlaceAddMenu.zone(ahead, p, loop = isRoundTrip()))
-        // what each row says: the same decisions the rows act on (addPoiAsStop: stopOnly; poiAsNewDestination)
-        val names = plan.mapIndexed { i, w -> PlaceAddMenu.pointName(i, n, stopName(w)) }
-        val f = PlaceAddMenu.detourFactor(route?.takeIf { !routing }?.distanceM, plan)
-        val stop = insertionFor(p, 30.0, stopOnly = true)
-        val sp = stop.points
-        val si = stop.decision.index
-        val stopExtra = f * when {
-            si in 1 until sp.size -> PlaceAddMenu.detourM(sp[si - 1], sp[si], p)
-            si <= 0 -> com.onpath.app.data.Geo.distance(p, sp.first())
-            else -> com.onpath.app.data.Geo.distance(sp.last(), p)
-        }
-        val goalExtra = if (PlaceAddMenu.keepsOldGoal(touring)) f * com.onpath.app.data.Geo.distance(plan.last(), p)
-            else ahead.takeIf { it.size >= 2 }?.let { a ->
-                val prev = a[a.size - 2]
-                f * (com.onpath.app.data.Geo.distance(prev, p) - com.onpath.app.data.Geo.distance(prev, a.last()))
-            }
-        return menu.copy(lines = mapOf(
-            PlaceAddMenu.Item.ADD_STOP to PlaceAddMenu.stopLine(names, stop.index, nextAhead = stop.inTour && si == 1, stopExtra),
-            PlaceAddMenu.Item.NEW_DESTINATION to PlaceAddMenu.goalLine(names.last(), touring, goalExtra),
-        ))
+        return PlaceAddMenu.menu(n, touring, PlaceAddMenu.zone(ahead, p, loop = isRoundTrip()))
     }
 
     /** Place menu → „Einfügen“: where it fits best on the route ahead, never behind the goal (the goal stays). */

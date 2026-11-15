@@ -10,7 +10,7 @@ import java.util.Locale
 
 /**
  * The held place's add menu („Einfügen“ · „Neues Ziel“, owner 2026-11-15) in German at a larger (1.3) and the phone's
- * largest font (2.0): the rows wrap, never cut a label, the where-line stays at two lines. Same pictures as the
+ * largest font (2.0): one line each, a label wraps rather than being cut. Same pictures as the
  * [ScreenshotTest] tests of the same name, drawn with this class's Paparazzi.
  */
 class PlaceAddMenuLargeFontGermanTest {
@@ -26,7 +26,7 @@ class PlaceAddMenuLargeFontGermanTest {
     }
 
     @Test fun poiMenu() = shots.poiMenu()
-    @Test fun poiMenuLongNames() = shots.poiMenuLongNames()
+    @Test fun poiMenuClearGoal() = shots.poiMenuClearGoal()
 }
 
 /** The same at font size 1.3 (a common "larger" setting). */
@@ -43,6 +43,5 @@ class PlaceAddMenuMidFontGermanTest {
     }
 
     @Test fun poiMenu() = shots.poiMenu()
-    @Test fun poiMenuLongNames() = shots.poiMenuLongNames()
-    @Test fun poiMenuOnTour() = shots.poiMenuOnTour()
+    @Test fun poiMenuClearGoal() = shots.poiMenuClearGoal()
 }

@@ -40,7 +40,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -378,7 +377,7 @@ fun FirstPointMenu(fromMeBlocked: String?, onStartHere: () -> Unit, onFromMe: ()
 /**
  * Menu of a held POI that is not a route point: its name + how to add it · "Open in Google Maps". With 2+ points the
  * entries of [menu] ([PlaceAddMenu], owner 2026-11-07 / 2026-11-15): always „Einfügen“ and „Neues Ziel“, the likelier one
- * first and emphasised (tinted), each with where the point goes and about how far. With one point [addLabel] ("Set as
+ * first and emphasised (tinted), one line each (owner: where it goes shows on the map). With one point [addLabel] ("Set as
  * destination"). On an empty plan it asks like the first-point menu (owner): "Start here" · "Go here" · "Open in Google Maps".
  */
 @Composable
@@ -408,11 +407,8 @@ fun PoiMenu(poi: Poi, onAdd: () -> Unit, onGoogle: () -> Unit, modifier: Modifie
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         // the rows in their order (PinMenuItems): the same for a hold and for a picked search result (owner 2026-11-13)
-        @Composable fun addRow(item: PlaceAddMenu.Item, icon: ImageVector, label: String, onClick: () -> Unit) {
-            val line = menu?.lines?.get(item)
-            HoldMenuItem(icon, label, supporting = line?.where?.takeIf { it.isNotBlank() }, aside = line?.km,
-                strong = menu?.emphasised == item, onClick = onClick)
-        }
+        @Composable fun addRow(item: PlaceAddMenu.Item, icon: ImageVector, label: String, onClick: () -> Unit) =
+            HoldMenuItem(icon, label, strong = menu?.emphasised == item, onClick = onClick)
         for (r in PinMenuItems.of(emptyPlan, startHere, menu, pin = onRemovePin != null)) when (r) {
             PinMenuItems.Row.START_HERE -> HoldMenuItem(Icons.Outlined.TripOrigin, str(Res.string.plan_start_here), onClick = onAdd)
             PinMenuItems.Row.GO_HERE -> HoldMenuItem(Icons.Outlined.MyLocation, str(Res.string.plan_go_here), enabled = fromMeBlocked == null,
@@ -457,13 +453,13 @@ fun PointMenu(index: Int, count: Int, name: String?, modifier: Modifier = Modifi
 }
 
 /**
- * One menu row: icon + label, ≥ 48 dp high, the whole row is the touch target. [aside] stands quietly behind the label
- * („Einfügen · ca. +0,6 km“); [strong] = the likelier add row (owner 2026-11-15): tinted in the Plan blue, a bold label.
+ * One menu row: icon + label, ≥ 48 dp high, the whole row is the touch target. [strong] = the likelier add row (owner
+ * 2026-11-15): tinted in the Plan blue, a bold label.
  */
 @Composable
 private fun HoldMenuItem(
     icon: ImageVector, label: String, danger: Boolean = false, enabled: Boolean = true, supporting: String? = null,
-    aside: String? = null, strong: Boolean = false, onClick: () -> Unit,
+    strong: Boolean = false, onClick: () -> Unit,
 ) {
     val base = when {
         danger -> MaterialTheme.colorScheme.error
@@ -471,7 +467,6 @@ private fun HoldMenuItem(
         else -> MaterialTheme.colorScheme.onSurface
     }
     val color = if (enabled) base else base.copy(alpha = 0.38f)
-    val muted = if (strong) OnPathColors.OnEditTonal.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         (if (strong) Modifier.padding(horizontal = 6.dp, vertical = 2.dp).clip(OnPathShapes.Small).background(OnPathColors.EditTonal)
          else Modifier).fillMaxWidth().heightIn(min = 52.dp).clickable(enabled = enabled, role = Role.Button, onClick = onClick)
@@ -482,18 +477,10 @@ private fun HoldMenuItem(
         Spacer(Modifier.width(14.dp))
         Column {
             // two lines at most: a large font wraps "In Google Maps öffnen", never cuts it (2026-11-13)
-            val text = if (aside == null) androidx.compose.ui.text.AnnotatedString(label) else androidx.compose.ui.text.buildAnnotatedString {
-                append(label)
-                withStyle(MaterialTheme.typography.bodyMedium.toSpanStyle().copy(color = muted, fontWeight = FontWeight.Normal)) {
-                    // one piece: a large font moves „ca. +0,6 km“ to the next line whole, never „km“ alone
-                    append("  · " + aside.replace(' ', ' '))
-                }
-            }
-            Text(text, color = color, style = MaterialTheme.typography.bodyLarge,
+            Text(label, color = color, style = MaterialTheme.typography.bodyLarge,
                 fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            // where the point goes (owner 2026-11-15): two lines at most; names are already shortened (PlaceAddMenu.shorten)
             supporting?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium, color = muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         }
     }

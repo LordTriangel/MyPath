@@ -1327,30 +1327,6 @@
     "confidence": "sicher",
     "max": 28
   },
-  "plan_add_between": {
-    "area": "Plan place menu",
-    "context": "Small line under „Insert“: where the held place goes. %1$s, %2$s = names of plan points (or Start / Destination / ②). Owner 2026-11-15.",
-    "priority": 1,
-    "confidence": "sicher"
-  },
-  "plan_add_before": {
-    "area": "Plan place menu",
-    "context": "Small line under „Insert“: the place goes before this plan point (on a tour: right ahead). %1$s = its name.",
-    "priority": 1,
-    "confidence": "sicher"
-  },
-  "plan_add_after": {
-    "area": "Plan place menu",
-    "context": "Small line under „New destination“ while planning: the route goes on after the old goal %1$s.",
-    "priority": 1,
-    "confidence": "sicher"
-  },
-  "plan_add_instead": {
-    "area": "Plan place menu",
-    "context": "Small line under „New destination“ on a tour: the place replaces the old goal %1$s.",
-    "priority": 1,
-    "confidence": "sicher"
-  },
   "plan_guide_find_title": {
     "area": "Plan sheet",
     "context": "Empty start sheet guide, step 1 title (tappable: opens the search)",

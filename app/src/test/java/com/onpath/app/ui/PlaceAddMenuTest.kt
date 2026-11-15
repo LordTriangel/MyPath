@@ -13,7 +13,7 @@ import org.junit.Test
 
 /**
  * The place menu's add entries (owner 2026-11-07 11:20 / 11:25 / 11:30; 2026-11-15): always „Einfügen“ and „Neues Ziel“,
- * the likelier one first (by the zone) and emphasised, each saying where the point goes and about how far.
+ * the likelier one first (by the zone) and emphasised; one line each, only the label.
  */
 class PlaceAddMenuTest {
 
@@ -115,70 +115,18 @@ class PlaceAddMenuTest {
         assertEquals(null, PlaceAddMenu.menu(0, false, null).emphasised)
     }
 
-    // ---- what a row says: where the point goes, about how far (owner 2026-11-15) ----
-
-    @Test fun pointNamesNeverSayStop2() {
-        assertEquals("Kirche", PlaceAddMenu.pointName(1, 3, "Kirche"))
-        assertEquals("Start", PlaceAddMenu.pointName(0, 3, null))
-        assertEquals("Destination", PlaceAddMenu.pointName(2, 3, " "))
-        assertEquals("②", PlaceAddMenu.pointName(1, 3, null)) // as on the map's marker
-        assertEquals("⑳", PlaceAddMenu.circled(20))
-        assertEquals("21", PlaceAddMenu.circled(21))
-    }
-
-    @Test fun longNamesAreShortenedAtAWord() {
-        assertEquals("Burgruine Altenahr", PlaceAddMenu.shorten("Burgruine Altenahr"))
-        assertEquals("Gasthaus Zur Alten…", PlaceAddMenu.shorten("Gasthaus Zur Alten Mühle am Bach"))
-        assertTrue(PlaceAddMenu.shorten("Gasthaus Zur Alten Mühle am Bach").length <= PlaceAddMenu.NAME_MAX)
-        // one long word: cut hard
-        assertEquals(PlaceAddMenu.NAME_MAX, PlaceAddMenu.shorten("Donaudampfschifffahrtsgesellschaft").length)
-    }
-
-    @Test fun theStopLineSaysBetweenWhich() {
-        val names = listOf("Start", "Kirche", "Hütte")
-        assertEquals(PlaceAddMenu.Line("between Kirche and Hütte", "about +0.6 km"), PlaceAddMenu.stopLine(names, 2, false, 600.0))
-        assertEquals("before Kirche", PlaceAddMenu.stopLine(names, 1, nextAhead = true, extraM = 50.0).where) // on a tour, right ahead
-        assertEquals(null, PlaceAddMenu.stopLine(names, 1, false, 50.0).km) // a few steps aside: no number
-        assertEquals("before Start", PlaceAddMenu.stopLine(names, 0, false, null).where)
-    }
-
-    @Test fun theGoalLineSaysAfterWhilePlanningInsteadOnATour() {
-        assertEquals(PlaceAddMenu.Line("after Hütte", "about +3.2 km"), PlaceAddMenu.goalLine("Hütte", touring = false, extraM = 3200.0))
-        assertEquals(PlaceAddMenu.Line("instead of Hütte", "about −0.4 km"), PlaceAddMenu.goalLine("Hütte", touring = true, extraM = -400.0))
-    }
-
-    @Test fun kmOneDecimalUnderTenWholeAbove() {
-        assertEquals("about +0.1 km", PlaceAddMenu.km(100.0))
-        assertEquals("about +9.9 km", PlaceAddMenu.km(9_940.0))
-        assertEquals("about +12 km", PlaceAddMenu.km(12_400.0))
-        assertEquals(null, PlaceAddMenu.km(99.0))
-        assertEquals(null, PlaceAddMenu.km(null))
-    }
-
+    /** The owner's words (2026-11-15), one line each – where it goes shows on the map. */
     @Test fun inGermanTheOwnersWords() {
         val before = java.util.Locale.getDefault()
         java.util.Locale.setDefault(java.util.Locale.GERMANY)
         try {
-            assertEquals(PlaceAddMenu.Line("zwischen Kirche und Hütte", "ca. +0,6 km"),
-                PlaceAddMenu.stopLine(listOf("Start", "Kirche", "Hütte"), 2, false, 600.0))
-            assertEquals("nach Hütte", PlaceAddMenu.goalLine("Hütte", false, null).where)
-            assertEquals("statt Hütte", PlaceAddMenu.goalLine("Hütte", true, null).where)
-            assertEquals("Ziel", PlaceAddMenu.pointName(2, 3, null))
             assertEquals("Einfügen", Txt.s(Res.string.plan_add_as_stop))
             assertEquals("Neues Ziel", Txt.s(Res.string.plan_make_destination))
         } finally {
             java.util.Locale.setDefault(before)
         }
-    }
-
-    @Test fun theDetourFactorIsTheRoutesOwn() {
-        val goal = at(here, 2000.0, 0.0)
-        assertEquals(1.0, PlaceAddMenu.detourFactor(null, listOf(here, goal)), 1e-9)
-        assertEquals(1.5, PlaceAddMenu.detourFactor(3000.0, listOf(here, goal)), 0.01)
-        assertEquals(PlaceAddMenu.FACTOR_MAX, PlaceAddMenu.detourFactor(50_000.0, listOf(here, goal)), 1e-9) // an odd route: kept sane
-        assertEquals(PlaceAddMenu.FACTOR_MIN, PlaceAddMenu.detourFactor(1000.0, listOf(here, goal)), 1e-9)
-        // the straight detour of a place 800 m beside the middle of 2 km
-        assertEquals(0.56, PlaceAddMenu.detourM(here, goal, at(here, 1000.0, 800.0)) / 1000, 0.02)
+        assertEquals("Insert", Txt.s(Res.string.plan_add_as_stop))
+        assertEquals("New destination", Txt.s(Res.string.plan_make_destination))
     }
 
     @Test fun fewerThanTwoPointsKeepTheFirstPointWording() {

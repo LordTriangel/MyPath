@@ -33,11 +33,9 @@ class GermanScreenshotTest {
     private val shots get() = borrow(ScreenshotTest())
 
     @Test fun plan() = shots.plan()
-    // the held place's add menu (owner 2026-11-15): „Einfügen“ · „Neues Ziel“ with where + km
+    // the held place's add menu (owner 2026-11-15): „Einfügen“ · „Neues Ziel“, one line each
     @Test fun poiMenu() = shots.poiMenu()
     @Test fun poiMenuClearGoal() = shots.poiMenuClearGoal()
-    @Test fun poiMenuLongNames() = shots.poiMenuLongNames()
-    @Test fun poiMenuOnTour() = shots.poiMenuOnTour()
     @Test fun planLocateFar() = shots.planLocateFar()
     @Test fun overviewHint() = shots.overviewHint()
     @Test fun planReliefOffNote() = shots.planReliefOffNote()

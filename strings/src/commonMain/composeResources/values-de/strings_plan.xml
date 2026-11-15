@@ -196,10 +196,6 @@
     <string name="plan_pin_add">Hinzufügen</string>
     <string name="plan_add_as_stop">Einfügen</string>
     <string name="plan_make_destination">Neues Ziel</string>
-    <string name="plan_add_between">zwischen %1$s und %2$s</string>
-    <string name="plan_add_before">vor %1$s</string>
-    <string name="plan_add_after">nach %1$s</string>
-    <string name="plan_add_instead">statt %1$s</string>
     <string name="plan_pin_more">Mehr</string>
     <string name="plan_pin_action_desc">%2$s: %1$s</string>
     <plurals name="plan_removes_points">
