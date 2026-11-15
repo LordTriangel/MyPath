@@ -202,52 +202,78 @@ internal fun RouteOverview(
     planLine: List<GeoPoint>? = emptyList(),
     /** „3 von 27“ – where this tour is in the list swiped through (owner 2026-11-15); null = no pill (a list of one). */
     position: String? = null,
+    /**
+     * A done tour's look back (owner 2026-11-15, round 3 of the tour analysis – [DoneTourOverview]); null = still read or
+     * not known: the recorded tour's overview shows its stored numbers only. Ignored for planned / imported routes.
+     */
+    review: com.onpath.app.time.TourReview? = null,
+    /** A done tour's share → "GPX exportieren" (the recorded way); null = no share icon. */
+    onExportTrack: (() -> Unit)? = null,
+    /** A done tour's share → "Plan exportieren" – only when it followed a plan; null = not offered. */
+    onExportPlan: (() -> Unit)? = null,
 ) {
-    val tint = RouteShape.tint(t.kind)
-    run {
-        Surface(Modifier.fillMaxSize(), color = OnPathColors.Paper) {
-            Column(Modifier.fillMaxSize().systemBarsPadding().padding(16.dp)) {
-                Text(t.name, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                // a value never breaks inside ("6 h 06 min" whole) – the line wraps only between the values
-                Text(instrument(listOf(Format.distance(t.distanceM), "↑${Format.meters(t.ascentM)}", Format.duration(t.durationS))
-                    .joinToString(" · ") { it.replace(' ', '\u00A0') },
-                    MaterialTheme.typography.bodyLarge, MaterialTheme.colorScheme.onSurfaceVariant),
-                    style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp).clip(OnPathShapes.Card)
-                    .background(OnPathColors.PaperDim), contentAlignment = Alignment.Center) {
-                    val density = LocalDensity.current
-                    val wPx = with(density) { maxWidth.roundToPx() }; val hPx = with(density) { maxHeight.roundToPx() }
-                    val under = planLine.orEmpty()
-                    var image by remember(segments, under) { mutableStateOf<OverviewPicture?>(null) }
-                    var loading by remember(segments, under) { mutableStateOf(snapshot != null) }
-                    if (segments != null && snapshot != null && planLine != null) LaunchedEffect(segments, under, wPx, hPx) {
-                        image = snapshot(t, segments, tint, wPx, hPx, under); loading = false
-                    }
-                    val shape = remember(segments, under, wPx, hPx) {
-                        segments?.let { RouteShape.of(it, wPx.toFloat(), hPx.toFloat(), with(density) { FitPaddingRule.SIDE_DP.dp.toPx() },
-                            under = under) }
-                    }
-                    image?.let { pic ->
-                        Image(pic.image, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                        // the same signs as over the drawn shape: start dot, goal flag (the map picture has no markers)
-                        Canvas(Modifier.fillMaxSize()) { drawStart(pic.start, tint.color(), 6.dp.toPx()) }
-                        GoalFlag(pic.goal.x, pic.goal.y, density)
-                    } ?: shape?.let { s ->
-                        RouteCanvas(s, tint.color(), 4.dp, 6.dp, Modifier.fillMaxSize())
-                        GoalFlag(s.endX, s.endY, density)
-                    }
-                    if (image == null && loading) Text(str(Res.string.routes_overview_loading), style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.BottomCenter).padding(8.dp))
-                    if (shape == null && image == null && !loading) Text(str(Res.string.plan_no_track_recorded),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    // „3 von 27“ (owner 2026-11-15, the swipe sketch): a small pill top right over the picture
-                    position?.let { PositionPill(it, Modifier.align(Alignment.TopEnd).padding(10.dp)) }
-                }
-                if (onGo != null) OverviewFoot(onPlan = onPrimary, onGo = onGo, onCancel = onCancel)
-                else OverviewButtons(primary = str(if (touring) Res.string.routes_overview_follow else Res.string.routes_overview_plan),
-                    go = touring, onPrimary = onPrimary, onCancel = onCancel)
+    val picture = @Composable { m: Modifier -> OverviewMapPicture(t, segments, snapshot, planLine, position, m) }
+    val foot = @Composable {
+        if (onGo != null) OverviewFoot(onPlan = onPrimary, onGo = onGo, onCancel = onCancel)
+        else OverviewButtons(primary = str(if (touring) Res.string.routes_overview_follow else Res.string.routes_overview_plan),
+            go = touring, onPrimary = onPrimary, onCancel = onCancel)
+    }
+    Surface(Modifier.fillMaxSize(), color = OnPathColors.Paper) {
+        Column(Modifier.fillMaxSize().systemBarsPadding().padding(16.dp)) {
+            // a done tour (owner 2026-11-15, round 3): its look back – the big values, the picture with the profile, the
+            // highlights, Details and share
+            if (t.kind == com.onpath.app.data.TourKind.RECORDED) {
+                DoneTourOverview(t, review, picture, foot, onExportTrack, onExportPlan)
+                return@Column
             }
+            Text(t.name, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            // a value never breaks inside ("6 h 06 min" whole) – the line wraps only between the values
+            Text(instrument(listOf(Format.distance(t.distanceM), "↑${Format.meters(t.ascentM)}", Format.duration(t.durationS))
+                .joinToString(" · ") { it.replace(' ', ' ') },
+                MaterialTheme.typography.bodyLarge, MaterialTheme.colorScheme.onSurfaceVariant),
+                style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            picture(Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp).clip(OnPathShapes.Card))
+            foot()
         }
+    }
+}
+
+/**
+ * The overview's map picture: the stored / snapshotted map with the route (the drawn shape at once while it is made, and
+ * instead of it when there is none), start dot and goal flag, the followed plan thin under a done tour, the „3 von 27“ pill.
+ */
+@Composable
+private fun OverviewMapPicture(t: Tour, segments: List<List<GeoPoint>>?, snapshot: OverviewSnapshot?, planLine: List<GeoPoint>?,
+                               position: String?, modifier: Modifier) {
+    val tint = RouteShape.tint(t.kind)
+    BoxWithConstraints(modifier.background(OnPathColors.PaperDim), contentAlignment = Alignment.Center) {
+        val density = LocalDensity.current
+        val wPx = with(density) { maxWidth.roundToPx() }; val hPx = with(density) { maxHeight.roundToPx() }
+        val under = planLine.orEmpty()
+        var image by remember(segments, under) { mutableStateOf<OverviewPicture?>(null) }
+        var loading by remember(segments, under) { mutableStateOf(snapshot != null) }
+        if (segments != null && snapshot != null && planLine != null) LaunchedEffect(segments, under, wPx, hPx) {
+            image = snapshot(t, segments, tint, wPx, hPx, under); loading = false
+        }
+        val shape = remember(segments, under, wPx, hPx) {
+            segments?.let { RouteShape.of(it, wPx.toFloat(), hPx.toFloat(), with(density) { FitPaddingRule.SIDE_DP.dp.toPx() },
+                under = under) }
+        }
+        image?.let { pic ->
+            Image(pic.image, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            // the same signs as over the drawn shape: start dot, goal flag (the map picture has no markers)
+            Canvas(Modifier.fillMaxSize()) { drawStart(pic.start, tint.color(), 6.dp.toPx()) }
+            GoalFlag(pic.goal.x, pic.goal.y, density)
+        } ?: shape?.let { s ->
+            RouteCanvas(s, tint.color(), 4.dp, 6.dp, Modifier.fillMaxSize())
+            GoalFlag(s.endX, s.endY, density)
+        }
+        if (image == null && loading) Text(str(Res.string.routes_overview_loading), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.BottomCenter).padding(8.dp))
+        if (shape == null && image == null && !loading) Text(str(Res.string.plan_no_track_recorded),
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // „3 von 27“ (owner 2026-11-15, the swipe sketch): a small pill top right over the picture
+        position?.let { PositionPill(it, Modifier.align(Alignment.TopEnd).padding(10.dp)) }
     }
 }
 

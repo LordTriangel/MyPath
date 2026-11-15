@@ -417,6 +417,10 @@ fun RoutesScreen(
     onGoFollowed: (Tour) -> Unit = {},
     /** The line of the plan a recorded tour followed, drawn thin under its track in the overview; empty = none. */
     loadPlanLine: suspend (Tour) -> List<com.onpath.app.routing.GeoPoint> = { emptyList() },
+    /** A done tour's look back in its overview (owner 2026-11-15, round 3 – AppViewModel.tourReview); null = not known. */
+    loadReview: suspend (Tour) -> com.onpath.app.time.TourReview? = { null },
+    /** The overview's share → "Plan exportieren": the plan a recorded tour followed as GPX (AppViewModel.exportFollowedPlan). */
+    onExportPlan: (Tour) -> Unit = {},
     /** The order of the saved routes / done tours (owner 2026-11-12, [RouteSort]); one for both tabs, kept by the app. */
     initialSort: RouteSort.Choice = RouteSort.DEFAULT,
     onSort: (RouteSort.Choice) -> Unit = {},
@@ -633,6 +637,9 @@ fun RoutesScreen(
             val withPlan = t.kind == TourKind.RECORDED && t.hasPlan
             var planLine by remember(t.id) { mutableStateOf(if (withPlan) null else emptyList<com.onpath.app.routing.GeoPoint>()) }
             if (withPlan) androidx.compose.runtime.LaunchedEffect(t.id) { planLine = loadPlanLine(t) }
+            // a done tour's look back (owner 2026-11-15, round 3): read off the main thread when its page is composed
+            var review by remember(t.id) { mutableStateOf<com.onpath.app.time.TourReview?>(null) }
+            if (t.kind == TourKind.RECORDED) androidx.compose.runtime.LaunchedEffect(t.id) { review = loadReview(t) }
             // a planned route (no tour): Abbrechen · Los geht's · Planen (owner 2026-11-07)
             RouteOverview(t, segs, touring, snapshot,
                 onPrimary = { overview = null; if (followed) onPlanFollowed(t) else onOpen(t) }, onCancel = { overview = null },
@@ -642,7 +649,11 @@ fun RoutesScreen(
                     else -> null
                 },
                 planLine = planLine,
-                position = if (pages.size > 1) str(Res.string.routes_overview_position, i + 1, pages.size) else null)
+                position = if (pages.size > 1) str(Res.string.routes_overview_position, i + 1, pages.size) else null,
+                review = review,
+                // share (owner 2026-11-15): the recorded way, and the plan it followed when there is one; not while it records
+                onExportTrack = if (t.kind == TourKind.RECORDED && t.id != recordingId) ({ onExport(t) }) else null,
+                onExportPlan = if (withPlan && t.id != recordingId) ({ onExportPlan(t) }) else null)
         }
     }
     }

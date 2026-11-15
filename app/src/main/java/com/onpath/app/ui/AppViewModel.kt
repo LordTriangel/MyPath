@@ -262,7 +262,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val store = t.uuid.isNotEmpty() && t.id >= 0
         val theme = withContext(Dispatchers.Main) { settings.mapTheme }
         val key = if (!store) null else withContext(Dispatchers.IO) {
-            overviewPictures.setSize(widthPx, heightPx, paddingPx) // the background makes pictures of this size
+            // the background makes pictures of this size – a done tour's look back has its own (owner 2026-11-15)
+            overviewPictures.setSize(widthPx, heightPx, paddingPx, done = t.kind == TourKind.RECORDED)
             runCatching { com.onpath.app.map.OverviewRules.key(com.onpath.app.map.ThumbRules.key(t, db.lineKey(t.id)), under, widthPx, heightPx, theme) }
                 .onFailure { Problems.info("routes", "Overview picture key not read – drawn without keeping it", it) }.getOrNull()
         }
@@ -3573,6 +3574,57 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             runCatching { db.getTourPlan(t.id)?.line?.map { GeoPoint(it.lat, it.lon) }.orEmpty() }
                 .onFailure { Problems.warn("db", "The followed plan's line of tour ${t.id} not read – the overview shows the track alone", it) }
                 .getOrDefault(emptyList())
+        }
+    }
+
+    /**
+     * The look back at a done tour in its large overview (owner 2026-11-15, round 3 of the tour analysis): times, pauses,
+     * speeds, the plan comparison, highlights, the profile and its place among the user's done tours of the same activity
+     * (and T level for a hike) – [com.onpath.app.time.TourReview]. Null when the points cannot be read (reported); the
+     * overview then shows the tour's stored numbers only.
+     */
+    suspend fun tourReview(t: Tour): com.onpath.app.time.TourReview? {
+        if (t.kind != TourKind.RECORDED) return null
+        // the comparable tours, read on the main thread (the list is UI state)
+        val lengths = tours.filter { o ->
+            o.kind == TourKind.RECORDED && o.deletedMs == null && o.state == "done" && o.activity == t.activity &&
+                (t.activity != Activity.HIKE.name || o.sac == t.sac)
+        }.map { it.distanceM }.let { if (t.state == "done") it else it + t.distanceM }
+        return withContext(Dispatchers.IO) {
+            try {
+                val all = db.loadSegments(t.id)
+                // rides taken out as chosen at End tour (vehicle detection): the review is of what was walked / ridden
+                val segs = if (t.rides != null && t.rides.choice != com.onpath.app.rides.RideChoice.AS_RECORDED)
+                    com.onpath.app.rides.RideView.keptSegments(all, t.rides) else all
+                com.onpath.app.time.TourReview.of(segs, tourTimes(t), t.durationS, t.distanceM, lengths)
+            } catch (e: Exception) {
+                Problems.warn("time", "Review of tour ${t.id} not computed – the overview shows its stored numbers only", e)
+                null
+            }
+        }
+    }
+
+    /**
+     * The overview's share → "Plan exportieren" (owner 2026-11-15): the plan a recorded tour followed, as the one plan
+     * export ([com.onpath.app.gpx.PlanGpx]: its line, its named route points, its activity) – "<name> - plan.gpx".
+     */
+    fun exportFollowedPlan(t: Tour) {
+        if (t.kind != TourKind.RECORDED || !t.hasPlan) return
+        viewModelScope.launchSafe("app", "exportFollowedPlan") {
+            val plan = withContext(Dispatchers.IO) {
+                runCatching { db.getTourPlan(t.id) }
+                    .onFailure { Problems.warn("db", "The followed plan of tour ${t.id} not read for the export", it) }.getOrNull()
+            }
+            if (plan == null || !plan.usable) {
+                Problems.warn("gpx", "Plan export of tour ${t.id}: no usable followed plan")
+                sayError(Txt.s(Res.string.routes_followed_plan_missing), NoticePlace.ROUTES)
+                return@launchSafe
+            }
+            share(t.name) {
+                val line = plan.line.ifEmpty { plan.waypoints.map { w -> com.onpath.app.gpx.TrackPoint(w.lat, w.lon, w.ele) } }
+                com.onpath.app.gpx.PlanGpx.export(t.name, listOf(line),
+                    com.onpath.app.gpx.PlanGpx.withPins(plan.waypoints, plan.pinned), plan.activity, plan.sac)
+            }
         }
     }
 

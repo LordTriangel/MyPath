@@ -71,4 +71,14 @@ class OverviewPicturesTest {
         pics.dir.resolve("size").writeText("x y")
         assertNull(pics.size())
     }
+
+    /** A done tour's look back takes room from its map (owner 2026-11-15, round 3): its pictures keep their own size. */
+    @Test fun aDoneToursOverviewKeepsItsOwnSize() {
+        val pics = OverviewPictures(tmp.newFolder("o3"))
+        pics.setSize(1080, 1400, 48)
+        assertNull("a done tour's overview never opened: the background waits for it", pics.size(done = true))
+        pics.setSize(1080, 820, 48, done = true)
+        assertEquals(Triple(1080, 1400, 48), pics.size())
+        assertEquals(Triple(1080, 820, 48), pics.size(done = true))
+    }
 }
