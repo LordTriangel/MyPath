@@ -18,6 +18,7 @@ compare  per loop: a wish built from the loop (start; hike T2 or its own T level
 Everything goes to ~/onpath-suggest-poc/official-compare/ (SUGGEST_DATA). Not part of the method.
 """
 import json
+import re
 import math
 import os
 import sys
@@ -38,7 +39,7 @@ KINDS = {"hiking": "hike", "foot": "hike", "bicycle": "bicycle", "mtb": "mtb"}
 KM = {"hike": (4.0, 20.0), "bicycle": (15.0, 60.0), "mtb": (15.0, 60.0)}
 
 
-def extract(pbf, bbox=None):
+def extract(pbf, bbox=None, region=""):
     import osmium
     rels, need = [], set()
     for r in osmium.FileProcessor(pbf, osmium.osm.RELATION):
@@ -88,11 +89,12 @@ def extract(pbf, bbox=None):
         loops.append(dict(r, km=round(km, 2), parking=best[0] < 250.0, t=max(sac.get(w, 1) for w, _ in ways),
                           coords=[[round(x, 6), round(y, 6)] for x, y in ring]))
     os.makedirs(OUT, exist_ok=True)
-    with open(os.path.join(OUT, "loops.json"), "w", encoding="utf-8") as f:
+    name = "loops-%s.json" % region if region else "loops.json"
+    with open(os.path.join(OUT, name), "w", encoding="utf-8") as f:
         json.dump(loops, f, ensure_ascii=False)
     count = lambda k: sum(lp["kind"] == k for lp in loops)
     print("%d route relations, closed loops: %d hiking 4–20 km, %d cycling + %d MTB 15–60 km -> %s" % (
-        len(rels), count("hike"), count("bicycle"), count("mtb"), os.path.join(OUT, "loops.json")))
+        len(rels), count("hike"), count("bicycle"), count("mtb"), os.path.join(OUT, name)))
 
 
 def chain(ways, gap=40.0):
@@ -200,16 +202,18 @@ def line_of(net, edges, start=None):
 # ---------------------------------------------------------------- official loops near a start (the page)
 
 _region = []
+# jogging and fitness circuits are signed loops too, but no tour to suggest (Hilden: "Laufstrecke Reh")
+NOT_A_TOUR = re.compile(r"laufstrecke|lauftreff|nordic[- ]?walking|trimm|finnenbahn|walking[- ]?strecke", re.I)
 
 
 def region_loops():
     """Every official loop this computer knows: the loops files in official-compare/ (one per extracted region;
-    today Rheinland-Pfalz only)."""
+    Rheinland-Pfalz, Nordrhein-Westfalen)."""
     if not _region:
         import glob
         for p in sorted(glob.glob(os.path.join(OUT, "loops*.json"))):
             with open(p, encoding="utf-8") as f:
-                _region.extend(json.load(f))
+                _region.extend(lp for lp in json.load(f) if not NOT_A_TOUR.search(lp["name"]))
     return _region
 
 
@@ -373,12 +377,13 @@ def main():
     ap.add_argument("--sample", type=int, default=0, help="this many loops picked at random (always the same ones)")
     ap.add_argument("--set", default="", help="name of the comparison set: results go to compare-<set>-<partial|complete>.json")
     ap.add_argument("--max", type=int, default=25)
+    ap.add_argument("--region", default="", help="extract: write loops-<region>.json (the page reads every loops*.json)")
     ap.add_argument("--png", default="", help="a picture (official + our first) for the loops whose name contains one of these")
     ap.add_argument("--complete", action="store_true",
                     help="as if our map carried every circular route whole (today a way keeps only its most important route)")
     a = ap.parse_args()
     if a.what == "extract":
-        return extract(a.pbf, a.bbox)
+        return extract(a.pbf, a.bbox, a.region)
     if a.what == "summary":
         return summary(a.labels.split(","))
     if a.what == "png":

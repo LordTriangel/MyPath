@@ -3,7 +3,7 @@
 
 Other ports: --port / SUGGEST_PORT; route service: SUGGEST_SERVICE=http://127.0.0.1:<port> (started when it is not
 running). settings.json is read again on every request. Runs and comments go to ~/onpath-suggest-poc/ (SUGGEST_DATA).
-Official loops near the start come from the loops files of official.py (today Rheinland-Pfalz only); /vergleich shows
+Official loops near the start come from the loops files of official.py (Rheinland-Pfalz, Nordrhein-Westfalen); /vergleich shows
 the comparison sets' numbers (official-compare/summary.json).
 """
 import html
