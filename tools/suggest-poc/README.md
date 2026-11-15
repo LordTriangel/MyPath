@@ -111,9 +111,10 @@ short stretches through villages and on roads to reach a highlight (two would ev
 
 - **Settings**: only a little. Tried view bonus ×3/×6, less depth, local routes like regional, half the taste in the
   search, more lines, Besonderes ×1.6, Natur ×0.6, rough ground more welcome. Kept one: rough ground at the gemütlich
-  end 0.1 → 0.3 (first 39 → 44 %, 3 → 4 loops; `cases.py` stays 54 of 55). Besonderes ×1.6 helps more but turns a
-  `cases.py` check (Hilden walk no longer into the protected area). No setting moves the pool: the official loop is
-  mostly never built.
+  end 0.1 → 0.3 (first 39 → 44 %, 3 → 4 loops). Then (2026-11-15, owner: official loops rank above his own
+  comments) also Besonderes at the gemütlich end 0.18 → 0.29: Traumpfade first 44 → 48 %, 4 → 5 loops; 24 other
+  loops of the Rheinland-Pfalz extract first 15 → 25 %; the Hilden check "into the protected area" dropped, `cases.py`
+  54 of 54. No setting moves the pool: the official loop is mostly never built.
 - **A missing step** – built: follow a signed route that is itself a ring of fitting length all the way round
   (`generate.pool`, origin "Rundweg"; the ways along the route that close into a ring are order enough). With today's
   map it never fires; with complete route lines it builds the official loop at 17 of 21 places. Not built: a fact

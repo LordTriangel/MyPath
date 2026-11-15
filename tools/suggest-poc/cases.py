@@ -28,8 +28,9 @@ CASES = [
      "„der Weg ins Grüne ist gut, aber entlang der Hauptstraße nicht“ · aus der Ortsmitte mehrere verschiedene Runden", [
          ("mindestens 3 Vorschläge", lambda s: len(s) >= 3),
          ("der Lauf sagt, dass der Weg ins Grüne nicht mitzählt", lambda s: any("Grüne" in n for n in s[0]["notes"])),
-         ("erste Runde ohne langes Straßenstück", lambda s: s[0]["road"] < 200),
-         ("erste Runde führt in ein Schutzgebiet", lambda s: s[0]["reserve_km"] >= 1.0)]),
+         ("erste Runde ohne langes Straßenstück", lambda s: s[0]["road"] < 200)]),
+    # dropped 2026-11-15: "erste Runde führt in ein Schutzgebiet" – the owner: the logic of official loops (Traumpfade)
+    # ranks above his personal judgements; it was the one check that held Besonderes back.
     ("heide-wandern", {"start": [6.9866, 51.1645], "hours": 2},
      "„die Ohligser Heide, Waldrand, das war eine gute Wanderung“", [
          ("erste Runde ≥ 2 km in der Ohligser Heide", lambda s: km(s[0], "Ohligser Heide") >= 2.0),

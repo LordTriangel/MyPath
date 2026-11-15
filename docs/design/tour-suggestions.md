@@ -130,6 +130,11 @@ a run says when an area cannot be had (without the map there is no nature, no se
 
 ## 5. The owner's taste rules
 
+**What ranks first** (owner 2026-11-15: "ich würde immer die Traumpfade und die Logik, die wir daher haben, über meine
+persönlichen Bewertungen stellen"): when the comparison with official circular routes (`official.py compare`) and one
+of his comments in `cases.py` pull apart, the official routes win; the comment's check is dropped or loosened, with a
+note. A change still has to hold in more than one region (Traumpfade + other loops of the same extract at least).
+
 - Known signed hiking and cycling routes are preferred, by rank; they are shown on the map.
 - Along a road is always bad – also on an official cycle or hiking route; walking on a country road is out.
 - Through houses is to be avoided when green is around; a half-town, half-housing loop is not a tour.

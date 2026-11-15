@@ -24,7 +24,7 @@
 
   "character": {
     "_about": "Level 3 – what this person wants, from gemütlich to wild (linear in between). axes = weight of the five axes. depth = how much of Natur is being deep inside nature rather than green beside the way. signed = how much a signed route counts as something special.",
-    "gemütlich": {"axes": {"natur": 0.22, "ruhe": 0.26, "weg": 0.18, "form": 0.16, "besonderes": 0.18}, "depth": 0.3, "signed": 1.0},
+    "gemütlich": {"axes": {"natur": 0.22, "ruhe": 0.26, "weg": 0.18, "form": 0.16, "besonderes": 0.29}, "depth": 0.3, "signed": 1.0},
     "wild":      {"axes": {"natur": 0.32, "ruhe": 0.26, "weg": 0.20, "form": 0.12, "besonderes": 0.10}, "depth": 0.9, "signed": 0.3}
   },
 
