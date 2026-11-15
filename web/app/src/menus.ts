@@ -4,7 +4,9 @@ import { icon, type IconName } from './icons';
 
 export interface MenuItem { icon: IconName; label: string; sub?: string; danger?: boolean; disabled?: boolean; act: () => void;
   /** The app's row name (PinMenuItems: START_HERE, GO_HERE, ADD, …), for the rows' order. */
-  key?: string }
+  key?: string;
+  /** The likelier add row (the app's HoldMenuItem strong, owner 2026-11-15): tinted in the plan blue, a bold label. */
+  strong?: boolean }
 
 export function holdMenu(headHtml: string, items: MenuItem[], close: () => void): HTMLElement {
   const box = document.createElement('div');
@@ -14,7 +16,7 @@ export function holdMenu(headHtml: string, items: MenuItem[], close: () => void)
   for (const it of items) {
     const b = document.createElement('button');
     b.setAttribute('role', 'menuitem');
-    b.className = it.danger ? 'danger' : '';
+    b.className = it.danger ? 'danger' : it.strong ? 'strong' : '';
     b.disabled = !!it.disabled;
     b.innerHTML = `${icon(it.icon)}<span class="txt"><span>${it.label}</span>${it.sub ? `<span class="muted small">${it.sub}</span>` : ''}</span>`;
     b.onclick = (e) => { e.stopPropagation(); close(); it.act(); };

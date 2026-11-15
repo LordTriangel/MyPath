@@ -14,13 +14,13 @@
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapOverlays.kt",
-      "what": "stopLabel; FirstPointMenu / PointMenu / PoiMenu look; the found place's name chip „Name ›“ and its menu at the pin (PinMenuOverlay, search.ts)",
+      "what": "stopLabel; FirstPointMenu / PointMenu / PoiMenu look (the likelier add row tinted – HoldMenuItem strong, menus.ts / style.css); the found place's name chip „Name ›“ and its menu at the pin (PinMenuOverlay, search.ts)",
       "web": [
         "web/app/src/main.ts",
         "web/app/src/menus.ts",
         "web/app/src/search.ts"
       ],
-      "blob": "7b2edd798e8ee83ea16e2cb647eb0915f39e8c61"
+      "blob": "e6982b942ea503c325a5cc67cec3eb4cafcf38a3"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/PlanStatus.kt",
@@ -169,7 +169,7 @@
         "web/app/src/plans.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "0da2e9cd9284ef50be16ca123c720fd55c2434dd"
+      "blob": "6c9cbed76b20814e91a6d0420a60597c3f2422a7"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -411,12 +411,12 @@
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/PinMenuPlace.kt",
-      "what": "the found place's menu (app 6714ad6f, owner 2026-11-13 „A mit Ausweich B“): PinMenuPlace.decide / cardPan (above the pin, the map moved down; under it; else a card at the bottom), PinMenuItems.of (the rows' order, Remove pin before More)",
+      "what": "the found place's menu (app 6714ad6f, owner 2026-11-13 „A mit Ausweich B“): PinMenuPlace.decide / cardPan (above the pin, the map moved down; under it; else a card at the bottom), PinMenuItems.of (the rows' order, Remove pin last; no „⋯ Mehr“ since 2026-11-15)",
       "web": [
         "web/app/src/pinmenu.ts",
         "web/app/src/search.ts"
       ],
-      "blob": "79cdb62934b03ff2250949ee350a578bd3f12b5d"
+      "blob": "77a39ebeb56b48e8f7e1ebf3843d6db70687e761"
     },
     {
       "app": "app/src/main/java/com/onpath/app/cells/PoiDensity.kt",

@@ -1168,3 +1168,23 @@ e72fb540 / c543cd5a, 21c0eac1, 725b68e9 / 6ba34792, 21dcc5f5 / de1afd21, 870bff0
 - **POIs read once per camera stop / tap from the last idle** (796c9b84 / dffa9914): not mirrored. The app's lookup
   waited for MapLibre Native's render thread (1447 ms); GL JS has none – `main.ts poiAt` asks at the click, p50 0.1 ms,
   worst ~20 ms in Köln (`poi-fps.mjs`). `poi/PoiTap.kt` is on the parity watch list.
+
+## 31. Place menu „Einfügen“ / „Neues Ziel“ and a POI click everywhere (laptop, 2026-11-15 – app 551ac1ae / aacd722e, 41571fec, ba904656)
+
+- **Both add rows always** (owner 2026-11-15 after a hike): a held place's menu (`main.ts placeRows` – a map POI's
+  menu and the found place's pin menu, `search.ts`) shows with 2+ points „Einfügen“ / „Neues Ziel“ (EN Insert / New
+  destination – the app's `plan_add_as_stop` / `plan_make_destination`, word for word), one line each, the engine's
+  order (PlaceAddMenu: the likelier first). Nothing under „⋯ Mehr“ any more: the engine sends `"more":[]` and the planner
+  no longer reads it (`pinmenu.ts pinRows` without MORE). The likelier row is tinted like the app's HoldMenuItem
+  `strong` (`pinmenu.ts emphasised` = Menu.emphasised; `.pointmenu button.strong`: EditTonal `--plan-light` behind,
+  OnEditTonal `--plan-ink` semibold, the icon ActionEdit `--plan`, inset 6 / 2 px, the small corner). „Neues Ziel“ still
+  appends (keepOld). The one-point row „Set as destination“ and the search's add label come from the shared AddPreview –
+  „Einfügen“ for a place on the way, as the app's search card.
+- **A POI click everywhere** (app ba904656): the planner's click is the app's hold, so a click on a POI already opened
+  its menu (its details on top) with a menu of the map open. Now also (1) with the found place's menu open: it closes and
+  the POI's menu opens at once (was: only closed), (2) on a POI that is the start, a stop or the goal (its marker sits
+  on it): the point menu's head shows the POI's details under the name – kind · elevation in the kind's colour, the
+  engine's `poiMenu` (`poipin.ts poiFeatureAt`). The planner has no separate details sheet.
+- Tests: pinmenu-check (rows + tint), search-smoke (both rows, the likelier first and the only tinted one, one line, none
+  of the old words; a POI click with the found place's menu open; „New destination“ appends; a click on the goal on a
+  POI shows it), import-smoke (far past the goal: „New destination“ first and tinted, „Insert“ under it).
