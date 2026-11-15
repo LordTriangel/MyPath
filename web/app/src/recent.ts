@@ -155,6 +155,21 @@ export function restoreRecent(id: string, now = Date.now()): boolean {
   return true;
 }
 
+/**
+ * A saved route came back from the recycle bin (the app's RoutesState.restore): it goes back under Gespeichert as it
+ * was; the drafts [twins] with its points (planned again while it was in the bin) go to the bin – never a draft beside
+ * a saved route with the same points – and the saved route takes the Zuletzt place when one of them held it.
+ */
+export function savedRestored(savedId: string, twins: string[], now = Date.now()) {
+  if (!twins.length) return;
+  const held = recentRow(null, recentPlans(), new Set(), zuletztPlace());
+  const heldTwin = !!held && 'draft' in held && twins.includes(held.draft.id);
+  const list = read();
+  write(list.map((r) => (r.deletedAt == null && twins.includes(r.id) ? { ...r, deletedAt: now } : r)));
+  console.info(`[Problems] TRACE routes: recycle bin: a restored route's ${twins.length} twin draft(s) → recycle bin`);
+  if (heldTwin) takePlace({ kind: 'saved', id: savedId }, now);
+}
+
 /** Whole days until a bin entry is removed (0 = at the next start; the app's RecycleBin.daysLeft). */
 export function daysLeft(deletedAt: number, now = Date.now()): number {
   return Math.floor(Math.max(0, deletedAt + KEEP_MS - now) / DAY_MS);

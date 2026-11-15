@@ -373,12 +373,6 @@ dialog.mapcontent::backdrop { background: rgba(0,0,0,.25); }
   .planlist .txt > .sub { grid-column: 1 / -1; }
 }
 .status.warning { color: var(--warn); }
-dialog .confirm { margin-top: 12px; padding: 12px; border-radius: 12px; background: var(--surface2); }
-dialog .confirm p { margin: 0 0 8px; }
-/* a question in place of the buttons / the list line that asked (plans.ts askInPlace) */
-dialog .row + .confirm { margin-top: 12px; }
-.planlist li.confirm { display: block; border-top: none; margin: 4px 0; }
-.planlist li.confirm + li { border-top: none; }
 dialog.share .row button.danger { color: var(--error); }
 dialog.share .row button.danger.primary { color: #fff; background: var(--error); border: none; }
 dialog.pair .check { font-size: 16px; }
@@ -564,7 +558,6 @@ dialog.phone .howbox[hidden] { display: none; }
 dialog.phone .phonemore { display: flex; flex-direction: column; align-items: flex-start; margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--line); }
 dialog.phone .phonemore[hidden] { display: none; }
 dialog.phone .phonemore .textbtn { padding-left: 0; }
-dialog.phone .phonemore .confirm { align-self: stretch; }
 .textbtn.quiet { color: var(--muted); font-weight: 400; font-size: 13px; padding: 4px 6px; }
 
 /* no WebGL2: one calm message instead of a blank page */

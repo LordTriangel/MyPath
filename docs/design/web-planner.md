@@ -932,7 +932,7 @@ Problems found while making the browser plan exactly like the phone, and the spe
   a pale route sign, Speichern (blue) · Löschen (red, no question) on the card; GESPEICHERT below. A plan opened from
   Zuletzt still belongs to its entry; saved, it leaves Zuletzt and shows „✓ Gerade gespeichert“.
 - **Delete** in Meine Touren: in a phone's folder at once (the phone's recycle bin is the net – the app asks nothing);
-  without a phone it still asks, since this browser has no recycle bin.
+  without a phone it asked, since this browser had no recycle bin – since 2026-11-15 it goes to this browser's Papierkorb (§28).
 - Phone-only in the same app round (nothing to do here): plan auto-saved at „Los geht's“ (`PlanAutoSave`), the end
   sheet without the plan switch, „Weiter“ wording, the tour's T1–T5 sheet, „Ohne Plan aufzeichnen“, Plan in front after
   the app start (the web fits a restored plan anyway), the map column always 6 high (the web's toolbar was already
@@ -1073,7 +1073,7 @@ writes `phone-link-loading.png` / `desktop-link-loading.png`); `areas-smoke` D (
 comes), `robust-smoke` 7 (the card's Cancel). §17's table: „Map tiles still loading“, „Routing data for a plan“ and
 „Map area being built“ are this card now.
 
-## 28. Zuletzt = the app's one-plan rule, a Papierkorb for this browser's drafts (laptop, 2026-11-13 – app 2923a3e7 / 6f4b47d3)
+## 28. Zuletzt = the app's one-plan rule, a Papierkorb for this browser (laptop, 2026-11-13 – app 2923a3e7 / 6f4b47d3; owner 2026-11-15)
 Replaces §23's „newest 25 / newest 3“ and §25's „In Bearbeitung on the saved row“.
 - **Exactly one plan under ZULETZT – the one worked on last, saved or not** (`recent.ts`; the app's `Drafts.MAX = 1`,
   `RoutesState.keepDraft / takePlace / afterSaved / restore / trimDrafts`, `LivePlanRows.of` = `recentRow`). The plan on
@@ -1084,18 +1084,33 @@ Replaces §23's „newest 25 / newest 3“ and §25's „In Bearbeitung on the s
   outside the bin always wins over a saved route, and the newest draft over an older pointed one (a draft never hides).
 - **Taking the place sends every other draft to the Papierkorb** – never gone for good. Saved from Zuletzt (or the plan
   from it saved): the draft and any draft with its points go (the saved route holds it), the saved route takes the place.
-  A saved route left as it is but deleted meanwhile → kept as a new draft. Löschen on the draft → Papierkorb, no question.
+  A saved route left as it is but deleted meanwhile → kept as a new draft (in this browser's Papierkorb: nothing kept
+  twice – the app's keepDraft). Löschen on the draft → Papierkorb, no question.
+- **No twin draft (owner 2026-11-15, the app's keepDraft):** a changed or new plan leaving the map with exactly the points
+  of a saved route of the open folder lets that saved route take the Zuletzt place – no draft. Points only, the same
+  comparison as the plan's own „unsaved“ (`main.ts samePointsAs`, RouteRules.isUnsaved): each saved plan code parsed
+  once (cached per code), another number of points ends the check without an encode.
   Once per browser (`onpath.zuletztTrimmed`) the older planner's drafts beyond the newest go to the bin (one INFO line).
 - **Papierkorb** (the app's `RecycleBinScreen`, its words: `common_recycle_bin`, `backup_bin_keep`, `backup_bin_deleted`
   + `backup_bin_days_left` / `backup_bin_removed_next`, `common_restore`, `common_back`): a button beside „GPX
-  importieren“ while it holds a plan (the app: My routes ⋮ → Papierkorb). The list replaces Meine Touren's in the same
-  window: the keep line, per plan its name, „Plan · date · km“, „Gelöscht am … · noch N Tage“, Wiederherstellen (it takes
-  the Zuletzt place, the draft there goes in). 30 days, then a page start removes it. Only this browser's drafts – saved
-  routes deleted without a phone still ask first (§23); no „Jetzt löschen“ (the app's question speaks of the phone and its
-  backup folder). Stored in `onpath.recent` (`deletedAt`), at most 400 entries (the oldest bin entries beyond, reported).
+  importieren“ only while it holds something (owner 2026-11-15, the app: My routes ⋮ → Papierkorb). The list replaces
+  Meine Touren's in the same window: the keep line, per entry its name, „Plan · date · km“ („GPX importiert“ for a
+  track), „Gelöscht am … · noch N Tage“, Wiederherstellen – newest deletion first. 30 days, then a page start removes it.
+  No „Jetzt löschen“ (owner 2026-11-15: decided no).
+  - **Drafts** (`onpath.recent`, `deletedAt`, at most 400 entries – the oldest bin entries beyond, reported):
+    Wiederherstellen makes it the Zuletzt plan, the draft there goes in.
+  - **Saved routes deleted without a paired phone** (owner 2026-11-15; was a question „aus diesem Browser löschen?“):
+    Löschen puts the whole item into the bin (`sync.ts toBin`, IndexedDB key `bin`, written before the route leaves the
+    folder – a failure in between leaves it in both, never in none; cap 400) – no question. Wiederherstellen brings it
+    back as a saved route in the open folder: the same id (its numbers and map picture follow), name, star, routing
+    fields (`restoreFromBin`). Its name taken by another route meanwhile → the app's copy name „Name (2)“
+    (`planCopyName`) – never lost, never two under one name. A draft with its points goes to the bin and the route takes
+    the Zuletzt place when that draft held it (the app's RoutesState.restore, `recent.ts savedRestored`). Paired,
+    nothing changes: the delete reaches the phone, whose bin keeps it – not this browser's.
 - Tests: `test/zuletzt-smoke.mjs` (recent.ts in Node + the page: trim, bin, restore, + Neu, Löschen, saved place over a
-  reload, a draft never hides, nothing lost, EN + DE words; check-web.sh), sync-smoke / parity-smoke (the open saved route
-  = the Recent row „In progress“ + „Saved“).
+  reload, a draft never hides, nothing lost, the twin case, a saved route deleted → bin → restored with id / name / star,
+  a restore whose name is taken → „(2)“, EN + DE words; check-web.sh), sync-smoke (the open saved route = the Recent row
+  „In progress“ + „Saved“; a paired delete stays out of the browser's bin) / parity-smoke.
 - **Phone sheet (same day, field: a two-point link plan listed only „1 Start“ + „+ Ziel hinzufügen“):** at the points step
   the sheet taller than the screen squeezed `#pointsSection` to its 96 px minimum – one row, the goal hidden inside the
   list. On a phone the open sheet now scrolls as one and the list keeps every row (`style.css`, end). Test:

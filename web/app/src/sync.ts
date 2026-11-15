@@ -12,6 +12,7 @@
 // and go up with that first round.
 import type { EngineClient } from './engine/client';
 import { t, locale } from './i18n';
+import { BIN_DAYS } from './recent';
 import { problem } from './diag';
 
 export interface SavedPlan {
@@ -31,6 +32,16 @@ export interface SavedPlan {
   /** „↻ Rundtour“ (the app's RoundTrip: a plan's points end at its start; a track: a guess from its line). */
   roundTrip?: boolean;
 }
+/**
+ * A saved route in this browser's recycle bin (deleted while no phone was paired, owner 2026-11-15): the whole item, so
+ * Wiederherstellen brings it back as it was. [at] = when it was saved last, [folder] = where it was.
+ */
+export interface BinnedRoute {
+  id: string; kind: 'plan' | 'track'; title: string | null; plan: string; track: string; favourite: boolean;
+  routing: string | null; routingData: string | null; at: number; deletedAt: number; folder: string;
+}
+/** A safety cap on the saved routes in the bin (the oldest beyond it go, reported); the days do it before. */
+const BIN_CAP = 400;
 export interface Device { name: string; updatedAt: number }
 export interface FolderInfo { key: string; name: string }
 export interface SyncStatus {
@@ -312,6 +323,84 @@ export class PlanSync {
       await this.unmark(folder, id);
     });
     await this.refresh();
+  }
+
+  /**
+   * Löschen on a saved route while no phone is paired (owner 2026-11-15): into this browser's recycle bin – no question,
+   * kept [BIN_DAYS] days (the app's RoutesState.toBin; paired, the phone's bin keeps it – [remove]). The whole item is
+   * written to the bin first, then the route leaves the folder: a failure in between leaves it in both, never in none.
+   */
+  async toBin(p: SavedPlan, folder = this.dir.open, now = Date.now()) {
+    await this.locked(async () => {
+      const bin = await this.readBin();
+      const e: BinnedRoute = { id: p.id, kind: p.kind, title: p.title, plan: p.plan, track: p.track, favourite: !!p.favourite,
+        routing: p.routing ?? null, routingData: p.routingData ?? null, at: p.updatedAt, deletedAt: now, folder };
+      await this.writeBin([e, ...bin.filter((x) => x.id !== p.id)]);
+      await this.setLedgerOf(folder, await this.call('syncDelete', await this.ledgerOf(folder), p.id, now, await this.device()));
+      await this.unmark(folder, p.id);
+    });
+    console.info(`[Problems] TRACE routes: "${p.title ?? ''}" → recycle bin (no phone paired)`);
+    await this.refresh();
+  }
+
+  /**
+   * The saved routes in this browser's recycle bin, newest deletion first; those older than [BIN_DAYS] days are removed
+   * here (the app removes them at its start – [binStartUp]).
+   */
+  async binnedRoutes(): Promise<BinnedRoute[]> {
+    return (await this.readBin()).sort((a, b) => b.deletedAt - a.deletedAt);
+  }
+
+  /** At the page start: bin entries older than [BIN_DAYS] days go (the app's RecycleBin at its start). Returns how many. */
+  async binStartUp(now = Date.now()): Promise<number> {
+    return this.locked(async () => {
+      const bin = await this.readBin(), keep = bin.filter((e) => now - e.deletedAt < BIN_DAYS * 86_400_000);
+      if (keep.length !== bin.length) {
+        await this.writeBin(keep);
+        console.info(`[Problems] TRACE routes: recycle bin: ${bin.length - keep.length} saved route(s) older than ${BIN_DAYS} days removed`);
+      }
+      return bin.length - keep.length;
+    }, false);
+  }
+
+  /**
+   * Papierkorb → Wiederherstellen of a saved route: back as a saved route in the open folder – the same id (its numbers
+   * and map picture follow), its name, its star. [title] = the name to restore under (the page gives the app's copy
+   * name when another route has the name now). False when it is no longer in the bin. A new route into a phone's full
+   * folder throws [TourCap] and it stays in the bin.
+   */
+  async restoreFromBin(id: string, title: string | null, folder = this.dir.open): Promise<boolean> {
+    const e = (await this.readBin()).find((x) => x.id === id);
+    if (!e) return false;
+    if (!(await this.hasRoom(folder))) throw this.refuseTour();
+    await this.locked(async () => {
+      const dev = await this.device(), now = Date.now();
+      let ledger = await this.ledgerOf(folder);
+      ledger = e.kind === 'track'
+        ? await this.call('syncSaveTrack', ledger, e.id, e.track, title ?? '', now, dev)
+        : await this.call('syncSave', ledger, e.id, e.plan, title ?? '', now, dev, e.routing ?? '', e.routingData ?? '');
+      if (e.favourite) ledger = await this.call('syncSetFavourite', ledger, e.id, 1, now, dev);
+      await this.setLedgerOf(folder, ledger);
+      await this.writeBin((await this.readBin()).filter((x) => x.id !== id)); // only once it is back
+    });
+    console.info(`[Problems] TRACE routes: recycle bin → saved: "${title ?? ''}"`);
+    await this.refresh();
+    return true;
+  }
+
+  private async readBin(): Promise<BinnedRoute[]> {
+    try {
+      const v = JSON.parse((await this.store.get('bin')) ?? '[]');
+      return Array.isArray(v) ? v.filter((x) => x && typeof x.id === 'string' && typeof x.deletedAt === 'number') : [];
+    } catch (e) { problem('routes', 'the recycle bin could not be read – shown empty', e); return []; }
+  }
+  private async writeBin(list: BinnedRoute[]) {
+    let keep = list;
+    if (keep.length > BIN_CAP) {
+      keep = [...keep].sort((a, b) => b.deletedAt - a.deletedAt).slice(0, BIN_CAP);
+      problem('routes', `recycle bin full – ${list.length - BIN_CAP} oldest route(s) removed`);
+    }
+    await this.store.set('bin', JSON.stringify(keep));
   }
 
   /** The route was opened: its "New from the phone" / "Changed on the phone" mark goes (A-017 rule 11). */

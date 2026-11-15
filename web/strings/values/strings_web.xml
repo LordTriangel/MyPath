@@ -129,8 +129,6 @@
     <string name="web_saved_short">Saved</string>
     <string name="web_plans_open">Open this plan</string>
     <string name="web_plans_new_name">New name of the plan</string>
-    <string name="web_keep">Keep</string>
-    <string name="web_delete_q_local">Delete “%1$s” from this browser?</string>
 
     <!-- Pair phone, sync -->
     <string name="web_pair_preparing">Preparing…</string>

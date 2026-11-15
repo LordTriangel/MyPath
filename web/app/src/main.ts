@@ -425,6 +425,8 @@ syncBadge(); // the header entry with its full tooltip at once – sync.init wai
 const syncReady = ready.then(async (ok) => {
   if (!ok) return false;
   await sync.init();
+  // the saved routes in the recycle bin (deleted without a phone, owner 2026-11-15): older than 30 days → gone
+  try { await sync.binStartUp(); } catch (e) { problem('routes', 'recycle bin: the start-up clean-up failed – tried again at the next start', e); }
   if (pairLink) joinDialog(sync, pairLink);
   syncBadge();
   sync.onChange(syncBadge);
@@ -1480,19 +1482,31 @@ function render() {
  * point list, so both go through the same rounding.
  */
 const pointsOnly = (p: SharedPlan, points: SharedPlan['points']) => engine.encode({ ...p, points, title: null, pinned: [], names: {} });
-let savedPointsMemo: { code: string; plan: Promise<SharedPlan | null>; key: Promise<string | null> } | null = null;
+/**
+ * A saved plan's parsed code and its points-only code, kept per code (the same text always gives the same): the plan on
+ * the map is compared with its own saved route at every edit, and with every saved route of the folder when it leaves
+ * the map – one parse each, once. Bounded, the oldest first out.
+ */
+const savedPointsMemo = new Map<string, { plan: Promise<SharedPlan | null>; key: Promise<string | null> }>();
 function savedPoints(code: string) {
-  if (savedPointsMemo?.code !== code) {
+  let m = savedPointsMemo.get(code);
+  if (!m) {
+    if (savedPointsMemo.size >= 600) savedPointsMemo.delete(savedPointsMemo.keys().next().value as string);
     const plan = engine.parse('p=' + code);
-    savedPointsMemo = { code, plan, key: plan.then((p) => (p ? pointsOnly(p, p.points) : null)) };
+    m = { plan, key: plan.then((p) => (p ? pointsOnly(p, p.points) : null)) };
+    savedPointsMemo.set(code, m);
   }
-  return savedPointsMemo;
+  return m;
+}
+/** [points] are exactly the saved plan [code]'s points (RouteRules.isUnsaved false against it) – lat/lon only. */
+async function samePointsAs(code: string, points: SharedPlan['points']): Promise<boolean> {
+  const m = savedPoints(code), saved = await m.plan;
+  if (!saved || saved.points.length !== points.length) return false; // another number of points: another plan, no encode
+  return (await pointsOnly(saved, points)) === (await m.key);
 }
 /** The plan on the map has the saved plan's points (RouteRules.isUnsaved false); false when nothing was saved. */
 async function samePointsAsSaved(): Promise<boolean> {
-  if (state.savedCode == null) return false;
-  const points = state.points, m = savedPoints(state.savedCode), saved = await m.plan;
-  return !!saved && (await pointsOnly(saved, points)) === (await m.key);
+  return state.savedCode != null && samePointsAs(state.savedCode, state.points);
 }
 
 /** "Saved as …" under the summary while the plan is a saved one (the app's sheet line after Save). */
@@ -1921,9 +1935,22 @@ async function keepAsRecent(why: string) {
       there = (await Promise.all(folders.map((f) => sync.list(f)))).some((l) => l.some((p) => p.id === savedId));
     } catch (e) { there = false; problem('routes', 'Zuletzt: the saved routes could not be read – the plan is kept as a draft too (never lost)', e); }
     if (there) { takePlace({ kind: 'saved', id: savedId }); return; }
+    // deleted without a phone: this browser's recycle bin holds it, the plan is in it – nothing twice (the app's keepDraft)
+    let binned = false;
+    try { binned = (await sync.binnedRoutes()).some((e) => e.id === savedId); }
+    catch (e) { problem('routes', 'Zuletzt: the recycle bin could not be read – the plan is kept as a draft too (never lost)', e); }
+    if (binned) { console.info('[Problems] TRACE routes: Zuletzt: the plan is a saved route in the recycle bin – nothing kept twice'); return; }
     console.info('[Problems] TRACE routes: Zuletzt: the plan\'s saved route is gone – kept as a new plan');
   }
   if (!(await ready)) return;
+  // changed (or new) but exactly the points of a saved route of the open folder: that route takes the Zuletzt place –
+  // never a twin draft beside it (the app's RoutesState.keepDraft, RouteRules.isUnsaved: points only)
+  const twin = await savedTwin(plan.points);
+  if (twin) {
+    takePlace({ kind: 'saved', id: twin.id });
+    console.info(`[Problems] TRACE routes: Zuletzt: the plan has the points of the saved route "${twin.title ?? ''}" – it takes the place, no draft`);
+    return;
+  }
   const code = await engine.encode(plan);
   const dated = datedName();
   const id = keepRecent(code, own || dated, pts, fromRecent);
@@ -1935,6 +1962,17 @@ async function keepAsRecent(why: string) {
     // the place name follows as a rename (app 21b4a7b1) – never over a rename, a save or a delete meanwhile
     if (name && renameRecentIf(id, dated, name)) console.info(`[Problems] TRACE plan: Zuletzt "${dated}" → "${name}"`);
   }).catch((e) => problem('routes', 'no name for the plan under Zuletzt', e));
+}
+/**
+ * The saved route of the open folder with exactly [points] (lat/lon, as [samePointsAs]), or null – the newest when there
+ * are several. A failure reads as none: the plan is then kept as a draft (never lost).
+ */
+async function savedTwin(points: SharedPlan['points']): Promise<SavedPlan | null> {
+  try {
+    if (!(await syncReady)) return null;
+    for (const p of await sync.list(sync.open)) if (p.kind === 'plan' && p.plan && (await samePointsAs(p.plan, points))) return p;
+  } catch (e) { problem('routes', 'Zuletzt: the saved routes could not be compared – the plan is kept as a draft', e); }
+  return null;
 }
 /** The saved plan just made from a Zuletzt entry: Meine Touren shows „✓ Gerade gespeichert“ on it. */
 let justSavedFromRecent: string | null = null;
@@ -1957,6 +1995,10 @@ const plansHost = {
   /** The planning activity (the activity filter's preset each time Meine Touren opens) and the six with their names. */
   activity: () => state.activity,
   activityRows: () => picker.allRows(),
+  samePoints: async (saved: string, other: string) => {
+    const o = await savedPoints(other).plan;
+    return !!o && samePointsAs(saved, o.points);
+  },
   current: async () => (state.points.length >= 2 && (await ready) ? { code: await engine.encode(sharedPlan()), title: state.title } : null),
   linkTitle: () => (linkTitle && linkTitle.at === enc(state.points) ? linkTitle.title : null),
   openId: () => state.savedId,
