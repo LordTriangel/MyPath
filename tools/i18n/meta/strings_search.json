@@ -53,5 +53,12 @@
   "search_route_in": {"area": "Route names", "context": "Suggested name of a tour that starts and ends in the same place without going out and back (a short ride across a town): %1$s = the place ('In Hilden')", "priority": 2, "confidence": "sicher"},
   "search_route_from": {"area": "Route names", "context": "Suggested route name when only the start is known: %1$s = start place", "priority": 2, "confidence": "sicher"},
   "search_route_to": {"area": "Route names", "context": "Suggested route name when only the destination is known: %1$s = destination", "priority": 2, "confidence": "bitte prüfen", "doubt": "'Nach' fits towns; for huts/peaks 'Zur …'/'Auf …' would be better German"},
-  "search_route_via": {"area": "Route names", "context": "Route name with a via stop: %1$s = 'Algund → Hochmuth', %2$s = the via stop ('Leiter Alm')", "priority": 2, "confidence": "sicher"}
+  "search_route_via": {"area": "Route names", "context": "Route name with a via stop: %1$s = 'Algund → Hochmuth', %2$s = the via stop ('Leiter Alm')", "priority": 2, "confidence": "sicher"},
+  "search_home": {"area": "Search", "context": "Top row of the empty search: the place set as home (owner 2026-11-15)", "priority": 1, "confidence": "sicher", "max": 16},
+  "search_favourites": {"area": "Search", "context": "Small capital heading over the favourite places (shown upper case)", "priority": 1, "confidence": "sicher", "max": 20},
+  "search_all_favourites": {"area": "Search", "context": "Row under the first 5 favourite places: shows all of them", "priority": 2, "confidence": "sicher", "max": 24},
+  "place_favourite_add": {"area": "Place menu", "context": "Row in a held place's menu: keep the place as a favourite (owner's word „Merken“)", "priority": 1, "confidence": "sicher", "max": 24},
+  "place_favourite_on": {"area": "Place menu", "context": "The same row when the place is a favourite; a tap removes it (owner's word „Gemerkt“)", "priority": 1, "confidence": "sicher", "max": 24},
+  "place_home_set": {"area": "Place menu", "context": "Row in a held place's menu: this place becomes Home", "priority": 1, "confidence": "sicher", "max": 28},
+  "place_home_remove": {"area": "Place menu", "context": "The same row on the place that is Home: forget it as Home", "priority": 2, "confidence": "sicher", "max": 28}
 }

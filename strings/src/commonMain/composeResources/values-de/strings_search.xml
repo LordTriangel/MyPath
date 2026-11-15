@@ -60,4 +60,11 @@
     <string name="search_route_in">In %1$s</string>
     <string name="search_route_to">Nach %1$s</string>
     <string name="search_route_via">%1$s (über %2$s)</string>
+    <string name="search_home">Zuhause</string>
+    <string name="search_favourites">Favoriten</string>
+    <string name="search_all_favourites">Alle Favoriten ›</string>
+    <string name="place_favourite_add">Merken</string>
+    <string name="place_favourite_on">Gemerkt</string>
+    <string name="place_home_set">Als Zuhause festlegen</string>
+    <string name="place_home_remove">Zuhause entfernen</string>
 </resources>

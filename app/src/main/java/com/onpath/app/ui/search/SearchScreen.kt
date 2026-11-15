@@ -25,7 +25,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.Search
@@ -58,6 +60,9 @@ import com.onpath.app.data.Format
 import com.onpath.app.search.Place
 import com.onpath.app.search.SearchHit
 import com.onpath.app.search.SearchKinds
+import com.onpath.app.ui.OnPathColors
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.onpath.strings.*
 
 /** Callbacks of the search view. */
@@ -69,6 +74,8 @@ data class SearchActions(
     val onPick: (Place) -> Unit = {},
     val onGoogle: (String) -> Unit = {},
     val onClearRecent: () -> Unit = {},
+    /** „Alle Favoriten ›“. */
+    val onAllFavourites: () -> Unit = {},
 )
 
 /**
@@ -123,20 +130,96 @@ fun SearchScreen(ui: SearchUi, actions: SearchActions, modifier: Modifier = Modi
     }
 }
 
+/**
+ * The empty search (owner 2026-11-15, compact sketch LqFT7h7KhEmKRdGJUVtrG9): „⌂ Zuhause“ (one row, only when set),
+ * „★ FAVORITEN“ (at most five, then „Alle Favoriten ›“), „ZULETZT GESUCHT“ – one-line rows of 48 dp, small upper-case
+ * heads. A tap opens the place's menu like any search pick.
+ */
 private fun LazyListScope.recentSection(ui: SearchUi, actions: SearchActions) {
-    if (ui.recent.isEmpty()) {
+    if (ui.recent.isEmpty() && ui.home == null && ui.favourites.isEmpty()) {
         item {
             Hint(str(Res.string.search_intro))
         }
         return
     }
-    item {
-        Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(str(Res.string.search_recent), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
-            TextButton(onClick = actions.onClearRecent) { Text(str(Res.string.search_clear_recent)) }
+    ui.home?.let { h ->
+        item {
+            CompactRow(h, str(Res.string.search_home), compactLine(h, withTitle = true), actions.onPick) {
+                Icon(Icons.Outlined.Home, null, tint = OnPathColors.ActionEdit)
+            }
+            HorizontalDivider()
         }
     }
-    items(ui.recent) { h -> ResultRow(h, actions.onPick, recent = true) }
+    if (ui.favourites.isNotEmpty()) {
+        item {
+            SmallHead(str(Res.string.search_favourites), star = true)
+        }
+        items(ui.favourites) { h ->
+            CompactRow(h, h.place.title(), compactLine(h), actions.onPick) {
+                Icon(Icons.Filled.Star, null, tint = OnPathColors.Favourite)
+            }
+        }
+        if (ui.moreFavourites > 0) item {
+            TextButton(onClick = actions.onAllFavourites, modifier = Modifier.padding(start = 4.dp).heightIn(min = 48.dp)) {
+                Text(str(Res.string.search_all_favourites))
+            }
+        }
+    }
+    if (ui.recent.isNotEmpty()) {
+        item {
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { SmallHead(str(Res.string.search_recent), padded = false) }
+                TextButton(onClick = actions.onClearRecent) { Text(str(Res.string.search_clear_recent)) }
+            }
+        }
+        items(ui.recent) { h ->
+            CompactRow(h, h.place.title(), compactLine(h), actions.onPick) {
+                // shared into OnPath (Google Maps → Share): the share sign instead of the clock (owner 2026-11-02)
+                if (h.place.shared) Icon(Icons.Outlined.Share, contentDescription = str(Res.string.search_recent_shared),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                else Icon(Icons.Outlined.History, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/** A small upper-case head (12 sp, like My routes' ZULETZT), with the gold star for the favourites. */
+@Composable
+private fun SmallHead(text: String, star: Boolean = false, padded: Boolean = true) {
+    Row((if (padded) Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp) else Modifier),
+        verticalAlignment = Alignment.CenterVertically) {
+        if (star) { Icon(Icons.Filled.Star, null, tint = OnPathColors.Favourite, modifier = Modifier.size(14.dp)); Spacer(Modifier.width(6.dp)) }
+        Text(text.uppercase(), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.semantics { heading() })
+    }
+}
+
+/** The grey part of a compact row: kind · height · distance (Zuhause: the place's name first). */
+internal fun compactLine(h: SearchHit, withTitle: Boolean = false): String = buildList {
+    if (withTitle) add(h.place.title()) else add(h.place.kindInfo.label)
+    if (!withTitle) h.place.ele?.let { add("$it m") }
+    add(Format.distance(h.distanceM))
+}.joinToString(" · ")
+
+/**
+ * One line, ≥ 48 dp: [name] (16, medium) and the grey [line] (14) beside it – the grey part is cut first, the name only
+ * when it alone does not fit.
+ */
+@Composable
+private fun CompactRow(h: SearchHit, name: String, line: String, onPick: (Place) -> Unit, icon: @Composable () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable { onPick(h.place) }.heightIn(min = 48.dp).padding(horizontal = 16.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) { icon() }
+        Spacer(Modifier.width(16.dp))
+        // the name is measured first (unweighted), the grey part takes what is left
+        Text(name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 1,
+            overflow = TextOverflow.Ellipsis)
+        Spacer(Modifier.width(8.dp))
+        Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+    }
 }
 
 private fun LazyListScope.resultSections(ui: SearchUi, actions: SearchActions) {
@@ -222,19 +305,12 @@ fun resultSubtitle(h: SearchHit): String = buildString {
 }
 
 @Composable
-private fun ResultRow(h: SearchHit, onPick: (Place) -> Unit, recent: Boolean = false) {
+private fun ResultRow(h: SearchHit, onPick: (Place) -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable { onPick(h.place) }.heightIn(min = 60.dp).padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (recent) {
-            Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
-                // shared into OnPath (Google Maps → Share): the share sign instead of the clock (owner 2026-11-02)
-                if (h.place.shared) Icon(Icons.Outlined.Share, contentDescription = str(Res.string.search_recent_shared),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                else Icon(Icons.Outlined.History, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        } else KindIcon(h.place)
+        KindIcon(h.place)
         Spacer(Modifier.width(16.dp))
         Column(Modifier.weight(1f)) {
             Text(h.place.title(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium,

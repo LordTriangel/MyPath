@@ -20,8 +20,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AddLocationAlt
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.TripOrigin
 import androidx.compose.material.icons.outlined.WrongLocation
@@ -135,6 +138,8 @@ fun MapOverlayHost(
                 menu = vm.placeMenu(poi),
                 onAddStop = { vm.addPoiAsStop(poi) },
                 onNewDestination = { vm.poiAsNewDestination(poi) },
+                favourite = vm.isFavouritePlace(poi), home = vm.isHomePlace(poi),
+                onFavourite = { vm.toggleFavouritePlace(poi) }, onHome = { vm.toggleHomePlace(poi) },
                 onGoogle = {
                     vm.closeMapOverlays()
                     com.onpath.app.poi.PoiIntents.openInGoogleMaps(ctx, poi)
@@ -392,7 +397,13 @@ fun PoiMenu(poi: Poi, onAdd: () -> Unit, onGoogle: () -> Unit, modifier: Modifie
             /** The found place as a card at the bottom ([PinMenuOverlay], owner 2026-11-13): its address under the name. */
             address: String? = null,
             /** A full-width card at the bottom instead of a menu at the place. */
-            card: Boolean = false) {
+            card: Boolean = false,
+            /**
+             * Kept places (owner 2026-11-15, „Orte merken“): null = not offered; else whether the place is a favourite
+             * („★ Gemerkt“) – „☆ Merken“ / „⌂ Als Zuhause festlegen“ ([home] = it is home: „⌂ Zuhause entfernen“).
+             */
+            favourite: Boolean? = null, home: Boolean = false,
+            onFavourite: () -> Unit = {}, onHome: () -> Unit = {}) {
     val place = Place.fromPoi(poi)
     MenuSurface(modifier, card) {
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)) {
@@ -409,13 +420,21 @@ fun PoiMenu(poi: Poi, onAdd: () -> Unit, onGoogle: () -> Unit, modifier: Modifie
         // the rows in their order (PinMenuItems): the same for a hold and for a picked search result (owner 2026-11-13)
         @Composable fun addRow(item: PlaceAddMenu.Item, icon: ImageVector, label: String, onClick: () -> Unit) =
             HoldMenuItem(icon, label, strong = menu?.emphasised == item, onClick = onClick)
-        for (r in PinMenuItems.of(emptyPlan, startHere, menu, pin = onRemovePin != null)) when (r) {
+        for (r in PinMenuItems.of(emptyPlan, startHere, menu, pin = onRemovePin != null, keep = favourite != null)) when (r) {
             PinMenuItems.Row.START_HERE -> HoldMenuItem(Icons.Outlined.TripOrigin, str(Res.string.plan_start_here), onClick = onAdd)
             PinMenuItems.Row.GO_HERE -> HoldMenuItem(Icons.Outlined.MyLocation, str(Res.string.plan_go_here), enabled = fromMeBlocked == null,
                 supporting = fromMeBlocked, onClick = onFromMe)
             PinMenuItems.Row.ADD -> HoldMenuItem(Icons.Outlined.AddLocationAlt, addLabel, onClick = onAdd)
             PinMenuItems.Row.ADD_STOP -> addRow(PlaceAddMenu.Item.ADD_STOP, Icons.Outlined.AddLocationAlt, str(Res.string.plan_add_as_stop), onAddStop)
             PinMenuItems.Row.NEW_DESTINATION -> addRow(PlaceAddMenu.Item.NEW_DESTINATION, Icons.Outlined.Flag, str(Res.string.plan_make_destination), onNewDestination)
+            PinMenuItems.Row.FAVOURITE -> {
+                // a thin line between the route rows and what is about the place itself (sketch B4a5St5Q…, picture 2)
+                HorizontalDivider(Modifier.padding(horizontal = 16.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                if (favourite == true) HoldMenuItem(Icons.Filled.Star, str(Res.string.place_favourite_on), iconTint = OnPathColors.Favourite, onClick = onFavourite)
+                else HoldMenuItem(Icons.Outlined.StarOutline, str(Res.string.place_favourite_add), onClick = onFavourite)
+            }
+            PinMenuItems.Row.HOME -> HoldMenuItem(Icons.Outlined.Home,
+                str(if (home) Res.string.place_home_remove else Res.string.place_home_set), onClick = onHome)
             PinMenuItems.Row.GOOGLE -> HoldMenuItem(Icons.Outlined.Map, str(Res.string.plan_open_google_maps), onClick = onGoogle)
             PinMenuItems.Row.REMOVE_PIN -> HoldMenuItem(Icons.Outlined.WrongLocation, str(Res.string.plan_remove_pin), onClick = { onRemovePin?.invoke() })
         }
@@ -459,7 +478,7 @@ fun PointMenu(index: Int, count: Int, name: String?, modifier: Modifier = Modifi
 @Composable
 private fun HoldMenuItem(
     icon: ImageVector, label: String, danger: Boolean = false, enabled: Boolean = true, supporting: String? = null,
-    strong: Boolean = false, onClick: () -> Unit,
+    strong: Boolean = false, iconTint: Color? = null, onClick: () -> Unit,
 ) {
     val base = when {
         danger -> MaterialTheme.colorScheme.error
@@ -473,7 +492,7 @@ private fun HoldMenuItem(
             .padding(horizontal = if (strong) 10.dp else 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, tint = if (strong) OnPathColors.ActionEdit else color, modifier = Modifier.size(22.dp))
+        Icon(icon, null, tint = iconTint ?: if (strong) OnPathColors.ActionEdit else color, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(14.dp))
         Column {
             // two lines at most: a large font wraps "In Google Maps öffnen", never cuts it (2026-11-13)

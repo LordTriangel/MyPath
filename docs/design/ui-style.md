@@ -248,6 +248,22 @@ for the map centre.
   normal font (the picture takes what is left, ≥ 220 dp); at a large font the values stand one per row and the page
   scrolls. A done tour's picture has its own stored size (`OverviewPictures.size(done = true)`).
 
+## Search: kept places (Zuhause, Favoriten)
+- Owner 2026-11-15 („Orte merken ist total nützlich“, F-PLAN-14; sketches https://claude.ai/artifact/B4a5St5QFxAi7dKfG6SLXN
+  picture 2 and the compact https://claude.ai/artifact/LqFT7h7KhEmKRdGJUVtrG9). Rules in `search/SavedPlaces` (pure).
+- **Empty search**: „⌂ Zuhause“ one row (name „Zuhause“, the place grey beside it, the plan blue house), a line; „★
+  FAVORITEN“ (12 sp upper case like My routes' ZULETZT, the gold star of My routes' favourites), five rows, then „Alle
+  Favoriten ›“; „ZULETZT GESUCHT“ + Löschen. Rows one line, 48 dp: name 16 medium, grey kind · height · distance 14 –
+  the grey part is cut first. A place shown above is not repeated under Zuletzt. No hint while no Zuhause is set (the
+  row is absent). A tap = a search pick (the place's menu opens on the map).
+- **Held place's menu** (`PoiMenu`, `PinMenuItems` FAVOURITE / HOME): after the route rows and a thin line, „☆ Merken“
+  (set: gold „★ Gemerkt“, a tap removes it) and „⌂ Als Zuhause festlegen“ (on the home place „⌂ Zuhause entfernen“);
+  the menu stays open and shows the new state. No „Nach Hause“ button during a tour (owner).
+- **Storage**: `SearchStore.saved()` in its own prefs `onpath-places` (Android's backup includes it); the backup folder
+  gets `OnPath Orte.gpx` (`backup/PlacesBackup`: waypoints for other apps + the record `<onpath:places>`), written on each
+  change, retried at the next start; a restore joins it with the phone's places (the phone's home wins). Not synced to
+  the browser planner.
+
 ## Rules for new UI
 - A question or must-know message → `Message` + `MessageCard` through the screen's host (Plan:
   `PlanMessageHost` in `MapScreen.kt`; Navigate: `NavigateOverlay`; My routes / Settings: `ScreenMessageHost`) – never

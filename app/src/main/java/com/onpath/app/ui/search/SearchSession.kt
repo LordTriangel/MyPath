@@ -54,7 +54,13 @@ data class SearchUi(
     val onlineState: OnlineState = OnlineState.IDLE,
     /** No offline index yet and the first one is being built ("Preparing offline search…"); never during a rebuild. */
     val indexing: Boolean = false,
+    /** „Zuletzt gesucht“ without the places shown above it ([SavedPlaces.start]). */
     val recent: List<SearchHit> = emptyList(),
+    /** „⌂ Zuhause“ on top of the empty search (owner 2026-11-15); null = none set (the row is absent). */
+    val home: SearchHit? = null,
+    /** „★ Favoriten“: at most [SavedPlaces.SHOWN_FAVOURITES] until „Alle Favoriten ›“ ([moreFavourites] > 0). */
+    val favourites: List<SearchHit> = emptyList(),
+    val moreFavourites: Int = 0,
     val hasRoute: Boolean = false,
     /**
      * The list on screen, kept by [SearchSession]: ranked once per text ([shownFor]); later answers for the same text
@@ -127,7 +133,8 @@ class SearchSession(
      */
     fun onOpen() {
         val ctx = context()
-        ui = ui.copy(query = "", category = null, recent = recentHits(ctx), hasRoute = ctx.route != null)
+        allFavourites = false
+        ui = startLists(ui.copy(query = "", category = null, hasRoute = ctx.route != null), ctx)
         run() // clears the old results and stops a search still on its way
         // the address files opened now (one per map cell, each reads its towns), not on the first letter
         scope.launch(Dispatchers.IO) {
@@ -165,15 +172,24 @@ class SearchSession(
 
     fun clearRecent() { store.clearRecent(); ui = ui.copy(recent = emptyList()) }
 
+    /** „Alle Favoriten ›“: every favourite place, until the search is opened again. */
+    fun showAllFavourites() { allFavourites = true; ui = startLists(ui, context()) }
+
+    private var allFavourites = false
+
+    /** Zuhause, the favourites and „Zuletzt gesucht“ of the empty search ([SavedPlaces.start]). */
+    private fun startLists(u: SearchUi, ctx: SearchContext): SearchUi {
+        val s = store.saved().start(store.recent(), allFavourites)
+        fun hit(p: Place) = SearchHit(p, 0.0, 0, Geo.distance(ctx.refLat, ctx.refLon, p.lat, p.lon), false)
+        return u.copy(home = s.home?.let(::hit), favourites = s.favourites.map(::hit), moreFavourites = s.moreFavourites,
+            recent = s.recent.map(::hit))
+    }
+
     /**
      * A result or recent entry picked: the offline copy (full details) when the index has it. A shown result is that
      * copy already; a recent one is one indexed lookup.
      */
     fun resolve(p: Place): Place = ui.hits.firstOrNull { it.place.id == p.id }?.place ?: index?.place(p.id) ?: p
-
-    private fun recentHits(ctx: SearchContext) = store.recent().map { p ->
-        SearchHit(p, 0.0, 0, Geo.distance(ctx.refLat, ctx.refLon, p.lat, p.lon), false)
-    }
 
     /** The offline index, built (off the main thread) when needed; for route names (search/RouteNamer). */
     suspend fun offlineIndex(): PlaceIndex = ensureIndex()

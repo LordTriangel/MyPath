@@ -53,4 +53,5 @@
     <plurals name="backup_last"><item quantity="one">Last backup: %1$s · %2$d file</item><item quantity="other">Last backup: %1$s · %2$d files</item></plurals>
     <plurals name="backup_n_tracks"><item quantity="one">%1$d tour</item><item quantity="other">%1$d tours</item></plurals>
     <plurals name="backup_n_routes"><item quantity="one">%1$d plan</item><item quantity="other">%1$d plans</item></plurals>
+    <plurals name="backup_n_places"><item quantity="one">%1$d kept place</item><item quantity="other">%1$d kept places</item></plurals>
 </resources>

@@ -50,5 +50,6 @@
   "backup_bin_days_left": {"area": "Recycle bin", "context": "End of the card line. %1$d = days until removed", "priority": 2, "confidence": "sicher", "max": 20},
   "backup_last": {"area": "Settings · Backup", "context": "%1$s = date and time or \"not yet\", %2$d = files in the folder", "priority": 2, "confidence": "sicher"},
   "backup_n_tracks": {"area": "Restore", "context": "Count in the result message", "priority": 2, "confidence": "sicher"},
-  "backup_n_routes": {"area": "Restore", "context": "Count in the result message", "priority": 2, "confidence": "sicher"}
+  "backup_n_routes": {"area": "Restore", "context": "Count in the result message", "priority": 2, "confidence": "sicher"},
+  "backup_n_places": {"area": "Restore", "context": "Part of the result message in brackets: Zuhause / favourite places restored. %1$d = count", "priority": 3, "confidence": "sicher"}
 }

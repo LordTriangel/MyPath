@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Android 12+: cloud backup and device-to-device transfer of the tours and settings only (no Google Play Services
+  Android 12+: cloud backup and device-to-device transfer of the tours, settings and kept places (Zuhause + favourites) only (no Google Play Services
   needed by the app; Android's own backup does it). Not included: map data / cells (external files, hundreds of MB),
   caches, the problem log, the backup folder link and its index (prefs "backup", backup-index.json – a folder
   permission does not move to another phone), and of the plan sync's files/sync/ everything but device.txt (the sync
@@ -12,6 +12,7 @@
         <include domain="database" path="onpath.db" />
         <include domain="database" path="onpath.db-wal" />
         <include domain="sharedpref" path="onpath.xml" />
+        <include domain="sharedpref" path="onpath-places.xml" />
         <include domain="file" path="tour-times.json" />
         <include domain="file" path="plan-times.json" />
         <include domain="file" path="sync/device.txt" />
@@ -20,6 +21,7 @@
         <include domain="database" path="onpath.db" />
         <include domain="database" path="onpath.db-wal" />
         <include domain="sharedpref" path="onpath.xml" />
+        <include domain="sharedpref" path="onpath-places.xml" />
         <include domain="file" path="tour-times.json" />
         <include domain="file" path="plan-times.json" />
         <include domain="file" path="sync/device.txt" />
