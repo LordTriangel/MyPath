@@ -6,6 +6,11 @@ Output (in OUT_DIR):
       band is transparent); major routes (net >= 2) again as original pieces with "majoronly": 1, ref, name, net;
       named cycle routes not named by such a piece as label lines "lb": 1, "majoronly": 1, name, ref (no net).
       Cycle routes only of the networks lcn / rcn / ncn / icn (BIKE_NETWORKS)
+  routelines (tile layer only; --all-routes or ONPATH_ALL_ROUTES=1, test cells so far) - EVERY signed route relation
+      whole, one line per relation: kind, name, ref, net, rid (relation id). "routes" keeps one route per way and kind
+      (the band, the highlight), so a local route on the ways of a bigger one (a Traumpfad on the Moselsteig) has no
+      named piece there; routelines has it whole. The map style does not draw this layer (no doubled bands or
+      labels); tools/suggest-poc reads it (named.py).
   trails.geojson  - paths with SAC scale (hiking difficulty), mtb:scale and/or poor trail_visibility.
       Props: sac 0-6 (always), mtb "0".."6" (first char of mtb:scale), vis 0-5 (trail_visibility, if tagged)
   ways.geojson    - OPTIONAL way quality (docs/map-pipeline.md "Way quality"): tracks with tracktype, and
@@ -74,6 +79,9 @@ _ap.add_argument("--smooth-dev", type=float, default=3.0, metavar="M",
 _ap.add_argument("--wayclass", metavar="JAR",
                  help="format 2: router classes per way from tools/routing/wayclass (build.sh makes the jar)")
 _ap.add_argument("--profiles", metavar="DIR", help="--wayclass: lookups.dat + the .brf profiles the app routes with")
+_ap.add_argument("--all-routes", action="store_true", default=os.environ.get("ONPATH_ALL_ROUTES") == "1",
+                 help="--tiles: also write the layer routelines - every signed route relation whole (default: env "
+                      "ONPATH_ALL_ROUTES=1; off in the normal build until the owner says all cells)")
 _ap.add_argument("--java", default=os.environ.get("JAVA", "java"), help="--wayclass: java command (default $JAVA or java)")
 ARGS = _ap.parse_args()
 if ARGS.wayclass and not (ARGS.tiles and ARGS.profiles):
@@ -82,6 +90,8 @@ pbf, out_dir = ARGS.pbf, ARGS.out_dir
 minlon, minlat, maxlon, maxlat = ARGS.bbox
 TILES = ARGS.tiles
 DO_SMOOTH = ARGS.smooth  # (SMOOTH is the smoothness table below)
+ALL_ROUTES = ARGS.all_routes and TILES is not None
+ROUTELINE_ZOOMS = (10, 14)  # routelines: from the hiking band's first zoom on
 BBOX = box(minlon, minlat, maxlon, maxlat)
 SIMPLIFY = 0.00003  # about 3 m
 FINE_SIMPLIFY = 0.000005  # about 0.5 m: trails / ways are drawn over the base map's own lines (no ghost lines)
@@ -420,6 +430,8 @@ class RelationPass(osmium.SimpleHandler):
         self.way_routes = {}  # way id -> list of (kind, ref, name)
         self.way_hikes = {}   # way id -> list of (ref, label, network) of hiking relations
         self.way_rtags = {}   # --wayclass: way id -> {route pseudo-tag: yes | proposed}
+        self.way_rels = {}    # --all-routes: way id -> relation ids of the signed routes over it
+        self.rels = {}        # --all-routes: relation id -> routelines properties
         self.node_refs = array("q")  # --smooth: node ids of all highway ways (junctions = ids seen twice)
 
     def way(self, w):
@@ -458,9 +470,13 @@ class RelationPass(osmium.SimpleHandler):
             net = r.tags.get("network", "")
             label = route_label(r.tags) if net not in ("iwn", "nwn") else ""
             hike = (clean_ref(ref), label, net)
+        if ALL_ROUTES:
+            self.rels[r.id] = {"kind": kind, "name": name, "ref": ref, "net": rank, "rid": r.id}
         for m in r.members:
             if m.type == "w":
                 self.way_routes.setdefault(m.ref, []).append((kind, ref, name, rank))
+                if ALL_ROUTES and r.id not in self.way_rels.get(m.ref, ()):
+                    self.way_rels.setdefault(m.ref, []).append(r.id)
                 if hike:
                     self.way_hikes.setdefault(m.ref, []).append(hike)
 
@@ -699,9 +715,11 @@ def length_m(line):
 
 
 class WayPass(osmium.SimpleHandler):
-    def __init__(self, way_routes, way_hikes=None, way_rtags=None):
+    def __init__(self, way_routes, way_hikes=None, way_rtags=None, way_rels=None):
         super().__init__()
         self.way_routes = way_routes
+        self.way_rels = way_rels or {}
+        self.rel_lines = {}  # --all-routes: relation id -> member way geometries (shapely)
         self.way_hikes = way_hikes or {}
         self.way_rtags = way_rtags or {}
         self.combos = {}      # --wayclass: router tag set -> combo id (one classifier request per distinct set)
@@ -873,6 +891,8 @@ class WayPass(osmium.SimpleHandler):
                 if kind in LABEL_KINDS:
                     feat["label"] = route_label_of(kind, routes, name if rank >= 2 else "")
                 self.routes.append(feat)
+            for rid in self.way_rels.get(w.id, ()):
+                self.rel_lines.setdefault(rid, []).append(shape_of(g))
         # Trails and way quality are drawn right over the base map's own path / track lines, so they keep a
         # near-exact geometry (~0.5 m); a 3 m simplification shows as a second line beside the path at z17+.
         if fine is None and (sac or mtb or faint or quality):
@@ -1032,6 +1052,19 @@ def shape_of(geom):
     return shape(geom)
 
 
+def route_lines(rels, rel_lines):
+    """--all-routes: every signed route relation whole, as few lines as its member ways join into (tile layer
+    routelines): kind, name, ref, net, rid. Unlike "routes" (one route per way and kind) a way here carries every
+    route over it - a Traumpfad stays whole where it runs on the Moselsteig."""
+    out = []
+    for rid in sorted(rel_lines):
+        lines = rel_lines[rid]
+        m = linemerge(MultiLineString(lines)) if len(lines) > 1 else lines[0]
+        for g in (m.geoms if hasattr(m, "geoms") else [m]):
+            out.append({"type": "Feature", "geometry": rounded(mapping(g)), "properties": dict(rels[rid])})
+    return out
+
+
 def compact(props):
     """Tile attributes: drop empty strings (e.g. route ref / name) – the style reads them with coalesce."""
     return {k: v for k, v in props.items() if v != ""}
@@ -1087,7 +1120,7 @@ def classify(wp, tiles_dir):
     return barriers
 
 
-def write_tiles(tiles_dir, layers, low, tile_paths, streets, barriers=None, areas=None):
+def write_tiles(tiles_dir, layers, low, tile_paths, streets, barriers=None, areas=None, routelines=None):
     """Format 2: one line-delimited GeoJSON file per tile layer, input of tools/build_overlays.sh. "paths" holds the
     former lowways as a coarse copy for z11-12 and the exact ways for z13-14 (per-feature tippecanoe zoom range)."""
     import os
@@ -1122,6 +1155,11 @@ def write_tiles(tiles_dir, layers, low, tile_paths, streets, barriers=None, area
         with open(f"{tiles_dir}/areas.ndjson", "w") as f:
             for feat in areas:
                 dump(f, feat, AREA_ZOOMS)
+    if routelines is not None:
+        with open(f"{tiles_dir}/routelines.ndjson", "w") as f:
+            for feat in routelines:
+                dump(f, feat, ROUTELINE_ZOOMS)
+        print("tiles: routelines", len(routelines), "(every signed route whole, --all-routes)")
     print("tiles: paths", len(low), "+", len(tile_paths), ", streets", len(streets), "->", tiles_dir)
 
 
@@ -1133,7 +1171,7 @@ def main():
     global TOWNS
     if TILES is not None:
         TOWNS = TownIndex(pbf)
-    wp = WayPass(rp.way_routes, rp.way_hikes, rp.way_rtags)
+    wp = WayPass(rp.way_routes, rp.way_hikes, rp.way_rtags, rp.way_rels)
     wp.apply_file(pbf, locations=True)
     barriers = None
     if TILES is not None:
@@ -1153,7 +1191,8 @@ def main():
                 json.dump({"type": "FeatureCollection", "features": feats}, f, separators=(",", ":"))
             print(name, len(feats))
     if TILES is not None:
-        write_tiles(TILES, layers, wp.low, wp.tile_paths, wp.streets, barriers, TOWNS.areas)
+        write_tiles(TILES, layers, wp.low, wp.tile_paths, wp.streets, barriers, TOWNS.areas,
+                    route_lines(rp.rels, wp.rel_lines) if ALL_ROUTES else None)
 
 
 main()

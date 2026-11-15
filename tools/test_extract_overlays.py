@@ -64,8 +64,9 @@ class Osm:
                 + "\n".join(self.nodes + self.ways + self.rels) + "\n</osm>\n")
 
 
-def run_extract(osm, tmp, x0=-50, y0=-50, x1=550, y1=350):
-    """extract_overlays.py --tiles on the made-up file -> {layer: [features]} of the tile inputs."""
+def run_extract(osm, tmp, x0=-50, y0=-50, x1=550, y1=350, extra=(), env=None):
+    """extract_overlays.py --tiles on the made-up file -> {layer: [features]} of the tile inputs (routelines only when
+    it was written: --all-routes)."""
     src = os.path.join(tmp, "t.osm")
     with open(src, "w") as f:
         f.write(osm.xml())
@@ -74,11 +75,14 @@ def run_extract(osm, tmp, x0=-50, y0=-50, x1=550, y1=350):
     hi, ha = at(x1, y1)
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "extract_overlays.py")
     res = subprocess.run([sys.executable, script, src, tmp, str(lo), str(la), str(hi), str(ha),
-                          "--tiles", out, "--no-geojson", "--smooth"], capture_output=True, text=True)
+                          "--tiles", out, "--no-geojson", "--smooth", *extra], capture_output=True, text=True,
+                         env={**os.environ, "ONPATH_ALL_ROUTES": "", **(env or {})})
     if res.returncode:
         raise AssertionError(res.stdout + res.stderr)
     layers = {}
-    for name in ("paths", "streets", "routes", "areas"):
+    for name in ("paths", "streets", "routes", "areas", "routelines"):
+        if name == "routelines" and not os.path.exists(os.path.join(out, name + ".ndjson")):
+            continue
         with open(os.path.join(out, name + ".ndjson")) as f:
             layers[name] = [json.loads(line) for line in f]
     return layers
@@ -245,6 +249,72 @@ class BikeMap(unittest.TestCase):
               if f["tippecanoe"]["minzoom"] == 13 and self.x_range(f) == (520, 540)}
         self.assertEqual(tn, {0: "p", 20: "p", 40: "p", 60: "t", 80: "t", 100: "t", 120: None, 140: None, 160: None,
                               180: "t", 200: "t"})
+
+
+@unittest.skipUnless(HAVE_LIBS, "pyosmium / shapely not installed")
+class EveryRouteOfAWay(unittest.TestCase):
+    """--all-routes (IR 2026-11-15, test cells first): a way keeps every signed route over it. A local loop (Traumpfad)
+    that runs on a regional route's way (Moselsteig) for a stretch stays whole in the tile layer routelines; the drawn
+    layer "routes" is the same as without the switch."""
+
+    @staticmethod
+    def make():
+        o = Osm()
+        west = o.way([(0, 0), (100, 0)], highway="path")
+        shared = o.way([(100, 0), (200, 0)], highway="track")
+        east = o.way([(200, 0), (300, 0)], highway="path", sac_scale="mountain_hiking")
+        steig = o.way([(200, 0), (200, 100)], highway="path")
+        o.route([west, shared, east], route="hiking", network="lwn", name="Traumpfad Bleidenberger Ausblicke")
+        o.route([shared, steig], route="hiking", network="rwn", name="Moselsteig", ref="MS")
+        o.route([shared], route="bicycle", network="lcn", name="Radweg A")
+        o.route([shared], route="bicycle", network="lcn", name="Radweg B")
+        o.route([steig], route="bicycle", network="bcn", name="Kein Radweg")  # unsigned network: no line, as in routes
+        return o
+
+    @classmethod
+    def setUpClass(cls):
+        cls.tmp = tempfile.TemporaryDirectory()
+        def run(name, **kw):
+            d = os.path.join(cls.tmp.name, name)
+            os.makedirs(d)
+            return run_extract(cls.make(), d, **kw)
+        cls.on = run("on", extra=["--all-routes"])
+        cls.env = run("env", env={"ONPATH_ALL_ROUTES": "1"})
+        cls.off = run("off")
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    @staticmethod
+    def span(feat):
+        """west, east, south, north end of a line, in metres rounded to 10 (6-digit coordinates)"""
+        xs = [round((p[0] - LON0) / M_LON / 10) * 10 for p in feat["geometry"]["coordinates"]]
+        ys = [round((p[1] - LAT0) / M_LAT / 10) * 10 for p in feat["geometry"]["coordinates"]]
+        return min(xs), max(xs), min(ys), max(ys)
+
+    def test_two_routes_on_one_way_both_kept(self):
+        lines = {(f["properties"]["kind"], f["properties"]["name"]): (self.span(f), f["properties"])
+                 for f in self.on["routelines"]}
+        self.assertEqual(sorted(lines), [("bike", "Radweg A"), ("bike", "Radweg B"),
+                                         ("hike", "Moselsteig"), ("hike", "Traumpfad Bleidenberger Ausblicke")])
+        # the loop is whole (one line 0..300 m, over the shared way), so is the regional route over the same way
+        span, props = lines[("hike", "Traumpfad Bleidenberger Ausblicke")]
+        self.assertEqual(span, (0, 300, 0, 0))
+        self.assertEqual(props["net"], 1)
+        span, props = lines[("hike", "Moselsteig")]
+        self.assertEqual((span, props["ref"], props["net"]), ((100, 200, 0, 100), "MS", 2))
+        self.assertEqual(lines[("bike", "Radweg A")][0], lines[("bike", "Radweg B")][0])
+        self.assertEqual(len(self.on["routelines"]), 4)  # one line per relation
+        self.assertTrue(all(f["tippecanoe"] == {"minzoom": 10, "maxzoom": 14} for f in self.on["routelines"]))
+
+    def test_env_switch(self):
+        self.assertEqual(sorted(f["properties"]["rid"] for f in self.env["routelines"]),
+                         sorted(f["properties"]["rid"] for f in self.on["routelines"]))
+
+    def test_off_by_default_and_drawn_layer_unchanged(self):
+        self.assertNotIn("routelines", self.off)
+        self.assertEqual(self.on["routes"], self.off["routes"])
 
 
 @unittest.skipUnless(HAVE_LIBS, "pyosmium / shapely not installed")
