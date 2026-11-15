@@ -5,7 +5,7 @@ import com.onpath.app.routing.GeoPoint
 import java.util.Locale
 
 /**
- * Small persisted search state: the last 8 picked places ("Recent") and the names of route points
+ * Small persisted search state: the last 20 picked places ("Recent", owner 2026-11-15: 8 was too few) and the names of route points
  * that were added from a place (so stops can be listed as "Leiter Alm" instead of "Point 3").
  * Only OSM / Photon data is stored – never anything from Google, except a place the user shared into OnPath
  * themselves (owner 2026-11-02: "zuletzt habe ich es ja gesucht"): it goes to "Recent" with its share sign.
@@ -34,7 +34,7 @@ class SearchStore(context: Context) {
     }
 
     companion object {
-        const val MAX_RECENT = 8
+        const val MAX_RECENT = 20
         private fun clean(s: String?) = s.orEmpty().replace('\t', ' ').replace('\n', ' ')
 
         fun encode(p: Place): String = listOf(p.id, clean(p.name), p.kind, p.sub.orEmpty(),
