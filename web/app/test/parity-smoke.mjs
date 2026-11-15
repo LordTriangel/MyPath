@@ -271,9 +271,13 @@ check(myRow.name === 'Test loop' && myRow.live === 'Test loop' && JSON.stringify
 {
   const st = await page.evaluate(() => { const li = document.querySelector('#planList li[data-id]'), s = li.querySelector('.stats');
     const n = li.querySelector('.name').getBoundingClientRect(), r = s?.getBoundingClientRect();
-    return { text: s?.textContent ?? null, dist: document.querySelector('#summary .dist')?.textContent ?? '', below: !!r && r.top > n.bottom - 1 }; });
-  check(st.text !== null && st.text.startsWith(st.dist + ' · ↑ ') && /↑ \d+ m ↓ \d+ m$/.test(st.text) && st.below,
-    `My routes: length and climb under the name (the app's L1), "${st.text}" (sheet: ${st.dist})`);
+    const sp = (x) => x?.replace(/ /g, ' ') ?? null; // the row keeps each value together with no-break spaces (the app's facts)
+    return { text: sp(s?.textContent), nbsp: / /.test(s?.textContent ?? ''), dist: sp(document.querySelector('#summary .dist')?.textContent ?? ''),
+      time: sp(document.querySelector('#summary .time')?.textContent ?? ''), below: !!r && r.top > n.bottom - 1 }; });
+  // the app's facts (RouteRowActions.facts, laptop 2026-11-15): km · ↑ climb · the model time – the sheet's time, no ↓
+  check(st.text !== null && st.text === `${st.dist} · ↑ ${st.text.split(' · ')[1]?.slice(2)} · ${st.time}` && /^↑ \d+ m$/.test(st.text.split(' · ')[1] ?? '')
+    && /\d+ min$/.test(st.time) && st.nbsp && st.below,
+    `My routes: length, climb and time under the name (the app's L1), "${st.text}" (sheet: ${st.dist}, ${st.time})`);
 }
 await page.click('#closePlans');
 if (await page.isEnabled('#undo')) { // a change → Save dark; Save overwrites; My routes ⋮ → Save as copy makes a copy

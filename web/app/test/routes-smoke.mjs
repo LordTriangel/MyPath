@@ -54,7 +54,8 @@ const rowOf = (P, name) => P.evaluate((n) => {
     star: star ? star.getAttribute('aria-pressed') : null, starLabel: star?.getAttribute('aria-label') ?? '', thumb: li.dataset.thumb ?? null,
     img: !!li.querySelector('.tileface img.thumb'), svg: !!li.querySelector('.tileface svg.routeshape'), kind: !!li.querySelector('.tileface .kindic'),
     starBelowMenu: (() => { const m = li.querySelector('.more'); return !!(m && star && star.getBoundingClientRect().top >= m.getBoundingClientRect().bottom - 1); })(),
-    tileW: li.querySelector('.tile').getBoundingClientRect().width, chev: !!li.querySelector('.chev') };
+    tileW: li.querySelector('.tile').getBoundingClientRect().width, chev: !!li.querySelector('.chev'),
+    facts: li.querySelector('.stats')?.textContent.replace(/\u00a0/g, ' ') ?? null };
 }, name);
 /** Waits until the list was drawn again after [before] (plans.ts counts its renders) – a busy machine takes its time. */
 const renders = (P) => P.evaluate(() => Number(document.getElementById('planList')?.dataset.renders ?? 0));
@@ -113,6 +114,7 @@ check(same(await names(P), ['Runde ab Algund', 'Ifinger Steig', 'Waalweg']), 'Hi
 let r = await rowOf(P, 'Waalweg');
 check(r.act === 'Hike · T3' && r.label === 'Open Waalweg' && r.star === 'false' && r.starLabel === 'Add Waalweg to favorites' && r.starBelowMenu && !r.chev && r.tileW === 84,
   `the row (L1): "Hike · T3", the star under ⋮, an 84 px tile, no › (${JSON.stringify(r)})`);
+check(r.facts === '8.1 km · ↑ 210 m · 2 h 06 min', `the row's facts as the app's card: km · ↑ · time, no ↓ ("${r.facts}")`);
 r = await rowOf(P, 'Runde ab Algund');
 check(r.act === 'Hike · T2 · Round trip' && r.label === 'Open Runde ab Algund, Round trip', `a round track: "· ↻ Round trip" (a guess from its line), said in the label too (${JSON.stringify(r)})`);
 check((await rowOf(P, 'Ifinger Steig')).act === 'Hike · T4', 'a hike never routed here: its activity from the plan code');

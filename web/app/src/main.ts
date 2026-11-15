@@ -45,7 +45,7 @@ import { appHint } from './apphint';
 import { setupSheetSteps } from './sheetstep';
 import { installDiag, addDiagSection, problem } from './diag';
 import { watchVersion, BUILD } from './version';
-import { keepStats, planKey, trackKey } from './planstats';
+import { keepStats, planKey, trackKey, statsText } from './planstats';
 import { keepShape } from './routeshape';
 import { RouteReveal } from './routereveal';
 import { isPoiKind, poiKindAt, poiPin } from './poipin';
@@ -1987,7 +1987,7 @@ const plansHost = {
     return {
       title: state.title || null, points: state.points.length, savedId: state.savedId, savedFolder: state.savedFolder,
       recentId: state.recentId, pointsKey: enc(state.points), unsaved: state.savedId ? planUnsaved : state.points.length >= 2, canSave: state.points.length >= 2,
-      stats: routed ? { m: p!.distanceM, up: p!.ascentM, down: p!.descentM } : null,
+      stats: routed ? { m: p!.distanceM, up: p!.ascentM, down: p!.descentM, s: p!.timeS } : null,
       segs: routed ? p!.legs.map((l) => l.points.map(([la, lo]) => [la, lo] as [number, number])) : null,
     };
   },
@@ -2147,7 +2147,7 @@ const gpxImport = setupGpxImport({
   },
 });
 (window as unknown as { __gpx: typeof gpxImport }).__gpx = gpxImport; // for the browser tests
-(window as unknown as { __planStats: unknown }).__planStats = { keepStats, planKey, trackKey, keepShape }; // for the browser tests (sort-smoke, routes-smoke)
+(window as unknown as { __planStats: unknown }).__planStats = { keepStats, planKey, trackKey, keepShape, statsText }; // for the browser tests (sort-smoke, routes-smoke)
 $('credits').onclick = () => credits();
 $('changedLine').onclick = () => { changedSeen = state.plan; $('changedLine').hidden = true; fitRoute(); }; // the app's tapRouteChangedLine
 $('warning').onclick = () => { const sp = $('spots'); sp.hidden = !sp.hidden; $('warning').setAttribute('aria-expanded', String(!sp.hidden)); };

@@ -263,7 +263,7 @@ let openAct: Activity | null = null;
  * Meine Touren (the app's My routes, owner 2026-11-07): ZULETZT – exactly one row (owner 2026-11-12, recent.ts): the
  * plan on the map („In Bearbeitung“, + „Gespeichert“ when saved as it is), else the draft or the saved route worked on
  * last –, then GESPEICHERT; a Papierkorb for this browser's drafts behind its button. A row: the route's preview tile
- * (a tap on it opens the plan like the row), the name, „Plan · 30. Okt. 2026“, the facts (km · ↑ · ↓ when this browser
+ * (a tap on it opens the plan like the row), the name, „Plan · 30. Okt. 2026“, the facts (km · ↑ · time when this browser
  * knows them), on the right where it lies (🖥 this browser, 📱 the phone) and ⋮ / ›. Actions per [rowActions]. The app's search over everything and,
  * under it, its sort chips (routesort.ts): they order Gespeichert; Zuletzt is one row and stays as it is.
  * Bold = changed here and not on the phone yet. Follows the sync live.
