@@ -1203,3 +1203,27 @@ e72fb540 / c543cd5a, 21c0eac1, 725b68e9 / 6ba34792, 21dcc5f5 / de1afd21, 870bff0
 - Tests: pinmenu-check (rows + tint), search-smoke (both rows, the likelier first and the only tinted one, one line, none
   of the old words; a POI click with the found place's menu open; „New destination“ appends; a click on the goal on a
   POI shows it), import-smoke (far past the goal: „New destination“ first and tinted, „Insert“ under it).
+
+## 32. Kept places: Zuhause and Favoriten (laptop, 2026-11-15 – app b2504c3d / a507cdf2, F-PLAN-14)
+
+- **Menu** (owner 2026-11-15, „Orte merken“): a held place's / a map POI's / the found place's menu shows after the route
+  rows, behind a thin line, „☆ Merken“ (set: the gold „★ Gemerkt“, a click removes it) and „⌂ Als Zuhause festlegen“
+  (on the home place „Zuhause entfernen“) – the app's strings `place_favourite_add / _on`, `place_home_set / _remove`;
+  the menu stays open and shows the new state (`main.ts keepRows`, `menus.ts` `stay` / `divider` / `iconColor`,
+  `pinmenu.ts pinRows(…, keep)` = PinMenuItems FAVOURITE / HOME).
+- **Empty search** (`search.ts renderStart` = SearchScreen.recentSection, compact sketch): under the chips „⌂ Zuhause“
+  (the name „Zuhause“, the place · distance grey beside it, plan blue house), a line, „★ FAVORITEN“ (five, then „Alle
+  Favoriten ›“ – all until the search is opened again), „ZULETZT GESUCHT“ + Löschen without the places shown above;
+  one-line rows ≥ 48 px, the grey part cut first. Nothing kept or searched: the old hint. A row = a search pick (the pin
+  and its menu). „Zuletzt gesucht“ is new in the planner: every pick goes first (20, the same place once –
+  SearchStore.addRecent).
+- **Rules shared**: `search/SavedPlaces.kt` is in `app/web-shared-files.txt` (pure, imports only Geo); the engine's
+  `WebKept.kt` runs it (`keptState`, `keptApply`, `keptStart`, `recentAdd`) and mirrors SearchStore's line format and
+  addRecent (parity.json). A place travels and is stored as ONE line = the app's SearchStore line (`Hit.code`).
+- **Store** (`keptplaces.ts`): browser-local for now (localStorage `onpath.keptPlaces` {v, home, favourites} and
+  `onpath.searchRecent`), behind `KeptStore` (list / keep / unkeep / setHome / clearHome / state / onChange; another tab's
+  change arrives as an event) – the phone ⇄ browser sync (format: donald, not defined yet) goes behind it without
+  touching the UI. A blocked / broken store: nothing kept is shown, a change lasts for the page; both to diag.
+- Tests: `WebKeptTest` (engine), pinmenu-check, `test/kept-smoke.mjs` (rows + line, Gemerkt gold and the menu open,
+  Favoriten / Zuhause / Zuletzt without repeats, five + „All favourites ›“, reload, unkeep / remove home, a map POI, a
+  blocked store, German words, screenshots desktop + Pixel 7), search-smoke (the rows' order).

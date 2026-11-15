@@ -25,7 +25,8 @@ import { NO_PADDING, roomFor } from './cardanchor';
 import { icon, activityIcon, needle, logo, type IconName } from './icons';
 import { ActivityPicker, type ActivityRow, type PaceChoices } from './activity';
 import { RouteThumbs } from './routethumbs';
-import { holdMenu, type MenuItem } from './menus';
+import { holdMenu, setRow, type MenuItem } from './menus';
+import { keptStore, searchRecent, type KeptPlaces, type KeptRules } from './keptplaces';
 import { Position } from './position';
 import { PlanSync, shownTitle, type SavedPlan } from './sync';
 import { myPlansDialog, joinDialog, saveRoute, saveRouteAs, phoneDialog, pairDialog, phonePill, appDate, datedName } from './plans';
@@ -886,10 +887,10 @@ async function poiMenu(f: MapGeoJSONFeature) {
   const pr = f.properties ?? {};
   const info = JSON.parse(await engine.call('poiMenu', String(pr.kind ?? ''), String(pr.name ?? ''), pr.ele != null ? String(pr.ele) : '', lat, lon));
   if (!info) return;
-  const hit = { title: info.title, name: pr.name ? String(pr.name) : null, kind: String(pr.kind ?? ''), lat, lon } as Hit;
+  const hit = { title: info.title, name: pr.name ? String(pr.name) : null, kind: String(pr.kind ?? ''), lat, lon, code: info.code } as Hit;
   const r = await placeRows(hit, info, false);
   const at = new maplibregl.LngLat(lon, lat);
-  openMenu(at, [...r.main, r.google], r.head);
+  openMenu(at, [...r.main, ...r.keep, r.google], r.head);
 }
 
 /**
@@ -920,7 +921,43 @@ async function placeRows(hit: Hit, info: { title: string; sub: string; color: st
   const head = `<span class="txt"><b>${escapeHtml(info.title)}</b><span class="small" style="color:${info.color}">${escapeHtml(info.sub)}</span></span>`;
   const googleRow: MenuItem = { icon: 'map', label: t('plan_open_google_maps'),
     act: () => { if (info.google) window.open(info.google, '_blank', 'noopener'); else google(hit.name ?? '', lat, lon, hit.name ? '' : hit.title); } };
-  return { head, main: await Promise.all(pm.main.map(row)), google: googleRow };
+  return { head, main: await Promise.all(pm.main.map(row)), keep: await keepRows(hit.code), google: googleRow };
+}
+
+// ---- kept places (owner 2026-11-15, „Orte merken“ – the app's b2504c3d, F-PLAN-14; keptplaces.ts) ----
+const lines = (k: KeptPlaces) => [k.home ?? '', k.favourites.join('\n')] as const;
+const keptRules: KeptRules = {
+  apply: async (k, op, code) => JSON.parse(await engine.call('keptApply', ...lines(k), op, code)) as KeptPlaces,
+  state: async (k, code) => JSON.parse(await engine.call('keptState', ...lines(k), code)) as { favourite: boolean; home: boolean },
+  addRecent: async (recent, code) => (await engine.call('recentAdd', recent.join('\n'), code)).split('\n').filter((l) => l),
+};
+const kept = keptStore(keptRules);
+const recentSearch = searchRecent(keptRules);
+/** The app's OnPathColors.Favourite (My routes' star). */
+const FAVOURITE = '#B07D00';
+
+/**
+ * A held place's kept-place rows (the app's PoiMenu FAVOURITE / HOME): after the route rows and a thin line, „☆ Merken“
+ * (set: the gold „★ Gemerkt“, a click removes it) and „⌂ Als Zuhause festlegen“ (on the home place „Zuhause entfernen“);
+ * the menu stays open and shows the new state. None for a place without its line (nothing to keep).
+ */
+async function keepRows(code: string | undefined): Promise<MenuItem[]> {
+  if (!code) return [];
+  let st = { favourite: false, home: false };
+  try { st = await kept.state(code); } catch (e) { problem('search', 'Kept places: state not read – shown as not kept', e); }
+  const fav = (on: boolean) => (on ? { icon: 'star' as const, label: t('place_favourite_on'), iconColor: FAVOURITE }
+    : { icon: 'starOutline' as const, label: t('place_favourite_add') });
+  const home = (on: boolean) => ({ icon: 'home' as const, label: t(on ? 'place_home_remove' : 'place_home_set') });
+  return [
+    { ...fav(st.favourite), key: 'FAVOURITE', divider: true, stay: true, act: (b) => {
+      st.favourite = !st.favourite; setRow(b, fav(st.favourite));
+      void (st.favourite ? kept.keep(code) : kept.unkeep(code));
+    } },
+    { ...home(st.home), key: 'HOME', stay: true, act: (b) => {
+      st.home = !st.home; setRow(b, home(st.home));
+      void (st.home ? kept.setHome(code) : kept.clearHome());
+    } },
+  ];
 }
 
 /** Place menu → „Einfügen“: at [index] (the engine's stopOnly place – never behind the goal), pinned with its name. */
@@ -1808,6 +1845,7 @@ placeCard = setupSearch({
   route: () => state.plan?.legs.flatMap((l) => l.points.map(([la, lo]) => [la, lo] as LatLon)) ?? [],
   // the found place's menu: the very rows a hold on it gives (owner 2026-11-13, PinMenuItems) – the head's kind line
   // from the app's PoiMenu when the place is a POI kind, else the search row's own
+  kept, recent: recentSearch,
   pinMenu: async (h) => {
     const info = JSON.parse(await engine.call('poiMenu', h.kind, h.name ?? '', '', h.lat, h.lon)) as { sub: string; color: string } | null;
     return placeRows(h, { title: h.title, sub: info?.sub ?? h.subtitle, color: info?.color ?? h.color }, true);

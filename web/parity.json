@@ -14,7 +14,7 @@
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapOverlays.kt",
-      "what": "stopLabel; FirstPointMenu / PointMenu / PoiMenu look (the likelier add row tinted – HoldMenuItem strong, menus.ts / style.css); the found place's name chip „Name ›“ and its menu at the pin (PinMenuOverlay, search.ts)",
+      "what": "stopLabel; FirstPointMenu / PointMenu / PoiMenu look (the likelier add row tinted – HoldMenuItem strong, menus.ts / style.css); the found place's name chip „Name ›“ and its menu at the pin (PinMenuOverlay, search.ts); PoiMenu FAVOURITE / HOME rows (☆ Merken / ★ Gemerkt gold, ⌂ Als Zuhause festlegen / Zuhause entfernen, a thin line before, the menu stays open – main.ts keepRows, menus.ts)",
       "web": [
         "web/app/src/main.ts",
         "web/app/src/menus.ts",
@@ -32,9 +32,10 @@
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/search/SearchSession.kt",
-      "what": "DEBOUNCE_MS, offline-then-online flow",
+      "what": "DEBOUNCE_MS, offline-then-online flow; startLists / showAllFavourites / remember (kept places + Zuletzt gesucht, search.ts renderStart / pickRow)",
       "web": [
-        "web/app/src/search.ts"
+        "web/app/src/search.ts",
+        "web/engine/src/main/kotlin/com/onpath/web/WebKept.kt"
       ],
       "blob": "36218a8cbe76bfeee6337d4bea31509237444254"
     },
@@ -411,7 +412,7 @@
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/PinMenuPlace.kt",
-      "what": "the found place's menu (app 6714ad6f, owner 2026-11-13 „A mit Ausweich B“): PinMenuPlace.decide / cardPan (above the pin, the map moved down; under it; else a card at the bottom), PinMenuItems.of (the rows' order, Remove pin last; no „⋯ Mehr“ since 2026-11-15)",
+      "what": "the found place's menu (app 6714ad6f, owner 2026-11-13 „A mit Ausweich B“): PinMenuPlace.decide / cardPan (above the pin, the map moved down; under it; else a card at the bottom), PinMenuItems.of (the rows' order, Remove pin last; no „⋯ Mehr“ since 2026-11-15); FAVOURITE / HOME after the route rows (keep, owner 2026-11-15 „Orte merken“)",
       "web": [
         "web/app/src/pinmenu.ts",
         "web/app/src/search.ts"
@@ -435,6 +436,25 @@
         "web/app/src/main.ts"
       ],
       "blob": "0ae700e453477dc5c2b59f3ff3e1b73d3de1e90d"
+    },
+    {
+      "app": "app/src/main/java/com/onpath/app/search/SearchStore.kt",
+      "what": "kept places' and Zuletzt gesucht's line (encode / decode – the page stores these lines as they are, keptplaces.ts) and addRecent (20, the same place once) – WebKept.kt; Android prefs → localStorage",
+      "web": [
+        "web/engine/src/main/kotlin/com/onpath/web/WebKept.kt",
+        "web/app/src/keptplaces.ts"
+      ],
+      "blob": "e4872915fcd3bc643a5bb9970c6bfcdec752d0be"
+    },
+    {
+      "app": "app/src/main/java/com/onpath/app/ui/search/SearchScreen.kt",
+      "what": "the empty search (recentSection, owner 2026-11-15 compact sketch): ⌂ Zuhause, ★ FAVORITEN + „Alle Favoriten ›“, ZULETZT GESUCHT + Löschen, one-line 48 px rows (CompactRow, compactLine – WebKept.start), SmallHead",
+      "web": [
+        "web/app/src/search.ts",
+        "web/app/src/style.css",
+        "web/engine/src/main/kotlin/com/onpath/web/WebKept.kt"
+      ],
+      "blob": "5b0e98909b44474022ff92a5e2c3501ef71e8a93"
     }
   ],
   "watch": [
@@ -860,6 +880,10 @@
         "* The offline place index as the app uses it: [DiskIndex] (SQLite file, the app) or [OfflineIndex] (all in memory –",
         "/** Prepares what [search] needs (reads the word index into memory), so the first keystroke answers fast. */"
       ]
+    },
+    "app/src/main/java/com/onpath/app/search/SavedPlaces.kt": {
+      "blob": "f1041e24db48dede468535b2576304958520afd7",
+      "perf": []
     },
     "app/src/main/java/com/onpath/app/poi/Poi.kt": {
       "blob": "13f90ac3e37e02a2723e677336c504170d410bec",

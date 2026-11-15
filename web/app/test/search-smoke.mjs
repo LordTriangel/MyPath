@@ -67,7 +67,7 @@ const box = (sel) => page.evaluate((s) => { const r = document.querySelector(s)?
 await pickFirst('Vellau');
 let rows = await menuRows();
 console.log('empty plan, menu:', rows.join(' · '));
-check(rows.join('|') === 'Start here|Go here|Open in Google Maps|Remove pin', `empty plan: the pin's menu opens by itself with the hold's rows + Remove pin (${rows.join(' · ')})`);
+check(rows.join('|') === 'Start here|Go here|Add to favourites|Set as home|Open in Google Maps|Remove pin', `empty plan: the pin's menu opens by itself with the hold's rows + Remove pin (${rows.join(' · ')})`);
 check(await page.locator('#placecard #cadd, #placecard #cstart, .pinchip .pinadd').count() === 0, 'no old place card / "Hierhin" button');
 const pinBox = await box('.candidate'), menuBox = await box('.holdpopup.pinmenu');
 check(!!menuBox && menuBox.y + menuBox.h <= pinBox.y + 2, `wide map: the menu above the pin (menu bottom ${menuBox && Math.round(menuBox.y + menuBox.h)}, pin top ${Math.round(pinBox.y)})`);
@@ -77,7 +77,7 @@ await page.waitForFunction(() => document.querySelectorAll('.pin').length === 1,
 check(await page.locator('.candidate').count() === 0 && await page.locator('.holdpopup.pinmenu').count() === 0, 'Start here: the place is the start, pin and menu gone');
 await pickFirst('Ifinger');
 rows = await menuRows();
-check(rows.join('|') === 'Set as destination|Open in Google Maps|Remove pin', `only a start: "Set as destination", Google, Remove pin (${rows.join(' · ')})`);
+check(rows.join('|') === 'Set as destination|Add to favourites|Set as home|Open in Google Maps|Remove pin', `only a start: "Set as destination", Google, Remove pin (${rows.join(' · ')})`);
 await page.waitForTimeout(800); // the online search would have answered by now (owner 2026-10-28: the list came back)
 check(await page.isHidden('#results'), 'the results list stays closed while the menu is shown');
 // a click elsewhere closes the menu; the pin and its chip "Name ›" stay, the chip opens the same menu again
@@ -105,7 +105,7 @@ const PIN_BUTTONS = '.holdpopup.pinmenu .pointmenu button, #placecard.pinmenucar
 await pickFirst('Meran');
 rows = await menuRows();
 console.log('third place:', rows.join(' · '), '– tinted:', await strongRows(PIN_BUTTONS));
-check(['Insert|New destination', 'New destination|Insert'].includes(rows.slice(0, 2).join('|')) && rows.slice(2).join('|') === 'Open in Google Maps|Remove pin',
+check(['Insert|New destination', 'New destination|Insert'].includes(rows.slice(0, 2).join('|')) && rows.slice(2).join('|') === 'Add to favourites|Set as home|Open in Google Maps|Remove pin',
   `two points: "Insert" and "New destination" (either first), Google, Remove pin last, no More (${rows.join(' · ')})`);
 check((await strongRows(PIN_BUTTONS)).join('|') === rows[0] && await oneLine(PIN_BUTTONS),
   `the likelier row first and the only one tinted, every row one line (${(await strongRows(PIN_BUTTONS)).join()})`);
@@ -141,14 +141,16 @@ console.log('proposed name:', proposed);
 check(proposed === 'Vellau → Ifinger Hütte', 'Save proposes "Vellau → Ifinger Hütte" (RouteNamer)');
 await page.click('#saveCancel');
 
-// A POI in view, away from the markers (a marker opens its own menu) and from an open menu (a click there is the menu's).
+// A POI in view, away from the markers (a marker opens its own menu) and from an open menu or card (a click there is the menu's;
+// the found place's menu with the kept-place rows is a card at the bottom where the big profile leaves too little room;
+// the big profile itself lies over the map).
 const findPoi = () => page.waitForFunction(() => {
   const map = window.__map;
   if (!map.loaded() || map.isMoving()) return null;
   const layers = map.getStyle().layers.filter((l) => l.id.startsWith('poi-') && !l.id.endsWith('-name')).map((l) => l.id);
   const c = map.getCanvas(), w = c.clientWidth, h = c.clientHeight;
   const pins = [...document.querySelectorAll('.pin, .candidate')].map((e) => e.getBoundingClientRect()), cr = c.getBoundingClientRect();
-  const menus = [...document.querySelectorAll('.maplibregl-popup, .pinchip')].map((e) => e.getBoundingClientRect());
+  const menus = [...document.querySelectorAll('.maplibregl-popup, .pinchip, #placecard:not([hidden]), #bigProfile:not([hidden])')].map((e) => e.getBoundingClientRect());
   const fs = map.queryRenderedFeatures([[w * 0.35, h * 0.1], [w * 0.95, h * 0.9]], { layers }).filter((f) => {
     if (f.geometry.type !== 'Point' || !f.properties?.kind || f.properties.kind === 'bus' || !f.properties.name) return false;
     const p = map.project(f.geometry.coordinates), x = cr.x + p.x, y = cr.y + p.y;
@@ -163,6 +165,9 @@ const menuHead = () => page.textContent('.holdpopup:not(.pinmenu) .menuhead').ca
 
 // A click on a POI with the found place's menu open shows the POI at once – its menu in place of the closed one, no
 // second click (the app ba904656, owner 2026-11-15 on a hike: a tap on a POI works everywhere)
+// the big profile closed: with the kept-place rows the found place's menu is a card at the bottom otherwise, and the few
+// POIs in view lie under it or the profile
+if (await page.isVisible('#bigProfile .bpclose')) await page.click('#bigProfile .bpclose');
 await pickFirst('Ifinger');
 const poiOpen = await findPoi();
 { const mb = await page.locator('#map canvas').first().boundingBox(); await page.mouse.click(mb.x + poiOpen.x, mb.y + poiOpen.y); }
@@ -185,7 +190,7 @@ await page.waitForSelector('.pointmenu', { timeout: 15_000 });
 const POI_BUTTONS = '.holdpopup:not(.pinmenu) .pointmenu button';
 const poiRows = await page.$$eval(POI_BUTTONS, (b) => b.map((x) => x.querySelector('.txt > span')?.textContent?.trim() ?? ''));
 console.log('POI menu:', poiRows.join(' · '), '– tinted:', await strongRows(POI_BUTTONS));
-check(['Insert|New destination', 'New destination|Insert'].includes(poiRows.slice(0, 2).join('|')) && poiRows.slice(2).join('|') === 'Open in Google Maps'
+check(['Insert|New destination', 'New destination|Insert'].includes(poiRows.slice(0, 2).join('|')) && poiRows.slice(2).join('|') === 'Add to favourites|Set as home|Open in Google Maps'
   && (await strongRows(POI_BUTTONS)).join('|') === poiRows[0] && await oneLine(POI_BUTTONS),
   `a POI's menu: "Insert" and "New destination", the likelier first and tinted, Google, no More (${poiRows.join(' · ')})`);
 await page.locator('.pointmenu button', { hasText: 'New destination' }).first().click();

@@ -4,6 +4,9 @@
 // the pin's own hold menu – the very rows a hold on that spot gives (the app's SearchFlow.pickSearchResult since
 // 2026-11-13, owner "A mit Ausweich B"): above the pin, else under it, else the same rows as a card at the bottom
 // (pinmenu.ts – the app's PinMenuPlace).
+// The empty search (owner 2026-11-15, „Orte merken“ – the app's SearchScreen.recentSection, compact sketch): „⌂ Zuhause“,
+// „★ Favoriten“ (five, then „Alle Favoriten ›“), „Zuletzt gesucht“ without the places shown above – one-line rows;
+// a row is picked like a search hit (keptplaces.ts, the lists from the engine's WebKept = the app's SavedPlaces.start).
 import * as maplibregl from 'maplibre-gl';
 import type { EngineClient } from './engine/client';
 import type { Hit } from './engine/types';
@@ -11,16 +14,27 @@ import { icon } from './icons';
 import { t } from './i18n';
 import { NO_PADDING, offsetTo, pointTarget } from './cardanchor';
 import { holdMenu, type MenuItem } from './menus';
+import { problem } from './diag';
+import type { KeptStore, SearchRecent } from './keptplaces';
 import { cardPan, decidePinMenu, MENU_GAP, pinRows, TIP_ROOM, type PinMenuDecision } from './pinmenu';
 
 export type PlaceRole = 'SMART' | 'START' | 'DESTINATION' | 'REMOVE';
 
 /** A held place's menu (main.ts placeRows – the app's PoiMenu): its head and rows (owner 2026-11-15: nothing behind „⋯ Mehr“). */
-export interface PinRows { head: string; main: MenuItem[]; google: MenuItem }
+export interface PinRows { head: string; main: MenuItem[];
+  /** „☆ Merken“ / „⌂ Als Zuhause festlegen“ (the app's PinMenuItems FAVOURITE, HOME) – empty when the place cannot be kept. */
+  keep: MenuItem[];
+  google: MenuItem }
+
+/** The empty search's lists (the engine's keptStart – SavedPlaces.start): each row's subtitle is its grey part. */
+interface StartLists { home: Hit | null; favourites: Hit[]; more: number; recent: Hit[] }
 
 export interface SearchHost {
   map: maplibregl.Map;
   engine: EngineClient;
+  /** Zuhause + favourites (keptplaces.ts) and „Zuletzt gesucht“. */
+  kept: KeptStore;
+  recent: SearchRecent;
   /** The map areas to search (cells in view, or the one map folder). */
   areas(): Promise<{ key: string; dir: string }[]>;
   points(): [number, number][];
@@ -101,9 +115,50 @@ export function setupSearch(host: SearchHost, box: HTMLElement, card: HTMLElemen
         ${h.address ? `<span class="muted small">${esc(h.address)}</span>` : ''}</span>
       </button>`).join('') : `<div class="muted pad">${esc(q.value.trim().length < 2 && !category ? t('web_search_type') : t('web_search_nothing'))}</div>`) +
       (note ? `<div class="muted small pad">${esc(note)}</div>` : '');
-    results.querySelectorAll<HTMLButtonElement>('.hit').forEach((b) => { b.onclick = () => pick(hits[Number(b.dataset.i)]); });
+    results.querySelectorAll<HTMLButtonElement>('.hit').forEach((b) => { b.onclick = () => pickRow(hits[Number(b.dataset.i)]); });
     wireChips();
   };
+
+  /** „Alle Favoriten ›“ was clicked: every favourite until the search is opened again (the app's showAllFavourites). */
+  let allFavourites = false;
+  /** One compact row (the app's CompactRow): the sign, the name, the grey part beside it – cut first. */
+  const compactRow = (k: string, sign: string, name: string, line: string) => `
+      <button class="hit compact" data-k="${k}">${sign}<b>${esc(name)}</b><span class="muted">${esc(line)}</span></button>`;
+  /** The empty search under the chips; nothing kept and nothing searched yet: the hint as before. */
+  const renderStart = async (my: number) => {
+    let s: StartLists = { home: null, favourites: [], more: 0, recent: [] };
+    try {
+      const k = host.kept.list(), c = host.map.getCenter();
+      s = JSON.parse(await host.engine.call('keptStart', k.home ?? '', k.favourites.join('\n'), host.recent.list().join('\n'),
+        allFavourites, c.lat, c.lng)) as StartLists;
+    } catch (e) { problem('search', 'Kept places: the empty search\'s lists not built – the hint only', e); }
+    if (my !== gen) return;
+    const rows: Hit[] = [];
+    const add = (h: Hit) => { rows.push(h); return String(rows.length - 1); };
+    let html = '';
+    if (s.home) html += compactRow(add(s.home), `<span class="sign home">${icon('home')}</span>`, t('search_home'), s.home.subtitle) + '<div class="menudivider"></div>';
+    if (s.favourites.length) {
+      html += `<div class="smallhead"><span class="sign fav">${icon('star', 14)}</span><span role="heading" aria-level="3">${esc(t('search_favourites'))}</span></div>`;
+      html += s.favourites.map((h) => compactRow(add(h), `<span class="sign fav">${icon('star')}</span>`, h.title, h.subtitle)).join('');
+      if (s.more > 0) html += `<button class="textbtn allfavs">${esc(t('search_all_favourites'))}</button>`;
+    }
+    if (s.recent.length) {
+      html += `<div class="smallhead"><span role="heading" aria-level="3">${esc(t('search_recent'))}</span>
+        <button class="textbtn clearrecent">${esc(t('search_clear_recent'))}</button></div>`;
+      // shared into OnPath (Google Maps → Share): the share sign instead of the clock (the app, owner 2026-11-02)
+      html += s.recent.map((h) => compactRow(add(h), `<span class="sign"${h.shared ? ` title="${esc(t('search_recent_shared'))}"` : ''}>${icon(h.shared ? 'share' : 'history')}</span>`,
+        h.title, h.subtitle)).join('');
+    }
+    results.hidden = false;
+    results.innerHTML = chipRow() + (html ? `<div class="startlists">${html}</div>` : `<div class="muted pad">${esc(t('web_search_type'))}</div>`);
+    results.querySelectorAll<HTMLButtonElement>('.hit.compact').forEach((b) => { b.onclick = () => pickRow(rows[Number(b.dataset.k)]); });
+    const again = () => { q.focus(); void renderStart(++gen); };
+    results.querySelector<HTMLButtonElement>('.allfavs')?.addEventListener('click', (e) => { e.stopPropagation(); allFavourites = true; again(); });
+    results.querySelector<HTMLButtonElement>('.clearrecent')?.addEventListener('click', (e) => { e.stopPropagation(); host.recent.clear(); again(); });
+    wireChips();
+  };
+  /** A row picked (a hit or a kept place): it goes first under „Zuletzt gesucht“ (the app's SearchSession.remember). */
+  const pickRow = (h: Hit) => { if (h.code) void host.recent.add(h.code); pick(h); };
 
   const run = async () => {
     const my = ++gen;
@@ -113,7 +168,7 @@ export function setupSearch(host: SearchHost, box: HTMLElement, card: HTMLElemen
     if (timer) clearTimeout(timer);
     await loadChips();
     // nothing typed, no chip: the next search starts afresh (the app's inactive search); the chips stay to pick from
-    if (!text.trim() && !category) { void host.engine.call('searchReset'); if (my === gen && document.activeElement === q) render([], ''); else results.hidden = true; return; }
+    if (!text.trim() && !category) { void host.engine.call('searchReset'); if (my === gen && document.activeElement === q) await renderStart(my); else results.hidden = true; return; }
     const c = host.map.getCenter();
     await host.engine.searchAreas(await host.areas());
     const offline = await host.engine.search(text, c.lat, c.lng, host.route(), category);
@@ -196,9 +251,10 @@ export function setupSearch(host: SearchHost, box: HTMLElement, card: HTMLElemen
     const byKey = new Map(rows.main.map((m) => [m.key ?? '', m] as const));
     const remove: MenuItem = { icon: 'wrongLocation', label: t('plan_remove_pin'), act: () => removePin() };
     // an add takes the place: its pin goes (the app: the mark stays until the place is added)
-    const adds = (m: MenuItem): MenuItem => ({ ...m, act: () => { removePin(); m.act(); } });
-    const items = pinRows(rows.main.map((m) => m.key ?? ''), true).map((r) =>
-      r === 'GOOGLE' ? rows.google : r === 'REMOVE_PIN' ? remove : adds(byKey.get(r)!));
+    const adds = (m: MenuItem): MenuItem => ({ ...m, act: (b) => { removePin(); m.act(b); } });
+    const items = pinRows(rows.main.map((m) => m.key ?? ''), true, rows.keep.length > 0).map((r) =>
+      r === 'GOOGLE' ? rows.google : r === 'REMOVE_PIN' ? remove : r === 'FAVOURITE' ? rows.keep[0] : r === 'HOME' ? rows.keep[1]
+        : adds(byKey.get(r)!));
     const map = host.map, c = map.getContainer();
     const { top, bottom } = host.menuRoom();
     const tip = map.project([h.lon, h.lat]).y, head = tip - PIN_HEAD;
@@ -262,7 +318,10 @@ export function setupSearch(host: SearchHost, box: HTMLElement, card: HTMLElemen
   card.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
 
   q.addEventListener('input', () => { run(); });
-  q.addEventListener('focus', () => { if (!q.value.trim() && !category) run(); }); // the chips to start from
+  // the chips and the kept places to start from; opened again (the list was closed): five favourites again
+  q.addEventListener('focus', () => { if (!q.value.trim() && !category) { if (results.hidden) allFavourites = false; run(); } });
+  // a place kept or let go (also in another tab) while the empty search shows: its lists follow
+  host.kept.onChange(() => { if (!results.hidden && !q.value.trim() && !category) void renderStart(++gen); });
   q.addEventListener('keydown', (e) => { if (e.key === 'Escape') { q.value = ''; run(); } });
   clear.onclick = () => { q.value = ''; run(); q.focus(); };
   return { close, isOpen: () => popup != null || !card.hidden, removePin, planChanged: () => { void updateJoin(); },

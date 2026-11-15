@@ -592,7 +592,7 @@ object Engine {
         val place = com.onpath.app.search.Place.fromPoi(poi)
         val color = com.onpath.app.search.SearchKinds.argb(place.kind) and 0xFFFFFFL
         return "{\"title\":" + str(place.title()) + ",\"sub\":" + str(place.kindInfo.label + (place.ele?.let { " · $it m" } ?: "")) +
-            ",\"color\":" + str("#" + color.toString(16).padStart(6, '0')) + ",\"google\":" + str(PoiLinks.googleMaps(poi).webUrl) + "}"
+            ",\"color\":" + str("#" + color.toString(16).padStart(6, '0')) + ",\"google\":" + str(PoiLinks.googleMaps(poi).webUrl) + ",\"code\":" + str(WebKept.encode(place)) + "}"
     }
 
     /**
@@ -636,7 +636,7 @@ object Engine {
     internal fun str(s: String): String = buildString {
         append('"')
         for (c in s) when (c) {
-            '"' -> append("\\\""); '\\' -> append("\\\\"); '\n' -> append("\\n")
+            '"' -> append("\\\""); '\\' -> append("\\\\"); '\n' -> append("\\n"); '\t' -> append("\\t")
             else -> if (c < ' ') append(' ') else append(c)
         }
         append('"')
@@ -714,6 +714,13 @@ external fun planProgress(text: String)
 @JSExport fun searchCategories(): String = WebSearch.categories()
 
 @JSExport fun searchReset() = WebSearch.reset()
+
+// kept places (WebKept.kt – the app's search/SavedPlaces, owner 2026-11-15 „Orte merken“) and „Zuletzt gesucht“
+@JSExport fun keptState(home: String, favourites: String, code: String): String = WebKept.state(home, favourites, code)
+@JSExport fun keptApply(home: String, favourites: String, op: String, code: String): String = WebKept.apply(home, favourites, op, code)
+@JSExport fun keptStart(home: String, favourites: String, recent: String, all: Boolean, lat: Double, lon: Double): String =
+    WebKept.start(home, favourites, recent, all, lat, lon)
+@JSExport fun recentAdd(recent: String, code: String): String = WebKept.addRecent(recent, code)
 
 @JSExport fun insertIndex(points: String, lat: Double, lon: Double, lineSnapM: Double): Int =
     Engine.insertIndex(points, lat, lon, lineSnapM)
