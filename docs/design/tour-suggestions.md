@@ -175,6 +175,13 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   computer). It accepts the old single values and the new ranges. Its services are stopped; not needed for now (owner 2026-11-15: back home, the road test went without it).
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
+- **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
+  list, official loops and ours mixed, sorted by "passt zum Wunsch"; a badge shows the origin ("Offiziell · Traumpfad" /
+  "Vorschlag"); the same five Werte on every card; official loops dashed on the map. An own loop that runs ≥ 80 % on an
+  official one is simply not shown – no "deckt sich mit unserem Vorschlag" note (owner: "was bringt das dem Benutzer?").
+  Open: a short text per card on what is special (proposal: one line instead of "stark bei … · schwächer bei …", the
+  full text on the chosen card; official loops: the OSM `description` where it exists – 21 of 88 Traumpfade –, else the
+  same generated line as ours from what the loop passes).
 - Where the entry appears (owner 2026-11-15: "wenn ‚Von hier starten' kommt, dann kann auch ‚Rundtour von hier' kommen"):
   wherever a menu offers "Hier starten" – the first tap into an empty plan, the menu of a place / map symbol – it
   also offers "Rundtour von hier"; no extra rule of its own.
