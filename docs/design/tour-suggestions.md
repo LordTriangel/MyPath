@@ -95,7 +95,10 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
    - chains: the stand-out areas in order around the start, each through its heart (a single area: through the heart
      to its far side);
    - lines: join at the nearest point, follow it both ways (its ways cost 0.3 ×), come home another way; built once,
-     then the turning point is moved once so the length fits.
+     then the turning point is moved once so the length fits;
+   - a signed route that is itself a loop of fitting length: walked whole (its ways that close into a ring are order
+     enough). Needs complete route lines in the map – today a way carries only its most important route, so it rarely
+     closes (measured against official loops, `tools/suggest-poc/README.md` "Official loops").
    Kept: at most one meeting with the own way, time within −30 % / +10 % of the range, ascent not above it.
 6. **Judging** (`score.py`): the four place axes as means over the loop beyond the way out, read between "poor here"
    and the best loop of the pool; Form from the ranges, the share walked twice and a meeting; points = weighted mean.

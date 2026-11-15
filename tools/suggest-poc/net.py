@@ -134,6 +134,43 @@ def dijkstra(net, src, cost, pen=None, stop=None, max_len=None):
     return d, prev, pe, ln
 
 
+def runs_along(net, pts, edges, near=25.0):
+    """The edges that run along a line given as dense points: most of the edge within `near` metres of it."""
+    if not pts:
+        return set()
+    ky = near / 111320.0
+    kx = ky / math.cos(math.radians(pts[0][1]))
+    grid = {}
+    for p in pts:
+        grid.setdefault((int(p[0] / kx), int(p[1] / ky)), []).append(p)
+
+    def close(p):
+        cx, cy = int(p[0] / kx), int(p[1] / ky)
+        return any(dist(p, q) <= near for dx in (-1, 0, 1) for dy in (-1, 0, 1) for q in grid.get((cx + dx, cy + dy), ()))
+    out = set()
+    for ei in edges:
+        g = net.geom(ei)
+        samples = [[a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n]
+                   for a, b in zip(g, g[1:]) for n in [max(1, int(dist(a, b) / 15.0))] for k in range(n)] + g[-1:]
+        if sum(map(close, samples)) >= 0.7 * len(samples):
+            out.add(ei)
+    return out
+
+
+def climb(net, nodes):
+    """Metres up along a walk of nodes (rises under 6 m are noise)."""
+    up, ref = 0.0, None
+    for x in nodes:
+        ele = net.nodes[x][2]
+        if ele < -1000:  # no height here (bridges, tunnels)
+            continue
+        if ref is None or ele < ref - 6.0:
+            ref = ele
+        elif ele > ref + 6.0:
+            up, ref = up + ele - ref, ele
+    return up
+
+
 def path(prev, pe, t):
     """The edges from the search's source to t, in walking order."""
     out = []
