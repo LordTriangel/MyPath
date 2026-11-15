@@ -672,8 +672,8 @@ class CoreFieldE2ETest : E2EBase() {
         var menu: com.onpath.app.ui.PlaceAddMenu.Menu? = null
         scenario.onActivity { label = vm(it).poiAddLabel(poi); menu = vm(it).placeMenu(poi) }
         assertFalse("never a new start during a tour: \"$label\"", label == Txt.s(Res.string.search_card_set_start))
-        // beside the middle: a clear stop – the menu offers "Als Zwischenstopp" (owner 2026-11-07), no start
-        assertEquals("the menu: $menu", listOf(com.onpath.app.ui.PlaceAddMenu.Item.ADD_STOP), menu?.main)
+        // beside the middle: a clear stop – the menu offers „Einfügen“ first (owner 2026-11-07 / 2026-11-15), no start
+        assertEquals("the menu: $menu", com.onpath.app.ui.PlaceAddMenu.Item.ADD_STOP, menu?.emphasised)
         scenario.onActivity { vm(it).addPoiAsStop(poi) }
         waitUntil("3 points, the place between start and goal", 10_000) {
             val w = waypointList()
@@ -730,8 +730,7 @@ class CoreFieldE2ETest : E2EBase() {
         var menu: com.onpath.app.ui.PlaceAddMenu.Menu? = null
         scenario.onActivity { menu = vm(it).placeMenu(poi) }
         assertEquals("the menu: $menu", com.onpath.app.ui.PlaceAddMenu.Item.NEW_DESTINATION, menu?.main?.firstOrNull())
-        assertTrue("the stop stays reachable: $menu",
-            com.onpath.app.ui.PlaceAddMenu.Item.ADD_STOP in menu!!.main + menu!!.more)
+        assertTrue("„Einfügen“ is shown too: $menu", com.onpath.app.ui.PlaceAddMenu.Item.ADD_STOP in menu!!.main)
         scenario.onActivity { vm(it).poiAsNewDestination(poi) }
         waitUntil("the plan ends at the place, the old goal dropped", 10_000) {
             val w = waypointList()

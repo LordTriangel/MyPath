@@ -1092,25 +1092,26 @@ class ScreenshotTest {
         }
     }
 
-    /** Hold on a POI in Plan, a doubtful case (owner 2026-11-07): "Add as a stop · Make it the destination · Open in Google Maps". */
-    @Test fun poiMenu() = paparazzi.snapshot {
+    /**
+     * Hold on a POI in Plan (owner 2026-11-15, variant A): always „Insert“ and „New destination“, one line each, the likelier
+     * first and tinted. [stopFirst] = the place beside the route (Insert first), else past the goal.
+     */
+    fun placeAddMenu(stopFirst: Boolean = true) = paparazzi.snapshot {
         OnPathTheme {
+            val items = if (stopFirst) listOf(PlaceAddMenu.Item.ADD_STOP, PlaceAddMenu.Item.NEW_DESTINATION)
+                else listOf(PlaceAddMenu.Item.NEW_DESTINATION, PlaceAddMenu.Item.ADD_STOP)
             OverlayFrame(OnPathColors.Rec, androidx.compose.ui.unit.DpOffset(110.dp, 400.dp)) {
-                PoiMenu(com.onpath.app.poi.Poi("n1", "hut", "Meraner Hütte", 46.68, 11.25, ele = 1960), onAdd = {}, onGoogle = {},
-                    menu = PlaceAddMenu.Menu(listOf(PlaceAddMenu.Item.ADD_STOP, PlaceAddMenu.Item.NEW_DESTINATION)))
+                PoiMenu(com.onpath.app.poi.Poi("n1", "cafe", "Waldcafé", 46.68, 11.25), onAdd = {}, onGoogle = {},
+                    menu = PlaceAddMenu.Menu(items))
             }
         }
     }
 
-    /** A clear new goal (far beyond the route): only "Make it the destination", the stop waits under "More". */
-    @Test fun poiMenuClearGoal() = paparazzi.snapshot {
-        OnPathTheme {
-            OverlayFrame(OnPathColors.Rec, androidx.compose.ui.unit.DpOffset(110.dp, 400.dp)) {
-                PoiMenu(com.onpath.app.poi.Poi("n1", "hut", "Meraner Hütte", 46.68, 11.25, ele = 1960), onAdd = {}, onGoogle = {},
-                    menu = PlaceAddMenu.Menu(listOf(PlaceAddMenu.Item.NEW_DESTINATION), listOf(PlaceAddMenu.Item.ADD_STOP)))
-            }
-        }
-    }
+    /** Beside the route: „Insert“ first and tinted, „New destination“ plain under it. */
+    @Test fun poiMenu() = placeAddMenu()
+
+    /** Past the goal: „New destination“ first, „Insert“ still there (no „More“ any more, owner 2026-11-15). */
+    @Test fun poiMenuClearGoal() = placeAddMenu(stopFirst = false)
 
     /** Hold on a POI with an empty plan: same choice as the first-point menu. */
     @Test fun poiMenuEmptyPlan() = paparazzi.snapshot {

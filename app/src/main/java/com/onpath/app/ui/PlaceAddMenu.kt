@@ -4,16 +4,17 @@ import com.onpath.app.data.Geo
 import com.onpath.app.routing.GeoPoint
 
 /**
- * What the menu of a held place (POI, found pin, shared place) offers to add it (owner 2026-11-07 11:20 / 11:25 / 11:30).
- * Pure.
+ * What the menu of a held place (POI, found pin, shared place) offers to add it (owner 2026-11-07 11:20 / 11:25 / 11:30,
+ * 2026-11-15). Pure.
  *
  * - No point yet: "Hier starten" · "Hierhin" – during a tour only "Hierhin" (the tour already runs from here).
  * - One point (or no route ahead): today's wording, "Als Ziel setzen" (one entry).
- * - Two or more: "Als Zwischenstopp" (the best place on the route ahead, the goal stays) and/or "Als neues Ziel" (the
- *   route goes on there, the old goal stays as the last stop while planning; during a tour it replaces the old goal – owner 2026-11-14 [keepsOldGoal]; Undo brings the plan before back) – no stop numbers ("Stopp 2" confused the owner).
- *   Which of them, in which order, follows the geometry ([zone]): "Es gibt Sachen, wo es eindeutig ist … einen Bereich,
- *   wo es zweifelhaft ist – da kann man beides anwählen. Wenn es ganz weit weg ist, nur als Ziel." A clear case shows
- *   one entry; the other one is never lost – it waits under "⋯ Mehr" ([Menu.more]).
+ * - Two or more: always both, „Einfügen“ (the best place on the route ahead, the goal stays) and „Neues Ziel“ (the route
+ *   goes on there, the old goal stays as the last stop while planning; during a tour it replaces the old goal – owner
+ *   2026-11-14 [keepsOldGoal]; Undo brings the plan before back). The owner's words (2026-11-15), never reworded.
+ *   The likelier one ([zone]) comes first and is emphasised; nothing hides under „⋯ Mehr“ any more (owner 2026-11-15
+ *   after a hike: "man weiß sonst nicht, was das System tut"). One line each, only the label – where it goes shows on the
+ *   map (owner 2026-11-15: „nur einzeilig … das sehe ich ja auf der Karte“); no stop numbers ("Stopp 2" confused the owner).
  */
 object PlaceAddMenu {
 
@@ -28,8 +29,13 @@ object PlaceAddMenu {
     /** How clear the case is: only stop · both, stop first · both, goal first · only goal. */
     enum class Zone { STOP, STOP_FIRST, GOAL_FIRST, GOAL }
 
-    /** [main] = the menu's rows in order; [more] = behind "⋯ Mehr" (the alternative a clear case hides). */
-    data class Menu(val main: List<Item>, val more: List<Item> = emptyList())
+    /** [main] = the menu's rows in order – with 2+ points both add rows, the first one emphasised ([emphasised]). */
+    data class Menu(val main: List<Item>) {
+        /** The likelier row (shown strong): the first of the two add rows; null with one point or none. */
+        val emphasised: Item? get() = main.firstOrNull()?.takeIf { main.size == 2 && it in ADD_ITEMS }
+    }
+
+    private val ADD_ITEMS = setOf(Item.ADD_STOP, Item.NEW_DESTINATION)
 
     // Thresholds on the detour d = (route ahead with the place as its best stop) − (route ahead), straight lines. They are
     // conservative: a case near a border is DOUBTFUL (both entries) rather than one entry that is wrong.
@@ -58,10 +64,8 @@ object PlaceAddMenu {
     fun menu(points: Int, touring: Boolean, zone: Zone?): Menu = when {
         points <= 0 -> Menu(if (touring) listOf(Item.GO_HERE) else listOf(Item.START_HERE, Item.GO_HERE))
         points == 1 || zone == null -> Menu(listOf(Item.SET_DESTINATION))
-        zone == Zone.STOP -> Menu(listOf(Item.ADD_STOP), listOf(Item.NEW_DESTINATION))
-        zone == Zone.STOP_FIRST -> Menu(listOf(Item.ADD_STOP, Item.NEW_DESTINATION))
-        zone == Zone.GOAL_FIRST -> Menu(listOf(Item.NEW_DESTINATION, Item.ADD_STOP))
-        else -> Menu(listOf(Item.NEW_DESTINATION), listOf(Item.ADD_STOP))
+        zone == Zone.STOP || zone == Zone.STOP_FIRST -> Menu(listOf(Item.ADD_STOP, Item.NEW_DESTINATION))
+        else -> Menu(listOf(Item.NEW_DESTINATION, Item.ADD_STOP))
     }
 
     /**

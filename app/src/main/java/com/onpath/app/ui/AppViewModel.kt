@@ -1866,8 +1866,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * The add entries of a held place's menu ([PlaceAddMenu], owner 2026-11-07): with 2+ points "Als Zwischenstopp"
-     * and/or "Als neues Ziel" by how clear the case is – measured on the route still to go (during a tour from my position).
+     * The add entries of a held place's menu ([PlaceAddMenu], owner 2026-11-07 / 2026-11-15): with 2+ points „Einfügen“ and
+     * „Neues Ziel“, the likelier first by how clear the case is – measured on the route still to go (during a tour from my
+     * position).
      */
     fun placeMenu(poi: com.onpath.app.poi.Poi): PlaceAddMenu.Menu {
         val p = GeoPoint(poi.lat, poi.lon)
@@ -1881,14 +1882,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return PlaceAddMenu.menu(n, touring, PlaceAddMenu.zone(ahead, p, loop = isRoundTrip()))
     }
 
-    /** Place menu → "Als Zwischenstopp": where it fits best on the route ahead, never behind the goal (the goal stays). */
+    /** Place menu → „Einfügen“: where it fits best on the route ahead, never behind the goal (the goal stays). */
     fun addPoiAsStop(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) = addPoiWith(poi, "as a stop") { p ->
         val ins = insertionFor(p, lineSnapM, stopOnly = true)
         change { add(ins.index.coerceIn(0, size), p) }
     }
 
     /**
-     * Place menu → "Als neues Ziel" (owner 2026-11-14): while planning (no tour) the route goes on to the place and the old
+     * Place menu → „Neues Ziel“ (owner 2026-11-14): while planning (no tour) the route goes on to the place and the old
      * goal stays as the last stop – planning forward; during a tour the place replaces the old goal (no detour back to a
      * goal one changed one's mind about – flow map N3, owner 2026-11-07). [PlaceAddMenu.keepsOldGoal]; Undo either way.
      */

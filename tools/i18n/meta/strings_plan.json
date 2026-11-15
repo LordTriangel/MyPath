@@ -1315,14 +1315,14 @@
   },
   "plan_add_as_stop": {
     "area": "Plan place menu",
-    "context": "Menu entry of a held place (POI / found pin) with a plan of 2+ points: insert it at the best place on the route ahead, the goal stays. No number (owner 2026-11-07).",
+    "context": "Menu entry of a held place (POI / found pin) with a plan of 2+ points: insert it at the best place on the route ahead, the goal stays. No number (owner 2026-11-07). The owner's word „Einfügen“ (2026-11-15) – never reword.",
     "priority": 1,
     "confidence": "sicher",
     "max": 28
   },
   "plan_make_destination": {
     "area": "Plan place menu",
-    "context": "Menu entry of a held place with a plan of 2+ points: the route ends there, the old goal is dropped (Undo brings it back). Owner 2026-11-07.",
+    "context": "Menu entry of a held place with a plan of 2+ points: the route goes on there (planning: the old goal stays as a stop; on a tour it replaces it). The owner's word „Neues Ziel“ (2026-11-15) – never reword.",
     "priority": 1,
     "confidence": "sicher",
     "max": 28

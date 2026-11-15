@@ -87,9 +87,9 @@ class SharedPlaceMenuTest {
         assertEquals("Set as destination", AddPreview.label(WaypointInsertion.decide(listOf(a), p, null, 30.0), 1))
         // a route A → B: beyond B a new destination, beside the middle a stop
         val b = GeoPoint(46.65, 11.14)
-        assertEquals("Add as new destination", AddPreview.label(WaypointInsertion.decide(listOf(a, b), p, null, 30.0), 2))
+        assertEquals("New destination", AddPreview.label(WaypointInsertion.decide(listOf(a, b), p, null, 30.0), 2))
         val c = GeoPoint(46.75, 11.20)
-        assertEquals("Add as a stop", AddPreview.label(WaypointInsertion.decide(listOf(a, c), p, null, 30.0), 2))
+        assertEquals("Insert", AddPreview.label(WaypointInsertion.decide(listOf(a, c), p, null, 30.0), 2))
     }
 
 

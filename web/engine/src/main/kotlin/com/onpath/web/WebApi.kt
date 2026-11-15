@@ -543,7 +543,7 @@ object Engine {
 
     /** The point menu's entries ([MapGestures.pointMenu]) as JSON names: MAKE_START, LOOP_START, GOOGLE, DELETE. */
     /**
-     * A held place's add entries – the app's PlaceAddMenu (owner 2026-11-07): `{"main":[…],"more":[…],"stop":i}`, items
+     * A held place's add entries – the app's PlaceAddMenu (owner 2026-11-07 / 2026-11-15): `{"main":[…],"more":[],"stop":i}`, items
      * START_HERE / GO_HERE / SET_DESTINATION / ADD_STOP / NEW_DESTINATION; [stop] = where „Als Zwischenstopp“ puts it
      * (WaypointInsertion stopOnly: the best place on the route, never behind the goal); [keepOld] = whether „Als neues Ziel“
      * keeps the old goal as the last stop ([PlaceAddMenu.keepsOldGoal], owner 2026-11-14 „beim Planen anhängen, unterwegs
@@ -557,7 +557,8 @@ object Engine {
         val stop = if (w.size < 2) w.size else WaypointInsertion.decide(w, p, lastPlanFor(w)?.points, 30.0, stopOnly = true).index
         fun list(items: List<com.onpath.app.ui.PlaceAddMenu.Item>) = items.joinToString(",", "[", "]") { str(it.name) }
         val keepOld = com.onpath.app.ui.PlaceAddMenu.keepsOldGoal(touring = false)
-        return "{\"main\":" + list(m.main) + ",\"more\":" + list(m.more) + ",\"stop\":" + stop + ",\"keepOld\":" + keepOld + "}"
+        // "more" stays empty (owner 2026-11-15: both entries always in "main", the likelier first) – kept for the planner's reader
+        return "{\"main\":" + list(m.main) + ",\"more\":[],\"stop\":" + stop + ",\"keepOld\":" + keepOld + "}"
     }
 
     /**
