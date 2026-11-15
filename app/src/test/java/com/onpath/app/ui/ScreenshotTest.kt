@@ -1455,6 +1455,15 @@ class ScreenshotTest {
             onCancel = {}, onGo = {}, planLine = plan) }
     }
 
+    /**
+     * Swiping through the overviews (owner 2026-11-15, the swipe sketch): the small pill „3 of 27“ top right over the
+     * picture – where this tour is in the list My routes shows.
+     */
+    @Test fun routesOverviewSwipe() = paparazzi.snapshot {
+        OnPathTheme { RouteOverview(tourList[0], listOf(sampleLine(1)), touring = false, snapshot = null, onPrimary = {},
+            onCancel = {}, onGo = {}, position = str(Res.string.routes_overview_position, 3, 27)) }
+    }
+
     /** The same during a tour: "Folgen" (green) – followed at once, the recording goes on (owner 2026-11-06 22:05). */
     fun routesOverviewTouring() = paparazzi.snapshot {
         OnPathTheme { RouteOverview(tourList[2], listOf(sampleLine(3)), touring = true, snapshot = null, onPrimary = {},

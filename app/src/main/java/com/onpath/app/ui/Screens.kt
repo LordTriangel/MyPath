@@ -451,6 +451,8 @@ fun RoutesScreen(
     var act by remember { mutableStateOf(initialActivity) }
     // a row tap opens the large overview first (owner 2026-11-07 00:30) – "Planen" / "Folgen" there opens it as before
     var overview by remember { mutableStateOf(initialOverview) }
+    // the tours the overview swipes through (owner 2026-11-15): the list as drawn below, read when the overview opens
+    val pageSource = remember { arrayOfNulls<List<Tour>>(1) }
     val line: @Composable (Tour) -> List<List<com.onpath.app.routing.GeoPoint>>? = { t -> rememberRouteLine(t, loadLine) }
     // the search box (owner 2026-11-06): kept across the tabs, filters the list of the tab shown
     var query by remember { mutableStateOf(initialQuery) }
@@ -528,6 +530,8 @@ fun RoutesScreen(
             // the chosen order (RouteSort) for the saved routes / done tours; a draft shows only as the Zuletzt row
             // every input is a key: a new activity, star filter or order recomputes it (field bug 2026-11-13)
             val saved = remember(shown, sort, favOnly, act) { com.onpath.app.ui.routes.ActivityFilter.saved(shown, sort, favOnly, act) }
+            // written while composing (no state): the overview below reads it in the same pass, frozen when it opens
+            pageSource[0] = com.onpath.app.ui.routes.OverviewPages.of(recentTour, saved)
             PullToSync(if (tab == RoutesTab.PLANNED) onPull else null, pulling) {
             if (saved.isEmpty() && !hasRecent) {
                 // a list of one so the empty Planned tab can be pulled too
@@ -612,23 +616,34 @@ fun RoutesScreen(
     }
     // drawn in place over the list, not in a dialog window (a full-screen Dialog got no navigation-bar inset: its
     // buttons lay under the gesture bar on the emulator 2026-11-07, as EndTourDialog's once did); Back closes it
-    overview?.let { t ->
+    overview?.let { start ->
         androidx.activity.compose.BackHandler { overview = null }
-        val segs = rememberRouteLine(t, loadLine)
-        // a recorded tour that followed a plan (owner 2026-11-07): the same foot, both load the plan it followed, and that
-        // plan's line drawn thin under the track
-        val followed = t.kind == TourKind.RECORDED && t.hasPlan && !touring && t.id != recordingId
-        var planLine by remember(t.id) { mutableStateOf<List<com.onpath.app.routing.GeoPoint>?>(null) }
-        if (t.kind == TourKind.RECORDED && t.hasPlan) androidx.compose.runtime.LaunchedEffect(t.id) { planLine = loadPlanLine(t) }
-        // a planned route (no tour): Abbrechen · Los geht's · Planen (owner 2026-11-07)
-        RouteOverview(t, segs, touring, snapshot,
-            onPrimary = { overview = null; if (followed) onPlanFollowed(t) else onOpen(t) }, onCancel = { overview = null },
-            onGo = when {
-                followed -> ({ overview = null; onGoFollowed(t) })
-                t.kind == TourKind.PLANNED && !touring && t.waypoints.size >= 2 -> ({ overview = null; onGo(t) })
-                else -> null
-            },
-            planLine = planLine)
+        // swipe through the list as shown (owner 2026-11-15): frozen when the overview opens, starting at the tapped tour;
+        // the pages next to the shown one are composed too (their pictures ready from the stored files) – at most three
+        val pages = remember(start.id) { com.onpath.app.ui.routes.OverviewPages.around(pageSource[0].orEmpty(), start) }
+        val pager = androidx.compose.foundation.pager.rememberPagerState(
+            initialPage = remember(start.id) { com.onpath.app.ui.routes.OverviewPages.indexOf(pages, start) }) { pages.size }
+        androidx.compose.foundation.pager.HorizontalPager(pager, Modifier.fillMaxSize(), beyondViewportPageCount = 1,
+            key = { pages[it].id }) { i ->
+            val t = pages[i]
+            val segs = rememberRouteLine(t, loadLine)
+            // a recorded tour that followed a plan (owner 2026-11-07): the same foot, both load the plan it followed, and that
+            // plan's line drawn thin under the track (null while it is read: the map picture waits for it)
+            val followed = t.kind == TourKind.RECORDED && t.hasPlan && !touring && t.id != recordingId
+            val withPlan = t.kind == TourKind.RECORDED && t.hasPlan
+            var planLine by remember(t.id) { mutableStateOf(if (withPlan) null else emptyList<com.onpath.app.routing.GeoPoint>()) }
+            if (withPlan) androidx.compose.runtime.LaunchedEffect(t.id) { planLine = loadPlanLine(t) }
+            // a planned route (no tour): Abbrechen · Los geht's · Planen (owner 2026-11-07)
+            RouteOverview(t, segs, touring, snapshot,
+                onPrimary = { overview = null; if (followed) onPlanFollowed(t) else onOpen(t) }, onCancel = { overview = null },
+                onGo = when {
+                    followed -> ({ overview = null; onGoFollowed(t) })
+                    t.kind == TourKind.PLANNED && !touring && t.waypoints.size >= 2 -> ({ overview = null; onGo(t) })
+                    else -> null
+                },
+                planLine = planLine,
+                position = if (pages.size > 1) str(Res.string.routes_overview_position, i + 1, pages.size) else null)
+        }
     }
     }
     rename?.let { t ->

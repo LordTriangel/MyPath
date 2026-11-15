@@ -150,7 +150,8 @@ class ThumbMaker(
         /** The goal's red (OnPathColors.PointGoal). */
         private const val GOAL = 0xFFA32020.toInt()
 
-        private fun encode(b: Bitmap): ByteArray = ByteArrayOutputStream().use { out ->
+        /** [b] as WebP file bytes (the row pictures and the overview pictures, [OverviewPictures]); throws when refused. */
+        internal fun encode(b: Bitmap): ByteArray = ByteArrayOutputStream().use { out ->
             @Suppress("DEPRECATION")
             val format = if (Build.VERSION.SDK_INT >= 30) Bitmap.CompressFormat.WEBP_LOSSY else Bitmap.CompressFormat.WEBP
             if (!b.compress(format, QUALITY, out)) error("compress refused")

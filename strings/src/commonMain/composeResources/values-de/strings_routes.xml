@@ -73,6 +73,7 @@
     <string name="routes_overview_plan">Planen</string>
     <string name="routes_overview_follow">Folgen</string>
     <string name="routes_overview_loading">Karte wird gezeichnet …</string>
+    <string name="routes_overview_position">%1$d von %2$d</string>
     <string name="routes_followed_plan_missing">Der Plan dieser Tour konnte nicht gelesen werden.</string>
     <string name="routes_sac_line">T%1$d · %2$s: %3$s</string>
     <!-- Meine Touren: die Sortier-Chips (Owner 2026-11-12, Variante C) -->

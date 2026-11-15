@@ -234,6 +234,49 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             made = { viewModelScope.launchSafe("routes", "Map picture shown", Dispatchers.Main) { thumbVersion++ } })
     }
 
+    /**
+     * The large overview's map pictures kept on the phone (owner 2026-11-15, swiping through My routes' overviews):
+     * `files/overviews/` ([com.onpath.app.map.OverviewPictures], not backed up) – made when an overview opens
+     * ([overviewShot]) and in the background for the newest 20 tours + the favourites ([overviewMaker], kicked with the
+     * row pictures), never while navigating or recording.
+     */
+    val overviewPictures by lazy { com.onpath.app.map.OverviewPictures(java.io.File(getApplication<Application>().filesDir, "overviews")) }
+    private val overviewMaker by lazy {
+        com.onpath.app.map.OverviewMaker(overviewPictures, viewModelScope,
+            binned = { db.listDeleted().mapTo(HashSet()) { it.uuid } },
+            lineKey = { t -> com.onpath.app.map.ThumbRules.key(t, db.lineKey(t.id)) },
+            under = { t -> followedPlanLine(t) },
+            line = { t -> withContext(Dispatchers.IO) { routes.line(t) { emptyList() } } },
+            theme = { withContext(Dispatchers.Main) { settings.mapTheme } },
+            snap = { segs, t, under, w, h, pad -> routeSnapshot(segs, RouteShape.tint(t.kind), w, h, pad, under) },
+            busy = { mode == AppMode.NAVIGATE || recState.value != null })
+    }
+
+    /**
+     * The overview's map picture of [t]: the stored one at once when it was made for this line, plan, size and theme
+     * ([com.onpath.app.map.OverviewRules.key]), else a new snapshot ([routeSnapshot]) that is stored for the next time.
+     * Null = no picture (the overview keeps the drawn shape). The plan on the map (no uuid) is never stored.
+     */
+    suspend fun overviewShot(t: Tour, segments: List<List<GeoPoint>>, tint: RouteShape.Tint, widthPx: Int, heightPx: Int,
+                             paddingPx: Int, under: List<GeoPoint> = emptyList()): com.onpath.app.map.RouteSnapshot.Shot? {
+        val store = t.uuid.isNotEmpty() && t.id >= 0
+        val theme = withContext(Dispatchers.Main) { settings.mapTheme }
+        val key = if (!store) null else withContext(Dispatchers.IO) {
+            overviewPictures.setSize(widthPx, heightPx, paddingPx) // the background makes pictures of this size
+            runCatching { com.onpath.app.map.OverviewRules.key(com.onpath.app.map.ThumbRules.key(t, db.lineKey(t.id)), under, widthPx, heightPx, theme) }
+                .onFailure { Problems.info("routes", "Overview picture key not read – drawn without keeping it", it) }.getOrNull()
+        }
+        if (key != null) withContext(Dispatchers.IO) {
+            overviewPictures.bytes(t.uuid, key)?.let { (m, b) ->
+                android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size)?.let { com.onpath.app.map.RouteSnapshot.Shot(it, m.startX, m.startY, m.goalX, m.goalY) }
+                    ?: null.also { Problems.info("routes", "Overview picture of ${t.uuid} not decoded – drawn again") }
+            }
+        }?.let { return it }
+        val shot = routeSnapshot(segments, tint, widthPx, heightPx, paddingPx, under) ?: return null
+        if (key != null) withContext(Dispatchers.IO) { com.onpath.app.map.OverviewMaker.store(overviewPictures, t.uuid, key, shot) }
+        return shot
+    }
+
     /** How long the last map pictures took (ms each) – diagnostics and the emulator test. */
     val thumbTimings: List<Long> get() = thumbMaker.timings.toList()
 
@@ -3232,6 +3275,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Looks for map pictures to make among My routes' list (background, one at a time); [firstUuid] first. */
     fun kickThumbs(firstUuid: String? = null) {
         try { thumbMaker.kick(routes.tours, firstUuid) } catch (e: Exception) { Problems.info("routes", "Map pictures not started – the rows keep their lines", e) }
+        try { overviewMaker.kick(routes.tours) } catch (e: Exception) { Problems.info("routes", "Overview pictures not started – drawn when opened", e) }
     }
 
     /** My routes → the plan "In Bearbeitung" tapped: back to it on the map – nothing is loaded again. */

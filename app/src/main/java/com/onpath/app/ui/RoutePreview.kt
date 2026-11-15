@@ -65,10 +65,10 @@ import com.onpath.strings.*
 class OverviewPicture(val image: ImageBitmap, val start: Offset, val goal: Offset)
 
 /**
- * Makes the overview's map picture for (segments, colour, width px, height px, the followed plan drawn thin under them –
- * empty = none); null = none (the shape stays).
+ * Makes the overview's map picture for (the tour, segments, colour, width px, height px, the followed plan drawn thin under
+ * them – empty = none) – the stored one when it fits (AppViewModel.overviewShot); null = none (the shape stays).
  */
-typealias OverviewSnapshot = suspend (List<List<GeoPoint>>, RouteShape.Tint, Int, Int, List<GeoPoint>) -> OverviewPicture?
+typealias OverviewSnapshot = suspend (Tour, List<List<GeoPoint>>, RouteShape.Tint, Int, Int, List<GeoPoint>) -> OverviewPicture?
 
 /**
  * The lines of My routes' rows, kept while the app runs (scrolling back must not read the database again). Keyed by the
@@ -195,8 +195,13 @@ internal fun RouteOverview(
     onPrimary: () -> Unit, onCancel: () -> Unit,
     /** "Los geht's" (load and start the tour); null = not offered (a done tour, or during a tour: "Folgen" is the primary). */
     onGo: (() -> Unit)? = null,
-    /** A recorded tour's followed plan, drawn thin in plan blue under the track (owner 2026-11-07); null / empty = none. */
-    planLine: List<GeoPoint>? = null,
+    /**
+     * A recorded tour's followed plan, drawn thin in plan blue under the track (owner 2026-11-07); empty = none, null =
+     * still being read (the map picture waits for it – one picture, not one without and one with the plan).
+     */
+    planLine: List<GeoPoint>? = emptyList(),
+    /** „3 von 27“ – where this tour is in the list swiped through (owner 2026-11-15); null = no pill (a list of one). */
+    position: String? = null,
 ) {
     val tint = RouteShape.tint(t.kind)
     run {
@@ -215,8 +220,8 @@ internal fun RouteOverview(
                     val under = planLine.orEmpty()
                     var image by remember(segments, under) { mutableStateOf<OverviewPicture?>(null) }
                     var loading by remember(segments, under) { mutableStateOf(snapshot != null) }
-                    if (segments != null && snapshot != null) LaunchedEffect(segments, under, wPx, hPx) {
-                        image = snapshot(segments, tint, wPx, hPx, under); loading = false
+                    if (segments != null && snapshot != null && planLine != null) LaunchedEffect(segments, under, wPx, hPx) {
+                        image = snapshot(t, segments, tint, wPx, hPx, under); loading = false
                     }
                     val shape = remember(segments, under, wPx, hPx) {
                         segments?.let { RouteShape.of(it, wPx.toFloat(), hPx.toFloat(), with(density) { FitPaddingRule.SIDE_DP.dp.toPx() },
@@ -235,6 +240,8 @@ internal fun RouteOverview(
                         color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.BottomCenter).padding(8.dp))
                     if (shape == null && image == null && !loading) Text(str(Res.string.plan_no_track_recorded),
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    // „3 von 27“ (owner 2026-11-15, the swipe sketch): a small pill top right over the picture
+                    position?.let { PositionPill(it, Modifier.align(Alignment.TopEnd).padding(10.dp)) }
                 }
                 if (onGo != null) OverviewFoot(onPlan = onPrimary, onGo = onGo, onCancel = onCancel)
                 else OverviewButtons(primary = str(if (touring) Res.string.routes_overview_follow else Res.string.routes_overview_plan),
@@ -242,6 +249,14 @@ internal fun RouteOverview(
             }
         }
     }
+}
+
+/** Where the shown tour is in the list swiped through („3 von 27“): paper pill, small text, over the picture. */
+@Composable
+internal fun PositionPill(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface, maxLines = 1,
+        modifier = modifier.clip(CircleShape).background(OnPathColors.Paper.copy(alpha = 0.92f))
+            .padding(horizontal = 10.dp, vertical = 4.dp))
 }
 
 /** The goal flag at ([x], [y]) px – the route's last point (the map's goal sign: white flag on dark red). */

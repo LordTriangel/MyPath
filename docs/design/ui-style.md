@@ -225,6 +225,19 @@ While a box shows in Plan, the download chip and the quiet pill (both ANZEIGE) w
 the activity button's row, right of it (`OverviewPillPlace`) – it covers nothing; the whole pill opens the load question
 for the map centre.
 
+## My routes: map pictures and swiping
+- **Row pictures** (owner 2026-11-13, L1): `files/thumbs/<uuid>.webp` + `.key` (`map/RouteThumbs`, `ThumbMaker`), made in
+  the background after a save, a tour's end, a sync, My routes opening; never while navigating or recording.
+- **Overview pictures** (owner 2026-11-15: swiping „macht nur Sinn, wenn die Tourgrafiken als Grafik auf dem Handy
+  gespeichert werden“): `files/overviews/<uuid>.webp` + `.key` (`map/OverviewPictures`, `OverviewMaker`). The key is the
+  line, the followed plan under it, the picture's size and the map theme (`OverviewRules.key`) – any change makes it anew.
+  Made when an overview opens (stored for the next time) and in the background for the newest 20 tours + every favourite
+  (`OverviewRules.wanted`), at the size of the last opening; at most 40 kept, the oldest used out, a wanted one never
+  (`OverviewRules.evict`); not in any backup. One snapshot at a time for all of them (`RouteSnapshot.make`).
+- **Swiping**: the large overview is a pager over exactly the list My routes shows (Zuletzt's tour, then the list with
+  its filter and order, each tour once – `ui/routes/OverviewPages`), from the tapped tour; a paper pill „3 von 27“ top
+  right over the picture; the foot acts on the shown tour; the neighbours are composed too (at most three pictures).
+
 ## Rules for new UI
 - A question or must-know message → `Message` + `MessageCard` through the screen's host (Plan:
   `PlanMessageHost` in `MapScreen.kt`; Navigate: `NavigateOverlay`; My routes / Settings: `ScreenMessageHost`) – never

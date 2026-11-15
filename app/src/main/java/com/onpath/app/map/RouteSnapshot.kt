@@ -7,6 +7,7 @@ import com.onpath.app.routing.GeoPoint
 import com.onpath.app.ui.OverviewRegion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
@@ -51,6 +52,12 @@ object RouteSnapshot {
         }
     }
 
+    /**
+     * One snapshot at a time (owner 2026-11-15, the overview pictures made while swiping and in the background, the small
+     * row pictures): each holds a GPU surface and a large bitmap – the next one waits for the one before.
+     */
+    private val one = kotlinx.coroutines.sync.Mutex()
+
     /** [under] + [underColor]: a recorded tour's followed plan, thin under the track (owner 2026-11-07); empty = none. */
     suspend fun make(context: Context, styleJson: String, segments: List<List<GeoPoint>>, color: Int,
                      widthPx: Int, heightPx: Int, paddingPx: Int, density: Float,
@@ -60,7 +67,14 @@ object RouteSnapshot {
                      /** The map region (south, west, north, east) instead of the line's bounds (My routes' pictures: [ThumbRules.region]). */
                      region: DoubleArray? = null,
                      /** Leave out the route networks (hiking / cycling relations, `routes-*`): My routes' pictures show only the map and the line. */
-                     withoutNetworks: Boolean = false): Shot? {
+                     withoutNetworks: Boolean = false): Shot? = one.withLock {
+        makeNow(context, styleJson, segments, color, widthPx, heightPx, paddingPx, density, under, underColor, lineScale, region, withoutNetworks)
+    }
+
+    private suspend fun makeNow(context: Context, styleJson: String, segments: List<List<GeoPoint>>, color: Int,
+                                widthPx: Int, heightPx: Int, paddingPx: Int, density: Float,
+                                under: List<GeoPoint>, underColor: Int, lineScale: Float, region: DoubleArray?,
+                                withoutNetworks: Boolean): Shot? {
         val all = segments.flatten()
         if (all.isEmpty()) return null
         val b = region ?: OverviewRegion.of(all + under) ?: return null
