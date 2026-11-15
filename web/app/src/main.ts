@@ -1289,7 +1289,7 @@ addEventListener('online', () => { dataRetryFor = ''; retryMissingData(); });
  */
 async function adoptSnapped(routed: LatLon[], snapped: LatLon[]) {
   if (snapped.length !== routed.length || state.points !== routed) return;
-  const wasSaved = state.savedCode != null && (await untitled(sharedPlan())) === (await savedUntitled(state.savedCode));
+  const wasSaved = await samePointsAsSaved();
   // asked again after the engine answered: an edit queued behind this plan (a second quick click) may have set newer
   // points meanwhile – the old snapped list over them would drop that point (robust-smoke, CI 2026-11-03 / 11-05)
   if (state.points !== routed) return;
@@ -1456,19 +1456,31 @@ function render() {
   renderFabs();
 }
 
-const untitled = (p: SharedPlan) => engine.encode({ ...p, title: null });
-let savedUntitledMemo: { code: string; key: Promise<string | null> } | null = null;
-function savedUntitled(code: string): Promise<string | null> {
-  if (savedUntitledMemo?.code !== code) {
-    savedUntitledMemo = { code, key: engine.parse('p=' + code).then((p) => (p ? untitled(p) : null)) };
+/**
+ * The app's RouteRules.isUnsaved: only the points count (their lat/lon) – a changed activity, T level, point name, pin
+ * or title is no change (laptop 2026-11-15, as the app). Compared as codes of the saved plan with the one or the other
+ * point list, so both go through the same rounding.
+ */
+const pointsOnly = (p: SharedPlan, points: SharedPlan['points']) => engine.encode({ ...p, points, title: null, pinned: [], names: {} });
+let savedPointsMemo: { code: string; plan: Promise<SharedPlan | null>; key: Promise<string | null> } | null = null;
+function savedPoints(code: string) {
+  if (savedPointsMemo?.code !== code) {
+    const plan = engine.parse('p=' + code);
+    savedPointsMemo = { code, plan, key: plan.then((p) => (p ? pointsOnly(p, p.points) : null)) };
   }
-  return savedUntitledMemo.key;
+  return savedPointsMemo;
+}
+/** The plan on the map has the saved plan's points (RouteRules.isUnsaved false); false when nothing was saved. */
+async function samePointsAsSaved(): Promise<boolean> {
+  if (state.savedCode == null) return false;
+  const points = state.points, m = savedPoints(state.savedCode), saved = await m.plan;
+  return !!saved && (await pointsOnly(saved, points)) === (await m.key);
 }
 
 /** "Saved as …" under the summary while the plan is a saved one (the app's sheet line after Save). */
-/** The saved plan on the map changed since its Save (the name is in the code too, but naming it is not a change). */
+/** The saved plan on the map changed since its Save – its points only (RouteRules.isUnsaved). */
 async function savedPlanChanged(): Promise<boolean> {
-  return state.savedCode != null && (await ready) && (await untitled(sharedPlan())) !== (await savedUntitled(state.savedCode));
+  return state.savedCode != null && (await ready) && !(await samePointsAsSaved());
 }
 /** The plan on the map differs from its saved version (or was never saved) – Meine Touren's „Speichern“ on its row. */
 let planUnsaved = false;
