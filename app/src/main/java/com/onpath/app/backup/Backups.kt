@@ -27,6 +27,9 @@ object Backups {
     const val KEY_DOCUMENTS = "documents"
     private const val PREFS = "backup" // own file: not in Android's backup (folder access does not survive a reinstall)
     const val INDEX_FILE = "backup-index.json"
+    private const val PLACES_DIRTY = "placesDirty"
+    private const val PLACES_HANDLE = "placesHandle"
+    private const val PLACES_STORE = "placesStore"
 
     fun treeKey(tree: Uri) = "tree:$tree"
 
@@ -79,6 +82,38 @@ object Backups {
         try { ctx(context); queue?.purged(uuids.filter { it.isNotEmpty() }) } catch (e: Exception) { Problems.warn("backup", "Backup file not removed", e) }
     }
 
+    /**
+     * Zuhause / a favourite place changed (owner 2026-11-15): the places file ([PlacesBackup]) in the backup folder is
+     * written anew. Never blocks, never throws; a failure is reported and the file is written at the next app start.
+     */
+    fun placesChanged(context: Context) {
+        try {
+            val a = ctx(context)
+            prefs(a).edit().putBoolean(PLACES_DIRTY, true).apply()
+            executor.execute { writePlaces(a) }
+        } catch (e: Exception) { Problems.warn("backup", "Places backup not started", e) }
+    }
+
+    /** Writes [PlacesBackup.FILE_NAME] when it is due (backup thread). Overwrites its own file, else makes a new one. */
+    private fun writePlaces(a: Context) {
+        val p = prefs(a)
+        if (!p.getBoolean(PLACES_DIRTY, false)) return
+        try {
+            val saved = com.onpath.app.search.SearchStore(a).saved()
+            val bytes = PlacesBackup.encode(saved).toByteArray(Charsets.UTF_8)
+            val store = store(a)
+            val handle = p.getString(PLACES_HANDLE, null)?.takeIf { p.getString(PLACES_STORE, null) == store.key }
+            if (handle == null || !store.overwrite(handle, bytes)) {
+                val made = store.create(PlacesBackup.FILE_NAME, false, bytes)
+                p.edit().putString(PLACES_HANDLE, made.handle).putString(PLACES_STORE, store.key).apply()
+            }
+            p.edit().putBoolean(PLACES_DIRTY, false).apply()
+            Problems.trace("backup", "Places file written (${if (saved.home != null) "home + " else ""}${saved.favourites.size} favourites)")
+        } catch (e: Exception) {
+            Problems.warn("backup", "Places file (${PlacesBackup.FILE_NAME}) not written – tried again at the next start", e)
+        }
+    }
+
     /** App start: empty the recycle bin of entries older than 30 days, then back up tours that have no file yet. */
     fun purgeAndSync(context: Context) {
         val a = ctx(context)
@@ -89,11 +124,12 @@ object Backups {
                 queue?.purged(gone)
             } catch (e: Exception) { Problems.warn("backup", "Recycle bin could not be emptied", e) }
             queue?.syncAll(missingOnly = true)
+            writePlaces(a)
         }
     }
 
-    /** Settings → Backup → "Back up all now". */
-    fun backupAll(context: Context, done: (Int) -> Unit = {}) { ctx(context); queue?.syncAll(missingOnly = false, done) }
+    /** Settings → Backup → "Back up all now" (the places file too). */
+    fun backupAll(context: Context, done: (Int) -> Unit = {}) { ctx(context); placesChanged(context); queue?.syncAll(missingOnly = false, done) }
 
     /** Settings → Backup → choose a folder (null = back to Documents/OnPath). Writes every tour there. */
     fun setFolder(context: Context, tree: Uri?) {
@@ -109,8 +145,10 @@ object Backups {
         } catch (e: Exception) { Problems.info("backup", "Old folder access not released", e) }
         executor.execute {
             val label = tree?.let { BackupFolder.label(a, it) }
-            prefs(a).edit().putString("tree", tree?.toString()).putString("treeLabel", label).remove("lastError").commit()
+            prefs(a).edit().putString("tree", tree?.toString()).putString("treeLabel", label).remove("lastError")
+                .putBoolean(PLACES_DIRTY, true).commit()
             refreshStatus(a)
+            writePlaces(a) // the places file goes to the new folder too
         }
         queue?.syncAll(missingOnly = true)
     }
@@ -187,11 +225,18 @@ object Backups {
         val files = BackupFolder.gpxFiles(a.contentResolver, tree)
         var failed = 0
         val found = ArrayList<FoundBackup>()
+        var places: com.onpath.app.search.SavedPlaces? = null
         files.forEachIndexed { i, d ->
             progress(Txt.s(Res.string.backup_progress_reading, i + 1, files.size))
             try {
                 if (d.size > com.onpath.app.gpx.GpxParser.MAX_BYTES) { failed++; return@forEachIndexed }
                 val text = a.contentResolver.openInputStream(d.uri)?.use { String(it.readBytes(), Charsets.UTF_8) } ?: run { failed++; return@forEachIndexed }
+                // Zuhause + favourite places (owner 2026-11-15): a file of its own, never a tour
+                if (PlacesBackup.isPlaces(text)) {
+                    val p = PlacesBackup.decode(text)
+                    if (p == null) failed++ else places = p
+                    return@forEachIndexed
+                }
                 if (!BackupCodec.hasRecord(text)) return@forEachIndexed // a GPX from elsewhere: not ours, left alone
                 val e = BackupCodec.decode(text, d.name)
                 if (e == null) failed++ else found += FoundBackup(e, d.uri.toString(), d.name)
@@ -219,8 +264,18 @@ object Backups {
                 if (adopt && f.fileName.indexOf('/') < 0) TourBackup(current, index!!).adopt(m.uuid, f.handle, f.fileName)
             } catch (e: Exception) { failed++; Problems.error("backup", "Restoring ${f.fileName} failed", e) }
         }
+        var placesAdded = 0
+        places?.let { restored ->
+            try {
+                val st = com.onpath.app.search.SearchStore(a)
+                val before = st.saved()
+                val merged = before.merge(restored)
+                st.save(merged)
+                placesAdded = BackupRestore.placesAdded(before, merged)
+            } catch (e: Exception) { failed++; Problems.error("backup", "Restoring the places file failed", e) }
+        }
         refreshStatus(a)
-        val r = BackupRestore.Result(tours, plans, skipped.coerceAtLeast(0), failed)
+        val r = BackupRestore.Result(tours, plans, skipped.coerceAtLeast(0), failed, placesAdded)
         Problems.info("backup", "Restore: ${BackupRestore.summary(r)}")
         return r
     }

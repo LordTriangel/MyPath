@@ -1,6 +1,7 @@
 package com.onpath.app.search
 
 import android.content.Context
+import com.onpath.app.debug.Problems
 import com.onpath.app.routing.GeoPoint
 import java.util.Locale
 
@@ -12,6 +13,7 @@ import java.util.Locale
  */
 class SearchStore(context: Context) {
     private val sp = context.getSharedPreferences("onpath-search", 0)
+    private val places = context.getSharedPreferences(PLACES_PREFS, 0)
 
     fun recent(): List<Place> = sp.getString("recent", null).orEmpty().lines().mapNotNull { decode(it) }
 
@@ -21,6 +23,27 @@ class SearchStore(context: Context) {
     }
 
     fun clearRecent() { sp.edit().remove("recent").apply() }
+
+    /**
+     * Zuhause and the favourite places ([SavedPlaces], owner 2026-11-15) – their own file `onpath-places`, which Android's
+     * backup takes along (res/xml backup rules); the search prefs (recent, names) stay out of it. Never throws: an
+     * unreadable entry is skipped (reported), an unreadable file = nothing kept.
+     */
+    fun saved(): SavedPlaces = try {
+        SavedPlaces(home = places.getString("home", null)?.let { decode(it) },
+            favourites = places.getString("favourites", null).orEmpty().lines().filter { it.isNotBlank() }.mapNotNull { l ->
+                decode(l) ?: null.also { Problems.warn("search", "A favourite place could not be read – left out") }
+            })
+    } catch (e: Exception) {
+        Problems.warn("search", "Favourite places / Zuhause unreadable – none shown", e); SavedPlaces()
+    }
+
+    fun save(s: SavedPlaces) {
+        try {
+            places.edit().putString("home", s.home?.let { encode(it) })
+                .putString("favourites", s.favourites.joinToString("\n") { encode(it) }).apply()
+        } catch (e: Exception) { Problems.error("search", "Favourite places / Zuhause could not be saved", e) }
+    }
 
     fun names(): Map<GeoPoint, String> = sp.getString("names", null).orEmpty().lines().mapNotNull { l ->
         val p = l.split('\t'); if (p.size < 3) return@mapNotNull null
@@ -35,6 +58,8 @@ class SearchStore(context: Context) {
 
     companion object {
         const val MAX_RECENT = 20
+        /** Zuhause + favourites: in Android's backup (backup_rules.xml / data_extraction_rules.xml). */
+        const val PLACES_PREFS = "onpath-places"
         private fun clean(s: String?) = s.orEmpty().replace('\t', ' ').replace('\n', ' ')
 
         fun encode(p: Place): String = listOf(p.id, clean(p.name), p.kind, p.sub.orEmpty(),

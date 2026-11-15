@@ -2251,6 +2251,42 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun pickSearchResult(place: com.onpath.app.search.Place) = searchFlow.pickSearchResult(place)
     /** [poi] is the found place's pin (its menu then ends with "Nadel entfernen"). */
     fun isCandidate(poi: com.onpath.app.poi.Poi): Boolean = searchFlow.isCandidate(poi)
+
+    // --- kept places: Zuhause + favourites (owner 2026-11-15, „Orte merken“; SavedPlaces) ---
+
+    /** Zuhause and the favourite places, read once from the phone; every change saved at once and backed up. */
+    var savedPlaces by mutableStateOf<com.onpath.app.search.SavedPlaces?>(null)
+        private set
+    private fun saved(): com.onpath.app.search.SavedPlaces = savedPlaces ?: searchStore.saved().also { savedPlaces = it }
+
+    /** The place a held menu is about: the found place itself (address, kind) for its pin, else the map's POI. */
+    private fun placeOf(poi: com.onpath.app.poi.Poi): com.onpath.app.search.Place =
+        searchMark?.takeIf { isCandidate(poi) } ?: com.onpath.app.search.Place.fromPoi(poi)
+
+    fun isFavouritePlace(poi: com.onpath.app.poi.Poi): Boolean = saved().isFavourite(placeOf(poi))
+    fun isHomePlace(poi: com.onpath.app.poi.Poi): Boolean = saved().isHome(placeOf(poi))
+
+    /** „☆ Merken“ / „★ Gemerkt“ in a held place's menu: one tap sets / removes; the menu stays and shows the new state. */
+    fun toggleFavouritePlace(poi: com.onpath.app.poi.Poi) {
+        val p = placeOf(poi)
+        val on = !saved().isFavourite(p)
+        keepPlaces(saved().toggleFavourite(p))
+        Problems.trace("search", "Place menu: \"${p.title()}\" ${if (on) "kept as a favourite" else "no longer a favourite"}")
+    }
+
+    /** „⌂ Als Zuhause festlegen“ (replaces the old home) / „⌂ Zuhause entfernen“ on the place that is home. */
+    fun toggleHomePlace(poi: com.onpath.app.poi.Poi) {
+        val p = placeOf(poi)
+        val remove = saved().isHome(p)
+        keepPlaces(saved().withHome(if (remove) null else p))
+        Problems.trace("search", "Place menu: \"${p.title()}\" ${if (remove) "no longer home" else "set as home"}")
+    }
+
+    private fun keepPlaces(s: com.onpath.app.search.SavedPlaces) {
+        savedPlaces = s
+        searchStore.save(s)
+        com.onpath.app.backup.Backups.placesChanged(getApplication())
+    }
     private fun clearSearchMarkAt(lat: Double, lon: Double) = searchFlow.clearSearchMarkAt(lat, lon)
 
     /** The found place at ([lat], [lon]) goes into the plan: its pin goes; returns that place (null = no pin there). */
@@ -5421,6 +5457,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 catch (e: Exception) { Problems.error("backup", "Restore from the backup folder failed", e); null }
             }
             restoreProgress = null
+            savedPlaces = null // a restore may have brought kept places (Zuhause, favourites): read them again
             if (r != null) sync.changed("restored from the backup folder")
             // the result where it was started (Settings → Backup), else where the tracks are now: My routes (restore
             // offered at the first start); a failure there → the error box

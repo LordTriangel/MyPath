@@ -19,9 +19,14 @@ object BackupRestore {
             .map { (_, same) -> same.maxWith(compareBy<FoundBackup>({ it.entry.meta.savedMs }, { it.entry.segments.sumOf { s -> s.size } })) }
             .sortedBy { it.entry.meta.createdMs }
 
-    data class Result(val tours: Int, val plans: Int, val skipped: Int, val failed: Int)
+    /** [places] = kept places (Zuhause, favourites) the phone did not have yet ([PlacesBackup]). */
+    data class Result(val tours: Int, val plans: Int, val skipped: Int, val failed: Int, val places: Int = 0)
 
-    /** "23 tours and 5 plans restored." (+ already there / unreadable). */
+    /** How many kept places a restore added: new favourites, and a home where the phone had none. */
+    fun placesAdded(before: com.onpath.app.search.SavedPlaces, after: com.onpath.app.search.SavedPlaces): Int =
+        after.favourites.size - before.favourites.size + (if (before.home == null && after.home != null) 1 else 0)
+
+    /** "23 tours and 5 plans restored." (+ kept places / already there / unreadable). */
     fun summary(r: Result): String {
         val main = when {
             r.tours == 0 && r.plans == 0 -> Txt.s(Res.string.backup_restore_none)
@@ -29,6 +34,7 @@ object BackupRestore {
                 Txt.p(Res.plurals.backup_n_routes, r.plans, r.plans))
         }
         val extra = buildList {
+            if (r.places > 0) add(Txt.p(Res.plurals.backup_n_places, r.places, r.places))
             if (r.skipped > 0) add(Txt.s(Res.string.backup_restore_skipped, r.skipped))
             if (r.failed > 0) add(Txt.s(Res.string.backup_restore_failed, r.failed))
         }

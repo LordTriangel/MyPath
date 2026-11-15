@@ -52,4 +52,5 @@
     <plurals name="backup_last"><item quantity="one">Letzte Sicherung: %1$s · %2$d Datei</item><item quantity="other">Letzte Sicherung: %1$s · %2$d Dateien</item></plurals>
     <plurals name="backup_n_tracks"><item quantity="one">%1$d Tour</item><item quantity="other">%1$d Touren</item></plurals>
     <plurals name="backup_n_routes"><item quantity="one">%1$d Plan</item><item quantity="other">%1$d Pläne</item></plurals>
+    <plurals name="backup_n_places"><item quantity="one">%1$d gemerkter Ort</item><item quantity="other">%1$d gemerkte Orte</item></plurals>
 </resources>
