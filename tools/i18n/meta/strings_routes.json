@@ -473,5 +473,155 @@
     "context": "Under the T1–T5 chips (owner 2026-11-08): the chosen level's name and description; %1$d = level, %2$s = SAC name, %3$s = SAC description",
     "priority": 1,
     "confidence": "sicher"
+  },
+  "routes_review_distance": {
+    "area": "My routes – look back at a done tour",
+    "context": "Label under the big distance value at the top of a done tour's overview (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_ascent": {
+    "area": "My routes – look back at a done tour",
+    "context": "Label under the big ascent value (↑ m); also in the Details sheet (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_descent": {
+    "area": "My routes – look back at a done tour",
+    "context": "Label in the Details sheet: metres down (↓ m) (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_total": {
+    "area": "My routes – look back at a done tour",
+    "context": "Label under the big time value: start to end of the tour, breaks included (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_moving": {
+    "area": "My routes – look back at a done tour",
+    "context": "Label: time spent moving (breaks left out) (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_pauses": {
+    "area": "My routes – look back at a done tour",
+    "context": "Label: time not moving (stops and Anhalten); used when the number of breaks is not known (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_pauses_n": {
+    "area": "My routes – look back at a done tour",
+    "context": "Label: time not moving, %1$d = how many breaks (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_faster": {
+    "area": "My routes – look back at a done tour",
+    "context": "One line under the numbers: %1$d = how many percent faster than the plan's time on the followed route (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_slower": {
+    "area": "My routes – look back at a done tour",
+    "context": "One line under the numbers: %1$d = how many percent slower than the plan's time (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_as_planned": {
+    "area": "My routes – look back at a done tour",
+    "context": "One line under the numbers: needed exactly the planned time (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_longest_pause": {
+    "area": "My routes – look back at a done tour",
+    "context": "Highlight row: the longest break, its length and where (km) follow (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_highest": {
+    "area": "My routes – look back at a done tour",
+    "context": "Highlight row: the highest point, its height and where (km) follow (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_fastest_km": {
+    "area": "My routes – look back at a done tour",
+    "context": "Highlight row: the fastest whole kilometre, its pace and which km follow (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_at_km": {
+    "area": "My routes – look back at a done tour",
+    "context": "Where along the tour, %1$s = kilometre with one decimal (\"km 6,1\") (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_details": {
+    "area": "My routes – look back at a done tour",
+    "context": "Row that opens the sheet with all further numbers of the tour (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_on_the_way": {
+    "area": "My routes – look back at a done tour",
+    "context": "Details sheet label: clock times of start and end (\"10:12–14:47\") (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_avg": {
+    "area": "My routes – look back at a done tour",
+    "context": "Details sheet label: average speed while moving (km/h) (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_uphill": {
+    "area": "My routes – look back at a done tour",
+    "context": "Details sheet label: metres climbed per hour on the climbing parts (m/h); lower case in DE (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_downhill": {
+    "area": "My routes – look back at a done tour",
+    "context": "Details sheet label: metres descended per hour on the descending parts (m/h); lower case in DE (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_plan_note": {
+    "area": "My routes – look back at a done tour",
+    "context": "Details sheet small line: %1$s = planned time, %2$s = needed moving time, both h:mm (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_rank": {
+    "area": "My routes – look back at a done tour",
+    "context": "Details sheet small line after the activity (\"Wandern T2 · 3. längste von 14\"): %1$d = place by length, %2$d = how many done tours of that activity (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_share": {
+    "area": "My routes – look back at a done tour",
+    "context": "Content description of the share icon top right of the overview (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_export_track_line": {
+    "area": "My routes – look back at a done tour",
+    "context": "Small line under \"Export GPX\" in the share menu, %1$s = the file name (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_export_plan": {
+    "area": "My routes – look back at a done tour",
+    "context": "Share menu entry: export the plan this tour followed as GPX (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_review_export_plan_line": {
+    "area": "My routes – look back at a done tour",
+    "context": "Small line under \"Export plan\", %1$s = the file name (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
   }
 }

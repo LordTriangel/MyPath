@@ -59,10 +59,11 @@ class OverviewMaker(
         if (busy() || tours.isEmpty()) return
         val wanted = OverviewRules.wanted(tours)
         tidy(tours, wanted)
-        val (w, h, pad) = pics.size() ?: return // the overview was never opened: its size is not known yet
         val th = theme()
         for (t in wanted) {
             if (busy()) { Problems.trace("routes", "Overview pictures wait: a tour runs"); return }
+            // a done tour's overview has its own picture size (its look back, owner 2026-11-15); never opened: not known yet
+            val (w, h, pad) = pics.size(done = t.kind == com.onpath.app.data.TourKind.RECORDED) ?: continue
             val sig = ThumbRules.sig(t) + " ${w}x$h $th"
             if (checked[t.uuid] == sig) continue
             val u = under(t)

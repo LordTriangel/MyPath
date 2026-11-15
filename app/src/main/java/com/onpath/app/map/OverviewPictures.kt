@@ -56,17 +56,23 @@ class OverviewPictures(val dir: File) {
         file(uuid).delete(); metaFile(uuid).delete()
     }
 
-    /** The overview's picture size at its last opening (width px, height px, padding px); null = never opened yet. */
-    fun size(): Triple<Int, Int, Int>? = try {
-        sizeFile.takeIf { it.isFile }?.readText()?.trim()?.split(' ')?.mapNotNull { it.toIntOrNull() }
+    /**
+     * The overview's picture size at its last opening (width px, height px, padding px); null = never opened yet. A done
+     * tour's overview ([done]) has its own: its look back takes room from the map (owner 2026-11-15, round 3), so its
+     * pictures are smaller than a planned route's.
+     */
+    fun size(done: Boolean = false): Triple<Int, Int, Int>? = try {
+        sizeFile(done).takeIf { it.isFile }?.readText()?.trim()?.split(' ')?.mapNotNull { it.toIntOrNull() }
             ?.takeIf { it.size == 3 && it[0] > 0 && it[1] > 0 }?.let { Triple(it[0], it[1], it[2]) }
     } catch (e: Exception) { Problems.info("routes", "Overview picture size unreadable – the background waits for the next opening", e); null }
 
-    fun setSize(w: Int, h: Int, pad: Int) {
-        if (size() == Triple(w, h, pad)) return
-        try { dir.mkdirs(); AtomicFiles.writeText(sizeFile, "$w $h $pad") }
+    fun setSize(w: Int, h: Int, pad: Int, done: Boolean = false) {
+        if (size(done) == Triple(w, h, pad)) return
+        try { dir.mkdirs(); AtomicFiles.writeText(sizeFile(done), "$w $h $pad") }
         catch (e: Exception) { Problems.info("routes", "Overview picture size not stored – the background waits", e) }
     }
+
+    private fun sizeFile(done: Boolean) = if (done) File(dir, "size-done") else sizeFile
 }
 
 /** Which overview pictures to keep and make, and their key (JVM tested). */

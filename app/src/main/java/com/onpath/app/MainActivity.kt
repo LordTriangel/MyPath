@@ -194,6 +194,9 @@ class MainActivity : ComponentActivity() {
                                     vm.openSetup(com.onpath.app.setup.Purpose.BEFORE_TOUR) { vm.startNavigation() }
                                 } },
                                 loadPlanLine = { vm.followedPlanLine(it) },
+                                // a done tour's look back and its share (owner 2026-11-15, round 3 of the tour analysis)
+                                loadReview = { vm.tourReview(it) },
+                                onExportPlan = { vm.exportFollowedPlan(it) },
                                 onExport = { vm.exportTour(it) },
                                 onDelete = { vm.deleteTour(it) },
                                 onRename = { t, name -> vm.renameTour(t, name) },

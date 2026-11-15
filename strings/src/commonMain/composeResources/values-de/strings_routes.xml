@@ -74,6 +74,32 @@
     <string name="routes_overview_follow">Folgen</string>
     <string name="routes_overview_loading">Karte wird gezeichnet …</string>
     <string name="routes_overview_position">%1$d von %2$d</string>
+    <!-- Der Rückblick auf eine gemachte Tour in ihrer großen Übersicht (Owner 2026-11-15, Runde 3 der Tour-Auswertung) -->
+    <string name="routes_review_distance">Strecke</string>
+    <string name="routes_review_ascent">Aufstieg</string>
+    <string name="routes_review_descent">Abstieg</string>
+    <string name="routes_review_total">Gesamtzeit</string>
+    <string name="routes_review_moving">In Bewegung</string>
+    <string name="routes_review_pauses">Pausen</string>
+    <string name="routes_review_pauses_n">Pausen (%1$d)</string>
+    <string name="routes_review_faster">%1$d % schneller als geplant</string>
+    <string name="routes_review_slower">%1$d % langsamer als geplant</string>
+    <string name="routes_review_as_planned">Genau wie geplant</string>
+    <string name="routes_review_longest_pause">Längste Pause</string>
+    <string name="routes_review_highest">Höchster Punkt</string>
+    <string name="routes_review_fastest_km">Schnellster km</string>
+    <string name="routes_review_at_km">km %1$s</string>
+    <string name="routes_review_details">Details</string>
+    <string name="routes_review_on_the_way">Unterwegs</string>
+    <string name="routes_review_avg">Ø Tempo</string>
+    <string name="routes_review_uphill">bergauf</string>
+    <string name="routes_review_downhill">bergab</string>
+    <string name="routes_review_plan_note">Geplant %1$s · gebraucht %2$s (ohne Pausen)</string>
+    <string name="routes_review_rank">%1$d. längste von %2$d</string>
+    <string name="routes_review_share">Teilen</string>
+    <string name="routes_review_export_track_line">der aufgezeichnete Weg · „%1$s“</string>
+    <string name="routes_review_export_plan">Plan exportieren</string>
+    <string name="routes_review_export_plan_line">die geplante Route · „%1$s“</string>
     <string name="routes_followed_plan_missing">Der Plan dieser Tour konnte nicht gelesen werden.</string>
     <string name="routes_sac_line">T%1$d · %2$s: %3$s</string>
     <!-- Meine Touren: die Sortier-Chips (Owner 2026-11-12, Variante C) -->

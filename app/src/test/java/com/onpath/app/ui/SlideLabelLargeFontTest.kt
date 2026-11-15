@@ -49,6 +49,8 @@ open class SlideLabelLargeFontTest {
     @Test fun routesItemMenuPlanned() = shots.routesItemMenuPlanned()
     /** Gemacht: a recorded tour's followed plan (owner 2026-11-07) – the overview's foot and the ⋮ at a large font. */
     @Test fun routesOverviewDoneWithPlan() = shots.routesOverviewDoneWithPlan()
+    /** A done tour's „Details ›“ at a large font (owner 2026-11-15, round 3): two to a row, nothing cut. */
+    @Test fun routesOverviewDoneDetails() = shots.routesOverviewDoneDetails()
     @Test fun routesItemMenuDoneWithPlan() = shots.routesItemMenuDoneWithPlan()
     /** The green "Navigation ›" at a large font: the numbers go, the word stays whole (owner 2026-11-06, C). */
     @Test fun planTourRunningCollapsed() = shots.planTourRunningCollapsed()

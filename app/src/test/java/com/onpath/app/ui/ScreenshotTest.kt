@@ -1451,8 +1451,41 @@ class ScreenshotTest {
         val track = sampleLine(2)
         // the plan: the same loop, a detour left out where the track went its own way
         val plan = track.mapIndexed { i, p -> if (i in 30..45) com.onpath.app.routing.GeoPoint(p.lat - 0.004, p.lon + 0.002) else p }
-        OnPathTheme { RouteOverview(tourList[1].copy(hasPlan = true), listOf(track), touring = false, snapshot = null, onPrimary = {},
-            onCancel = {}, onGo = {}, planLine = plan) }
+        // its look back (owner 2026-11-15, round 3 of the tour analysis): the sketch's example hike
+        OnPathTheme { RouteOverview(reviewTour, listOf(track), touring = false, snapshot = null, onPrimary = {},
+            onCancel = {}, onGo = {}, planLine = plan, position = str(Res.string.routes_overview_position, 3, 27),
+            review = sampleReview, onExportTrack = {}, onExportPlan = {}) }
+    }
+
+    /** A done tour whose points are still read (or cannot be read): its stored numbers only, nothing made up. */
+    @Test fun routesOverviewDoneNoReview() = paparazzi.snapshot {
+        OnPathTheme { RouteOverview(tourList[3], listOf(sampleLine(4)), touring = false, snapshot = null, onPrimary = {},
+            onCancel = {}, onExportTrack = {}) }
+    }
+
+    /** „Details ›“ of a done tour (owner 2026-11-15, round 3): the further numbers and the small line under them. */
+    @Test fun routesOverviewDoneDetails() = paparazzi.snapshot {
+        OnPathTheme { androidx.compose.material3.Surface(color = OnPathColors.Paper) { DetailsContent(reviewTour, sampleReview) } }
+    }
+
+    /** The sketch's example hike (round 3): 12,4 km, ↑620 ↓640, 10:12–14:47, followed a plan. */
+    private val reviewTour = tourList[1].copy(name = "Leiter Alm Runde", activity = "HIKE", sac = 2, distanceM = 12_400.0,
+        ascentM = 620.0, descentM = 640.0, durationS = 4 * 3600.0 + 35 * 60, hasPlan = true)
+
+    private val sampleReview = run {
+        val start = 1_763_201_520_000L // 10:12 UTC (unit tests run in UTC)
+        val profile = (0..120).map { i ->
+            val x = i / 120.0 * 12_400
+            val e = if (x <= 6100) 1270 + 620 * (0.5 - 0.5 * Math.cos(Math.PI * x / 6100)) else 1890 - 640 * (0.5 - 0.5 * Math.cos(Math.PI * (x - 6100) / 6300))
+            com.onpath.app.time.TourReview.ProfilePoint(x, e + 15 * Math.sin(x / 700))
+        }
+        com.onpath.app.time.TourReview(totalS = 4 * 3600.0 + 35 * 60, movingS = 3 * 3600.0 + 38 * 60, pauseS = 57 * 60.0, pauseCount = 4,
+            startMs = start, endMs = start + (4 * 3600L + 35 * 60) * 1000, avgKmh = 3.4, upMh = 410.0, downMh = 590.0,
+            planPct = 12, plannedS = 4 * 3600.0 + 8 * 60, neededS = 3 * 3600.0 + 38 * 60,
+            longestPause = com.onpath.app.time.TourReview.AtTrack(25 * 60.0, 6200.0),
+            highest = com.onpath.app.time.TourReview.AtTrack(1890.0, 6100.0),
+            fastestKm = com.onpath.app.time.TourReview.AtTrack(700.0, 9000.0),
+            profile = profile, rank = com.onpath.app.time.TourReview.Rank(3, 14))
     }
 
     /**

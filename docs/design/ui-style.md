@@ -237,6 +237,16 @@ for the map centre.
 - **Swiping**: the large overview is a pager over exactly the list My routes shows (Zuletzt's tour, then the list with
   its filter and order, each tour once – `ui/routes/OverviewPages`), from the tapped tour; a paper pill „3 von 27“ top
   right over the picture; the foot acts on the shown tour; the neighbours are composed too (at most three pictures).
+- **A done tour's look back** (owner 2026-11-15, round 3 of the tour analysis, F-NAV-07 – the sketch
+  https://claude.ai/artifact/4QQF66CN7f8L2pJ15xY5fm, the app's colours, no new one): `ui/DoneTourOverview` over
+  `time/TourReview` (pure, from the stored points + TourTimes; a value the data does not give is left out). Title + share
+  (GPX of the recorded way; the followed plan as `PlanGpx` when there is one), three big values (Strecke, Aufstieg,
+  Gesamtzeit), the picture with the done-green profile in one card, In Bewegung | Pausen (n), the plan line, the
+  highlights (Längste Pause, Höchster Punkt, Schnellster km – where as „km 6,1“: no offline place lookup by position
+  exists), „Details ›“ (sheet: Unterwegs, In Bewegung, Pausen, Ø Tempo, Aufstieg, Abstieg, bergauf / bergab m/h, a small
+  line with planned vs needed · activity · its place by length among the same activity's done tours). One screen at a
+  normal font (the picture takes what is left, ≥ 220 dp); at a large font the values stand one per row and the page
+  scrolls. A done tour's picture has its own stored size (`OverviewPictures.size(done = true)`).
 
 ## Rules for new UI
 - A question or must-know message → `Message` + `MessageCard` through the screen's host (Plan:

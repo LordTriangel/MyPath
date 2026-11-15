@@ -75,6 +75,32 @@
     <string name="routes_overview_follow">Follow</string>
     <string name="routes_overview_loading">Drawing the map …</string>
     <string name="routes_overview_position">%1$d of %2$d</string>
+    <!-- The look back at a done tour in its large overview (owner 2026-11-15, round 3 of the tour analysis) -->
+    <string name="routes_review_distance">Distance</string>
+    <string name="routes_review_ascent">Ascent</string>
+    <string name="routes_review_descent">Descent</string>
+    <string name="routes_review_total">Total time</string>
+    <string name="routes_review_moving">Moving</string>
+    <string name="routes_review_pauses">Breaks</string>
+    <string name="routes_review_pauses_n">Breaks (%1$d)</string>
+    <string name="routes_review_faster">%1$d % faster than planned</string>
+    <string name="routes_review_slower">%1$d % slower than planned</string>
+    <string name="routes_review_as_planned">Just as planned</string>
+    <string name="routes_review_longest_pause">Longest break</string>
+    <string name="routes_review_highest">Highest point</string>
+    <string name="routes_review_fastest_km">Fastest km</string>
+    <string name="routes_review_at_km">km %1$s</string>
+    <string name="routes_review_details">Details</string>
+    <string name="routes_review_on_the_way">On the way</string>
+    <string name="routes_review_avg">Ø speed</string>
+    <string name="routes_review_uphill">Uphill</string>
+    <string name="routes_review_downhill">Downhill</string>
+    <string name="routes_review_plan_note">Planned %1$s · needed %2$s (without breaks)</string>
+    <string name="routes_review_rank">no. %1$d by length of %2$d</string>
+    <string name="routes_review_share">Share</string>
+    <string name="routes_review_export_track_line">the recorded way · “%1$s”</string>
+    <string name="routes_review_export_plan">Export plan</string>
+    <string name="routes_review_export_plan_line">the planned route · “%1$s”</string>
     <string name="routes_followed_plan_missing">The plan of this tour could not be read.</string>
     <string name="routes_sac_line">T%1$d · %2$s: %3$s</string>
     <!-- My routes: the sort chips (owner 2026-11-12, variant C) -->
