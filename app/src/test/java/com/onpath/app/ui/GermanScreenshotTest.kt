@@ -37,7 +37,6 @@ class GermanScreenshotTest {
     @Test fun overviewHint() = shots.overviewHint()
     @Test fun planReliefOffNote() = shots.planReliefOffNote()
     @Test fun planGpsNote() = shots.planGpsNote()
-    @Test fun navigateLeaveAsk() = shots.navigateLeaveAsk()
     @Test fun navigatePausedLocked() = shots.navigatePausedLocked()
     @Test fun navigateLockedHint() = shots.navigateLockedHint()
     @Test fun navigateActivitySheet() = shots.navigateActivitySheet()

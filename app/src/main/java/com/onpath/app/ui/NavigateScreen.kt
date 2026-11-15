@@ -280,8 +280,6 @@ fun NavigateOverlay(
     onCover: (topDp: Int, bottomDp: Int) -> Unit = { _, _ -> },
     /** Developer tools unlocked: the "Tour-Sim" chip ([NavSimChip]) under the status; null = none (everyone else). */
     sim: (@Composable () -> Unit)? = null,
-    /** "App verlassen?" answered with Verlassen: the app goes to the background, the recording goes on (N4). */
-    onLeaveApp: () -> Unit = {},
     /** A plan / done tour tapped in My routes during the tour is followed now ([NewPlanLine]); null = no line. */
     newPlan: NewPlanNote? = null,
     onNewPlanUndo: () -> Unit = {},
@@ -349,13 +347,12 @@ fun NavigateOverlay(
         }
     }
     val closableBar = false
-    // Android's back while a tour records (owner 2026-11-06, flow map N4): ask instead of leaving the app – a novice took
-    // "app gone" for "tour gone" and might start a second one. A second back closes the question (= Bleiben).
-    var leaveAsk by remember { mutableStateOf(false) }
-    androidx.activity.compose.BackHandler(enabled = LeaveAppRule.backAsks(recording = ui.recordedM != null,
-        barOpen = closableBar, sheetOpen = ui.activityCheck != null || ui.settingsOpen)) { leaveAsk = !leaveAsk }
-    val recordingNow = ui.recordedM != null
-    LaunchedEffect(recordingNow) { if (!recordingNow) leaveAsk = false }
+    // Android's back while a tour records (owner 2026-11-15, flow map N4: „aus der Aufzeichnung verlassen wir die App
+    // nicht“): back closes what is open first, then does nothing – no question, the app never goes away by back
+    androidx.activity.compose.BackHandler(enabled = BackStaysRule.swallows(recording = ui.recordedM != null,
+        barOpen = closableBar, sheetOpen = ui.activityCheck != null || ui.settingsOpen)) {
+        com.onpath.app.debug.Problems.trace("app", "Back in Navigate while recording: stays in the app (owner 2026-11-15)")
+    }
     Box(Modifier.fillMaxSize()) {
         Column(
             Modifier.align(Alignment.TopCenter).modeEdge(ModeEdge.TOP).fillMaxWidth().statusBarsPadding()
@@ -408,7 +405,6 @@ fun NavigateOverlay(
         // reached beside a later part (owner 2026-11-03): "Du stehst mitten auf der Route" · Hier einsteigen / Zu ① führen
         val mid = ui.offRoute?.prompt as? NavPrompt.MidStart
         val message = Messages.pick(listOf(
-            if (leaveAsk) leaveAppMessage(onStay = { leaveAsk = false }, onLeave = { leaveAsk = false; onLeaveApp() }) else null,
             question?.let { q -> rerouteMessage(q, onTake = { onTakeRoute(q.id) }, onKeep = { onKeepRoute(q.id) }, onVia = { onTakeVia(q.id) }) },
             ui.offRoute?.takeIf { it.prompt == NavPrompt.Searching }?.let { o -> searchingMessage(o, onKeep = { onKeepRoute(-1) }) },
             far?.let { p -> farStartMessage(p, onLead = { onLeadThere(p.id) }, onJustRecord = { onJustRecord(p.id) }) },
@@ -982,17 +978,13 @@ internal fun midStartMessage(p: NavPrompt.MidStart, onLead: () -> Unit, onJoin: 
 }
 
 /**
- * Back in Navigate while a tour records (owner 2026-11-06, flow map N4): "App verlassen? Deine Tour wird weiter
- * aufgezeichnet." · Bleiben / Verlassen. Neither is a navigation or plan action (colour rule: neutral).
+ * Android's back in Navigate (flow map N4, owner 2026-11-15 after a hike: „aus der Aufzeichnung verlassen wir die App
+ * nicht“): while a tour records back never leaves the app – it is swallowed (before 2026-11-15 it asked "App
+ * verlassen?", which an accidental back from the ◀ key under „Anhalten“ brought up on the way). Pure, unit-tested.
  */
-internal fun leaveAppMessage(onStay: () -> Unit, onLeave: () -> Unit): Message =
-    Message(MessageKind.FRAGE, Txt.s(Res.string.nav_leave_title), Txt.s(Res.string.nav_leave_text),
-        listOf(MessageButton(Txt.s(Res.string.nav_leave_stay), onStay), MessageButton(Txt.s(Res.string.nav_leave_go), onLeave)))
-
-/** When Android's back asks "App verlassen?" in Navigate (N4) – pure, unit-tested. */
-object LeaveAppRule {
-    /** Only while a tour records; the unlocked bar and the activity sheet close first with back. */
-    fun backAsks(recording: Boolean, barOpen: Boolean, sheetOpen: Boolean): Boolean = recording && !barOpen && !sheetOpen
+object BackStaysRule {
+    /** While a tour records and nothing is open that back closes first (the unlocked bar, the activity / settings sheet). */
+    fun swallows(recording: Boolean, barOpen: Boolean, sheetOpen: Boolean): Boolean = recording && !barOpen && !sheetOpen
 }
 
 /**
@@ -1176,7 +1168,6 @@ internal fun NavigateMode(vm: AppViewModel, rec: RecState?, location: Location?,
     // the hold time of the locked bar (Settings → Navigation, owner 2026-11-06 22:50: 0–2 s in 0,5 s steps)
     Box(Modifier.fillMaxSize()) { androidx.compose.runtime.CompositionLocalProvider(LocalHoldMs provides vm.settings.navHoldMs) {
         NavigateOverlay(ui, footer, onSlideToPlan = { activity?.leaveNavigate(vm::switchToPlan) ?: vm.switchToPlan() }, onResume = { vm.pauseRecording(false) },
-            onLeaveApp = { com.onpath.app.debug.Problems.trace("app", "Back in Navigate: left the app, the tour records on"); activity?.moveTaskToBack(true) },
             newPlan = vm.newPlanNote, onNewPlanUndo = vm::undoNewPlan, onNewPlanGone = vm::dropNewPlanNote,
             onPause = vm::pauseRecording, onEnd = { vm.askEndTour() }, lock = vm.settings.navLock,
             onTakeRoute = vm::takeNewRoute, onKeepRoute = vm::keepOriginalRoute, onTakeVia = vm::takeViaRoute,

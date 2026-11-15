@@ -172,10 +172,6 @@
     <string name="nav_end_tour">Tour beenden</string>
     <string name="nav_notif_arrived">Aufnahme läuft · Tour beenden in der App</string>
     <string name="nav_continue">Weiter</string>
-    <string name="nav_leave_title">App verlassen?</string>
-    <string name="nav_leave_text">Deine Tour wird weiter aufgezeichnet.</string>
-    <string name="nav_leave_stay">Bleiben</string>
-    <string name="nav_leave_go">Verlassen</string>
     <string name="nav_change_plan">Planen</string>
     <string name="nav_straight_on">Geradeaus</string>
     <string name="nav_save_recording">Tour speichern</string>

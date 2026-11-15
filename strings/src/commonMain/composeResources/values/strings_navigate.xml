@@ -173,10 +173,6 @@
     <string name="nav_end_tour">End tour</string>
     <string name="nav_notif_arrived">Still recording · end the tour in the app</string>
     <string name="nav_continue">Continue</string>
-    <string name="nav_leave_title">Leave the app?</string>
-    <string name="nav_leave_text">Your tour keeps recording.</string>
-    <string name="nav_leave_stay">Stay</string>
-    <string name="nav_leave_go">Leave</string>
     <string name="nav_change_plan">Plan</string>
     <string name="nav_straight_on">Straight on</string>
     <string name="nav_save_recording">Save tour</string>

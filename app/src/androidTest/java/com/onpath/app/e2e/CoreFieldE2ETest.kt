@@ -20,11 +20,8 @@ import com.onpath.strings.nav_keep_recording
 import com.onpath.strings.plan_guide_find_title
 import com.onpath.strings.nav_hold_hint
 import com.onpath.strings.nav_status_paused
-import com.onpath.strings.nav_leave_go
-import com.onpath.strings.nav_leave_stay
 import com.onpath.strings.nav_settings_cd
 import com.onpath.strings.settings_group_offroute
-import com.onpath.strings.nav_leave_title
 import com.onpath.strings.nav_off_route
 import com.onpath.strings.plan_go_here
 import com.onpath.strings.plan_locate_far_cd
@@ -1072,10 +1069,10 @@ class CoreFieldE2ETest : E2EBase() {
     }
 
     /**
-     * Flow map N4 (owner 2026-11-06): Android's back in Navigate while a tour records asks "App verlassen? Deine Tour wird
-     * weiter aufgezeichnet." – Bleiben keeps Navigate; Verlassen sends the app to the background and the tour records on.
+     * Flow map N4 (owner 2026-11-15 after a hike: „aus der Aufzeichnung verlassen wir die App nicht“): Android's back in
+     * Navigate while a tour records does nothing – no question, the app stays in front, Navigate stays, the tour records on.
      */
-    @Test fun backInNavigateDuringATourAsksAndLeavingKeepsTheTour() {
+    @Test fun backInNavigateDuringATourStaysInTheApp() {
         startPlanWithTwoPoints()
         routeSettled()
         scenario.onActivity { vm(it).startNavigation(force = true) }
@@ -1083,24 +1080,17 @@ class CoreFieldE2ETest : E2EBase() {
         Thread.sleep(1_000)
         var tourId = -1L
         scenario.onActivity { tourId = vm(it).recState.value!!.tourId }
-        val title = Txt.s(Res.string.nav_leave_title)
-        device.pressBack()
-        assertNotNull("the question after back", findFresh(By.text(title), 5_000))
-        clickText(Txt.s(Res.string.nav_leave_stay))
-        // UiAutomator's node cache keeps the old tree on Android 14 – look afresh (E2EBase.goneFresh)
-        assertTrue("the question is gone after Bleiben", goneFresh(By.text(title), 5_000))
-        assertEquals("still in Navigate", AppMode.NAVIGATE, mode())
-        assertEquals("the app is still in front", androidx.lifecycle.Lifecycle.State.RESUMED, scenario.state)
-        device.pressBack()
-        assertNotNull("the question again", findFresh(By.text(title), 5_000))
-        clickText(Txt.s(Res.string.nav_leave_go))
-        waitUntil("the app went to the background", 10_000) { scenario.state != androidx.lifecycle.Lifecycle.State.RESUMED }
-        Thread.sleep(1_500)
+        repeat(2) {
+            device.pressBack()
+            Thread.sleep(1_500)
+            assertEquals("still in Navigate", AppMode.NAVIGATE, mode())
+            assertEquals("the app is still in front", androidx.lifecycle.Lifecycle.State.RESUMED, scenario.state)
+        }
         val db = TourDb.get(InstrumentationRegistry.getInstrumentation().targetContext)
         assertEquals("the tour records on", "active", db.getTour(tourId)?.state)
         assertTrue("the recording service still runs", com.onpath.app.recording.RecordingService.state.value != null)
         val trace = com.onpath.app.debug.Problems.events().map { it.message }
-        assertTrue(trace.any { it.startsWith("Back in Navigate: left the app") })
+        assertTrue(trace.any { it.startsWith("Back in Navigate while recording: stays in the app") })
     }
 
     /**
@@ -1109,7 +1099,7 @@ class CoreFieldE2ETest : E2EBase() {
      */
     /**
      * Owner 2026-11-07: Navigate's ⚙ opens the settings in the new look "on the way" – the Navigation page first – and
-     * Android's back returns to Navigate with the tour still recording (no "App verlassen?", no switch to Plan).
+     * Android's back returns to Navigate with the tour still recording (the app stays in front, no switch to Plan).
      */
     @Test fun navigateGearOpensSettingsOnTheWayAndBackReturns() {
         var before: com.onpath.app.data.AppSettings? = null
@@ -1130,7 +1120,7 @@ class CoreFieldE2ETest : E2EBase() {
             device.pressBack()
             waitUntil("settings closed", 5_000) { var s = true; scenario.onActivity { s = vm(it).showSettings }; !s }
             assertTrue("back in Navigate", mode() == AppMode.NAVIGATE)
-            assertTrue("no 'App verlassen?' on that back", goneFresh(By.text(Txt.s(Res.string.nav_leave_title)), 2_000))
+            assertEquals("the app is still in front", androidx.lifecycle.Lifecycle.State.RESUMED, scenario.state)
             assertTrue("still recording", recording())
         } finally {
             scenario.onActivity { vm(it).updateSettings(before!!) }
