@@ -4,7 +4,10 @@
 // planner's 3 drafts → 1 under Zuletzt + 2 in the Papierkorb; Wiederherstellen swaps; + Neu over an unsaved plan keeps
 // it (the draft before → bin); Löschen → bin; the plan on the map is the row („In Bearbeitung“, + „Gespeichert“ when
 // saved as it is), the saved route under Gespeichert as a plain row; a saved route left as it is holds the place
-// („Gespeichert“, under Gespeichert too) across a reload; a draft never hides behind it; nothing is ever lost.
+// („Gespeichert“, under Gespeichert too) across a reload; a draft never hides behind it; nothing is ever lost. (3) Owner
+// 2026-11-15: a changed plan with exactly a saved route's points lets that route hold Zuletzt (no twin draft); a saved
+// route deleted without a phone goes to the bin (no question), Restore brings it back (same id, name, star; a taken
+// name → „Name (2)“).
 // Usage: node test/zuletzt-smoke.mjs [segmentsDir]
 import path from 'node:path';
 import fs from 'node:fs';
@@ -60,6 +63,11 @@ const check = (ok, what) => { console.log((ok ? 'ok   ' : 'FAIL ') + what); if (
   // saved from the draft: the draft goes for good, the saved route holds the place
   R.afterSaved('S2', 'a', null, T0 + 70);
   check(!R.recentById('a') && R.zuletztPlace()?.id === 'S2' && R.zuletztPlace()?.kind === 'saved', 'unit: saved from Zuletzt – the draft goes, the saved route holds the place');
+  // a saved route back from the bin (the app's RoutesState.restore): its twin draft goes to the bin, the route takes
+  // the place the twin held
+  const tw = R.keepRecent(A, 'Twin', '11,11;12,12', null, T0 + 75);
+  R.savedRestored('S3', [tw], T0 + 76);
+  check(R.recentById(tw)?.deletedAt === T0 + 76 && R.zuletztPlace()?.kind === 'saved' && R.zuletztPlace()?.id === 'S3', 'unit: a restored saved route – its twin draft to the bin, the route holds the place');
   // 30 days in the bin, then removed at a start; the days left
   const old = R.binnedPlans().at(-1);
   check(R.daysLeft(old.deletedAt, old.deletedAt) === 30 && R.daysLeft(old.deletedAt, old.deletedAt + 29.5 * DAY) === 0, 'unit: the days left (30 → 0 = at the next start)');
@@ -123,7 +131,7 @@ await openList();
 let sec = await sections();
 check(sec.recent.length === 1 && sec.recent[0].name === 'Old Waalweg' && sec.recent[0].draft, `Meine Touren: one row under Recent – the newest draft (${JSON.stringify(sec.recent)})`);
 check(await page.isVisible('#plansBin') && (await page.textContent('#plansBin')).trim() === 'Recycle bin', 'the Recycle bin button shows while the bin holds a plan');
-await page.click('#plansBin');
+await page.click('#plansBin'); await page.waitForSelector('#planList .binkeep');
 const bin = await page.evaluate(() => ({ title: document.getElementById('plansTitle').textContent, keep: document.querySelector('#planList .binkeep')?.textContent,
   rows: [...document.querySelectorAll('#planList .binrow')].map((li) => ({ name: li.querySelector('.name').textContent, when: li.querySelector('.binwhen').textContent, btn: li.querySelector('.r-restore').textContent.trim() })) }));
 check(bin.title === 'Recycle bin' && bin.keep === 'Deleted tours and plans stay here for 30 days, then they are removed.' && bin.rows.length === 2
@@ -157,7 +165,7 @@ await page.waitForTimeout(200);
 s = await store();
 check(s.drafts.length === 0 && s.bin.includes(kept) && s.bin.length === 4 && !(await page.$('#planList li.draft')), `Delete on the Recent row: into the bin, no question (${JSON.stringify(s)})`);
 // back out of the bin
-await page.click('#plansBin');
+await page.click('#plansBin'); await page.waitForSelector('#planList .binkeep');
 await page.click(`#planList .binrow:has(.name:text-is("${kept}")) .r-restore`);
 await page.click('#binBack');
 await page.waitForTimeout(200);
@@ -215,6 +223,70 @@ check(s.drafts.length === 1 && s.place?.kind === 'draft' && sec.recent.length ==
 // every plan ever kept is still somewhere: under Recent, in the bin or saved
 const all = await page.evaluate(async () => [...JSON.parse(localStorage.getItem('onpath.recent')).map((r) => r.title), ...(await window.__sync.list()).map((p) => p.title)]);
 check(['Old Leiteralm', 'Old Lana', 'Old Waalweg', 'My Waalweg'].every((n) => all.includes(n)), `nothing lost: every plan is still under Recent, in the bin or saved (${JSON.stringify(all)})`);
+
+// the twin case (owner 2026-11-15, the app's keepDraft): the changed draft reversed back has exactly the points of
+// "My Waalweg" – + New makes no twin draft, the saved route takes the Recent place
+const wid = await page.evaluate(async () => (await window.__sync.list()).find((p) => p.title === 'My Waalweg')?.id);
+await openList();
+await page.click('#planList li.draft .open');
+await planned();
+await page.click('#reverse');
+await planned();
+await page.waitForTimeout(500);
+await page.click('#newPlan');
+await page.waitForFunction(() => document.querySelectorAll('.pin').length === 0, null, { timeout: 10_000 });
+await page.waitForTimeout(500);
+s = await store();
+sec = await placeRow();
+check(s.drafts.length === 0 && s.place?.kind === 'saved' && s.place?.id === wid && sec.recent.length === 1 && sec.recent[0].name === 'My Waalweg'
+  && JSON.stringify(sec.recent[0].tags) === '["Saved"]', `a changed plan with exactly a saved route's points: that route holds Recent, no twin draft (${JSON.stringify({ s, wid, recent: sec.recent })})`);
+
+// a saved route deleted without a phone: into this browser's recycle bin, no question; Restore brings it back – same
+// id, name, star (owner 2026-11-15)
+await page.evaluate(async (id) => { await window.__sync.setFavourite(id, true); }, wid);
+const delSaved = async (id) => {
+  await openList();
+  await page.click(`#planList li.saved[data-id="${id}"]:not([data-zuletzt]) .more`);
+  await page.click(`#planList li.saved[data-id="${id}"]:not([data-zuletzt]) .m-delete`);
+  await page.waitForTimeout(400);
+};
+await delSaved(wid);
+/** Polls [f] until it is true (at most 10 s) – waitForFunction takes an async predicate's promise as true at once. */
+const until = async (f) => { for (let i = 0; i < 100 && !(await f()); i++) await page.waitForTimeout(100); };
+const binState = () => page.evaluate(async () => ({ saved: (await window.__sync.list()).map((p) => ({ id: p.id, title: p.title, fav: !!p.favourite })),
+  bin: (await window.__sync.binnedRoutes?.() ?? []).map((e) => e.title), question: !!document.querySelector('dialog.plans .confirm, dialog.plans .keep') }));
+let b = await binState();
+check(!b.question && !b.saved.some((p) => p.id === wid) && b.bin.includes('My Waalweg') && await page.isVisible('#plansBin'),
+  `a saved route deleted without a phone: no question, into the recycle bin, the button shows (${JSON.stringify(b)})`);
+await page.click('#plansBin'); await page.waitForSelector('#planList .binkeep');
+await page.waitForSelector('#planList .binrow');
+const binRow = await page.evaluate(() => [...document.querySelectorAll('#planList .binrow')].map((li) => ({ id: li.dataset.id, name: li.querySelector('.name').textContent,
+  sub: li.querySelector('.sub').textContent, when: li.querySelector('.binwhen').textContent }))[0]);
+check(binRow?.id === wid && binRow.name === 'My Waalweg' && /^Plan · \d+ \w+ \d{4}/.test(binRow.sub) && /^Deleted \d+ \w+ \d{4} · (30|29) days left$/.test(binRow.when),
+  `the bin lists the saved route first, in the app's words (${JSON.stringify(binRow)})`);
+await page.click(`#planList .binrow[data-id="${wid}"] .r-restore`);
+await until(async () => !(await page.$(`#planList .binrow[data-id="${wid}"]`)));
+b = await binState();
+check(b.saved.some((p) => p.id === wid && p.title === 'My Waalweg' && p.fav) && !b.bin.includes('My Waalweg') && !(await page.$(`#planList .binrow[data-id="${wid}"]`)),
+  `Restore: the saved route is back – same id, name and star – and out of the bin (${JSON.stringify(b)})`);
+await page.click('#binBack');
+await page.waitForTimeout(300);
+sec = await sections();
+check(sec.saved.some((r) => r.name === 'My Waalweg'), `… under Saved again (${JSON.stringify(sec.saved)})`);
+await page.click('#closePlans');
+// a restore whose name is taken meanwhile: the app's copy name, never two routes under one name, nothing lost
+await delSaved(wid);
+await page.click('#closePlans');
+await page.evaluate(async (c) => { await window.__sync.save(c, 'My Waalweg'); }, C);
+await openList();
+await page.click('#plansBin'); await page.waitForSelector('#planList .binkeep');
+await page.click(`#planList .binrow[data-id="${wid}"] .r-restore`);
+await until(async () => !(await binState()).bin.length);
+b = await binState();
+check(b.saved.some((p) => p.id === wid && p.title === 'My Waalweg (2)') && b.saved.some((p) => p.id !== wid && p.title === 'My Waalweg') && !b.bin.length,
+  `Restore with its name taken: back as "My Waalweg (2)", the other stays (${JSON.stringify(b)})`);
+await page.click('#binBack');
+await page.click('#closePlans');
 await ctx.close();
 
 // German: the app's words
@@ -233,7 +305,7 @@ await ctx.close();
   if (await P.isVisible('#menuBtn')) await P.click('#menuBtn');
   await P.click('#menuPlans');
   await P.waitForSelector('dialog.plans[open] #plansBin:not([hidden])');
-  await P.click('#plansBin');
+  await P.click('#plansBin'); await P.waitForSelector('#planList .binkeep');
   const t = await P.evaluate(() => ({ btn: document.getElementById('binBack').textContent.trim(), title: document.getElementById('plansTitle').textContent,
     keep: document.querySelector('.binkeep').textContent, when: document.querySelector('.binwhen').textContent, restore: document.querySelector('.r-restore').textContent.trim() }));
   check(t.title === 'Papierkorb' && t.keep === 'Gelöschte Touren und Pläne bleiben 30 Tage hier, dann werden sie entfernt.' && /^Gelöscht am \d+\. \S+ \d{4} · noch (30|29) Tage$/.test(t.when)

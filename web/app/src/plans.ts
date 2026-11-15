@@ -2,13 +2,13 @@
 // routes live in this browser in folders – one per paired phone, plus "Without phone" (owner order A-017) – and, after
 // Save, on the phone, end-to-end encrypted through the mailbox. Conflict copies show as "… (copy)" / "… (Kopie)".
 import qrcode from 'qrcode-generator';
-import { NONE, shownTitle, type PlanSync, type SavedPlan, type SyncStatus } from './sync';
+import { NONE, shownTitle, type BinnedRoute, type PlanSync, type SavedPlan, type SyncStatus } from './sync';
 import { icon } from './icons';
 import { t, tp, locale, distance } from './i18n';
 import { problem } from './diag';
 import { planKey, trackKey, statsOf, statsText, type PlanStats } from './planstats';
 import { fitShape, shapeOf, shapeSvg, type Seg } from './routeshape';
-import { recentPlans, binnedPlans, afterSaved, toBin, restoreRecent, renameRecent, recentRow, zuletztPlace, daysLeft, BIN_DAYS, type RecentPlan } from './recent';
+import { recentPlans, binnedPlans, afterSaved, toBin, restoreRecent, savedRestored, renameRecent, recentRow, zuletztPlace, daysLeft, BIN_DAYS, type RecentPlan } from './recent';
 import { sortRoutes, tapSort, sortChipsHtml, SORT_DEFAULT, type SortKey, type SortChoice } from './routesort';
 import { filterSaved, favouritesPill, favChipHtml, actChipHtml, actMenuHtml, starHtml, activityLineHtml } from './routefilter';
 import { thumbKey, type RouteThumbs } from './routethumbs';
@@ -22,6 +22,8 @@ export interface PlanHost {
   activity?(): Activity;
   /** The six activities with the app's names (chip / label) for the filter and the rows' activity line. */
   activityRows?(): ActivityRow[];
+  /** The plan codes [saved] and [other] have exactly the same points (lat/lon – RouteRules.isUnsaved); none = never. */
+  samePoints?(saved: string, other: string): Promise<boolean>;
   /** The current plan as a plan code + its title, or null when there is nothing to save. */
   current(): Promise<{ code: string; title: string | null } | null>;
   /** The saved plan the page shows now (to save a new version of it), or null. */
@@ -262,7 +264,7 @@ let openAct: Activity | null = null;
 /**
  * Meine Touren (the app's My routes, owner 2026-11-07): ZULETZT – exactly one row (owner 2026-11-12, recent.ts): the
  * plan on the map („In Bearbeitung“, + „Gespeichert“ when saved as it is), else the draft or the saved route worked on
- * last –, then GESPEICHERT; a Papierkorb for this browser's drafts behind its button. A row: the route's preview tile
+ * last –, then GESPEICHERT; a Papierkorb (this browser's drafts and the saved routes deleted without a phone) behind its button. A row: the route's preview tile
  * (a tap on it opens the plan like the row), the name, „Plan · 30. Okt. 2026“, the facts (km · ↑ · time when this browser
  * knows them), on the right where it lies (🖥 this browser, 📱 the phone) and ⋮ / ›. Actions per [rowActions]. The app's search over everything and,
  * under it, its sort chips (routesort.ts): they order Gespeichert; Zuletzt is one row and stays as it is.
@@ -472,14 +474,11 @@ export async function myPlansDialog(sync: PlanSync, host: PlanHost, again = fals
     act('delete', async () => {
       if (it.recent) { toBin(it.recent.id); render(); return; } // a draft: into the recycle bin, no question, as the app
       if (!p) return;
-      if (folder !== NONE) { // on the phone: its recycle bin is the net – no question, as the app (owner 2026-11-06)
-        try { await sync.remove(p.id, folder); } catch (e) { await render(); failLine(d, t('web_delete_failed'), e); return; }
-        await render(); $('closePlans').focus(); return;
-      }
-      askInPlace(li, t('web_delete_q_local', it.title), t('common_delete'), () => li.querySelector('.more'), async () => {
-        try { await sync.remove(p.id, folder); } catch (e) { await render(); failLine(d, t('web_delete_failed'), e); return; }
-        await render(); $('closePlans').focus();
-      }, t('web_keep'));
+      // no question either way, as the app (owner 2026-11-06 / 2026-11-15): with a phone its recycle bin is the net (the
+      // delete reaches it); without one this browser's recycle bin keeps it 30 days (Wiederherstellen brings it back)
+      try { if (folder !== NONE) await sync.remove(p.id, folder); else await sync.toBin(p, folder); }
+      catch (e) { await render(); failLine(d, t('web_delete_failed'), e); return; }
+      await render(); $('closePlans').focus();
     });
     act('rename', async () => {
       const name = prompt(t('web_plans_new_name'), it.title);
@@ -505,13 +504,44 @@ export async function myPlansDialog(sync: PlanSync, host: PlanHost, again = fals
   };
 
   // Papierkorb (the app's RecycleBinScreen, My routes ⋮ → Papierkorb – here a button beside „GPX importieren“ while it
-  // holds a plan): this browser's Zuletzt plans that another plan replaced, Löschen or the one-time clean-up sent there.
-  // Wiederherstellen brings one back as the Zuletzt plan (the plan there goes in instead); after [BIN_DAYS] days a page
-  // start removes it, as the line at the top says. No „Jetzt löschen“: the app's question speaks of the phone and its
-  // backup folder – the days do it here.
+  // holds something): this browser's Zuletzt plans that another plan replaced, Löschen or the one-time clean-up sent
+  // there, and the saved routes deleted while no phone is paired (owner 2026-11-15 – paired, the phone's bin keeps
+  // them). Wiederherstellen: a draft comes back as the Zuletzt plan (the plan there goes in instead), a saved route as a
+  // saved route again (same id, name, star – the app's copy name when another route has its name now). After
+  // [BIN_DAYS] days a page start removes them, as the line at the top says. No „Jetzt löschen“ (owner 2026-11-15).
   let binMode = false;
-  const renderBin = () => {
-    const ul = $('planList'), now = Date.now(), list = binnedPlans();
+  /** Bin rows as the app's RecycleBinScreen: name, „Plan · date · km“, „Gelöscht am … · noch N Tage“, Wiederherstellen. */
+  type BinRow = { id: string; title: string; kind: 'plan' | 'track'; at: number; deletedAt: number; statsKey: string; restore: () => Promise<void> };
+  const restoreSaved = async (e: BinnedRoute) => {
+    const name = titleOf(e);
+    try {
+      const into = sync.open;
+      const taken = (await sync.list(into)).map((x) => titleOf(x));
+      // never two routes under one name: the app's copy naming („Name (2)“) when the name is taken meanwhile
+      const title = taken.includes(name) ? storedTitle(await copyName(host, name, taken)) : e.title;
+      if (!(await sync.restoreFromBin(e.id, title, into))) { problem('routes', `recycle bin: "${name}" could not be restored – it is gone`); return; }
+      if (e.kind === 'plan' && host.samePoints) {
+        // a draft with its points (planned again meanwhile) gives way – never a draft beside a saved route with them
+        const twins: string[] = [];
+        for (const r of recentPlans()) if (await host.samePoints(e.plan, r.code)) twins.push(r.id);
+        savedRestored(e.id, twins);
+      }
+    } catch (err) { failLine(d, t('msg_tour_restore_failed', name), err); }
+  };
+  const renderBin = async () => {
+    let saved: BinnedRoute[] = [];
+    try { saved = await sync.binnedRoutes(); } catch (e) { problem('routes', 'the recycle bin\'s saved routes could not be read', e); }
+    if (!binMode) return; // Back meanwhile
+    const ul = $('planList'), now = Date.now();
+    const list: BinRow[] = [
+      ...binnedPlans().map((r): BinRow => ({ id: r.id, title: r.title, kind: 'plan', at: r.at, deletedAt: r.deletedAt!, statsKey: planKey(r.code),
+        restore: async () => {
+          if (!restoreRecent(r.id)) problem('routes', `recycle bin: "${r.title}" could not be restored – it is gone`);
+          else console.info(`[Problems] TRACE routes: recycle bin → Zuletzt: "${r.title}"`);
+        } })),
+      ...saved.map((e): BinRow => ({ id: e.id, title: titleOf(e), kind: e.kind, at: e.at, deletedAt: e.deletedAt,
+        statsKey: e.kind === 'track' ? trackKey(e.id) : planKey(e.plan), restore: () => restoreSaved(e) })),
+    ].sort((a, b) => b.deletedAt - a.deletedAt);
     $('plansTitle').textContent = t('common_recycle_bin');
     search.closest<HTMLElement>('.plansearch')!.hidden = chips.hidden = true;
     $('plansImportGpx').hidden = $('plansBin').hidden = true;
@@ -522,23 +552,24 @@ export async function myPlansDialog(sync: PlanSync, host: PlanHost, again = fals
     for (const r of list) {
       const li = document.createElement('li');
       li.className = 'tourrow binrow'; li.dataset.id = r.id;
-      const st = statsOf(planKey(r.code)), left = daysLeft(r.deletedAt!, now);
-      const sub = [t('routes_kind_planned'), appDate(r.at), ...(st ? [distance(st.m)] : [])].join(' · ');
-      const gone = t('backup_bin_deleted', appDate(r.deletedAt!), left === 0 ? t('backup_bin_removed_next') : tp('backup_bin_days_left', left, left));
+      const st = statsOf(r.statsKey), left = daysLeft(r.deletedAt, now);
+      const sub = [t(r.kind === 'track' ? 'routes_kind_imported' : 'routes_kind_planned'), appDate(r.at), ...(st ? [distance(st.m)] : [])].join(' · ');
+      const gone = t('backup_bin_deleted', appDate(r.deletedAt), left === 0 ? t('backup_bin_removed_next') : tp('backup_bin_days_left', left, left));
       li.innerHTML = `<div class="rowmain"><span class="txt"><span class="nameline"><span class="name">${esc(r.title)}</span></span>
         <span class="muted small sub">${esc(sub)}</span><span class="muted small binwhen">${esc(gone)}</span></span></div>
         <div class="rowacts"><button class="r-restore textbtn">${icon('restore', 18)}${esc(t('common_restore'))}</button></div>`;
-      li.querySelector<HTMLButtonElement>('.r-restore')!.onclick = () => {
-        if (!restoreRecent(r.id)) problem('routes', `recycle bin: "${r.title}" could not be restored – it is gone`);
-        else console.info(`[Problems] TRACE routes: recycle bin → Zuletzt: "${r.title}"`);
-        renderBin();
+      const b = li.querySelector<HTMLButtonElement>('.r-restore')!;
+      b.onclick = async () => {
+        b.disabled = true; // one restore per tap
+        await r.restore();
+        await renderBin();
       };
       ul.append(li);
     }
   };
   const showBin = (on: boolean) => {
     binMode = on;
-    if (on) { renderBin(); $<HTMLButtonElement>('binBack').focus(); return; }
+    if (on) { void renderBin().then(() => $<HTMLButtonElement>('binBack').focus()); return; }
     $('plansTitle').textContent = t('routes_title');
     $('plansImportGpx').hidden = false; $('binBack').hidden = true;
     void render().then(() => $<HTMLButtonElement>('closePlans').focus());
@@ -547,9 +578,11 @@ export async function myPlansDialog(sync: PlanSync, host: PlanHost, again = fals
   $('binBack').onclick = () => showBin(false);
 
   const render = async () => {
-    if (binMode) { renderBin(); return; }
+    if (binMode) { await renderBin(); return; }
     const folder = sync.open, paired = sync.status.paired;
     const all = await sync.list(folder);
+    let binnedSaved = 0;
+    try { binnedSaved = (await sync.binnedRoutes()).length; } catch (e) { problem('routes', 'the recycle bin\'s saved routes could not be read', e); }
     if (binMode) return; // the bin opened meanwhile
     const live = host.live();
     // the plan on the map is that saved row whenever its id is in this folder's list (a pairing moves Without phone's
@@ -583,9 +616,8 @@ export async function myPlansDialog(sync: PlanSync, host: PlanHost, again = fals
         facts: { activity: p.activity ?? null, sac: p.sac ?? 0, roundTrip: !!p.roundTrip } };
     };
     // the recycle bin's way in (the app: My routes ⋮ → Papierkorb) – while it holds a plan
-    $('plansBin').hidden = !binnedPlans().length;
+    $('plansBin').hidden = !binnedPlans().length && !binnedSaved;
     const ul = $('planList');
-    if (ul.querySelector('.confirm')) return; // a delete question is open: keep the list as it is
     // a row's ⋮ menu opened while this render waited for the list: keep it (the sync's next change renders again)
     if (ul.querySelector('.rowmenu:not([hidden])')) return;
     search.closest<HTMLElement>('.plansearch')!.hidden = chips.hidden = !all.length && !drafts.length;
@@ -953,35 +985,6 @@ export async function pairDialog(sync: PlanSync, page: string, then?: () => void
   // until the phone answered: look every 3 s (the app scans, then writes its hello or its JOIN into the mailbox)
   poll = window.setInterval(() => sync.syncNow(), 3000);
   sync.syncNow();
-}
-
-type AskBox = HTMLElement & { cancel(): void };
-
-/**
- * A question that can lose something (CLAUDE.md "Messages": verb buttons, no body that repeats them), asked in place
- * (owner 2026-10-30, "zu viele Trennen"): the box takes the place of [row] – the buttons (or the list line) that asked –
- * with [no] + one red [verb]. No / Escape bring [row] back and focus [back]; [verb] does it. One question at a time.
- */
-function askInPlace(row: HTMLElement, text: string, verb: string, back: () => HTMLElement | null, act: () => void, no = t('common_cancel')) {
-  const d = row.closest('dialog')!;
-  d.querySelector<AskBox>('.confirm')?.cancel();
-  const box = document.createElement(row.tagName === 'LI' ? 'li' : 'div') as unknown as AskBox;
-  box.className = 'confirm';
-  box.setAttribute('role', 'group');
-  box.innerHTML = `<p>${esc(text)}</p>
-    <div class="row end"><button class="keep">${esc(no)}</button><button class="danger primary">${esc(verb)}</button></div>`;
-  // Escape answers "no" instead of closing the whole dialog (keydown first; the dialog's cancel event as the fallback)
-  const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); box.cancel(); } };
-  const onCancel = (e: Event) => { e.preventDefault(); box.cancel(); };
-  const end = () => { box.remove(); row.hidden = false; d.removeEventListener('keydown', onKey, true); d.removeEventListener('cancel', onCancel); };
-  box.cancel = () => { end(); back()?.focus(); };
-  d.addEventListener('keydown', onKey, true);
-  d.addEventListener('cancel', onCancel);
-  row.hidden = true;
-  row.after(box);
-  box.querySelector<HTMLButtonElement>('.keep')!.onclick = () => box.cancel();
-  box.querySelector<HTMLButtonElement>('.danger')!.onclick = () => { end(); act(); };
-  box.querySelector<HTMLButtonElement>('.keep')!.focus();
 }
 
 /** A pairing link opened in a browser (normally the phone app scans it): pair this browser instead? */

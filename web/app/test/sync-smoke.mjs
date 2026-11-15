@@ -441,6 +441,9 @@ await rowMenu(A, 'Browser name (copy)', 'del'); // ⋮ → Delete (no 🗑 in th
 await A.waitForFunction(() => ![...document.querySelectorAll('#planList .name')].some((n) => n.textContent === 'Browser name (copy)'), null, { timeout: 10_000 }).catch(() => {});
 check(await A.locator('dialog.plans .confirm').count() === 0 && !(await A.evaluate(() => [...document.querySelectorAll('#planList .name')].some((n) => n.textContent === 'Browser name (copy)'))),
   'delete in the phone\'s folder: no question, the row goes (the phone\'s recycle bin is the net)');
+// paired: the phone's recycle bin keeps it – not this browser's (owner 2026-11-15)
+check((await A.evaluate(async () => (await window.__sync.binnedRoutes?.())?.length ?? -1)) === 0,
+  'a paired delete: not in the browser\'s recycle bin (the phone\'s bin keeps it)');
 await A.click('#closePlans');
 await phone.round();
 check((await phone.titles()).includes('Browser name (copy)'), 'deleted in the browser, not saved yet: still on the phone');

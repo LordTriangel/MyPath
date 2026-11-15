@@ -115,7 +115,6 @@
     <string name="web_saved_short">Gespeichert</string>
     <string name="web_plans_open">Diesen Plan öffnen</string>
     <string name="web_plans_new_name">Neuer Name des Plans</string>
-    <string name="web_keep">Behalten</string>
 
     <string name="web_pair_preparing">Wird vorbereitet…</string>
     <string name="web_pair_qr">QR-Code zum Verbinden</string>
@@ -188,7 +187,6 @@
     <string name="web_phone_privacy">Ende-zu-Ende verschlüsselt, kein Konto – der Server sieht keine Inhalte.</string>
     <string name="web_phone_more">Mehr dazu</string>
     <!-- folders, one per phone (owner order A-017) -->
-    <string name="web_delete_q_local">„%1$s“ aus diesem Browser löschen?</string>
     <string name="web_folder_none">Ohne Handy</string>
     <string name="web_folder_phone">Handy</string>
     <string name="web_folder_paired_on">%1$s · verbunden %2$s</string>
