@@ -152,4 +152,38 @@ class PlaceAddMenuTest {
         org.junit.Assert.assertTrue(PlaceAddMenu.keepsOldGoal(touring = false))
         org.junit.Assert.assertFalse(PlaceAddMenu.keepsOldGoal(touring = true))
     }
+
+    // ---- a hold on the empty map (owner 2026-11-15, planning on his Pixel: „ich werde überhaupt nie gefragt“) ----
+
+    /**
+     * The owner's case: two points 2 km apart, a hold 800 m beside the middle – as a stop it adds about a quarter, it could
+     * as well be where the route goes on: doubtful. Before it was set silently; now it asks („Einfügen“ first).
+     */
+    @Test fun aHoldInADoubtfulSpotAsks() {
+        val goal = at(here, 2000.0, 0.0)
+        val zone = PlaceAddMenu.zone(listOf(here, goal), at(here, 1000.0, 800.0))
+        assertEquals(Zone.STOP_FIRST, zone)
+        assertTrue("a doubtful hold asks", PlaceAddMenu.asksOnHold(zone))
+        assertEquals(Item.ADD_STOP, PlaceAddMenu.menu(2, false, zone).emphasised)
+        // farther aside: still doubtful, „Neues Ziel“ first
+        val far = PlaceAddMenu.zone(listOf(here, goal), at(here, 1000.0, 1200.0))
+        assertEquals(Zone.GOAL_FIRST, far)
+        assertTrue(PlaceAddMenu.asksOnHold(far))
+        assertEquals(Item.NEW_DESTINATION, PlaceAddMenu.menu(2, false, far).emphasised)
+    }
+
+    /** Clear cases stay as they were: set at once where they fit best (WaypointInsertion), no menu. */
+    @Test fun aHoldInAClearSpotIsSetAtOnce() {
+        val goal = at(here, 2000.0, 0.0)
+        org.junit.Assert.assertFalse(PlaceAddMenu.asksOnHold(PlaceAddMenu.zone(listOf(here, goal), at(here, 1000.0, 30.0)))) // on the way
+        org.junit.Assert.assertFalse(PlaceAddMenu.asksOnHold(PlaceAddMenu.zone(listOf(here, goal), at(here, 2150.0, 20.0)))) // past the goal
+        org.junit.Assert.assertFalse(PlaceAddMenu.asksOnHold(PlaceAddMenu.zone(listOf(here, goal), at(here, 1000.0, 2000.0)))) // far off: only a goal
+        org.junit.Assert.assertFalse(PlaceAddMenu.asksOnHold(null)) // fewer than 2 points / no route ahead
+    }
+
+    /** A round trip is never dropped by one hold: a spot far off its loop asks („Neues Ziel“ first, never silently). */
+    @Test fun aHoldFarOffARoundTripAsks() {
+        val loop = listOf(here, at(here, 2000.0, 0.0), at(here, 2000.0, 2000.0), here)
+        assertTrue(PlaceAddMenu.asksOnHold(PlaceAddMenu.zone(loop, at(here, -3000.0, -3000.0), loop = true)))
+    }
 }

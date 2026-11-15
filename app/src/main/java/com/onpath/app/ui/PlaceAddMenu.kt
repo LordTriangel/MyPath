@@ -61,6 +61,13 @@ object PlaceAddMenu {
     /** … within this wider angle → both, goal first. */
     const val PAST_GOAL_DOUBT_DEG = 60.0
 
+    /**
+     * A hold on the empty map with 2+ points (owner 2026-11-15, planning on his Pixel: „ich werde überhaupt nie gefragt“ –
+     * „bei eindeutigen Sachen auch nicht schlecht“): only a doubtful case ([Zone.STOP_FIRST], [Zone.GOAL_FIRST]) asks with
+     * this menu's two rows; a clear one, or no route ahead, is set at once where it fits best (WaypointInsertion).
+     */
+    fun asksOnHold(zone: Zone?): Boolean = zone == Zone.STOP_FIRST || zone == Zone.GOAL_FIRST
+
     fun menu(points: Int, touring: Boolean, zone: Zone?): Menu = when {
         points <= 0 -> Menu(if (touring) listOf(Item.GO_HERE) else listOf(Item.START_HERE, Item.GO_HERE))
         points == 1 || zone == null -> Menu(listOf(Item.SET_DESTINATION))

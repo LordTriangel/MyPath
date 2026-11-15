@@ -1113,6 +1113,20 @@ class ScreenshotTest {
     /** Past the goal: „New destination“ first, „Insert“ still there (no „More“ any more, owner 2026-11-15). */
     @Test fun poiMenuClearGoal() = placeAddMenu(stopFirst = false)
 
+    /** A hold on the empty map in doubt (owner 2026-11-15): only the two rows, the likelier first and tinted, no title. */
+    fun holdAddMenuShot(stopFirst: Boolean = true) = paparazzi.snapshot {
+        OnPathTheme {
+            val items = if (stopFirst) listOf(PlaceAddMenu.Item.ADD_STOP, PlaceAddMenu.Item.NEW_DESTINATION)
+                else listOf(PlaceAddMenu.Item.NEW_DESTINATION, PlaceAddMenu.Item.ADD_STOP)
+            OverlayFrame(OnPathColors.Rec, androidx.compose.ui.unit.DpOffset(110.dp, 400.dp)) {
+                HoldAddMenu(PlaceAddMenu.Menu(items), onAddStop = {}, onNewDestination = {})
+            }
+        }
+    }
+
+    @Test fun holdAddMenu() = holdAddMenuShot()
+    @Test fun holdAddMenuGoalFirst() = holdAddMenuShot(stopFirst = false)
+
     /** Hold on a POI with an empty plan: same choice as the first-point menu. */
     @Test fun poiMenuEmptyPlan() = paparazzi.snapshot {
         OnPathTheme {

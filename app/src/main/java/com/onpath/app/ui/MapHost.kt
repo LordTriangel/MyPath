@@ -253,11 +253,8 @@ fun MapHost(
                     is MapGestures.Action.PointMenu -> { vm.openPointMenu(a.index, dpOf(a.index)); true }
                     MapGestures.Action.PoiMenu -> { poi?.let(vm::openPoiMenu); true }
                     MapGestures.Action.FirstPointMenu -> { vm.openFirstPointMenu(p); true }
-                    MapGestures.Action.AddPoint -> {
-                        vm.closeMapOverlays("hold on the map (new point)")
-                        com.onpath.app.debug.Problems.trace("plan", "New point by a hold: plan ${pts.size} → ${pts.size + 1}")
-                        vm.addPoint(p, snap); true
-                    }
+                    // set at once in a clear case, the small „Einfügen“ / „Neues Ziel“ menu in doubt (owner 2026-11-15)
+                    MapGestures.Action.AddPoint -> { vm.holdOnMap(p, snap); true }
                     MapGestures.Action.CloseMenu -> { vm.closeMapOverlays(if (press == MapGestures.Press.TAP) "tap outside" else "hold outside"); true }
                     MapGestures.Action.PoiDetails -> {
                         if (vm.mapOverlayOpen) vm.closeMapOverlays("tap on a POI (its details instead)")
