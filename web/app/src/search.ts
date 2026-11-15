@@ -15,8 +15,8 @@ import { cardPan, decidePinMenu, MENU_GAP, pinRows, TIP_ROOM, type PinMenuDecisi
 
 export type PlaceRole = 'SMART' | 'START' | 'DESTINATION' | 'REMOVE';
 
-/** A held place's menu (main.ts placeRows – the app's PoiMenu): its head and rows; [more] waits behind "⋯ More". */
-export interface PinRows { head: string; main: MenuItem[]; more: MenuItem[]; google: MenuItem }
+/** A held place's menu (main.ts placeRows – the app's PoiMenu): its head and rows (owner 2026-11-15: nothing behind „⋯ Mehr“). */
+export interface PinRows { head: string; main: MenuItem[]; google: MenuItem }
 
 export interface SearchHost {
   map: maplibregl.Map;
@@ -189,17 +189,16 @@ export function setupSearch(host: SearchHost, box: HTMLElement, card: HTMLElemen
     let rows: PinRows;
     try { rows = await host.pinMenu(h); } catch (e) { console.warn('[Problems] WARN search: the found place\'s menu not built', e); return; }
     if (my !== menuGen || chipHit !== h) return; // closed, another pick or the pin removed meanwhile
-    showMenu(h, rows, false, null);
+    showMenu(h, rows, null);
   };
   /** The rows in the app's order (PinMenuItems), then placed: [decided] keeps the place of a menu that is open already. */
-  const showMenu = (h: Hit, rows: PinRows, moreOpen: boolean, decided: PinMenuDecision | null) => {
-    const byKey = new Map([...rows.main, ...rows.more].map((m) => [m.key ?? '', m] as const));
+  const showMenu = (h: Hit, rows: PinRows, decided: PinMenuDecision | null) => {
+    const byKey = new Map(rows.main.map((m) => [m.key ?? '', m] as const));
     const remove: MenuItem = { icon: 'wrongLocation', label: t('plan_remove_pin'), act: () => removePin() };
-    const more: MenuItem = { icon: 'more', label: t('common_more'), act: () => showMenu(h, rows, true, decision) };
     // an add takes the place: its pin goes (the app: the mark stays until the place is added)
     const adds = (m: MenuItem): MenuItem => ({ ...m, act: () => { removePin(); m.act(); } });
-    const items = pinRows(rows.main.map((m) => m.key ?? ''), rows.more.map((m) => m.key ?? ''), true, moreOpen).map((r) =>
-      r === 'GOOGLE' ? rows.google : r === 'REMOVE_PIN' ? remove : r === 'MORE' ? more : adds(byKey.get(r)!));
+    const items = pinRows(rows.main.map((m) => m.key ?? ''), true).map((r) =>
+      r === 'GOOGLE' ? rows.google : r === 'REMOVE_PIN' ? remove : adds(byKey.get(r)!));
     const map = host.map, c = map.getContainer();
     const { top, bottom } = host.menuRoom();
     const tip = map.project([h.lon, h.lat]).y, head = tip - PIN_HEAD;

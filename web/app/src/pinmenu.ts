@@ -40,19 +40,26 @@ export function cardPan(headY: number, tipY: number, cardTop: number, top: numbe
   return Math.min(0, Math.trunc(Math.max(want, most)));
 }
 
-export type PinRow = 'START_HERE' | 'GO_HERE' | 'ADD' | 'ADD_STOP' | 'NEW_DESTINATION' | 'GOOGLE' | 'REMOVE_PIN' | 'MORE';
+export type PinRow = 'START_HERE' | 'GO_HERE' | 'ADD' | 'ADD_STOP' | 'NEW_DESTINATION' | 'GOOGLE' | 'REMOVE_PIN';
 
 /**
  * The app's PinMenuItems.of: the rows of a held place's menu in their order – the same for a hold and for a picked
- * search result. [main] / [more] = the add entries (the engine's placeMenu – PlaceAddMenu; the planner has no tour, so
- * an empty plan gives Start here · Go here), [pin] = the found place's pin (the menu ends with "Remove pin"), [moreOpen]
- * = "⋯ More" was clicked: the hidden alternative shows instead of it.
+ * search result. [main] = the add entries (the engine's placeMenu – PlaceAddMenu; the planner has no tour, so an empty
+ * plan gives Start here · Go here; with 2+ points both „Einfügen“ and „Neues Ziel“, the likelier first – owner
+ * 2026-11-15: nothing under „⋯ Mehr“ any more), [pin] = the found place's pin (the menu ends with "Remove pin").
  */
-export function pinRows(main: string[], more: string[], pin: boolean, moreOpen = false): PinRow[] {
-  const as = (i: string): PinRow => (i === 'SET_DESTINATION' ? 'ADD' : i as PinRow);
-  const rows: PinRow[] = main.map(as);
+export function pinRows(main: string[], pin: boolean): PinRow[] {
+  const rows: PinRow[] = main.map((i): PinRow => (i === 'SET_DESTINATION' ? 'ADD' : i as PinRow));
   rows.push('GOOGLE');
   if (pin) rows.push('REMOVE_PIN');
-  if (more.length) { if (moreOpen) rows.push(...more.map(as)); else rows.push('MORE'); }
   return rows;
+}
+
+/**
+ * The app's PlaceAddMenu.Menu.emphasised: the likelier add row, shown strong (tinted, owner 2026-11-15) – the first of
+ * the two add rows; null with one point or none.
+ */
+export function emphasised(main: string[]): string | null {
+  const first = main[0];
+  return main.length === 2 && (first === 'ADD_STOP' || first === 'NEW_DESTINATION') ? first : null;
 }

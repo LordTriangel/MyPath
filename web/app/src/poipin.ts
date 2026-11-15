@@ -19,18 +19,27 @@ function metres(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 /** The nearest POI the map has loaded within [SAME_SPOT_M] of the point (PinnedPoiKinds.lookup); null when none. */
 export function poiKindAt(map: MlMap, lat: number, lon: number): string | null {
+  const f = poiFeatureAt(map, lat, lon);
+  return f ? String(f.properties!.kind) : null;
+}
+
+/**
+ * The POI itself (kind, name, elevation) the map has loaded nearest the point within [SAME_SPOT_M] – the one a route
+ * point sits on; null when none.
+ */
+export function poiFeatureAt(map: MlMap, lat: number, lon: number): GeoJSONFeature | null {
   const src = map.getSource('pois');
   if (!src) return null;
   let fs: GeoJSONFeature[];
   try { fs = map.querySourceFeatures('pois', src.type === 'vector' ? { sourceLayer: 'pois' } : undefined); }
   catch (e) { problem('map', 'POIs under the pinned points not read; plain points shown', e); return null; }
-  let best: string | null = null, bestM = SAME_SPOT_M;
+  let best: GeoJSONFeature | null = null, bestM = SAME_SPOT_M;
   for (const f of fs) {
     if (f.geometry.type !== 'Point') continue;
     const [lo, la] = f.geometry.coordinates;
     const kind = f.properties?.kind == null ? null : String(f.properties.kind);
     const m = metres(lat, lon, la, lo);
-    if (m <= bestM && isPoiKind(map, kind)) { best = kind; bestM = m; }
+    if (m <= bestM && isPoiKind(map, kind)) { best = f; bestM = m; }
   }
   return best;
 }

@@ -109,12 +109,15 @@ const toHilden = async () => {
   await page.waitForTimeout(800);
 };
 // a pick opens the pin's hold menu by itself (app 6714ad6f): [row] = the row's text (or several, clicked one after the other)
+let hildenRows = [];
 const hildenAs = async (row) => {
   await page.fill('#q', 'Hilden');
   await page.waitForSelector('#results .hit:has-text("Hilden")', { timeout: 30_000 });
   await page.click('#results .hit:has-text("Hilden")');
   const menu = '.holdpopup.pinmenu .pointmenu, #placecard.pinmenucard .pointmenu';
   await page.waitForSelector(menu, { timeout: 30_000 });
+  // the rows as shown, the tinted (likelier) one marked „*“
+  hildenRows = await page.$$eval(`:is(${menu}) button`, (b) => b.map((x) => (x.classList.contains('strong') ? '*' : '') + (x.querySelector('.txt > span')?.textContent?.trim() ?? '')));
   for (const r of [row].flat()) { await page.waitForSelector(menu, { timeout: 10_000 }); await page.locator(`:is(${menu}) button`).filter({ hasText: r }).first().click(); }
 };
 const summaryText = () => page.textContent('#summary .subline');
@@ -175,7 +178,9 @@ check(await pins() === 1 && (await summaryText()).includes('1 point · Algund') 
 await page.goto(url + 'index.html#p=' + CODE);
 await planned();
 await toHilden();
-await hildenAs(['More', 'Add as a stop']); // far past the goal: "Make it the destination" first, the stop behind "More"
+await hildenAs('Insert'); // far past the goal: „Neues Ziel“ first and tinted, „Einfügen“ right under it (owner 2026-11-15)
+check(hildenRows.slice(0, 2).join('|') === '*New destination|Insert' && !hildenRows.includes('More'),
+  `far past the goal: "New destination" first and tinted, "Insert" under it, no More (${hildenRows.join(' · ')})`);
 await page.waitForSelector('dialog.longroute.far', { timeout: 30_000 });
 const farRoute = (await page.textContent('dialog.longroute')).replace(/\s+/g, ' ').trim();
 check(/Your route near Vellau is about \d+ (hours|days) on foot from here\./.test(farRoute), `a far route: "${farRoute}"`);

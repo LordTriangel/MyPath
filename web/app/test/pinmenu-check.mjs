@@ -19,10 +19,16 @@ eq(P.cardPan(1295, 1400, 1300, 300, 63), -163, 'the card keeps the pin visible')
 eq(P.cardPan(795, 900, 1300, 300, 63), 0, 'already above the card: the map stays');
 eq(P.cardPan(350, 455, 400, 300, 63), -50, 'never so far that the head goes under the top bar');
 
-// the rows (PinMenuItems.of): a hold's rows, "Remove pin" after Google, "More" last
-eq(P.pinRows(['START_HERE', 'GO_HERE'], [], true), ['START_HERE', 'GO_HERE', 'GOOGLE', 'REMOVE_PIN'], 'empty plan');
-eq(P.pinRows(['SET_DESTINATION'], [], true), ['ADD', 'GOOGLE', 'REMOVE_PIN'], 'one point');
-eq(P.pinRows(['ADD_STOP'], ['NEW_DESTINATION'], true), ['ADD_STOP', 'GOOGLE', 'REMOVE_PIN', 'MORE'], 'a clear stop: its alternative behind More');
-eq(P.pinRows(['ADD_STOP'], ['NEW_DESTINATION'], true, true), ['ADD_STOP', 'GOOGLE', 'REMOVE_PIN', 'NEW_DESTINATION'], 'More clicked');
-eq(P.pinRows(['ADD_STOP', 'NEW_DESTINATION'], [], false), ['ADD_STOP', 'NEW_DESTINATION', 'GOOGLE'], 'a map POI: no Remove pin');
+// the rows (PinMenuItems.of): a hold's rows, "Remove pin" after Google; owner 2026-11-15: both add rows, the likelier
+// first, nothing under „⋯ Mehr“
+eq(P.pinRows(['START_HERE', 'GO_HERE'], true), ['START_HERE', 'GO_HERE', 'GOOGLE', 'REMOVE_PIN'], 'empty plan');
+eq(P.pinRows(['SET_DESTINATION'], true), ['ADD', 'GOOGLE', 'REMOVE_PIN'], 'one point');
+eq(P.pinRows(['ADD_STOP', 'NEW_DESTINATION'], true), ['ADD_STOP', 'NEW_DESTINATION', 'GOOGLE', 'REMOVE_PIN'], 'a clear stop: both, Insert first');
+eq(P.pinRows(['NEW_DESTINATION', 'ADD_STOP'], true), ['NEW_DESTINATION', 'ADD_STOP', 'GOOGLE', 'REMOVE_PIN'], 'far: both, New destination first');
+eq(P.pinRows(['ADD_STOP', 'NEW_DESTINATION'], false), ['ADD_STOP', 'NEW_DESTINATION', 'GOOGLE'], 'a map POI: no Remove pin');
+// the likelier row is tinted (PlaceAddMenu.Menu.emphasised)
+eq(P.emphasised(['ADD_STOP', 'NEW_DESTINATION']), 'ADD_STOP', 'Insert first: Insert tinted');
+eq(P.emphasised(['NEW_DESTINATION', 'ADD_STOP']), 'NEW_DESTINATION', 'New destination first: it is tinted');
+eq(P.emphasised(['SET_DESTINATION']), null, 'one point: nothing tinted');
+eq(P.emphasised(['START_HERE', 'GO_HERE']), null, 'empty plan: nothing tinted');
 process.exit(bad ? 1 : 0);

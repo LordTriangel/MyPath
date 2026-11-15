@@ -57,7 +57,7 @@ console.log('Waalweg →', hits.slice(0, 5));
 check(hits.length > 0, 'trail names (Waalweg)');
 
 // pick → the pin and, once the map is there, the pin's own hold menu opens by itself (app 6714ad6f, owner 2026-11-13
-// "A mit Ausweich B"): the very rows a hold gives, in the same order (PinMenuItems), "Remove pin" last (before "More");
+// "A mit Ausweich B"): the very rows a hold gives, in the same order (PinMenuItems), "Remove pin" last;
 // above the pin when it fits, else under it, else the same rows as a card at the bottom. No "Set as start" card any more.
 const menuRows = () => page.$$eval('.holdpopup.pinmenu .pointmenu button, #placecard.pinmenucard .pointmenu button',
   (b) => b.map((x) => x.querySelector('.txt > span')?.textContent?.trim() ?? ''));
@@ -97,13 +97,19 @@ console.log('points:', pts.replace(/\s+/g, ' '));
 check(/Vellau/.test(pts) && /Ifinger/.test(pts), 'found places are named stops in the Points list');
 check((await page.evaluate(() => location.hash)).length > 10, 'plan with pinned, named places in the link');
 check(/Vellau/.test(pts.split(/Ifinger/)[0] ?? ''), 'the second place became the destination (after the start)');
-// a start and a destination: a third place is a stop or a new destination (the app's PlaceAddMenu), "Remove pin" before "More"
+// a start and a destination: a third place gets both „Einfügen“ / „Neues Ziel“ (the app's PlaceAddMenu, owner 2026-11-15:
+// both always, one line each, the likelier first and tinted, nothing under „⋯ Mehr“), then Google, Remove pin last
+const strongRows = (sel) => page.$$eval(sel, (b) => b.filter((x) => x.classList.contains('strong')).map((x) => x.querySelector('.txt > span')?.textContent?.trim() ?? ''));
+const oneLine = (sel) => page.$$eval(sel, (b) => b.every((x) => x.querySelectorAll('.txt > span').length === 1));
+const PIN_BUTTONS = '.holdpopup.pinmenu .pointmenu button, #placecard.pinmenucard .pointmenu button';
 await pickFirst('Meran');
 rows = await menuRows();
-console.log('third place:', rows.join(' · '));
-check(/^(Add as a stop|Make it the destination)$/.test(rows[0]) && rows.includes('Open in Google Maps') &&
-  rows.indexOf('Remove pin') > rows.indexOf('Open in Google Maps') && (!rows.includes('More') || rows.at(-1) === 'More'),
-  `two points: "Add as a stop" / "Make it the destination", Google, Remove pin, More last (${rows.join(' · ')})`);
+console.log('third place:', rows.join(' · '), '– tinted:', await strongRows(PIN_BUTTONS));
+check(['Insert|New destination', 'New destination|Insert'].includes(rows.slice(0, 2).join('|')) && rows.slice(2).join('|') === 'Open in Google Maps|Remove pin',
+  `two points: "Insert" and "New destination" (either first), Google, Remove pin last, no More (${rows.join(' · ')})`);
+check((await strongRows(PIN_BUTTONS)).join('|') === rows[0] && await oneLine(PIN_BUTTONS),
+  `the likelier row first and the only one tinted, every row one line (${(await strongRows(PIN_BUTTONS)).join()})`);
+check(!rows.some((r) => /Add as a stop|Make it the destination|Add as new destination|^More$/.test(r)), 'none of the old words');
 await page.keyboard.press('Escape');
 check(await page.locator('.holdpopup.pinmenu').count() === 0 && await page.isVisible('.candidate'), 'Escape closes the menu, the pin stays');
 // software GL (SwiftShader) can lag the page by many seconds on a busy machine; the screenshot waits for it within its
@@ -135,39 +141,73 @@ console.log('proposed name:', proposed);
 check(proposed === 'Vellau → Ifinger Hütte', 'Save proposes "Vellau → Ifinger Hütte" (RouteNamer)');
 await page.click('#saveCancel');
 
-// A POI's menu → „Als neues Ziel“ / "Make it the destination" (the app 0.17.10, PlaceAddMenu.keepsOldGoal, owner
-// 2026-11-14 „beim Planen anhängen, unterwegs ersetzen“): the planner has no tours – it always appends, the old goal
-// stays as stop 2 and the place becomes the destination. A POI in view, away from the markers (a marker opens its own menu).
-const rowNames = () => page.$$eval('#points li .txt > span:first-child', (s) => s.map((x) => x.textContent));
-const before = await rowNames();
-const poi = await page.waitForFunction(() => {
+// A POI in view, away from the markers (a marker opens its own menu) and from an open menu (a click there is the menu's).
+const findPoi = () => page.waitForFunction(() => {
   const map = window.__map;
   if (!map.loaded() || map.isMoving()) return null;
   const layers = map.getStyle().layers.filter((l) => l.id.startsWith('poi-') && !l.id.endsWith('-name')).map((l) => l.id);
   const c = map.getCanvas(), w = c.clientWidth, h = c.clientHeight;
-  const pins = [...document.querySelectorAll('.pin')].map((e) => e.getBoundingClientRect()), cr = c.getBoundingClientRect();
+  const pins = [...document.querySelectorAll('.pin, .candidate')].map((e) => e.getBoundingClientRect()), cr = c.getBoundingClientRect();
+  const menus = [...document.querySelectorAll('.maplibregl-popup, .pinchip')].map((e) => e.getBoundingClientRect());
   const fs = map.queryRenderedFeatures([[w * 0.35, h * 0.1], [w * 0.95, h * 0.9]], { layers }).filter((f) => {
     if (f.geometry.type !== 'Point' || !f.properties?.kind || f.properties.kind === 'bus' || !f.properties.name) return false;
-    const p = map.project(f.geometry.coordinates);
-    return pins.every((r) => Math.hypot(cr.x + p.x - (r.x + r.width / 2), cr.y + p.y - (r.y + r.height / 2)) > 70);
+    const p = map.project(f.geometry.coordinates), x = cr.x + p.x, y = cr.y + p.y;
+    return pins.every((r) => Math.hypot(x - (r.x + r.width / 2), y - (r.y + r.height / 2)) > 70)
+      && menus.every((r) => x < r.left - 30 || x > r.right + 30 || y < r.top - 30 || y > r.bottom + 30);
   });
   if (!fs.length) return null;
   const p = map.project(fs[0].geometry.coordinates);
   return { name: String(fs[0].properties.name), x: p.x, y: p.y };
 }, null, { timeout: 60_000, polling: 500 }).then((h) => h.jsonValue());
+const menuHead = () => page.textContent('.holdpopup:not(.pinmenu) .menuhead').catch(() => '');
+
+// A click on a POI with the found place's menu open shows the POI at once – its menu in place of the closed one, no
+// second click (the app ba904656, owner 2026-11-15 on a hike: a tap on a POI works everywhere)
+await pickFirst('Ifinger');
+const poiOpen = await findPoi();
+{ const mb = await page.locator('#map canvas').first().boundingBox(); await page.mouse.click(mb.x + poiOpen.x, mb.y + poiOpen.y); }
+await page.waitForSelector('.holdpopup:not(.pinmenu) .pointmenu', { timeout: 15_000 }).catch(() => {});
+check(await page.locator('.holdpopup.pinmenu').count() === 0 && (await menuHead()).includes(poiOpen.name),
+  `a click on a POI with the found place's menu open: that menu closes, the POI's menu opens at once (${poiOpen.name})`);
+await page.keyboard.press('Escape');
+await page.waitForTimeout(300);
+
+// A POI's menu → „Neues Ziel“ / "New destination" (the app 0.17.10, PlaceAddMenu.keepsOldGoal, owner 2026-11-14 „beim
+// Planen anhängen, unterwegs ersetzen“): the planner has no tours – it always appends, the old goal stays as stop 2 and
+// the place becomes the destination. Both rows always (owner 2026-11-15), the likelier first and tinted.
+const rowNames = () => page.$$eval('#points li .txt > span:first-child', (s) => s.map((x) => x.textContent));
+const before = await rowNames();
+const poi = await findPoi();
 console.log('POI for a new destination:', poi);
 const mapBox = await page.locator('#map canvas').first().boundingBox();
 await page.mouse.click(mapBox.x + poi.x, mapBox.y + poi.y);
 await page.waitForSelector('.pointmenu', { timeout: 15_000 });
-const entry = () => page.locator('.pointmenu button', { hasText: 'Make it the destination' });
-if (await entry().count() === 0) await page.locator('.pointmenu button', { hasText: 'More' }).click(); // a clear case hides it behind „⋯ Mehr“
-await page.waitForSelector('.pointmenu button:has-text("Make it the destination")', { timeout: 10_000 });
-await entry().first().click();
+const POI_BUTTONS = '.holdpopup:not(.pinmenu) .pointmenu button';
+const poiRows = await page.$$eval(POI_BUTTONS, (b) => b.map((x) => x.querySelector('.txt > span')?.textContent?.trim() ?? ''));
+console.log('POI menu:', poiRows.join(' · '), '– tinted:', await strongRows(POI_BUTTONS));
+check(['Insert|New destination', 'New destination|Insert'].includes(poiRows.slice(0, 2).join('|')) && poiRows.slice(2).join('|') === 'Open in Google Maps'
+  && (await strongRows(POI_BUTTONS)).join('|') === poiRows[0] && await oneLine(POI_BUTTONS),
+  `a POI's menu: "Insert" and "New destination", the likelier first and tinted, Google, no More (${poiRows.join(' · ')})`);
+await page.locator('.pointmenu button', { hasText: 'New destination' }).first().click();
 await page.waitForFunction(() => document.querySelectorAll('#points li').length === 3, null, { timeout: 15_000 }).catch(() => {});
 const after = await rowNames();
-console.log('after "Make it the destination":', before, '→', after);
+console.log('after "New destination":', before, '→', after);
 check(after.length === 3 && after[0] === before[0] && after[1] === before[1] && after[2] !== before[1],
-  `"Make it the destination" appends: the old goal is stop 2, the place the destination (${after.join(' → ')})`);
+  `"New destination" appends: the old goal is stop 2, the place the destination (${after.join(' → ')})`);
+
+// A click on a POI that is now the goal (its marker sits on it) shows the POI's details – the point menu's head names it
+// with its kind (· elevation), as its own menu would (the app ba904656: a tap on a POI that is a route point shows it;
+// the planner's click is the app's hold, so the point menu with the POI's details)
+await page.waitForFunction((n) => [...document.querySelectorAll('.pin')].some((e) => e.title.includes(n)), poi.name, { timeout: 15_000 }).catch(() => {});
+await page.waitForTimeout(500);
+await page.evaluate((n) => [...document.querySelectorAll('.pin')].find((e) => e.title.includes(n))?.click(), poi.name);
+await page.waitForSelector('.holdpopup .menuhead .poidetails', { timeout: 15_000 }).catch(() => {});
+const goalHead = await menuHead(), details = await page.textContent('.holdpopup .menuhead .poidetails').catch(() => '');
+const goalRows = await page.$$eval(POI_BUTTONS, (b) => b.map((x) => x.querySelector('.txt > span')?.textContent?.trim() ?? ''));
+console.log('goal on a POI:', goalHead, '|', goalRows.join(' · '));
+check(goalHead.includes(poi.name) && !!details?.trim() && goalRows.includes('Delete'),
+  `a click on a POI that is the goal: its point menu shows the POI (${poi.name}: ${details})`);
+await page.keyboard.press('Escape');
 
 // the density limit for city POIs (app b71b1df9, owner 2026-11-13): in Köln (a dense cell of the store) restaurants /
 // cafés / bars / snack bars / shops beyond 24 per map tile carry "dz" = 17 and are drawn only from z17 (the style's
