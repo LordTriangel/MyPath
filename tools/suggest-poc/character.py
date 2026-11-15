@@ -25,7 +25,7 @@ def wish(b, S):
             "ascent": sorted(max(0.0, float(x)) for x in up[:2]) if isinstance(up, (list, tuple)) and len(up) == 2 else None,
             "natur": word("natur", S["controls"]["level"], "mittel"), "ruhe": word("ruhe", S["controls"]["level"], "mittel"),
             "bekannt": word("bekannt", S["controls"]["level"], "mittel"), "wasser": bool(b.get("wasser")),
-            "surface": word("surface", S["controls"]["surface"], "gemischt"), "seed": int(b.get("seed") or 1),
+            "seed": int(b.get("seed") or 1), "official": b.get("official") is not False,
             "tips": bool(b.get("tips") or b.get("ai"))}
 
 
@@ -48,7 +48,7 @@ class Character:
         self.depth = mix(ends[0]["depth"], ends[1]["depth"])
         self.signed = min(1.0, mix(ends[0]["signed"], ends[1]["signed"]) * K["level"][w["bekannt"]])
         g = F["ground"]
-        self.ground = [mix(a, b, c + K["surface"][w["surface"]]) for a, b in zip(g["gemütlich"], g["wild"])]
+        self.ground = [mix(a, b) for a, b in zip(g["gemütlich"], g["wild"])]
         # the two ranges: time as wished; ascent as wished, else from flat up to what is usual for this character
         self.hours = tuple(w["hours"])
         self.min_m, self.max_m = (h * self.pace * 1000.0 for h in self.hours)

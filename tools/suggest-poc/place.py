@@ -52,11 +52,13 @@ class Place:
         v = self.v = {a: [0.0] * n for a in AXES}
         w_water, w_other = (1.0, 0.4) if ch.water else (0.6, 1.0)
         for ei in ok:
-            v["natur"][ei] = (1 - ch.depth) * F.green[ei] + ch.depth * F.depth[ei]
+            # an open edge with a view is nature too: leaving the forest for it costs nothing
+            v["natur"][ei] = max((1 - ch.depth) * F.green[ei] + ch.depth * F.depth[ei], P["rim_natur"] * F.rim[ei])
             v["ruhe"][ei] = 1.0 - max(F.traffic[ei], 0.6 * F.built[ei], 0.5 * F.noise[ei])
             v["weg"][ei] = 1.0 if (F.rail[ei] and ch.bike) else ch.ground[F.ground[ei]]
             tip = max([tips.get(F.areas[F.area[ei]], 0.0)] + [tips.get(things[i]["name"], 0.0) for i in F.named[ei]])
-            other = max(F.signed[ei] * ch.signed, 0.9 * (F.rail[ei] and ch.bike), 0.6 * (F.area[ei] > 0), tip)
+            other = max(F.signed[ei] * ch.signed, 0.9 * (F.rail[ei] and ch.bike), 0.6 * (F.area[ei] > 0), tip,
+                        P["rim"] * F.rim[ei], P["sight"] * F.sight[ei])
             v["besonderes"][ei] = min(1.0, max(w_water * F.water[ei], w_other * other)) * (1.0 - F.traffic[ei])
         # --- the place's yardstick
         self.low, self.high = {}, {}
@@ -135,7 +137,7 @@ class Place:
                 by_thing.setdefault(i, []).append(ei)
         for i, es in by_thing.items():
             th = things[i]
-            if th["kind"] != "view" and sum(F.ln[e] for e in es) >= min_m:
+            if th["kind"] != "sight" and sum(F.ln[e] for e in es) >= min_m:
                 rank = th["rank"] * ch.signed if th["kind"] == "route" else (1.0 if ch.water else 0.6)
                 out.append(self._thing(max(groups(self.net, es), key=len), th["kind"], th["name"], rank))
         runs = [("rail", [e for e in reach if F.rail[e]], 0.9 * ch.bike, "Bahntrasse"),

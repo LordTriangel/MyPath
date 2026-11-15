@@ -96,8 +96,6 @@ def clean_wish(b):
     for k in ("natur", "ruhe", "bekannt"):
         if b.get(k) in LEVELS:
             w[k] = b[k]
-    if isinstance(b.get("surface"), str):
-        w["surface"] = b["surface"][:20]
     return w  # "method" in an old wish is ignored: there is one method
 
 

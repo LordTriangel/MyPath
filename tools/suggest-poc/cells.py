@@ -21,7 +21,7 @@ CELLS = os.path.join(DATA, "cells")
 API = os.environ.get("ONPATH_MAP_API", "https://maps-test.free-your-pictures.org/v1")
 FORMAT = 2
 APP = "0.17.9"
-WANT = ("base.pmtiles", "overlays.pmtiles", "pois.geojson")
+WANT = ("base.pmtiles", "overlays.pmtiles", "pois.geojson", "terrain.pmtiles")
 
 
 def _key():
@@ -88,6 +88,18 @@ def request(cells):
     return json.load(_open(API + "/cells/request", body))
 
 
+def _file(d, f, log):
+    path = os.path.join(d, f["name"])
+    if os.path.isfile(path) and os.path.getsize(path) == f["size"]:
+        return
+    data = _open("%s/files/%s" % (API, f["url"])).read()
+    if f.get("sha256") and hashlib.sha256(data).hexdigest() != f["sha256"]:
+        raise SystemExit("checksum mismatch " + f["name"])
+    with open(path, "wb") as o:
+        o.write(data)
+    log("  %s %d kB" % (f["name"], len(data) // 1024))
+
+
 def get(x, y, log=print):
     d = folder(x, y)
     os.makedirs(d, exist_ok=True)
@@ -96,16 +108,8 @@ def get(x, y, log=print):
     for f in man["files"]:
         name = f["name"]
         if name not in WANT:
-            continue  # routing data: the POC uses the whole rd5 tile it already has; terrain, addresses: not needed
-        path = os.path.join(d, name)
-        if os.path.isfile(path) and os.path.getsize(path) == f["size"]:
-            continue
-        data = _open("%s/files/%s" % (API, f["url"])).read()
-        if f.get("sha256") and hashlib.sha256(data).hexdigest() != f["sha256"]:
-            raise SystemExit("checksum mismatch " + name)
-        with open(path, "wb") as o:
-            o.write(data)
-        log("  %s %d kB" % (name, len(data) // 1024))
+            continue  # routing data: the POC uses the whole rd5 tile it already has; addresses, contours: not needed
+        _file(d, f, log)
     with open(os.path.join(d, "manifest.json"), "wb") as o:
         o.write(text)
     return d
@@ -124,6 +128,15 @@ def ensure(lon, lat, reach_m, log=None):
     missing = [c for c in need if not have(*c)]
     todo = [c for c in missing if _checked.get(c) != "none"]
     fetched = []
+    for c in need:  # an area fetched before the terrain was used: its terrain file of the same version as the rest
+        if have(*c) and not os.path.isfile(os.path.join(folder(*c), "terrain.pmtiles")) and _checked.get(c) != "no terrain":
+            try:
+                with open(os.path.join(folder(*c), "manifest.json"), encoding="utf-8") as f:
+                    for x in json.load(f)["files"]:
+                        if x["name"] == "terrain.pmtiles":
+                            _file(folder(*c), x, log or (lambda *_: None))
+            except (Exception, SystemExit):  # expected: no network / an old version gone – no "Kante mit Blick" there
+                _checked[c] = "no terrain"
     if todo:
         try:
             st = {tuple(int(v) for v in x["id"].replace("-", "/").split("/")[-2:]): x.get("state")

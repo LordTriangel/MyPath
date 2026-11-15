@@ -7,6 +7,8 @@ The one place where routing-data tags and the map-area grids (land.py, named.py)
   built    inside settlement land
   green    0..1 nature right around the way (100 m) · depth 0..1 how far inside nature it is (300 m and 900 m)
   water    1 at big water (lake, wide river) · 0.5 at small water (pond, brook with a green strip) · 0
+  rim      0..1 at an edge with a view: the ground within ~300 m on one side lies clearly lower and is open (land.rim)
+  sight    within ~50 m of a viewpoint, castle, ruin, chapel, cave or waterfall (named.py)
   signed   0..1 rank of the best signed route on it (international / national 1 … local 0.6)
   rail     a rail trail (former railway line, car-free, flat) · ferry · noise 0..1 (routing data)
   area     the named protected area it lies in · named = the known routes / lakes it lies on (named.py)
@@ -90,6 +92,7 @@ class Facts:
         self.costfactor = [min(e[3], e[4], 5.0) for e in net.edges]
         self.ground, self.traffic, self.built, self.green, self.depth = [0] * n, [0.0] * n, [False] * n, [0.0] * n, [0.0] * n
         self.water, self.signed, self.rail, self.ferry, self.noise = [0.0] * n, [0.0] * n, [False] * n, [False] * n, [0.0] * n
+        self.rim, self.sight = [0.0] * n, [False] * n
         self.area, self.named, self.areas = [0] * n, [()] * n, [""]
         things = self.things = index.things
         for ei, e in enumerate(net.edges):
@@ -102,6 +105,7 @@ class Facts:
             self.traffic[ei] = road
             g, n300, n900, built, w90, w300, nm = land.around(mid)
             self.built[ei], self.green[ei], self.depth[ei] = built >= 0.5, g, 0.5 * (n300 + n900)
+            self.rim[ei] = land.rim(mid, *K["rim"])
             bank = w90 > 0.04
             hits = tuple(index.at(mid, 1))
             for i in hits:
@@ -109,6 +113,7 @@ class Facts:
                 if th["kind"] == "route" and (road < K["beside_from"] or signed):
                     signed = max(signed, th["rank"])  # on a busy road only when the road itself carries the route
                 bank = bank or th["kind"] == "lake"
+                self.sight[ei] = self.sight[ei] or th["kind"] == "sight"
             self.water[ei] = 1.0 if bank and w300 >= K["big_water"] else 0.5 if bank or (river >= 4 and g >= 0.2) else 0.0
             self.signed[ei], self.named[ei] = signed, hits
             if nm:

@@ -24,8 +24,14 @@
   .opts { font-size:12px; color:var(--muted); display:flex; gap:12px; flex-wrap:wrap; margin:6px 0; }
   #status { font-size:12px; color:var(--muted); min-height:18px; }
   #notes div { font-size:12.5px; background:#fff7df; border:1px solid #ead9a0; border-radius:8px; padding:6px 9px; margin:6px 0; }
-  .card { background:#fff; border:1px solid var(--line); border-left:6px solid #999; border-radius:8px; padding:9px 10px; margin:8px 0; cursor:pointer; }
-  .card.sel { box-shadow:0 0 0 2px var(--ink); }
+  .card { background:#fff; border:1px solid var(--line); border-left:6px solid #c9d2cc; border-radius:8px; padding:9px 10px; margin:8px 0; cursor:pointer; }
+  .card.sel { border-left-color:#1f5fbf; box-shadow:0 0 0 2px #1f5fbf; }
+  .badge { display:inline-block; font-size:11px; border-radius:9px; padding:0 7px; margin-bottom:3px; background:#eef1ee; color:var(--muted); }
+  .badge.off { background:#e3ecf8; color:#1f4f8f; font-weight:600; }
+  .txt { font-size:12.5px; color:var(--ink); margin:2px 0 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .card.sel .txt { white-space:normal; }
+  .more { display:none; } .card.sel .more { display:block; }
+  .from { font-size:12px; color:#1f4f8f; margin:0 0 3px; }
   .card h3 { margin:0; font-size:14px; display:flex; justify-content:space-between; gap:8px; } .card h3 b { white-space:nowrap; }
   .big { font-variant-numeric:tabular-nums; margin:2px 0 3px; }
   .why { font-size:12.5px; color:#1d5a3c; font-weight:500; margin:0 0 4px; }
@@ -40,7 +46,7 @@
 <body>
 <div id="side">
   <h1>Tourvorschläge</h1>
-  <p class="sub">Versuch am Rechner · Rundtouren zu Fuß und mit dem Rad · Start auch per Klick auf die Karte</p>
+  <p class="sub">Versuch am Rechner · Rundtouren zu Fuß und mit dem Rad · Start auch per Klick auf die Karte · <a href="vergleich" target="_blank">Vergleich mit offiziellen Rundwegen</a></p>
   <label>Start</label>
   <div class="row"><div style="flex:3"><input type="text" id="place" list="places" value="Hilden" placeholder="Ort oder „51.17, 6.94“"><datalist id="places"></datalist></div>
     <div><button id="find" style="width:100%">Suchen</button></div></div>
@@ -52,19 +58,19 @@
     <div><label>Dauer von – bis (Stunden) <span id="km"></span></label><div class="row"><input type="number" id="h0" value="1.5" min="0.25" max="10" step="0.25"><input type="number" id="h1" value="2.5" min="0.25" max="10" step="0.25"></div></div>
     <div><label>Höhenmeter von – bis</label><div class="row"><input type="number" id="up0" min="0" step="50" placeholder="auto" title="leer = von flach bis zu dem, was für diese Aktivität üblich ist"><input type="number" id="up1" min="0" step="50" placeholder="auto"></div></div>
   </div>
-  <label>Wegbeschaffenheit</label><select id="surface"></select>
   <label>Was ist dir wichtig?</label>
   <div class="lv" data-k="natur"><span>Natur</span></div>
   <div class="lv" data-k="ruhe"><span>Ruhe</span></div>
   <div class="lv" data-k="bekannt"><span>Bekannte Wege</span></div>
   <div class="opts"><label style="margin:0"><input type="checkbox" id="wasser"> am Wasser entlang</label>
-    <label style="margin:0"><input type="checkbox" id="tips"> mit KI-Regionswissen</label></div>
+    <label style="margin:0"><input type="checkbox" id="tips"> mit KI-Regionswissen</label>
+    <label style="margin:0" title="Offizielle Rundwege kennt die Seite bisher nur in Rheinland-Pfalz (Traumpfade, Traumschleifen, Rad- und MTB-Rundwege aus OpenStreetMap)"><input type="checkbox" id="official" checked> offizielle Rundwege (nur Rheinland-Pfalz)</label></div>
   <div class="btns"><button class="pri" id="go">Vorschläge</button><button id="again">Neue Vorschläge</button></div>
   <div id="status"></div><div id="notes"></div>
   <div class="opts"><label style="margin:0"><input type="checkbox" id="all"> alle Kandidaten</label>
-    <label style="margin:0"><input type="checkbox" id="byclass" checked> gewählte Runde nach Wegart färben</label>
+    <label style="margin:0"><input type="checkbox" id="byclass"> gewählte Runde nach Wegart färben</label>
     <label style="margin:0"><input type="checkbox" id="known"> bekannte Wege zeigen</label></div>
-  <div class="legend">Wegart:<i style="background:#2e8b57"></i>am Wald<i style="background:#8a6d3b"></i>Weg<i style="background:#e08a2c"></i>Straße / Häuser<i style="background:#c62828"></i>an einer Straße mit Autos</div>
+  <div class="legend" id="legend" style="display:none">Wegart:<i style="background:#2e8b57"></i>am Wald<i style="background:#8a6d3b"></i>Weg<i style="background:#e08a2c"></i>Straße / Häuser<i style="background:#c62828"></i>an einer Straße mit Autos</div>
   <div id="cards"></div>
 </div>
 <div id="map"></div>
@@ -72,9 +78,8 @@
 // the page may sit behind a path (a preview pane) – call the server next to the page, not at the host's root
 const BASE = location.pathname.replace(/[^\/]*\.[^\/]*$/, '').replace(/\/?$/, '/');
 const $ = id => document.getElementById(id), P = new URLSearchParams(location.search);
-const COLORS = ['#1f5fbf', '#c2185b', '#6a1b9a', '#00838f', '#ef6c00'], CLS = {W:'#2e8b57', P:'#8a6d3b', S:'#e08a2c', G:'#c62828'};
+const CLS = {W:'#2e8b57', P:'#8a6d3b', S:'#e08a2c', G:'#c62828'};
 const AXES = [['natur','Natur'], ['ruhe','Ruhe'], ['weg','Weg'], ['besonderes','Besonderes'], ['form','Form']];
-const SURFACE = {foot: [['befestigt','befestigt'], ['gemischt','gemischt'], ['natur','Naturwege']], wheel: [['glatt','glatt'], ['gemischt','gemischt'], ['rau','rau']]};
 const map = L.map('map').setView([51.168, 6.9395], 13);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© OpenStreetMap'}).addTo(map);
 const layer = L.layerGroup().addTo(map), knownLayer = L.layerGroup().addTo(map);
@@ -88,7 +93,6 @@ document.querySelectorAll('.lv').forEach(row => ['niedrig', 'mittel', 'hoch'].fo
 function forActivity() {
   const foot = $('activity').value === 'hike';
   $('tbox').style.display = foot ? '' : 'none';
-  $('surface').innerHTML = SURFACE[foot ? 'foot' : 'wheel'].map(o => `<option value="${o[0]}"${o[0] === 'gemischt' ? ' selected' : ''}>${o[1]}</option>`).join('');
 }
 function showKm() {
   const p = paces[$('activity').value];
@@ -111,7 +115,7 @@ $('find').onclick = find;
 $('place').onkeydown = e => { if (e.key === 'Enter') find(); };
 const wish = () => ({start, start_name: $('place').value, activity: $('activity').value, t_level: +$('t_level').value, hours: [+$('h0').value, +$('h1').value],
   ascent: $('up0').value !== '' && $('up1').value !== '' ? [+$('up0').value, +$('up1').value] : null,
-  surface: $('surface').value, ...level, wasser: $('wasser').checked, tips: $('tips').checked, seed});
+  ...level, wasser: $('wasser').checked, tips: $('tips').checked, official: $('official').checked, seed});
 async function go() {
   $('status').textContent = 'Runden werden gesucht …'; $('cards').innerHTML = ''; $('notes').innerHTML = '';
   const r = await (await fetch(BASE + 'suggest', {method: 'POST', body: JSON.stringify(wish())})).json();
@@ -120,22 +124,28 @@ async function go() {
 }
 $('go').onclick = () => { seed = 1; go(); };
 $('again').onclick = () => { seed++; go(); };
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'})[ch]);
 const km = x => String(x).replace('.', ','), hm = h => Math.floor(h) + ':' + String(Math.round((h % 1) * 60)).padStart(2, '0');
 function show(r) {
   result = r; selected = null;
   const shown = r.candidates.filter(c => c.chosen);
-  $('status').textContent = `${shown.length} Vorschläge aus ${r.candidates.length} Runden · ${km(r.seconds)} s · ${hm(r.hours[0])}–${hm(r.hours[1])} h (${km(r.target_km[0])}–${km(r.target_km[1])} km) · ↑ ${r.ascent[0]}–${r.ascent[1]} m · Charakter ${r.character.word} · Stand ${r.version}`;
+  const nOff = shown.filter(c => c.official).length;
+  $('status').textContent = `${shown.length - nOff} Vorschläge${nOff ? ` und ${nOff} offizielle${nOff > 1 ? ' Rundwege' : 'r Rundweg'}` : ''} aus ${r.candidates.length} Runden · ${km(r.seconds)} s · ${hm(r.hours[0])}–${hm(r.hours[1])} h (${km(r.target_km[0])}–${km(r.target_km[1])} km) · ↑ ${r.ascent[0]}–${r.ascent[1]} m · Charakter ${r.character.word} · Stand ${r.version}`;
   $('notes').innerHTML = r.notes.map(n => `<div>${n}</div>`).join('');
   $('cards').innerHTML = '';
   shown.forEach((c, i) => {
     const n = c.numbers, d = document.createElement('div');
-    d.className = 'card'; d.style.borderLeftColor = COLORS[i % 5];
-    d.innerHTML = `<h3><span>${i + 1} · ${c.name}</span><b>${Math.round(c.score)} Punkte</b></h3>
+    const o = c.official;
+    d.className = 'card';
+    d.innerHTML = `<span class="badge${o ? ' off' : ''}">${o ? 'Offiziell · ' + esc(o.badge) : 'Vorschlag'}</span>
+      <h3><span>${i + 1} · ${esc(c.name)}</span><b>${Math.round(c.score)} Punkte</b></h3>
       <div class="big">${km(n.km)} km · ${hm(n.hours)} h · ↑ ${n.ascent} m</div>
-      <div class="why">${c.reasons.join(' · ')}</div>
-      <div class="chips">${c.hints.map(h => `<span>${h}</span>`).join('')}</div>
+      ${o ? `<div class="from">${o.start_km < 0.3 ? 'Start hier' : `Start ${km(o.start_km)} km entfernt`}${o.parking ? ' · am Parkplatz' : ''}</div>` : ''}
+      ${c.line ? `<div class="txt" title="${esc(c.line)}">${esc(c.line)}</div>` : ''}
       <div class="axes">${AXES.map(a => `<span>${a[1]}</span><i><u style="width:${Math.round(100 * c.axes[a[0]])}%"></u></i><span>${Math.round(100 * c.axes[a[0]])}</span>`).join('')}</div>
-      <div class="verdict">${c.why} · am Wald ${n.forest_pct} % · durch Häuser ${n.town_pct} % · Belag fest ${n.ground_pct[0] + n.ground_pct[1]} % / Natur ${n.ground_pct[2] + n.ground_pct[3]} %</div>
+      <div class="more"><div class="why">${c.reasons.join(' · ')}</div>
+      <div class="chips">${c.hints.map(h => `<span>${h}</span>`).join('')}</div>
+      <div class="verdict">${c.why} · am Wald ${n.forest_pct} % · durch Häuser ${n.town_pct} % · Belag fest ${n.ground_pct[0] + n.ground_pct[1]} % / Natur ${n.ground_pct[2] + n.ground_pct[3]} %${o ? ` · <a href="https://www.openstreetmap.org/relation/${o.osm}" target="_blank">OSM</a>` : ''}</div></div>
       <div class="fb"><input type="text" placeholder="Kommentar zu dieser Runde"><button>Kommentar senden</button></div>`;
     d.onclick = () => { selected = c.id; draw(); };
     d.querySelector('.fb').onclick = e => e.stopPropagation();
@@ -147,7 +157,7 @@ function show(r) {
     c.card = d; $('cards').appendChild(d);
   });
   setStart(r.wish.start, r.wish.start_name);
-  if (P.get('only')) selected = (shown[+P.get('only') - 1] || {}).id;
+  selected = (shown[(+P.get('only') || 1) - 1] || {}).id;
   draw(true);
 }
 function draw(fit) {
@@ -155,17 +165,31 @@ function draw(fit) {
   const shown = result.candidates.filter(c => c.chosen), ll = c => c.coords.map(p => [p[1], p[0]]);
   if ($('all').checked) result.candidates.filter(c => !c.chosen).forEach(c => L.polyline(ll(c), {color: '#777', weight: 1.5, opacity: 0.45}).addTo(layer));
   const bounds = [];
-  shown.forEach((c, i) => {
+  // the map stays calm: one line style; the chosen loop clear in blue, the others only a breath
+  shown.forEach(c => {
     c.card.classList.toggle('sel', c.id === selected);
     if (P.get('only') && c.id !== selected) return;
     const pts = ll(c); bounds.push(...pts);
-    if (c.id === selected && $('byclass').checked) {
-      L.polyline(pts, {color: '#fff', weight: 8, opacity: 0.9}).addTo(layer);
+    if (c.id !== selected) L.polyline(pts, P.get('vs') ? {color: '#d81b60', weight: 3.5, opacity: 0.9, dashArray: '7 6'}  // comparison pictures
+                                                       : {color: '#1f5fbf', weight: 2.5, opacity: 0.22}).addTo(layer);
+  });
+  const c = shown.find(c => c.id === selected);
+  if (c) {
+    const pts = ll(c);
+    L.polyline(pts, {color: '#fff', weight: 8, opacity: 0.8}).addTo(layer);
+    if ($('byclass').checked) {
       let from = 0;
       for (let k = 1; k <= c.cls.length; k++) if (k === c.cls.length || c.cls[k] !== c.cls[from]) {
         L.polyline(pts.slice(from, k + 1), {color: CLS[c.cls[from]], weight: 5}).addTo(layer); from = k; }
-    } else L.polyline(pts, {color: COLORS[i % 5], weight: c.id === selected ? 6 : 3.5, opacity: selected && c.id !== selected ? 0.45 : 0.9}).addTo(layer);
-  });
+    } else L.polyline(pts, {color: '#1f5fbf', weight: 5, opacity: 0.95}).addTo(layer);
+    if (c.official) {  // a fine line from the wished start to the official loop's start (the parking place)
+      const p = [c.official.p[1], c.official.p[0]];
+      L.polyline([[result.wish.start[1], result.wish.start[0]], p], {color: '#333', weight: 1.2, opacity: 0.7, dashArray: '3 5'}).addTo(layer);
+      L.circleMarker(p, {radius: 6, color: '#fff', weight: 2, fillColor: '#1f5fbf', fillOpacity: 1}).bindTooltip(c.official.parking ? 'Parkplatz · Start' : 'Start').addTo(layer);
+      bounds.push(p);
+    }
+  }
+  $('legend').style.display = $('byclass').checked ? '' : 'none';
   if (fit && bounds.length) map.fitBounds(bounds, {padding: [30, 30]});
 }
 ['all', 'byclass'].forEach(id => $(id).onchange = () => result && draw());
@@ -184,7 +208,7 @@ fetch(BASE + 'places').then(r => r.json()).then(d => {
     const w = r.wish;
     $('activity').value = w.activity; forActivity(); $('t_level').value = w.t_level; $('h0').value = +w.hours[0].toFixed(2); $('h1').value = +w.hours[1].toFixed(2);
     if (w.ascent) { $('up0').value = w.ascent[0]; $('up1').value = w.ascent[1]; }
-    $('surface').value = w.surface; $('wasser').checked = w.wasser; $('tips').checked = w.tips;
+    $('wasser').checked = w.wasser; $('tips').checked = w.tips; $('official').checked = w.official !== false;
     document.querySelectorAll('.lv').forEach(row => row.querySelectorAll('button').forEach(b => b.className = b.textContent === w[row.dataset.k] ? 'on' : ''));
     Object.keys(level).forEach(k => level[k] = w[k]);
     showKm(); show(r); });

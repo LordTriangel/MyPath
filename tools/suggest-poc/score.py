@@ -3,7 +3,8 @@
   Natur       green beside the way and being deep inside nature
   Ruhe        away from traffic and houses
   Weg         the ground fits the character
-  Besonderes  water, known routes, a rail trail, a named protected area, a tip – what makes it more than a way
+  Besonderes  water, known routes, a rail trail, a named protected area, an edge with a view, castles, ruins, chapels,
+              viewpoints, a tip – what makes it more than a way
   Form        a clean loop: about the wished length, nothing walked twice, not crossing itself, ascent that fits
 
 The first four are means over the loop beyond the unavoidable way out, read between "poor here" (the place's
@@ -16,7 +17,7 @@ AXES = ("natur", "ruhe", "weg", "besonderes", "form")
 WORDS = {"natur": "Natur", "ruhe": "Ruhe", "weg": "Weg", "besonderes": "Besonderes", "form": "Form"}
 
 
-def judge(P, S, cands, views):
+def judge(P, S, cands, sights):
     """Fills every loop with axes, points, numbers and the reason a hard rule drops it (c["out"]).
     The loops are looked at together: on each of the four place axes a loop is measured between what is poor here
     (the place's low quantile) and the best any loop from this start reaches."""
@@ -25,8 +26,9 @@ def judge(P, S, cands, views):
         core = [e for e in c["edges"] if P.core(e)] or c["edges"]
         m = sum(F.ln[e] for e in core)
         c["raw"] = {a: sum(P.v[a][e] * F.ln[e] for e in core) / m for a in AXES[:4]}
-        c["views"] = sorted({v["name"] for v in views if any(dist(net.nodes[x], v["p"]) < 120.0 for x in c["nodes"][::3])})
-        c["raw"]["besonderes"] += K["view"] * min(3, len(c["views"]))
+        c["sights"] = [dict(s) for s in {s["name"]: s for s in sights
+                                          if any(dist(net.nodes[x], s["p"]) < 120.0 for x in c["nodes"][::3])}.values()]
+        c["raw"]["besonderes"] += K["sight"] * min(3, len(c["sights"])) + K["ring"] * (c["origin"] == "Rundweg")
     top = {a: max([c["raw"][a] for c in cands] + [P.low[a] + min_span]) for a in AXES[:4]}
     for c in cands:
         ax = {a: max(0.0, min(1.0, (c["raw"][a] - P.low[a]) / (top[a] - P.low[a]))) for a in AXES[:4]}
@@ -35,7 +37,7 @@ def judge(P, S, cands, views):
 
 
 def _finish(P, S, c, ax):
-    ch, K, seen_views = P.ch, S["form"], c.pop("views")
+    ch, K, seen = P.ch, S["form"], c.pop("sights")
     fam, clamp, h = ch.family, lambda x: max(0.0, min(1.0, x)), c["hours"]
     # inside the wished ranges of time and ascent every loop is equally fine; a bit short or flat falls off gently
     parts = {"Zeit": 1.0 - clamp(max((ch.hours[0] - h) / (K["short_zero"] * ch.hours[0]), (h - ch.hours[1]) / (K["long_zero"] * ch.hours[1]))),
@@ -46,11 +48,11 @@ def _finish(P, S, c, ax):
     c["axes"] = {a: round(ax[a], 3) for a in AXES}
     c["score"] = round(100.0 * sum(ch.axes[a] * ax[a] for a in AXES), 1)
     c["form_parts"] = {k: round(v, 2) for k, v in parts.items() if v < 0.995}
-    n = c["numbers"] = numbers(P, c, seen_views)
+    n = c["numbers"] = numbers(P, c, seen)
     c["out"] = "langes Stück an einer Straße mit Autos" if 0 < fam["road_walk_max_m"] < n["road_longest_m"] else None
 
 
-def numbers(P, c, views):
+def numbers(P, c, sights):
     """The plain facts of a loop for the card and for judging – absolute, not relative to the place."""
     F, net, edges, total = P.F, P.net, c["edges"], c["m"]
     pct = lambda test: int(round(100.0 * sum(F.ln[e] for e in edges if test(e)) / total))
@@ -73,7 +75,9 @@ def numbers(P, c, views):
             "ground_pct": [pct(lambda e, g=g: F.ground[e] == g) for g in range(4)],
             "ferry_m": int(sum(F.ln[e] for e in set(edges) if F.ferry[e])), "self_cross": c["cross"],
             "doubled_pct": int(round(100.0 * c["doubled_m"] / total)), "stem_m": int(c["stem_m"]),
-            "reserves": top("reserves", 0.8), "known": top("known", 0.8), "lakes": top("lakes", 0.4), "views": views[:3]}
+            "reserves": top("reserves", 0.8), "known": top("known", 0.8), "lakes": top("lakes", 0.4),
+            "rim_km": round(sum(F.ln[e] for e in edges if F.rim[e] >= 0.5) / 1000.0, 1),
+            "sights": [[s["what"], s["name"]] for s in sights][:6]}
 
 
 def explain(P, c):
@@ -87,10 +91,10 @@ def explain(P, c):
     c["bearing"] = where
     km = lambda rows, pre: ["%s km %s%s" % (str(k).replace(".", ","), pre, nm) for nm, k in rows]
     kind = lambda nm: nm if "schutzgebiet" in nm.lower() or nm.startswith(("Nationalpark", "Naturpark")) else "Schutzgebiet " + nm
-    c["reasons"] = (km([[kind(nm), k] for nm, k in n["reserves"]], "im ") + km(n["lakes"], "am ") + km(n["known"], "auf ")
+    c["reasons"] = (km([[kind(nm), k] for nm, k in n["reserves"]], "im ") + ["%s km %s" % (str(k).replace(".", ","), am(nm)) for nm, k in n["lakes"]] + km(n["known"], "auf ")
                     + (["%s km am Wasser" % str(n["water_km"]).replace(".", ",")] if n["water_km"] >= 1 and not n["lakes"] else [])
                     + (["%s km Bahntrasse" % str(n["rail_km"]).replace(".", ",")] if n["rail_km"] >= 1 else [])
-                    + ["Aussicht: " + v for v in n["views"][:1]] + (["mit Fähre"] if n["ferry_m"] else []))[:5]
+                    + ["%s %s" % (w, nm) if nm != w else w for w, nm in n["sights"][:1]] + (["mit Fähre"] if n["ferry_m"] else []))[:5]
     ch, h = P.ch, c["hours"]
     edge = lambda v, rng: rng[1] > rng[0] and (v - rng[0]) / (rng[1] - rng[0])
     c["hints"] = (["etwas kürzer als gewünscht"] if h < ch.hours[0] else ["etwas länger als gewünscht"] if h > ch.hours[1] else
@@ -99,12 +103,44 @@ def explain(P, c):
         + (["%d m an einer Straße am Stück" % n["road_longest_m"]] if n["road_longest_m"] >= 200 else []) \
         + (["%d %% doppelt" % n["doubled_pct"]] if n["doubled_pct"] >= 8 else []) \
         + (["kreuzt sich einmal"] if n["self_cross"] else []) + (["%d %% durch Häuser" % n["town_pct"]] if n["town_pct"] >= 30 else [])
+    c["line"] = line(n)
     ranked = sorted(AXES, key=lambda a: -c["axes"][a])
     weak = [a for a in ranked[::-1] if c["axes"][a] < 0.5][:2]
     c["why"] = "stark bei %s" % " und ".join(WORDS[a] for a in ranked[:2]) + (
         " · schwächer bei %s" % " und ".join(WORDS[a] + (" (%s)" % ", ".join(c["form_parts"]) if a == "form" and c["form_parts"] else "")
                                                for a in weak) if weak else "")
     return c
+
+
+def am(name):
+    """'am Elbsee', 'an der Dhrontalsperre'."""
+    return ("an der " if name.lower().endswith(("sperre", "bucht", "aue", "lache")) else "am ") + name
+
+
+OWN_WORD = ("burg", "schloss", "ruine", "kapelle", "höhle", "wasserfall", "turm", "blick", "kirche", "aussicht", "fels")
+
+
+def line(n):
+    """One line on what the loop really passes – protected areas, a lake, castles / ruins / chapels, edges with a view,
+    viewpoints, a known route, water, a rail trail – from the numbers of the card, nothing invented."""
+    num = lambda x: str(x).replace(".", ",")
+    kind = lambda nm: nm if "schutzgebiet" in nm.lower() or nm.startswith(("Nationalpark", "Naturpark")) else "das Schutzgebiet " + nm
+    say = lambda what, nm: nm if nm != what and any(w in nm.lower() for w in OWN_WORD) else what if nm == what else "%s %s" % (what, nm)
+    both = lambda xs: " und ".join(xs) if len(xs) < 3 else ", ".join(xs[:-1]) + " und " + xs[-1]
+    named = [(w, nm) for w, nm in n["sights"] if w != "Aussichtspunkt" and nm != w]
+    things = [say(w, nm) for w, nm in named] + [w for w, nm in n["sights"] if nm == w and w != "Aussichtspunkt"
+                                                and w not in {x for x, _ in named}]  # an unnamed one only when none of its kind has a name
+    views = [nm for w, nm in n["sights"] if w == "Aussichtspunkt"]
+    bits = (["durch " + both([kind(nm) for nm, _ in n["reserves"][:2]])] if n["reserves"] else []) \
+        + ([am(n["lakes"][0][0])] if n["lakes"] else []) \
+        + (["vorbei an " + both(list(dict.fromkeys(things))[:3])] if things else []) \
+        + (["%s km an Kanten mit Weitblick" % num(n["rim_km"])] if n["rim_km"] >= 0.5 else []) \
+        + (["Aussicht " + (views[0] if views[0] != "Aussichtspunkt" else "unterwegs")] if views else []) \
+        + ["%s km auf %s" % (num(k), nm) for nm, k in n["known"][:1] if k >= 0.25 * n["km"]] \
+        + (["%s km am Wasser" % num(n["water_km"])] if n["water_km"] >= 1 and not n["lakes"] else []) \
+        + (["%s km Bahntrasse" % num(n["rail_km"])] if n["rail_km"] >= 1 else [])
+    text = ", ".join(bits)
+    return text[:1].upper() + text[1:] if text else ""
 
 
 def choose(P, S, cands):
@@ -124,7 +160,7 @@ def choose(P, S, cands):
     uses = lambda c, thing: length(core[id(c)] & thing["edges"]) >= (0.25 * P.target if thing["kind"] != "area" else min(2500.0, 0.3 * thing["m"]))
     # what the wish names is always shown: with "am Wasser entlang" the best loop really at the water (and first),
     # with "Bekannte Wege: hoch" the best loop along the first known route here
-    at_water = lambda c: P.ch.water and c["numbers"]["water_pct"] >= 20
+    at_water = lambda c: not order(P, c)[0]
     route = next((ln for ln in P.lines if ln["kind"] == "route" and ln["rank"] >= 0.9), None) if P.ch.signed >= 1.0 else None
     shown = [ranked[0]]
     if not at_water(ranked[0]):
@@ -143,4 +179,11 @@ def choose(P, S, cands):
             break
         if c not in shown and c["score"] >= ranked[0]["score"] - K["behind"] and fresh(c, shown):
             shown.append(c)
-    return sorted(shown[:K["max"]], key=lambda c: (not at_water(c), not fits(c), -c["score"]))
+    return sorted(shown[:K["max"]], key=lambda c: order(P, c))
+
+
+def order(P, c):
+    """The order of the list: with "am Wasser entlang" a loop really at the water first, then loops inside the wished
+    time, each by points."""
+    lo, hi = P.ch.hours
+    return not (P.ch.water and c["numbers"]["water_pct"] >= 20), not lo <= c["hours"] <= hi, -c["score"]
