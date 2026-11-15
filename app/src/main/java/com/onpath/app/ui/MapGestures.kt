@@ -21,7 +21,8 @@ import kotlin.math.min
  *
  * The marker wins (within [MARKER_RADIUS_DP], nearest marker first), then a POI, then the line / map – no question in
  * between (owner: setting a point is setting a point, deleting is deleting; a wrong guess is undone by holding again).
- * With a menu open a tap anywhere closes it; a hold on another marker / POI opens that one's menu, a hold on
+ * A quick tap on a POI always shows its details – also with a menu open and on a POI that is a route point (owner
+ * 2026-11-15). With a menu open a tap elsewhere closes it; a hold on another marker / POI opens that one's menu, a hold on
  * the empty map only closes the menu (no point is added while dismissing). A long press counts as a hold.
  * Navigate (or a shown track): nothing is added or moved, a POI tap opens read-only details.
  */
@@ -69,8 +70,11 @@ object MapGestures {
      */
     fun decide(editable: Boolean, press: Press, menuOpen: Boolean, marker: Int, poi: Boolean, planEmpty: Boolean): Action {
         if (!editable) return if (poi && press == Press.TAP) Action.PoiDetails else Action.None
-        // a quick tap on a POI / hut shows its details in Plan too (UX review 5) – read-only, the plan never changes
-        if (press == Press.TAP) return if (menuOpen) Action.CloseMenu else if (poi && marker < 0) Action.PoiDetails else Action.None
+        // a quick tap on a POI / hut shows its details in Plan too (UX review 5) – read-only, the plan never changes. Owner
+        // 2026-11-15 (hike): a tap on a POI works everywhere – with a menu open (the details take its place, no second
+        // tap) and on a POI that is the start, a stop or the goal (its marker sits on it; holding it still opens the
+        // point menu)
+        if (press == Press.TAP) return if (poi) Action.PoiDetails else if (menuOpen) Action.CloseMenu else Action.None
         return when {
             marker >= 0 -> Action.PointMenu(marker)
             poi -> Action.PoiMenu

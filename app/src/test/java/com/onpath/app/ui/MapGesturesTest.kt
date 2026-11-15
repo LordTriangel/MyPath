@@ -18,12 +18,22 @@ class MapGesturesTest {
         assertEquals(Action.None, plan(Press.TAP))
         // UX review 5: a tap on a POI shows its details (read-only) in Plan as in Navigate
         assertEquals(Action.PoiDetails, plan(Press.TAP, poi = true))
-        assertEquals(Action.None, plan(Press.TAP, marker = 1, poi = true))
+        assertEquals(Action.None, plan(Press.TAP, marker = 1))
     }
     @Test fun quickTapClosesAnOpenMenu() {
         assertEquals(Action.CloseMenu, plan(Press.TAP, menu = true))
-        assertEquals(Action.CloseMenu, plan(Press.TAP, poi = true, menu = true))
         assertEquals(Action.CloseMenu, plan(Press.TAP, marker = 2, menu = true))
+    }
+
+    /** Owner 2026-11-15 (hike): a tap on a POI shows it in every situation – not only on a calm map. */
+    @Test fun quickTapOnAPoiAlwaysShowsItsDetails() {
+        // with a menu open: the details at once, no first tap that only closes the menu
+        assertEquals(Action.PoiDetails, plan(Press.TAP, poi = true, menu = true))
+        // a POI that is the start, a stop or the goal (its marker on top of it)
+        assertEquals(Action.PoiDetails, plan(Press.TAP, marker = 0, poi = true))
+        assertEquals(Action.PoiDetails, plan(Press.TAP, marker = 2, poi = true, menu = true))
+        // holding it is still the route point's menu
+        assertEquals(Action.PointMenu(2), plan(Press.HOLD, marker = 2, poi = true))
     }
 
     // --- hold ---

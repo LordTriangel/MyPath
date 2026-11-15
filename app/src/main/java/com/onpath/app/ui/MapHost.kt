@@ -244,7 +244,8 @@ fun MapHost(
                         com.onpath.app.map.CandidateMarker.hit((screen.x - s.x) / dp, (screen.y - s.y) / dp)
                     } == true
                 }
-                val poi = if (marker >= 0) null else mark?.toPoi() ?: shownPois.at(map, screen.x, screen.y)
+                // a hold on a route point is the point's (its menu); a tap on a POI that is a route point shows the POI
+                val poi = if (marker >= 0 && press == MapGestures.Press.HOLD) null else mark?.toPoi() ?: shownPois.at(map, screen.x, screen.y)
                 // ~24 dp around the planned line counts as "on the line" (smart insertion into that leg).
                 val snap = c?.let { it.dpToPx(24f) * it.metersPerPixel() } ?: 30.0
                 val p = GeoPoint(ll.latitude, ll.longitude)
@@ -258,7 +259,10 @@ fun MapHost(
                         vm.addPoint(p, snap); true
                     }
                     MapGestures.Action.CloseMenu -> { vm.closeMapOverlays(if (press == MapGestures.Press.TAP) "tap outside" else "hold outside"); true }
-                    MapGestures.Action.PoiDetails -> { vm.selectedPoi = poi; true }
+                    MapGestures.Action.PoiDetails -> {
+                        if (vm.mapOverlayOpen) vm.closeMapOverlays("tap on a POI (its details instead)")
+                        vm.selectedPoi = poi; true
+                    }
                     MapGestures.Action.None -> {
                         // a tap on the open map in Plan: "hold to set a point here" in the sheet (owner 2026-11-03)
                         if (MapGestures.tapShowsHoldHint(edit, press, MapGestures.Action.None, poi != null, marker, pts.isEmpty())) vm.showTapHoldHint()
