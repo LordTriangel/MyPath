@@ -68,25 +68,56 @@ object PlaceAddMenu {
      */
     fun asksOnHold(zone: Zone?): Boolean = zone == Zone.STOP_FIRST || zone == Zone.GOAL_FIRST
 
-    /** What a hold on the empty map does while planning ([planningHold]). */
-    enum class HoldAction { INSERT, NEW_GOAL, ASK }
+    /**
+     * What a hold on the empty map does while planning ([planningHold]): [ON_LINE] = the smart insertion into that leg,
+     * [STOP] = „Einfügen“ (stop-only, never behind the goal), [NEW_GOAL] = „Neues Ziel“ (appended), [ASK] = the menu.
+     */
+    enum class HoldAction { ON_LINE, STOP, NEW_GOAL, ASK }
 
     /** "On the line": this close to the planned line on screen (the hold's smart insertion uses the same ~24 dp). */
     const val LINE_SNAP_DP = 24.0
 
     /**
-     * A hold on the empty map with 2+ points while PLANNING – no tour, no round trip (those keep [asksOnHold] on the zone).
-     * In screen terms the owner sees (field case 2026-11-15, Hilden: a spot clearly beside the goal of a long plan asked,
-     * because the zone's shares use the whole route and only its angle decided): on the line ([lineDp] ≤ [snapDp]) →
-     * [HoldAction.INSERT] at once (the smart insertion); else the plan point nearest on screen is the goal (the last of
-     * [pointDp]) → [HoldAction.NEW_GOAL] at once (appended); else → [HoldAction.ASK] („Einfügen“ / „Neues Ziel“, order by
-     * the zone). [lineDp] null = no line yet; [pointDp] = each plan point's distance to the spot in dp, in plan order.
+     * The ask band: inserting is taken at once only when its detour is at most 1/[ASK_BAND] of what appending costs;
+     * between that and „appending is cheaper“ both are similar – the app asks.
      */
-    fun planningHold(lineDp: Double?, pointDp: List<Double>, snapDp: Double = LINE_SNAP_DP): HoldAction = when {
-        lineDp != null && lineDp <= snapDp -> HoldAction.INSERT
-        pointDp.isNotEmpty() && pointDp.indices.minBy { pointDp[it] } == pointDp.lastIndex -> HoldAction.NEW_GOAL
+    const val ASK_BAND = 2.0
+
+    /** The two costs of a new point while planning, metres, straight lines ([detours]). */
+    data class Detours(
+        /** The cheapest insertion detour over the legs: d(a,s) + d(s,b) − d(a,b) (as [zone]). */
+        val insertM: Double,
+        /** What appending costs: d(goal, s). */
+        val appendM: Double,
+    )
+
+    /** [Detours] of a spot [s] for a plan of 2+ [points]; null with fewer. */
+    fun detours(points: List<GeoPoint>, s: GeoPoint): Detours? {
+        if (points.size < 2) return null
+        val insert = points.zipWithNext().minOf { (a, b) -> Geo.distance(a, s) + Geo.distance(s, b) - Geo.distance(a, b) }
+        return Detours(insert, Geo.distance(points.last(), s))
+    }
+
+    /**
+     * A hold on the empty map with 2+ points while PLANNING – no tour, no round trip (those keep [asksOnHold] on the zone).
+     * The owner's rule (2026-11-15, after a field case at a junction beside the goal of a long plan): „Die App nimmt, was
+     * den kürzeren Umweg macht; sind beide ähnlich, fragt sie.“ On the line ([lineDp] ≤ [snapDp]) → [HoldAction.ON_LINE];
+     * appending no dearer than inserting → [HoldAction.NEW_GOAL]; inserting at most 1/[ASK_BAND] of appending →
+     * [HoldAction.STOP]; else [HoldAction.ASK]. [lineDp] null = no line yet.
+     */
+    fun planningHold(lineDp: Double?, d: Detours, snapDp: Double = LINE_SNAP_DP): HoldAction = when {
+        lineDp != null && lineDp <= snapDp -> HoldAction.ON_LINE
+        d.appendM <= d.insertM -> HoldAction.NEW_GOAL
+        d.insertM * ASK_BAND <= d.appendM -> HoldAction.STOP
         else -> HoldAction.ASK
     }
+
+    /**
+     * The add rows while planning (a held place, or a hold that asks): both, the cheaper first and tinted – the same
+     * decision a plain hold takes ([planningHold]), one rule everywhere.
+     */
+    fun planningMenu(d: Detours): Menu =
+        Menu(if (d.insertM < d.appendM) listOf(Item.ADD_STOP, Item.NEW_DESTINATION) else listOf(Item.NEW_DESTINATION, Item.ADD_STOP))
 
     fun menu(points: Int, touring: Boolean, zone: Zone?): Menu = when {
         points <= 0 -> Menu(if (touring) listOf(Item.GO_HERE) else listOf(Item.START_HERE, Item.GO_HERE))

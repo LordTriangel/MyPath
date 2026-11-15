@@ -1914,8 +1914,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * „Neues Ziel“, the likelier first by how clear the case is – measured on the route still to go (during a tour from my
      * position).
      */
-    fun placeMenu(poi: com.onpath.app.poi.Poi): PlaceAddMenu.Menu =
-        PlaceAddMenu.menu(waypoints.size, recState.value != null, zoneFor(GeoPoint(poi.lat, poi.lon)))
+    fun placeMenu(poi: com.onpath.app.poi.Poi): PlaceAddMenu.Menu {
+        val p = GeoPoint(poi.lat, poi.lon)
+        val touring = recState.value != null
+        // while planning the same decision as a plain hold (the shorter detour first – one rule everywhere, owner 2026-11-15)
+        if (!touring && !isRoundTrip()) PlaceAddMenu.detours(waypoints.toList(), p)?.let { return PlaceAddMenu.planningMenu(it) }
+        return PlaceAddMenu.menu(waypoints.size, touring, zoneFor(p))
+    }
 
     /**
      * How clear the case of a new point [p] is ([PlaceAddMenu.zone]), measured on the route still to go – during a tour from
@@ -1961,9 +1966,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var holdAddMenu by mutableStateOf<HoldAdd?>(null)
 
     /**
-     * A hold on the empty map in Plan ([MapGestures.Action.AddPoint], core feature C1): with 2+ points a clear case is set
-     * at once where it fits best, as always ([addPoint]); a doubtful one ([PlaceAddMenu.asksOnHold]) opens the small menu
-     * „Einfügen“ / „Neues Ziel“ at the spot, the likelier first (owner 2026-11-15). Back / a tap elsewhere adds nothing.
+     * A hold on the empty map in Plan ([MapGestures.Action.AddPoint], core feature C1), owner 2026-11-15. While planning
+     * the shorter detour decides ([PlaceAddMenu.planningHold]: on the line → the smart insertion, appending cheaper → the
+     * new goal, inserting much cheaper → a stop, similar → the small menu „Einfügen“ / „Neues Ziel“, the cheaper first);
+     * on a tour or a round trip the zone does ([PlaceAddMenu.asksOnHold]). Back / a tap elsewhere adds nothing.
      */
     fun holdOnMap(p: GeoPoint, lineSnapM: Double) {
         closeMapOverlays("hold on the map (new point)")
@@ -1974,36 +1980,42 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             addPoint(p, lineSnapM)
             return
         }
-        val zone = zoneFor(p)
-        if (touring || isRoundTrip()) {
+        val menu = if (touring || isRoundTrip()) {
             // on a tour / a round trip: the zone on the route ahead decides (a loop is never dropped by one hold)
+            val zone = zoneFor(p)
             if (!PlaceAddMenu.asksOnHold(zone)) {
                 Problems.trace("plan", "New point by a hold: plan $n → ${n + 1} (clear case $zone: set at once)")
                 addPoint(p, lineSnapM)
                 return
             }
+            Problems.trace("plan", "Hold on the map in doubt (zone $zone, $n points)")
+            PlaceAddMenu.menu(n, touring, zone)
         } else {
-            // planning: what the owner sees on screen decides (field case 2026-11-15) – distances in dp at this zoom
+            // planning: „Die App nimmt, was den kürzeren Umweg macht; sind beide ähnlich, fragt sie.“
             val mPerDp = lineSnapM / PlaceAddMenu.LINE_SNAP_DP
             val line = (if (routing) null else route?.points)?.takeIf { it.size >= 2 } ?: waypoints.toList()
             val lineDp = Geo.distanceToLine(p, line) / mPerDp
-            val pointDp = waypoints.map { Geo.distance(it, p) / mPerDp }
-            val action = PlaceAddMenu.planningHold(lineDp, pointDp)
-            val why = "line ${lineDp.toInt()} dp, nearest point ${pointDp.indices.minBy { pointDp[it] } + 1} of $n"
-            when (action) {
-                PlaceAddMenu.HoldAction.INSERT -> {
+            val d = PlaceAddMenu.detours(waypoints.toList(), p)!!
+            val why = "line ${lineDp.toInt()} dp, insert +${d.insertM.toInt()} m, append ${d.appendM.toInt()} m, $n points"
+            when (PlaceAddMenu.planningHold(lineDp, d)) {
+                PlaceAddMenu.HoldAction.ON_LINE -> {
                     Problems.trace("plan", "New point by a hold: on the line, set at once ($why)")
                     addPoint(p, lineSnapM); return
                 }
                 PlaceAddMenu.HoldAction.NEW_GOAL -> {
-                    Problems.trace("plan", "New point by a hold: nearest the goal, the new goal at once ($why)")
+                    Problems.trace("plan", "New point by a hold: appending is shorter, the new goal at once ($why)")
                     asNewDestination(p); return
                 }
-                PlaceAddMenu.HoldAction.ASK -> Problems.trace("plan", "Hold on the map in doubt ($why, zone $zone)")
+                PlaceAddMenu.HoldAction.STOP -> {
+                    Problems.trace("plan", "New point by a hold: inserting is much shorter, a stop at once ($why)")
+                    insertAsStop(p, lineSnapM); return
+                }
+                PlaceAddMenu.HoldAction.ASK -> Problems.trace("plan", "Hold on the map in doubt ($why)")
             }
+            PlaceAddMenu.planningMenu(d)
         }
-        holdAddMenu = HoldAdd(p, PlaceAddMenu.menu(n, touring, zone), lineSnapM)
-        Problems.trace("plan", "Hold on the map: asks Einfügen / Neues Ziel ($zone, $n points)")
+        holdAddMenu = HoldAdd(p, menu, lineSnapM)
+        Problems.trace("plan", "Hold on the map: asks ${menu.main.joinToString(" / ")}")
     }
 
     /** The hold menu's „Einfügen“. */
