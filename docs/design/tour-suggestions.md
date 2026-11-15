@@ -166,7 +166,9 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   computer). It accepts the old single values and the new ranges. Its services are stopped; the VPN is the owner's step.
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
-- Undecided by the owner: the entry only while the plan is empty; the same entry in the menu of a place / map symbol.
+- Where the entry appears (owner 2026-11-15: "wenn ‚Von hier starten' kommt, dann kann auch ‚Rundtour von hier' kommen"):
+  wherever a menu offers "Hier starten" – the first tap into an empty plan, the menu of a place / map symbol – it
+  also offers "Rundtour von hier"; no extra rule of its own.
 
 ## 8. The POC
 

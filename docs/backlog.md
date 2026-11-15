@@ -427,7 +427,7 @@ and the commit history.
   7.2 km – expectation or gap?); zip import checks only sizes (cell downloads check sha256).
 
 ## Waiting for the owner
-- [donald] 2026-11-14, tour suggestions (all parked with the planner build, no hurry): (1) "Rundtour von hier" only while the plan is empty? – recommendation yes; (2) the same row in the menu of a place / map symbol? – recommendation yes, under "Hierhin" (on a phone most taps near a trailhead hit a symbol); (3) is "Wegbeschaffenheit" still needed beside the activity? – recommendation: drop it for wheels, keep for Hike; (4) for a road test: Tailscale (https, "Mein Standort" works) or the router's VPN (test planner over http) – recommendation Tailscale.
+- [donald] 2026-11-14, tour suggestions (all parked with the planner build, no hurry): (1)+(2) answered 2026-11-15: "Rundtour von hier" comes wherever "Hier starten" comes (design doc §7); (3) is "Wegbeschaffenheit" still needed beside the activity? – recommendation: drop it for wheels, keep for Hike; (4) for a road test: Tailscale (https, "Mein Standort" works) or the router's VPN (test planner over http) – recommendation Tailscale.
 <!-- Owner 2026-11-07: open questions to the owner live here (who, date, question, recommendation first); asked in the session's chat; whoever acts on the answer deletes the line. -->
 - **[donald] "Aufzeichnung und Navigation ruhen" hardly ever shows (donald 2026-11-08)** – in 0.17.5 the stopped card's
   calm line shows only where it fits on one line beside the activity icon and the arrival time; on a 1080 px phone it
