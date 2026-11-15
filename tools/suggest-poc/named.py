@@ -1,8 +1,10 @@
 """Named things from our own map areas: known signed routes, trail names, lakes, viewpoints – and which way lies on them.
 
 The same files the phone has (cells.py fetches them): overlays.pmtiles layer `routes` (kind hike / bike, name, ref,
-net 4 international … 2 regional) and `trailnames` (local circular walks, promenades, Waalwege), base.pmtiles `water`
-+ `water_name`, pois.geojson (viewpoints). Read once per map area, kept as attr-v5.json beside it.
+net 4 international … 2 regional) and, where a cell has it, `routelines` (every signed route relation whole, also a
+local one on the ways of a bigger one – extract_overlays.py --all-routes, test cells so far), `trailnames` (local
+circular walks, promenades, Waalwege), base.pmtiles `water` + `water_name`, pois.geojson (viewpoints).
+Read once per map area, kept as attr-v6.json beside it.
 """
 import json
 import os
@@ -38,7 +40,7 @@ def label(name, ref):
 def read_cell(x, y):
     """One map area -> {routes: [{kind, label, net, lines, trail}], lakes: [{name, lines}], views: [{name, p}]}."""
     d = CE.folder(x, y)
-    cache = os.path.join(d, "attr-v5.json")
+    cache = os.path.join(d, "attr-v6.json")
     if os.path.isfile(cache):
         with open(cache, encoding="utf-8") as f:
             return json.load(f)
@@ -48,7 +50,7 @@ def read_cell(x, y):
     for z, tx, ty in pmt.tiles_of_cell(x, y, 12):
         raw = ov.tile(z, tx, ty)
         west, east = tx / float(1 << z) * 360 - 180, (tx + 1) / float(1 << z) * 360 - 180
-        for f in pmt.layers(raw, {"routes"}, z, tx, ty).get("routes", []) if raw else []:
+        for f in [f for fs in (pmt.layers(raw, {"routes", "routelines"}, z, tx, ty).values() if raw else ()) for f in fs]:
             t = f["tags"]
             name, ref = t.get("name"), t.get("ref")
             # links of the cycle node network ("Dormagen (83) - Neuss (84)") are good ways but no destination
