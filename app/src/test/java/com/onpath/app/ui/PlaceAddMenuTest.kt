@@ -5,14 +5,15 @@ import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.WaypointInsertion
 import com.onpath.app.ui.PlaceAddMenu.Item
 import com.onpath.app.ui.PlaceAddMenu.Zone
+import com.onpath.strings.*
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The place menu's add entries (owner 2026-11-07 11:20 / 11:25 / 11:30): clear stop → only "Als Zwischenstopp", doubtful →
- * both (the likelier first), clear goal → only "Als neues Ziel"; the hidden one under "⋯ Mehr".
+ * The place menu's add entries (owner 2026-11-07 11:20 / 11:25 / 11:30; 2026-11-15): always „Einfügen“ and „Neues Ziel“,
+ * the likelier one first (by the zone) and emphasised, each saying where the point goes and about how far.
  */
 class PlaceAddMenuTest {
 
@@ -32,14 +33,14 @@ class PlaceAddMenuTest {
 
     /**
      * The field case (11:25): position in Hilden centre, goal 1 km to the WEST, the church 800 m to the NORTH-EAST. As a
-     * stop it adds ~1.5 km to a 1 km rest (more than doubles it) – only "Als neues Ziel"; the stop waits under "Mehr".
+     * stop it adds ~1.5 km to a 1 km rest (more than doubles it) – „Neues Ziel“ first, „Einfügen“ under it.
      */
     @Test fun churchNorthEastWithTheGoalWestIsOnlyTheGoal() {
         val goal = at(here, -1000.0, 0.0)
         val church = at(here, 565.0, 565.0)
         val zone = PlaceAddMenu.zone(listOf(here, goal), church)
         assertEquals(Zone.GOAL, zone)
-        assertEquals(PlaceAddMenu.Menu(listOf(Item.NEW_DESTINATION), listOf(Item.ADD_STOP)), PlaceAddMenu.menu(2, true, zone))
+        assertEquals(PlaceAddMenu.Menu(listOf(Item.NEW_DESTINATION, Item.ADD_STOP)), PlaceAddMenu.menu(2, true, zone))
     }
 
     /** The same church with a long rest (3 km west): the detour is under half of it – doubtful, both, the stop first. */
@@ -95,18 +96,89 @@ class PlaceAddMenuTest {
 
     // ---- the menu ----
 
+    /** Owner 2026-11-15 (after a hike): both rows always, the likelier first and emphasised – nothing under „⋯ Mehr“. */
     @Test fun theMenuPerZone() {
-        assertEquals(PlaceAddMenu.Menu(listOf(Item.ADD_STOP), listOf(Item.NEW_DESTINATION)), PlaceAddMenu.menu(3, false, Zone.STOP))
+        assertEquals(PlaceAddMenu.Menu(listOf(Item.ADD_STOP, Item.NEW_DESTINATION)), PlaceAddMenu.menu(3, false, Zone.STOP))
         assertEquals(PlaceAddMenu.Menu(listOf(Item.ADD_STOP, Item.NEW_DESTINATION)), PlaceAddMenu.menu(3, false, Zone.STOP_FIRST))
         assertEquals(PlaceAddMenu.Menu(listOf(Item.NEW_DESTINATION, Item.ADD_STOP)), PlaceAddMenu.menu(3, true, Zone.GOAL_FIRST))
-        assertEquals(PlaceAddMenu.Menu(listOf(Item.NEW_DESTINATION), listOf(Item.ADD_STOP)), PlaceAddMenu.menu(3, true, Zone.GOAL))
+        assertEquals(PlaceAddMenu.Menu(listOf(Item.NEW_DESTINATION, Item.ADD_STOP)), PlaceAddMenu.menu(3, true, Zone.GOAL))
     }
 
-    @Test fun bothAreAlwaysReachable() {
+    @Test fun bothAreAlwaysShownTheFirstEmphasised() {
         for (z in Zone.values()) {
             val m = PlaceAddMenu.menu(2, true, z)
-            assertTrue("$z", Item.ADD_STOP in m.main + m.more && Item.NEW_DESTINATION in m.main + m.more)
+            assertEquals("$z", setOf(Item.ADD_STOP, Item.NEW_DESTINATION), m.main.toSet())
+            assertEquals("$z", m.main.first(), m.emphasised)
         }
+        // one point or none: nothing to choose between, nothing emphasised
+        assertEquals(null, PlaceAddMenu.menu(1, false, null).emphasised)
+        assertEquals(null, PlaceAddMenu.menu(0, false, null).emphasised)
+    }
+
+    // ---- what a row says: where the point goes, about how far (owner 2026-11-15) ----
+
+    @Test fun pointNamesNeverSayStop2() {
+        assertEquals("Kirche", PlaceAddMenu.pointName(1, 3, "Kirche"))
+        assertEquals("Start", PlaceAddMenu.pointName(0, 3, null))
+        assertEquals("Destination", PlaceAddMenu.pointName(2, 3, " "))
+        assertEquals("②", PlaceAddMenu.pointName(1, 3, null)) // as on the map's marker
+        assertEquals("⑳", PlaceAddMenu.circled(20))
+        assertEquals("21", PlaceAddMenu.circled(21))
+    }
+
+    @Test fun longNamesAreShortenedAtAWord() {
+        assertEquals("Burgruine Altenahr", PlaceAddMenu.shorten("Burgruine Altenahr"))
+        assertEquals("Gasthaus Zur Alten…", PlaceAddMenu.shorten("Gasthaus Zur Alten Mühle am Bach"))
+        assertTrue(PlaceAddMenu.shorten("Gasthaus Zur Alten Mühle am Bach").length <= PlaceAddMenu.NAME_MAX)
+        // one long word: cut hard
+        assertEquals(PlaceAddMenu.NAME_MAX, PlaceAddMenu.shorten("Donaudampfschifffahrtsgesellschaft").length)
+    }
+
+    @Test fun theStopLineSaysBetweenWhich() {
+        val names = listOf("Start", "Kirche", "Hütte")
+        assertEquals(PlaceAddMenu.Line("between Kirche and Hütte", "about +0.6 km"), PlaceAddMenu.stopLine(names, 2, false, 600.0))
+        assertEquals("before Kirche", PlaceAddMenu.stopLine(names, 1, nextAhead = true, extraM = 50.0).where) // on a tour, right ahead
+        assertEquals(null, PlaceAddMenu.stopLine(names, 1, false, 50.0).km) // a few steps aside: no number
+        assertEquals("before Start", PlaceAddMenu.stopLine(names, 0, false, null).where)
+    }
+
+    @Test fun theGoalLineSaysAfterWhilePlanningInsteadOnATour() {
+        assertEquals(PlaceAddMenu.Line("after Hütte", "about +3.2 km"), PlaceAddMenu.goalLine("Hütte", touring = false, extraM = 3200.0))
+        assertEquals(PlaceAddMenu.Line("instead of Hütte", "about −0.4 km"), PlaceAddMenu.goalLine("Hütte", touring = true, extraM = -400.0))
+    }
+
+    @Test fun kmOneDecimalUnderTenWholeAbove() {
+        assertEquals("about +0.1 km", PlaceAddMenu.km(100.0))
+        assertEquals("about +9.9 km", PlaceAddMenu.km(9_940.0))
+        assertEquals("about +12 km", PlaceAddMenu.km(12_400.0))
+        assertEquals(null, PlaceAddMenu.km(99.0))
+        assertEquals(null, PlaceAddMenu.km(null))
+    }
+
+    @Test fun inGermanTheOwnersWords() {
+        val before = java.util.Locale.getDefault()
+        java.util.Locale.setDefault(java.util.Locale.GERMANY)
+        try {
+            assertEquals(PlaceAddMenu.Line("zwischen Kirche und Hütte", "ca. +0,6 km"),
+                PlaceAddMenu.stopLine(listOf("Start", "Kirche", "Hütte"), 2, false, 600.0))
+            assertEquals("nach Hütte", PlaceAddMenu.goalLine("Hütte", false, null).where)
+            assertEquals("statt Hütte", PlaceAddMenu.goalLine("Hütte", true, null).where)
+            assertEquals("Ziel", PlaceAddMenu.pointName(2, 3, null))
+            assertEquals("Einfügen", Txt.s(Res.string.plan_add_as_stop))
+            assertEquals("Neues Ziel", Txt.s(Res.string.plan_make_destination))
+        } finally {
+            java.util.Locale.setDefault(before)
+        }
+    }
+
+    @Test fun theDetourFactorIsTheRoutesOwn() {
+        val goal = at(here, 2000.0, 0.0)
+        assertEquals(1.0, PlaceAddMenu.detourFactor(null, listOf(here, goal)), 1e-9)
+        assertEquals(1.5, PlaceAddMenu.detourFactor(3000.0, listOf(here, goal)), 0.01)
+        assertEquals(PlaceAddMenu.FACTOR_MAX, PlaceAddMenu.detourFactor(50_000.0, listOf(here, goal)), 1e-9) // an odd route: kept sane
+        assertEquals(PlaceAddMenu.FACTOR_MIN, PlaceAddMenu.detourFactor(1000.0, listOf(here, goal)), 1e-9)
+        // the straight detour of a place 800 m beside the middle of 2 km
+        assertEquals(0.56, PlaceAddMenu.detourM(here, goal, at(here, 1000.0, 800.0)) / 1000, 0.02)
     }
 
     @Test fun fewerThanTwoPointsKeepTheFirstPointWording() {
@@ -115,7 +187,7 @@ class PlaceAddMenuTest {
         assertEquals(listOf(Item.SET_DESTINATION), PlaceAddMenu.menu(1, true, null).main)
     }
 
-    // ---- "Als Zwischenstopp" keeps the goal ----
+    // ---- „Einfügen“ keeps the goal ----
 
     @Test fun aStopNeverReplacesOrPassesTheGoal() {
         val goal = at(here, 2000.0, 0.0)

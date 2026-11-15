@@ -19,14 +19,15 @@ class WebPlaceMenuTest {
 
     @Test fun aPlaceOnTheWayIsAStopFirstAndGoesBetween() {
         val m = Engine.placeMenu(ab, 46.6702, 11.2100, false)
-        assertTrue(m, m.startsWith("{\"main\":[\"ADD_STOP\"]"))
-        assertTrue(m, m.contains("\"more\":[\"NEW_DESTINATION\"]"))
+        // owner 2026-11-15: both always, the likelier first – nothing under „⋯ Mehr“
+        assertTrue(m, m.startsWith("{\"main\":[\"ADD_STOP\",\"NEW_DESTINATION\"]"))
+        assertTrue(m, m.contains("\"more\":[]"))
         assertEquals(m, 1, Regex("\"stop\":(\\d+)").find(m)!!.groupValues[1].toInt())
     }
 
     @Test fun aPlaceFarPastTheGoalIsTheNewGoal() {
         val m = Engine.placeMenu(ab, 46.6700, 11.6000, false)
-        assertTrue(m, m.startsWith("{\"main\":[\"NEW_DESTINATION\"]"))
+        assertTrue(m, m.startsWith("{\"main\":[\"NEW_DESTINATION\",\"ADD_STOP\"]"))
     }
 
     // „Als neues Ziel“ in the planner (no tour) keeps the old goal as the last stop – PlaceAddMenu.keepsOldGoal (owner 2026-11-14)

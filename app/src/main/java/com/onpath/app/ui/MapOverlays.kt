@@ -19,7 +19,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.AddLocationAlt
-import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Map
@@ -41,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -377,9 +377,9 @@ fun FirstPointMenu(fromMeBlocked: String?, onStartHere: () -> Unit, onFromMe: ()
 
 /**
  * Menu of a held POI that is not a route point: its name + how to add it · "Open in Google Maps". With 2+ points the
- * entries of [menu] ([PlaceAddMenu], owner 2026-11-07): "Als Zwischenstopp" and/or "Als neues Ziel" in the order of the
- * geometry, a clear case's alternative behind "⋯ Mehr". With one point [addLabel] ("Set as destination"). On an empty
- * plan it asks like the first-point menu (owner): "Start here" · "Go here" · "Open in Google Maps".
+ * entries of [menu] ([PlaceAddMenu], owner 2026-11-07 / 2026-11-15): always „Einfügen“ and „Neues Ziel“, the likelier one
+ * first and emphasised (tinted), each with where the point goes and about how far. With one point [addLabel] ("Set as
+ * destination"). On an empty plan it asks like the first-point menu (owner): "Start here" · "Go here" · "Open in Google Maps".
  */
 @Composable
 fun PoiMenu(poi: Poi, onAdd: () -> Unit, onGoogle: () -> Unit, modifier: Modifier = Modifier,
@@ -395,7 +395,6 @@ fun PoiMenu(poi: Poi, onAdd: () -> Unit, onGoogle: () -> Unit, modifier: Modifie
             /** A full-width card at the bottom instead of a menu at the place. */
             card: Boolean = false) {
     val place = Place.fromPoi(poi)
-    var more by remember(poi) { mutableStateOf(false) }
     MenuSurface(modifier, card) {
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)) {
             Text(place.title(), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
@@ -409,17 +408,20 @@ fun PoiMenu(poi: Poi, onAdd: () -> Unit, onGoogle: () -> Unit, modifier: Modifie
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         // the rows in their order (PinMenuItems): the same for a hold and for a picked search result (owner 2026-11-13)
-        for (r in PinMenuItems.of(emptyPlan, startHere, menu, pin = onRemovePin != null, more = more)) when (r) {
+        @Composable fun addRow(item: PlaceAddMenu.Item, icon: ImageVector, label: String, onClick: () -> Unit) {
+            val line = menu?.lines?.get(item)
+            HoldMenuItem(icon, label, supporting = line?.where?.takeIf { it.isNotBlank() }, aside = line?.km,
+                strong = menu?.emphasised == item, onClick = onClick)
+        }
+        for (r in PinMenuItems.of(emptyPlan, startHere, menu, pin = onRemovePin != null)) when (r) {
             PinMenuItems.Row.START_HERE -> HoldMenuItem(Icons.Outlined.TripOrigin, str(Res.string.plan_start_here), onClick = onAdd)
             PinMenuItems.Row.GO_HERE -> HoldMenuItem(Icons.Outlined.MyLocation, str(Res.string.plan_go_here), enabled = fromMeBlocked == null,
                 supporting = fromMeBlocked, onClick = onFromMe)
             PinMenuItems.Row.ADD -> HoldMenuItem(Icons.Outlined.AddLocationAlt, addLabel, onClick = onAdd)
-            PinMenuItems.Row.ADD_STOP -> HoldMenuItem(Icons.Outlined.AddLocationAlt, str(Res.string.plan_add_as_stop), onClick = onAddStop)
-            PinMenuItems.Row.NEW_DESTINATION -> HoldMenuItem(Icons.Outlined.Flag, str(Res.string.plan_make_destination), onClick = onNewDestination)
+            PinMenuItems.Row.ADD_STOP -> addRow(PlaceAddMenu.Item.ADD_STOP, Icons.Outlined.AddLocationAlt, str(Res.string.plan_add_as_stop), onAddStop)
+            PinMenuItems.Row.NEW_DESTINATION -> addRow(PlaceAddMenu.Item.NEW_DESTINATION, Icons.Outlined.Flag, str(Res.string.plan_make_destination), onNewDestination)
             PinMenuItems.Row.GOOGLE -> HoldMenuItem(Icons.Outlined.Map, str(Res.string.plan_open_google_maps), onClick = onGoogle)
             PinMenuItems.Row.REMOVE_PIN -> HoldMenuItem(Icons.Outlined.WrongLocation, str(Res.string.plan_remove_pin), onClick = { onRemovePin?.invoke() })
-            // the alternative a clear case hides is never lost (owner 11:30: "solange wir auf der sicheren Seite sind")
-            PinMenuItems.Row.MORE -> HoldMenuItem(Icons.Outlined.MoreHoriz, str(Res.string.common_more), onClick = { more = true })
         }
     }
 }
@@ -454,27 +456,44 @@ fun PointMenu(index: Int, count: Int, name: String?, modifier: Modifier = Modifi
     }
 }
 
-/** One menu row: icon + label, ≥ 48 dp high, the whole row is the touch target. */
+/**
+ * One menu row: icon + label, ≥ 48 dp high, the whole row is the touch target. [aside] stands quietly behind the label
+ * („Einfügen · ca. +0,6 km“); [strong] = the likelier add row (owner 2026-11-15): tinted in the Plan blue, a bold label.
+ */
 @Composable
 private fun HoldMenuItem(
     icon: ImageVector, label: String, danger: Boolean = false, enabled: Boolean = true, supporting: String? = null,
-    onClick: () -> Unit,
+    aside: String? = null, strong: Boolean = false, onClick: () -> Unit,
 ) {
-    val base = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
+    val base = when {
+        danger -> MaterialTheme.colorScheme.error
+        strong -> OnPathColors.OnEditTonal
+        else -> MaterialTheme.colorScheme.onSurface
+    }
     val color = if (enabled) base else base.copy(alpha = 0.38f)
+    val muted = if (strong) OnPathColors.OnEditTonal.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 6.dp),
+        (if (strong) Modifier.padding(horizontal = 6.dp, vertical = 2.dp).clip(OnPathShapes.Small).background(OnPathColors.EditTonal)
+         else Modifier).fillMaxWidth().heightIn(min = 52.dp).clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = if (strong) 10.dp else 16.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, tint = color, modifier = Modifier.size(22.dp))
+        Icon(icon, null, tint = if (strong) OnPathColors.ActionEdit else color, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(14.dp))
         Column {
-            // two lines at most: a large font wraps "Als Zwischenstopp" / "In Google Maps öffnen", never cuts it (2026-11-13)
-            Text(label, color = color, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, maxLines = 2,
-                overflow = TextOverflow.Ellipsis)
+            // two lines at most: a large font wraps "In Google Maps öffnen", never cuts it (2026-11-13)
+            val text = if (aside == null) androidx.compose.ui.text.AnnotatedString(label) else androidx.compose.ui.text.buildAnnotatedString {
+                append(label)
+                withStyle(MaterialTheme.typography.bodyMedium.toSpanStyle().copy(color = muted, fontWeight = FontWeight.Normal)) {
+                    // one piece: a large font moves „ca. +0,6 km“ to the next line whole, never „km“ alone
+                    append("  · " + aside.replace(' ', ' '))
+                }
+            }
+            Text(text, color = color, style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (strong) FontWeight.SemiBold else FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            // where the point goes (owner 2026-11-15): two lines at most; names are already shortened (PlaceAddMenu.shorten)
             supporting?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = muted, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
     }

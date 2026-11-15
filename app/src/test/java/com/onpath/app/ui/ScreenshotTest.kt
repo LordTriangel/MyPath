@@ -1102,25 +1102,39 @@ class ScreenshotTest {
         }
     }
 
-    /** Hold on a POI in Plan, a doubtful case (owner 2026-11-07): "Add as a stop · Make it the destination · Open in Google Maps". */
-    @Test fun poiMenu() = paparazzi.snapshot {
+    /**
+     * Hold on a POI in Plan with a route Start → Kirche → Hütte (owner 2026-11-15, variant A): always „Insert“ and „New
+     * destination“, the likelier first and tinted, each with where the point goes and about how far. [stopFirst] = the
+     * place beside the route (Insert first), else past the goal; [touring] = on a tour („instead of Hütte“); [long] = long
+     * names. Built inside the snapshot so the borrowing German / large-font classes get their own language.
+     */
+    fun placeAddMenu(stopFirst: Boolean = true, touring: Boolean = false, long: Boolean = false) = paparazzi.snapshot {
         OnPathTheme {
+            val names = if (long) listOf("Start", "Gasthaus Zur Alten Mühle", "Burgruine Altenahr").mapIndexed { i, s -> PlaceAddMenu.pointName(i, 3, s.takeIf { i > 0 }) }
+                else listOf("Start", "Kirche", "Hütte")
+            val stop = if (touring) PlaceAddMenu.stopLine(names, 1, nextAhead = true, extraM = 600.0)
+                else PlaceAddMenu.stopLine(names, 2, nextAhead = false, extraM = if (stopFirst) 600.0 else 2400.0)
+            val goal = PlaceAddMenu.goalLine(names.last(), touring, if (touring) -400.0 else if (stopFirst) 3200.0 else 900.0)
+            val items = if (stopFirst) listOf(PlaceAddMenu.Item.ADD_STOP, PlaceAddMenu.Item.NEW_DESTINATION)
+                else listOf(PlaceAddMenu.Item.NEW_DESTINATION, PlaceAddMenu.Item.ADD_STOP)
             OverlayFrame(OnPathColors.Rec, androidx.compose.ui.unit.DpOffset(110.dp, 400.dp)) {
-                PoiMenu(com.onpath.app.poi.Poi("n1", "hut", "Meraner Hütte", 46.68, 11.25, ele = 1960), onAdd = {}, onGoogle = {},
-                    menu = PlaceAddMenu.Menu(listOf(PlaceAddMenu.Item.ADD_STOP, PlaceAddMenu.Item.NEW_DESTINATION)))
+                PoiMenu(com.onpath.app.poi.Poi("n1", "cafe", "Waldcafé", 46.68, 11.25), onAdd = {}, onGoogle = {},
+                    menu = PlaceAddMenu.Menu(items, mapOf(PlaceAddMenu.Item.ADD_STOP to stop, PlaceAddMenu.Item.NEW_DESTINATION to goal)))
             }
         }
     }
 
-    /** A clear new goal (far beyond the route): only "Make it the destination", the stop waits under "More". */
-    @Test fun poiMenuClearGoal() = paparazzi.snapshot {
-        OnPathTheme {
-            OverlayFrame(OnPathColors.Rec, androidx.compose.ui.unit.DpOffset(110.dp, 400.dp)) {
-                PoiMenu(com.onpath.app.poi.Poi("n1", "hut", "Meraner Hütte", 46.68, 11.25, ele = 1960), onAdd = {}, onGoogle = {},
-                    menu = PlaceAddMenu.Menu(listOf(PlaceAddMenu.Item.NEW_DESTINATION), listOf(PlaceAddMenu.Item.ADD_STOP)))
-            }
-        }
-    }
+    /** Beside the route: „Insert · about +0.6 km – between Kirche and Hütte“ first, „New destination – after Hütte“ plain. */
+    @Test fun poiMenu() = placeAddMenu()
+
+    /** Past the goal: „New destination“ first, „Insert“ still there (no „More“ any more, owner 2026-11-15). */
+    @Test fun poiMenuClearGoal() = placeAddMenu(stopFirst = false)
+
+    /** Long names are shortened at a word (PlaceAddMenu.shorten), the where-line wraps to two lines at most. */
+    @Test fun poiMenuLongNames() = placeAddMenu(long = true)
+
+    /** On a tour: „Insert – before Kirche“ (right ahead), „New destination – instead of Hütte“. */
+    @Test fun poiMenuOnTour() = placeAddMenu(touring = true)
 
     /** Hold on a POI with an empty plan: same choice as the first-point menu. */
     @Test fun poiMenuEmptyPlan() = paparazzi.snapshot {

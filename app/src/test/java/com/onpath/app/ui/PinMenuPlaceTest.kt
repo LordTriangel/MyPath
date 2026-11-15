@@ -75,24 +75,20 @@ class PinMenuPlaceTest {
     @Test fun onePoint() = assertEquals(listOf(Row.ADD, Row.GOOGLE, Row.REMOVE_PIN),
         PinMenuItems.of(emptyPlan = false, startHere = true, menu = PlaceAddMenu.menu(1, false, null), pin = true))
 
-    @Test fun routeAClearStop() {
-        assertEquals(listOf(Row.ADD_STOP, Row.GOOGLE, Row.REMOVE_PIN, Row.MORE),
-            PinMenuItems.of(emptyPlan = false, startHere = true, menu = stopMenu, pin = true))
-        // "⋯ Mehr" tapped: the hidden alternative in its place
-        assertEquals(listOf(Row.ADD_STOP, Row.GOOGLE, Row.REMOVE_PIN, Row.NEW_DESTINATION),
-            PinMenuItems.of(emptyPlan = false, startHere = true, menu = stopMenu, pin = true, more = true))
-    }
+    /** Owner 2026-11-15: both add rows always, the likelier first – nothing under „⋯ Mehr“. */
+    @Test fun routeAClearStop() = assertEquals(listOf(Row.ADD_STOP, Row.NEW_DESTINATION, Row.GOOGLE, Row.REMOVE_PIN),
+        PinMenuItems.of(emptyPlan = false, startHere = true, menu = stopMenu, pin = true))
 
     @Test fun routeDoubtfulAndFar() {
         assertEquals(listOf(Row.NEW_DESTINATION, Row.ADD_STOP, Row.GOOGLE, Row.REMOVE_PIN),
             PinMenuItems.of(false, true, PlaceAddMenu.menu(3, false, PlaceAddMenu.Zone.GOAL_FIRST), pin = true))
-        assertEquals(listOf(Row.NEW_DESTINATION, Row.GOOGLE, Row.REMOVE_PIN, Row.MORE),
+        assertEquals(listOf(Row.NEW_DESTINATION, Row.ADD_STOP, Row.GOOGLE, Row.REMOVE_PIN),
             PinMenuItems.of(false, true, PlaceAddMenu.menu(3, false, PlaceAddMenu.Zone.GOAL), pin = true))
     }
 
     @Test fun duringATourTheSameAddEntriesAsAHold() =
         assertEquals(PinMenuItems.of(false, false, PlaceAddMenu.menu(3, true, PlaceAddMenu.Zone.STOP), pin = true),
-            listOf(Row.ADD_STOP, Row.GOOGLE, Row.REMOVE_PIN, Row.MORE))
+            listOf(Row.ADD_STOP, Row.NEW_DESTINATION, Row.GOOGLE, Row.REMOVE_PIN))
 
     @Test fun aMapPoiHasNoRemovePin() = assertEquals(listOf(Row.START_HERE, Row.GO_HERE, Row.GOOGLE),
         PinMenuItems.of(emptyPlan = true, startHere = true, menu = null, pin = false))

@@ -103,7 +103,7 @@ C04, C05, C07, C08 may stay Paparazzi snapshots (`GermanScreenshotTest_settingsS
 | D06 | `D06-handy-plan-wandern-t2` | the whole hike on the map, steep parts marked (hero picture) | plan (help), plan-wandern (home) · home hero, route-planen, store S5 | `planWholeRoute` | `ui/PlanPanel.kt`, `ui/RouteWarnings.kt`, map style |
 | D07 | `D07-handy-hinweise-steil` | the route notes open: where it gets steep | hinweise · route-planen | `routeSpotsList` `routeSpotsListHints` | `ui/RouteWarnings.kt` |
 | D08 | `D08-handy-t-band-t3` | grey band with red "T3" beside the T2 route | t-band · route-planen | – | `map/ActivityLayers.kt`, map style |
-| D09 | `D09-handy-ort-halten-als-zwischenstopp` | a place held near the route: "Als Zwischenstopp" / "Als neues Ziel" · Mehr | ziel · erste-schritte, route-planen | `poiMenu` | `ui/MapOverlays.kt` |
+| D09 | `D09-handy-ort-halten-als-zwischenstopp` | a place held near the route: „Einfügen“ (tinted, where + km) / „Neues Ziel“ (owner 2026-11-15) | ziel · erste-schritte, route-planen | `poiMenu` | `ui/MapOverlays.kt` |
 | D10 | `D10-handy-erreichbar-ab-t2` | a stop the route does not reach: "② erst ab T2 erreichbar" | erreichbar · route-planen | `planReachHike` | `ui/PlanPanel.kt` |
 | D11 | `D11-handy-punkteliste` | plan sheet fully up: profile + all points | punkteliste · route-planen | `planPointsFull` | `ui/PlanPanel.kt`, `ui/PointsSection.kt` |
 | D12 | `D12-handy-ohne-netz-erklaert` | a tap on "Ohne Netz ✓": what is on the phone | ohne-netz · offline | `planOfflineReady` | `ui/PlanTopBar.kt` |

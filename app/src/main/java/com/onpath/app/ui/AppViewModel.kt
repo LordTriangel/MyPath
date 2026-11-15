@@ -1866,29 +1866,51 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * The add entries of a held place's menu ([PlaceAddMenu], owner 2026-11-07): with 2+ points "Als Zwischenstopp"
-     * and/or "Als neues Ziel" by how clear the case is – measured on the route still to go (during a tour from my position).
+     * The add entries of a held place's menu ([PlaceAddMenu], owner 2026-11-07 / 2026-11-15): with 2+ points „Einfügen“ and
+     * „Neues Ziel“, the likelier first by how clear the case is – measured on the route still to go (during a tour from my
+     * position) – each with where the point goes and about how far ([PlaceAddMenu.Line]).
      */
     fun placeMenu(poi: com.onpath.app.poi.Poi): PlaceAddMenu.Menu {
         val p = GeoPoint(poi.lat, poi.lon)
-        val n = waypoints.size
+        val plan = waypoints.toList()
+        val n = plan.size
         val touring = recState.value != null
         if (n < 2) return PlaceAddMenu.menu(n, touring, zone = null)
         val ins = insertionFor(p, 30.0)
         val pos = myPosition()
         // during a tour the route to go starts here (TourSplit's ahead list already does; else put my position first)
         val ahead = if (ins.inTour || !touring || pos == null) ins.points else listOf(pos) + ins.points
-        return PlaceAddMenu.menu(n, touring, PlaceAddMenu.zone(ahead, p, loop = isRoundTrip()))
+        val menu = PlaceAddMenu.menu(n, touring, PlaceAddMenu.zone(ahead, p, loop = isRoundTrip()))
+        // what each row says: the same decisions the rows act on (addPoiAsStop: stopOnly; poiAsNewDestination)
+        val names = plan.mapIndexed { i, w -> PlaceAddMenu.pointName(i, n, stopName(w)) }
+        val f = PlaceAddMenu.detourFactor(route?.takeIf { !routing }?.distanceM, plan)
+        val stop = insertionFor(p, 30.0, stopOnly = true)
+        val sp = stop.points
+        val si = stop.decision.index
+        val stopExtra = f * when {
+            si in 1 until sp.size -> PlaceAddMenu.detourM(sp[si - 1], sp[si], p)
+            si <= 0 -> com.onpath.app.data.Geo.distance(p, sp.first())
+            else -> com.onpath.app.data.Geo.distance(sp.last(), p)
+        }
+        val goalExtra = if (PlaceAddMenu.keepsOldGoal(touring)) f * com.onpath.app.data.Geo.distance(plan.last(), p)
+            else ahead.takeIf { it.size >= 2 }?.let { a ->
+                val prev = a[a.size - 2]
+                f * (com.onpath.app.data.Geo.distance(prev, p) - com.onpath.app.data.Geo.distance(prev, a.last()))
+            }
+        return menu.copy(lines = mapOf(
+            PlaceAddMenu.Item.ADD_STOP to PlaceAddMenu.stopLine(names, stop.index, nextAhead = stop.inTour && si == 1, stopExtra),
+            PlaceAddMenu.Item.NEW_DESTINATION to PlaceAddMenu.goalLine(names.last(), touring, goalExtra),
+        ))
     }
 
-    /** Place menu → "Als Zwischenstopp": where it fits best on the route ahead, never behind the goal (the goal stays). */
+    /** Place menu → „Einfügen“: where it fits best on the route ahead, never behind the goal (the goal stays). */
     fun addPoiAsStop(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) = addPoiWith(poi, "as a stop") { p ->
         val ins = insertionFor(p, lineSnapM, stopOnly = true)
         change { add(ins.index.coerceIn(0, size), p) }
     }
 
     /**
-     * Place menu → "Als neues Ziel" (owner 2026-11-14): while planning (no tour) the route goes on to the place and the old
+     * Place menu → „Neues Ziel“ (owner 2026-11-14): while planning (no tour) the route goes on to the place and the old
      * goal stays as the last stop – planning forward; during a tour the place replaces the old goal (no detour back to a
      * goal one changed one's mind about – flow map N3, owner 2026-11-07). [PlaceAddMenu.keepsOldGoal]; Undo either way.
      */
