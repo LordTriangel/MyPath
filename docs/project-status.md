@@ -23,6 +23,7 @@ release's notes) and the git history – this file keeps only the current state 
   offline corridor 10 km on foot, 20 km for bike activities (donald). Smaller open items: `docs/backlog.md`; open questions: backlog "Waiting for the owner"; the owner's own questions: the Fragenregister.
 
 ## Last session
+- **IR, 2026-11-15 – tour suggestions (READ `docs/history/handoff-ir-2026-11-15.md`), on main except the core branch (local on donald, gate red):** compared with official loops (Traumpfade 48 → 81 %), Kante mit Blick, official loops on the POC page (RLP + NRW), Pixel measurement (option 1), sketches 3/4 (variant A, calm map); three answers wait in the backlog.
 - **donald, 2026-11-15 – the owner's hike findings (READ `docs/history/handoff-donald-2026-11-15.md`), on main except the hold rule (branch `donald-2026-11-15-hold-menu`, on his Pixel for a try), not released:** place menu
   „Einfügen“ / „Neues Ziel“ both always, one line, the likelier first and tinted (laptop line in „For the roles“); a tap on a
   POI shows its details everywhere (menu open, POI that is a route point); Back while recording stays in the app („App
