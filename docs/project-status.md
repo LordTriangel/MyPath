@@ -23,7 +23,7 @@ release's notes) and the git history – this file keeps only the current state 
   offline corridor 10 km on foot, 20 km for bike activities (donald). Smaller open items: `docs/backlog.md`; open questions: backlog "Waiting for the owner"; the owner's own questions: the Fragenregister.
 
 ## Last session
-- **donald, 2026-11-15 – the owner's hike findings, all on main, not released, not yet on the Pixel (unplugged):** place menu
+- **donald, 2026-11-15 – the owner's hike findings (READ `docs/history/handoff-donald-2026-11-15.md`), on main except the hold rule (branch `donald-2026-11-15-hold-menu`, on his Pixel for a try), not released:** place menu
   „Einfügen“ / „Neues Ziel“ both always, one line, the likelier first and tinted (laptop line in „For the roles“); a tap on a
   POI shows its details everywhere (menu open, POI that is a route point); Back while recording stays in the app („App
   verlassen?“ gone, trace line counts it); Zuletzt gesucht 20; My routes overview swipeable („3 von 27“) with stored map
