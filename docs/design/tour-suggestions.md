@@ -52,7 +52,7 @@ gar nicht mehr wissen, warum").
 | ascent | **[from, to]** metres up | missing = from flat up to what is usual for the activity and level |
 | natur, ruhe, bekannt | niedrig / mittel / hoch | nudge the axis weights / the worth of signed routes |
 | wasser | yes / no | "am Wasser entlang": water is what counts as special, the best loop at the water is shown first |
-| surface | befestigt / gemischt / natur (wheels: glatt / gemischt / rau) | a step on the character scale for the ground |
+| surface | befestigt / gemischt / natur (wheels: glatt / gemischt / rau) | **to be removed** (owner 2026-11-15) – still in the POC code |
 | tips | yes / no | use the AI's region tips where a file exists |
 
 Ranges instead of fixed values (owner 2026-11-14: "eine Range bei den Höhenmetern und eine Range bei der Zeit … man
@@ -62,8 +62,9 @@ bit short or a bit flat falls off gently; above the ascent or clearly too long i
 No separate "level" of effort and no pace in the wish (owner 2026-11-14: "den Level brauchen wir nicht mehr … was
 Level dann noch macht, ist auch für den User unklar"): the activity as the app has it (Wandern with its T level, Rad,
 Gravel, MTB) sets the character, the two ranges say how long and how much climbing; the activity's normal pace turns
-time into distance. Possibly redundant too: `surface` – on wheels the choice of Rad / Gravel / MTB already says which
-ground is welcome; it is kept as a nudge until the owner decides.
+time into distance. No `surface` either (owner 2026-11-15: "die Auswahlkriterien beim Weg sind genau die, die ich
+generell sonst auswähle"): the way the user wants is said by the same choice as everywhere in the app – Rad, Gravel,
+MTB, Wandern T1–T5; the POC still has the field until IR removes it after the comparison with official loops.
 
 ## 3. The method, as the planner should build it
 
@@ -163,7 +164,7 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   mechanisms (`poc` on localhost, `remote` = a password-protected service, `ring` stand-in, a slot for the real
   core), a debug setting "Tourvorschläge (Test)", all switched off by default; AI tips are one field of the wish.
 - **Remote test set-up:** `tools/suggest-poc/remote/` (a locked front `/v1/suggest`, a test planner served from this
-  computer). It accepts the old single values and the new ranges. Its services are stopped; the VPN is the owner's step.
+  computer). It accepts the old single values and the new ranges. Its services are stopped; not needed for now (owner 2026-11-15: back home, the road test went without it).
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - Where the entry appears (owner 2026-11-15: "wenn ‚Von hier starten' kommt, dann kann auch ‚Rundtour von hier' kommen"):
