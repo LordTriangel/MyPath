@@ -173,6 +173,10 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   core), a debug setting "Tourvorschläge (Test)", all switched off by default; AI tips are one field of the wish.
 - **Remote test set-up:** `tools/suggest-poc/remote/` (a locked front `/v1/suggest`, a test planner served from this
   computer). It accepts the old single values and the new ranges. Its services are stopped; not needed for now (owner 2026-11-15: back home, the road test went without it).
+- **Memory on the phone (measured 2026-11-15, `tools/suggest-poc/bench-phone/`):** Pixel 8 hike < 1 s, bike 3 h ~4 s;
+  but reading the network through BRouter's objects peaks at 230 of 256 MB (bike 3 h). **Owner 2026-11-15: option 1** –
+  the port reads the rd5 data itself straight into compact arrays (~33 MB), no map change; a precomputed compact network
+  per map area stays in reserve.
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
