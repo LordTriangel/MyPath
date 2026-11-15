@@ -1,10 +1,10 @@
-"""Named things from our own map areas: known signed routes, trail names, lakes, viewpoints – and which way lies on them.
+"""Named things from our own map areas: known signed routes, trail names, lakes, sights – and which way lies on them.
 
 The same files the phone has (cells.py fetches them): overlays.pmtiles layer `routes` (kind hike / bike, name, ref,
 net 4 international … 2 regional) and, where a cell has it, `routelines` (every signed route relation whole, also a
 local one on the ways of a bigger one – extract_overlays.py --all-routes, test cells so far), `trailnames` (local
-circular walks, promenades, Waalwege), base.pmtiles `water` + `water_name`, pois.geojson (viewpoints).
-Read once per map area, kept as attr-v6.json beside it.
+circular walks, promenades, Waalwege), base.pmtiles `water` + `water_name`, pois.geojson (sights: viewpoints, castles,
+ruins, chapels, caves, waterfalls). Read once per map area, kept as attr-v7.json beside it.
 """
 import json
 import os
@@ -15,6 +15,8 @@ import pmt
 from net import dist
 
 NET = {4: "i", 3: "n", 2: "r", 1: "l"}
+SIGHTS = {"viewpoint": "Aussichtspunkt", "castle": "Burg", "ruins": "Ruine", "chapel": "Kapelle", "cave": "Höhle",
+          "waterfall": "Wasserfall"}
 NOT_A_LAKE = re.compile(r"becken|filter|klär|fang$|hafen", re.I)
 _mem = {}
 
@@ -38,9 +40,9 @@ def label(name, ref):
 
 
 def read_cell(x, y):
-    """One map area -> {routes: [{kind, label, net, lines, trail}], lakes: [{name, lines}], views: [{name, p}]}."""
+    """One map area -> {routes: [{kind, label, net, lines, trail}], lakes: [{name, lines}], sights: [{name, what, p}]}."""
     d = CE.folder(x, y)
-    cache = os.path.join(d, "attr-v6.json")
+    cache = os.path.join(d, "attr-v7.json")
     if os.path.isfile(cache):
         with open(cache, encoding="utf-8") as f:
             return json.load(f)
@@ -69,7 +71,7 @@ def read_cell(x, y):
             if g.get("trail"):
                 g["lines"] += [rnd(part) for part in f["parts"] if len(part) > 1]
     out = {"routes": [{"kind": k, "label": lb, "net": g["net"], "lines": g["lines"], "trail": bool(g.get("trail"))}
-                      for (k, lb), g in groups.items()], "lakes": [], "views": []}
+                      for (k, lb), g in groups.items()], "lakes": [], "sights": []}
     ba, names = pmt.PMTiles(os.path.join(d, "base.pmtiles")), {}
     for z, tx, ty in pmt.tiles_of_cell(x, y, 14):
         raw = ba.tile(z, tx, ty)
@@ -95,8 +97,8 @@ def read_cell(x, y):
     pois = os.path.join(d, "pois.geojson")
     if os.path.isfile(pois):
         with open(pois, encoding="utf-8") as f:
-            out["views"] = [{"name": ft["properties"].get("name") or "Aussichtspunkt", "p": ft["geometry"]["coordinates"][:2]}
-                            for ft in json.load(f).get("features", []) if ft["properties"].get("kind") == "viewpoint"]
+            out["sights"] = [{"name": ft["properties"].get("name") or SIGHTS[k], "what": SIGHTS[k], "p": ft["geometry"]["coordinates"][:2]}
+                             for ft in json.load(f).get("features", []) for k in [ft["properties"].get("kind")] if k in SIGHTS]
     with open(cache, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False)
     return out
@@ -115,7 +117,7 @@ def _dense(lines, step=25.0):
 def _merged(cells, bike):
     key = (tuple(cells), bike)
     if key not in _mem:
-        routes, lakes, views = {}, {}, []
+        routes, lakes, sights = {}, {}, []
         for c in cells:
             if not CE.have(*c):
                 continue
@@ -127,17 +129,17 @@ def _merged(cells, bike):
                     g["lines"] += r["lines"]
             for lk in d["lakes"]:
                 lakes.setdefault(lk["name"], []).extend(lk["lines"])
-            views += d["views"]
+            sights += d["sights"]
         real = [k.lower() for k, g in routes.items() if not g["trail"]]
         for k in [k for k, g in routes.items() if g["trail"] and any(k.lower() in r for r in real)]:
             del routes[k]  # a trail label that only repeats a real route
-        _mem[key] = (routes, lakes, views)
+        _mem[key] = (routes, lakes, sights)
     return _mem[key]
 
 
 def load(start, reach_m, bike, ranks):
-    """The named things within reach_m of the start: [{kind: route | lake | view, name, rank 0..1, dense: points}]."""
-    routes, lakes, views = _merged(CE.cells_for(start[0], start[1], reach_m), bike)
+    """The named things within reach_m of the start: [{kind: route | lake | sight, name, rank 0..1, dense: points}]."""
+    routes, lakes, sights = _merged(CE.cells_for(start[0], start[1], reach_m), bike)
     out = []
     for name, g in routes.items():
         near = [p for p in _dense(g["lines"]) if dist(start, p) <= reach_m]
@@ -147,7 +149,8 @@ def load(start, reach_m, bike, ranks):
         near = [p for p in _dense(lines) if dist(start, p) <= reach_m]
         if len(near) * 25.0 >= 600.0 and not NOT_A_LAKE.search(name):
             out.append({"kind": "lake", "name": name, "rank": 1.0, "dense": near})
-    out += [{"kind": "view", "name": v["name"], "rank": 0.5, "dense": [v["p"]]} for v in views if dist(start, v["p"]) <= reach_m]
+    out += [{"kind": "sight", "name": v["name"], "what": v["what"], "rank": 1.0, "dense": [v["p"]]} for v in sights
+            if dist(start, v["p"]) <= reach_m]
     return out
 
 

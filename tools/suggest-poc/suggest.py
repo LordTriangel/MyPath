@@ -21,7 +21,7 @@ from facts import Facts
 from generate import measure, pool
 from net import load, seat_start
 from place import Place
-from score import choose, explain, judge
+from score import choose, explain, judge, line, order
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SERVICE = os.environ.get("SUGGEST_SERVICE", "http://127.0.0.1:8791")
@@ -90,7 +90,10 @@ def tips(wish, reach_m):
 
 
 def suggest(wish, S=None, extra=None):
-    """extra(P) -> loops from elsewhere ({edges, origin, aim}; official.py): judged with the pool, never chosen."""
+    """extra(P) -> loops from elsewhere ({edges, origin, aim, start?, show?, official?}; official.py), judged with the pool.
+    Without `show` they are only measured (the comparison); with it they are official loops shown beside ours: those
+    that fit the wish (at most select.official) join the list, sorted together by points, and an own loop that runs
+    for the most part (select.on_official) on one of them is not shown."""
     S = S or load_settings()
     t, times = time.time(), {}
 
@@ -118,16 +121,24 @@ def suggest(wish, S=None, extra=None):
                      "Runde gleich und zählt bei der Bewertung nicht mit." % ("%.1f" % (P.access / 1000.0)).replace(".", ","))
     lap("place")
     cands = pool(P, S)
-    others = [dict(m, **o) for o in (extra(P) if extra else []) for m in [measure(P, o["edges"])] if m]
+    others = [dict(m, **o) for o in (extra(P) if extra else []) for m in [measure(P, o["edges"], o.get("start"))] if m]
     lap("loops")
-    views = [{"name": th["name"], "p": th["dense"][0]} for th in things if th["kind"] == "view"]
-    for i, c in enumerate(judge(P, S, cands + others, views)):
+    sights = [{"name": th["name"], "what": th["what"], "p": th["dense"][0]} for th in things if th["kind"] == "sight"]
+    for i, c in enumerate(judge(P, S, cands + others, sights)):
         c["id"] = i + 1
-    shown = choose(P, S, cands)
+    fits = lambda c: (1 - S["form"]["short_zero"]) * ch.hours[0] <= c["hours"] <= (1 + S["form"]["long_zero"]) * ch.hours[1] \
+        and c["up"] <= ch.up[1]
+    official = sorted((o for o in others if o.get("show") and fits(o)), key=lambda o: -o["score"])[:S["select"]["official"]]
+    on = lambda c, o: sum(F.ln[e] for e in set(c["edges"]) & set(o["edges"])) >= S["select"]["on_official"] * c["m"]
+    shown = choose(P, S, [c for c in cands if not any(on(c, o) for o in official)])
+    shown = sorted(shown + official, key=lambda c: order(P, c))
     for c in cands + others:
         c["chosen"] = c in shown
         if c["chosen"]:
             explain(P, c)
+            if c.get("official"):  # its own description, else the line without its own name as "km auf …"
+                nm, n = c["official"]["name"], c["numbers"]
+                c["name"], c["line"] = nm, c["official"]["description"] or line(dict(n, known=[k for k in n["known"] if nm not in k[0]]))
         nodes = c.pop("nodes")
         c["coords"], c["cls"] = [[round(v, 6) for v in net.nodes[nodes[0]][:2]]], ""
         for ei, frm in zip(c.pop("edges"), nodes):

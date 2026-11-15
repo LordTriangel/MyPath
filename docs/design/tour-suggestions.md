@@ -27,7 +27,7 @@ machen würde"):
 | Natur | green beside the way, being deep inside nature | relative to the place |
 | Ruhe | away from traffic and houses | relative to the place |
 | Weg | the ground fits the character | relative to the place |
-| Besonderes | water, known routes by rank, a rail trail, a named protected area, a tip | relative to the place |
+| Besonderes | water, known routes by rank, a rail trail, a named protected area, an edge with a view, castles / ruins / chapels / viewpoints, a signed loop walked round, a tip | relative to the place |
 | Form | time and ascent inside the wished ranges, nothing walked twice, not crossing itself | absolute |
 
 "Relative to the place" = between the value that is poor here (a low quantile of the ways in reach) and the best any
@@ -52,7 +52,6 @@ gar nicht mehr wissen, warum").
 | ascent | **[from, to]** metres up | missing = from flat up to what is usual for the activity and level |
 | natur, ruhe, bekannt | niedrig / mittel / hoch | nudge the axis weights / the worth of signed routes |
 | wasser | yes / no | "am Wasser entlang": water is what counts as special, the best loop at the water is shown first |
-| surface | befestigt / gemischt / natur (wheels: glatt / gemischt / rau) | **to be removed** (owner 2026-11-15) – still in the POC code |
 | tips | yes / no | use the AI's region tips where a file exists |
 
 Ranges instead of fixed values (owner 2026-11-14: "eine Range bei den Höhenmetern und eine Range bei der Zeit … man
@@ -64,7 +63,7 @@ Level dann noch macht, ist auch für den User unklar"): the activity as the app 
 Gravel, MTB) sets the character, the two ranges say how long and how much climbing; the activity's normal pace turns
 time into distance. No `surface` either (owner 2026-11-15: "die Auswahlkriterien beim Weg sind genau die, die ich
 generell sonst auswähle"): the way the user wants is said by the same choice as everywhere in the app – Rad, Gravel,
-MTB, Wandern T1–T5; the POC still has the field until IR removes it after the comparison with official loops.
+MTB, Wandern T1–T5 (removed from the POC 2026-11-15).
 
 ## 3. The method, as the planner should build it
 
@@ -79,8 +78,13 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
    at 30 km/h; a separate way right beside a road counts 0.7 of it – found by geometry); built-up (inside settlement
    land); green within 100 m; depth = nature within 300 m and 900 m; water (big water 1, small water or a brook with a
    green strip 0.5); signed rank (routing data flags and named routes of the map); rail trail; ferry; the named
-   protected area and the known routes / lakes it lies on.
-4. **Place** (`place.py`): per way the absolute value on Natur, Ruhe, Weg, Besonderes for this character; the place's
+   protected area and the known routes / lakes it lies on; **an edge with a view** 0..1 (from the map area's terrain
+   model: the ground 90–300 m away on one side lies on average 20 m (0) … 60 m (1) lower, times how open – not under
+   trees – that side is); **a sight** within ~50 m (castle, ruin, chapel, viewpoint, cave, waterfall from
+   `pois.geojson`).
+4. **Place** (`place.py`): per way the absolute value on Natur, Ruhe, Weg, Besonderes for this character (an open
+   edge with a view counts as nature too – leaving the forest for it costs no Natur; it and a sight count 0.8 on
+   Besonderes); the place's
    yardstick per axis (25 % and 95 % quantile by length); "how good is this way here" = the weighted mean on that
    yardstick; search cost = metres × (1 + 4 × (1 − good)) × (1 + 3 × traffic). One search from the start. **What
    stands out** = the best 30 % of the ground: connected, and split by named protected area, it forms the *areas*;
@@ -97,19 +101,30 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
      to its far side);
    - lines: join at the nearest point, follow it both ways (its ways cost 0.3 ×), come home another way; built once,
      then the turning point is moved once so the length fits;
-   - a signed route that is itself a loop of fitting length: walked whole (its ways that close into a ring are order
-     enough). Needs complete route lines in the map – today a way carries only its most important route, so it rarely
-     closes (measured against official loops, `tools/suggest-poc/README.md` "Official loops").
+   - a signed route that is itself a loop of fitting length: walked round. Where its ways close into a ring, the ring
+     is walked exactly. Else pieces are missing (today a way carries only its most important route); seen from its middle a
+     loop lies all around (a line or an arc does not): the route's points in 24 directions (at least 18 taken), each
+     direction's mean point in order, are the ring – turning points on the route there (7 on foot, 9 on wheels), its
+     ways at 0.3 ×, gaps by the best way (measured against official loops, `tools/suggest-poc/README.md` "Official
+     loops").
    Kept: at most one meeting with the own way, time within −30 % / +10 % of the range, ascent not above it.
 6. **Judging** (`score.py`): the four place axes as means over the loop beyond the way out, read between "poor here"
-   and the best loop of the pool; Form from the ranges, the share walked twice and a meeting; points = weighted mean.
+   and the best loop of our own pool (an official loop is measured on it, it does not move it); on Besonderes + 0.05
+   per sight passed (at most 3) and + 0.15 for a signed loop walked round, ours or an official one (what the place's
+   makers laid out); Form from the ranges, the share walked twice and a meeting; points = weighted mean.
 7. **Selection**: the best first; with "am Wasser entlang" the best loop really at the water is always shown and
    first; then what stands out gets its best loop (a first-rank line, each area) if within 15 points; then further
    loops that share at most 60 % of their way beyond the way out and are within 18 points. At most five; fewer than
-   three is fine when the rest is poor.
+   three is fine when the rest is poor. Where official loops are known (the POC page: Rheinland-Pfalz), up to three
+   that lie in reach and fit the wish join the list, judged with the same yardstick (from their own start, the
+   parking place); an own loop that runs ≥ 80 % on one of them is left out; the list is sorted by points (loops
+   inside the wished time first).
 8. **Words**: a title from what the loop really uses (protected areas with ≥ 0.8 km, a lake, the main known route;
    else direction), a reason line with kilometres, honest hints (longer / shorter than wished, at a road, through
-   houses, walked twice, crosses itself, at the edge of a range), and "stark bei … · schwächer bei …".
+   houses, walked twice, crosses itself, at the edge of a range), "stark bei … · schwächer bei …", and **one line
+   on what the loop really passes** (protected areas, a lake, castles / ruins / chapels, km at edges with a view, a
+   viewpoint, the main known route, water, a rail trail); an official loop shows its OSM `description` instead where
+   it has one.
 
 For the port: `facts`, `place`, `character`, `generate`, `score` are pure (no I/O); the edges are the network source,
 the map-area reader and the grids. `tools/suggest-poc/cases.py` holds the owner's comments as checks – they become
@@ -122,7 +137,8 @@ the port's tests.
 | nodes, links, allowed, way tags (highway, surface, tracktype, sac_scale, maxspeed, route_*, railway, estimated_noise_class, estimated_river_class) | BRouter's node cache through a small Java service (`service/RouteService.java`, `/graph`) | the same rd5 files; reading the node cache through `RoutingContract` is new |
 | forest / heath / wetland, protected areas with names, settlement land, open water, place names | `base.pmtiles` of the map areas (`landcover`, `park`, `landuse`, `water`, `place`) drawn into a 45 m grid (`land.py`) | the same files |
 | known routes with name and rank, trail names | `overlays.pmtiles` (`routes`, `trailnames`) | the same files |
-| lakes with names, viewpoints | `base.pmtiles` (`water`, `water_name`), `pois.geojson` | the same files |
+| lakes with names, sights (viewpoint, castle, ruin, chapel, cave, waterfall) | `base.pmtiles` (`water`, `water_name`), `pois.geojson` | the same files |
+| heights for "edge with a view" | `terrain.pmtiles` of the map areas (Terrarium WebP, zoom 12) sampled into the 45 m grid (the POC decodes with Pillow) | the same files |
 
 Missing in our map: which pieces form one circular route and in which order (a signed loop cannot be offered "as it
 is"); ferries, monasteries, city parks, cable cars as named things. Map areas a run needs are fetched as the app does;
@@ -184,9 +200,9 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   "Vorschlag"); the same five Werte on every card; on the map **one line style for all** (no dashed official loops – the card shows the origin) and the loops not chosen
   only as a breath, barely visible (owner 2026-11-15: "nur quasi als Hauch … die Karte muss ruhig sein"). An own loop that runs ≥ 80 % on an
   official one is simply not shown – no "deckt sich mit unserem Vorschlag" note (owner: "was bringt das dem Benutzer?").
-  Open: a short text per card on what is special (proposal: one line instead of "stark bei … · schwächer bei …", the
-  full text on the chosen card; official loops: the OSM `description` where it exists – 21 of 88 Traumpfade –, else the
-  same generated line as ours from what the loop passes).
+  The short text per card (built in the POC page 2026-11-15): one line, full on the chosen card; official loops the
+  OSM `description` where it exists (12 of 21 Traumpfade, 4 of 43 Traumschleifen), else the same generated line as
+  ours from what the loop passes. On the map a fine line from the start to the chosen official loop's parking place.
 - Where the entry appears (owner 2026-11-15: "wenn ‚Von hier starten' kommt, dann kann auch ‚Rundtour von hier' kommen"):
   wherever a menu offers "Hier starten" – the first tap into an empty plan, the menu of a place / map symbol – it
   also offers "Rundtour von hier"; no extra rule of its own.

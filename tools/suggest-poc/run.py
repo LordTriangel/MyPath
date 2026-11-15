@@ -18,8 +18,9 @@ import suggest as S
 from character import wish as make_wish
 
 
-def pictures(run, count=1, size="1500,1000"):
-    """Screenshots of the local page showing a saved run: overview.png and route-<i>.png for the first `count`."""
+def pictures(run, count=1, size="1500,1000", vs=False):
+    """Screenshots of the local page showing a saved run: overview.png and route-<i>.png for the first `count`.
+    vs: the other loops drawn clearly (red, dashed) instead of faint – for comparing two loops on one picture."""
     import serve
     chrome = os.environ.get("CHROME") or shutil.which("google-chrome") or shutil.which("chromium")
     if not chrome:
@@ -33,7 +34,7 @@ def pictures(run, count=1, size="1500,1000"):
         png = os.path.join(out_dir, name + ".png")
         subprocess.run([chrome, "--headless=new", "--no-sandbox", "--disable-gpu", "--hide-scrollbars", "--window-size=" + size,
                         "--virtual-time-budget=9000", "--screenshot=" + png,
-                        "http://127.0.0.1:%d/?run=%s%s" % (srv.server_address[1], run, extra)],
+                        "http://127.0.0.1:%d/?run=%s%s%s" % (srv.server_address[1], run, extra, "&vs=1" if vs else "")],
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120)
         made += [png] if os.path.isfile(png) else []
     srv.shutdown()
@@ -48,7 +49,7 @@ if __name__ == "__main__":
     span = lambda s: [float(x) for x in s.split("-")] if "-" in s else float(s)
     ap.add_argument("--hours", type=span, default=2.0, help="2 or a range 1.5-2.5")
     ap.add_argument("--ascent", type=span, default=None, help="metres up as a range, e.g. 0-200 (default: flat up to what is usual for the activity)")
-    for k, default in (("surface", "gemischt"), ("natur", "mittel"), ("ruhe", "mittel"), ("bekannt", "mittel")):
+    for k, default in (("natur", "mittel"), ("ruhe", "mittel"), ("bekannt", "mittel")):
         ap.add_argument("--" + k, default=default)
     ap.add_argument("--wasser", action="store_true")
     ap.add_argument("--tips", action="store_true", help="mit KI-Regionswissen (region_ai.py)")
