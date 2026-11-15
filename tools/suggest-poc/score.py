@@ -28,8 +28,9 @@ def judge(P, S, cands, sights):
         c["raw"] = {a: sum(P.v[a][e] * F.ln[e] for e in core) / m for a in AXES[:4]}
         c["sights"] = [dict(s) for s in {s["name"]: s for s in sights
                                           if any(dist(net.nodes[x], s["p"]) < 120.0 for x in c["nodes"][::3])}.values()]
-        c["raw"]["besonderes"] += K["sight"] * min(3, len(c["sights"])) + K["ring"] * (c["origin"] == "Rundweg")
-    top = {a: max([c["raw"][a] for c in cands] + [P.low[a] + min_span]) for a in AXES[:4]}
+        c["raw"]["besonderes"] += K["sight"] * min(3, len(c["sights"])) + K["ring"] * (c["origin"] in ("Rundweg", "offiziell"))
+    # the yardstick is our own pool: official loops are measured on it, they do not move it
+    top = {a: max([c["raw"][a] for c in cands if c["origin"] != "offiziell"] + [P.low[a] + min_span]) for a in AXES[:4]}
     for c in cands:
         ax = {a: max(0.0, min(1.0, (c["raw"][a] - P.low[a]) / (top[a] - P.low[a]))) for a in AXES[:4]}
         _finish(P, S, c, ax)
@@ -139,8 +140,8 @@ def line(n):
         + ["%s km auf %s" % (num(k), nm) for nm, k in n["known"][:1] if k >= 0.25 * n["km"]] \
         + (["%s km am Wasser" % num(n["water_km"])] if n["water_km"] >= 1 and not n["lakes"] else []) \
         + (["%s km Bahntrasse" % num(n["rail_km"])] if n["rail_km"] >= 1 else [])
-    text = ", ".join(bits)
-    return text[:1].upper() + text[1:] if text else ""
+    text = ", ".join(bits) or "%d %% am Wald, %d %% auf Naturwegen" % (n["forest_pct"], n["ground_pct"][2] + n["ground_pct"][3])
+    return text[:1].upper() + text[1:]
 
 
 def choose(P, S, cands):

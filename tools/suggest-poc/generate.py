@@ -7,7 +7,7 @@ choose the points:
   turning points  the most pleasant point per direction at the right distance, alone or in pairs;
                   when a climb is wished, also points high enough and near enough for the time
   chains          the stand-out areas of the place, in order around the start, each crossed through its heart
-  rings           a signed route that is itself a loop of the right length, walked whole
+  rings           a signed route that is itself a loop of the right length, walked round (also from its pieces)
   lines           follow a known route, a rail trail or a bank, come home another way
 A loop inside one big area needs no generator of its own: there the pleasant turning points lie inside it.
 The wished time is a range: turning points are taken across all of it, and distance is counted in time.

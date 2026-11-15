@@ -21,7 +21,7 @@ from facts import Facts
 from generate import measure, pool
 from net import load, seat_start
 from place import Place
-from score import choose, explain, judge, order
+from score import choose, explain, judge, line, order
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SERVICE = os.environ.get("SUGGEST_SERVICE", "http://127.0.0.1:8791")
@@ -136,8 +136,9 @@ def suggest(wish, S=None, extra=None):
         c["chosen"] = c in shown
         if c["chosen"]:
             explain(P, c)
-            if c.get("official"):
-                c["name"], c["line"] = c["official"]["name"], c["official"]["description"] or c["line"]
+            if c.get("official"):  # its own description, else the line without its own name as "km auf …"
+                nm, n = c["official"]["name"], c["numbers"]
+                c["name"], c["line"] = nm, c["official"]["description"] or line(dict(n, known=[k for k in n["known"] if nm not in k[0]]))
         nodes = c.pop("nodes")
         c["coords"], c["cls"] = [[round(v, 6) for v in net.nodes[nodes[0]][:2]]], ""
         for ei, frm in zip(c.pop("edges"), nodes):

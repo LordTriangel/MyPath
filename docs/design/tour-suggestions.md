@@ -101,17 +101,17 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
      to its far side);
    - lines: join at the nearest point, follow it both ways (its ways cost 0.3 ×), come home another way; built once,
      then the turning point is moved once so the length fits;
-   - a signed route that is itself a loop of fitting length: walked round. The map knows a route's pieces, not their
-     order, and today a way carries only its most important route, so pieces can be missing; seen from its middle a
+   - a signed route that is itself a loop of fitting length: walked round. Where its ways close into a ring, the ring
+     is walked exactly. Else pieces are missing (today a way carries only its most important route); seen from its middle a
      loop lies all around (a line or an arc does not): the route's points in 24 directions (at least 18 taken), each
      direction's mean point in order, are the ring – turning points on the route there (7 on foot, 9 on wheels), its
      ways at 0.3 ×, gaps by the best way (measured against official loops, `tools/suggest-poc/README.md` "Official
      loops").
    Kept: at most one meeting with the own way, time within −30 % / +10 % of the range, ascent not above it.
 6. **Judging** (`score.py`): the four place axes as means over the loop beyond the way out, read between "poor here"
-   and the best loop of the pool; on Besonderes + 0.05 per sight passed (at most 3) and + 0.15 for a signed loop
-   walked round (what the place's makers laid out); Form from the ranges, the share walked twice and a meeting;
-   points = weighted mean.
+   and the best loop of our own pool (an official loop is measured on it, it does not move it); on Besonderes + 0.05
+   per sight passed (at most 3) and + 0.15 for a signed loop walked round, ours or an official one (what the place's
+   makers laid out); Form from the ranges, the share walked twice and a meeting; points = weighted mean.
 7. **Selection**: the best first; with "am Wasser entlang" the best loop really at the water is always shown and
    first; then what stands out gets its best loop (a first-rank line, each area) if within 15 points; then further
    loops that share at most 60 % of their way beyond the way out and are within 18 points. At most five; fewer than
