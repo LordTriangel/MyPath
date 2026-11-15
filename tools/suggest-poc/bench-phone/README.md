@@ -57,3 +57,15 @@ Not measured yet: the Pixel was not connected on 2026-11-15 (the dex builds; `be
 bike 2 h ≈ 3–6 s, bike 3 h ≈ 5–9 s for the core (reading the network dominates, then the searches). Memory: the
 hikes fit easily; bike 3 h needs ~150 MB of Java heap while reading – too close to a 256 MB app limit next to the
 app itself.
+
+## Measured on the Pixel 8 (2026-11-15, Android 17, heap limit 256 MB, second run)
+
+| Case | Nodes / links | Read | Facts (stand-in) | Searches | Total | Peak while reading | Network as arrays |
+|---|---|---|---|---|---|---|---|
+| hike2 | 20 k / 26 k | 0.39 s | 0.11 s | 0.05 s | ~0.6 s | 31 MB | 5.5 MB |
+| hike4 | 65 k / 84 k | 0.44 s | 0.09 s | 0.16 s | ~0.7 s | 55 MB | 10.7 MB |
+| bike2 | 167 k / 194 k | 1.8 s | 0.35 s | 0.35 s | ~2.5 s | 158 MB | 21.2 MB |
+| bike3 | 250 k / 292 k | 3.0 s | 0.43 s | 0.65 s | ~4.1 s | **230 MB** | 32.9 MB |
+
+Faster than the estimate; the risk is memory while reading through BRouter's objects (bike3: 230 of 256 MB) – a port
+reads straight into compact arrays or uses a precomputed compact network per map area. Phone use: 23 s, temp folder removed.
