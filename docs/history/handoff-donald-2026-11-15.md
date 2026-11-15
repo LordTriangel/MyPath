@@ -34,6 +34,7 @@ today's main (installed 23:13, `adb install -r`, plan and tours kept). Problem l
    named waypoints; other apps show line + markers; OnPath rebuilds the plan from it).
 
 ## Open for the owner (also in the backlog „Waiting for the owner“)
+- **23:25, owner: the new hold rule „funktioniert nicht so richtig“ – keep it on the Pixel, open point.** (a) The „S“ of a street-looking label was a bus stop's name (icon hidden) → place menu; (b) twice „Neues Ziel“ silently where he pressed Undo – ask what he wanted (backlog line has the numbers). Do NOT merge the branch before that.
 - Try the hold rule on the Pixel (same junction, plan further) → his yes → merge the branch to main.
 - Then a release of today's batch on his word (none of it is released).
 
