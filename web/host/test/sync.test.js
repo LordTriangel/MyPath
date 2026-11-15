@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { handleSync, purgeIdle, LIMITS } from "../src/sync.js";
 import { handle } from "../src/index.js";
 import { purgeQuota } from "../src/maps.js";
-import { fakeD1 } from "./fake-d1.js";
+import { fakeD1, plainParams } from "./fake-d1.js";
 
 const H = "https://plan.example.org/sync/v1/";
 const BOX = "6_ppugL_I2cbDsZYhdOddA"; // the frozen test mailbox (PlanSyncTest)
@@ -227,4 +227,26 @@ test("through the host's router as well: a thrown sync request is a 503", async 
   const env = { SYNC: { prepare: () => { throw new Error("D1_ERROR: storage operation exceeded timeout"); } } };
   const r = await handle(new Request(H + BOX, { method: "POST", headers: { authorization: "Bearer " + TOKEN } }), env);
   assert.equal(r.status, 503);
+});
+
+// donald 2026-11-13: sync-smoke / sync-rate-smoke red at pairing ("sync POST: column index out of range") – an older
+// node:sqlite does not bind plain arguments to D1's `?NNN` slots. The fake hands SQLite only plain `?` now.
+test("the fake D1 binds D1's numbered parameters itself (any Node version): ?NNN → ? with its value, repeats included", async () => {
+  const p = plainParams("INSERT INTO mailbox (id, token_hash, rev, created, seen) VALUES (?1, ?2, 0, ?3, ?3)", ["b", "h", 7]);
+  assert.equal(p.sql, "INSERT INTO mailbox (id, token_hash, rev, created, seen) VALUES (?, ?, 0, ?, ?)");
+  assert.deepEqual(p.args, ["b", "h", 7, 7]);
+  assert.deepEqual(plainParams("UPDATE mailbox SET seen = ?2 WHERE id = ?1", ["b", 5]).args, [5, "b"]);
+  assert.throws(() => plainParams("SELECT * FROM item WHERE mailbox = ?2", ["b"]), /\?2 has no value/);
+  // every statement the host sends reaches SQLite without a numbered slot (a full claim, write, read, unpair round)
+  const env = { SYNC: fakeD1() };
+  const seen = [];
+  const prepare = env.SYNC.sqlite.prepare.bind(env.SYNC.sqlite);
+  env.SYNC.sqlite.prepare = (sql) => { seen.push(sql); return prepare(sql); };
+  const c = client(env);
+  assert.equal((await c.claim()).status, 201);
+  assert.equal((await c.put(ITEM, 0)).status, 200);
+  assert.equal((await c.get()).status, 200);
+  assert.equal((await c.del()).status, 200);
+  assert.ok(seen.length > 5, `the round reached SQLite (${seen.length} statements)`);
+  assert.deepEqual(seen.filter((s) => /\?\d/.test(s)), []);
 });

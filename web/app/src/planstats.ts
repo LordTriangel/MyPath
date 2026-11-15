@@ -49,7 +49,20 @@ export function keepStats(key: string, s: PlanStats) {
   try { localStorage.setItem(KEY, JSON.stringify(all)); } catch { /* expected: storage blocked – numbers not kept */ }
 }
 
-/** The row's line, as the app's My routes card: "12,5 km · ↑ 842 m ↓ 310 m". */
+/** The app's Format.duration: "4 h 05 min", under an hour "25 min" (units as the app writes them, not translated). */
+export function durationText(s: number): string {
+  const total = Math.trunc(s / 60), h = Math.trunc(total / 60), m = total % 60;
+  return h > 0 ? `${h} h ${String(m).padStart(2, '0')} min` : `${m} min`;
+}
+
+/**
+ * The row's facts, as the app's My routes card (RouteRowActions.facts): "12,5 km · ↑ 842 m · 4 h 00 min" – length,
+ * climb, the model time; no-break spaces inside each value (a value never breaks, the line wraps only between them).
+ * The app always has a time (it recomputes the model time for every planned or imported row); numbers kept here before
+ * 2026-11-13 carry none – then the time is left out rather than a made-up "0 min".
+ */
 export function statsText(s: PlanStats): string {
-  return `${distance(s.m)} · ↑ ${Math.trunc(s.up)} m ↓ ${Math.trunc(s.down)} m`; // Format.distance / Format.meters
+  const parts = [distance(s.m), `↑ ${Math.trunc(s.up)} m`]; // Format.distance / Format.meters
+  if (Number.isFinite(s.s) && s.s! > 0) parts.push(durationText(s.s!));
+  return parts.map((p) => p.replace(/ /g, ' ')).join(' · ');
 }

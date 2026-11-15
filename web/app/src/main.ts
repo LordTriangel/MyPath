@@ -46,7 +46,7 @@ import { appHint } from './apphint';
 import { setupSheetSteps } from './sheetstep';
 import { installDiag, addDiagSection, problem } from './diag';
 import { watchVersion, BUILD } from './version';
-import { keepStats, planKey, trackKey } from './planstats';
+import { keepStats, planKey, trackKey, statsText } from './planstats';
 import { keepShape } from './routeshape';
 import { RouteReveal } from './routereveal';
 import { isPoiKind, poiFeatureAt, poiKindAt, poiPin } from './poipin';
@@ -245,6 +245,12 @@ const waits = new OneWait(document.body);
 onShown((m) => waits.set('box', m?.id === 'routing'));
 /** The sync once it exists (the header's Save is drawn before it). */
 let syncRef: PlanSync | null = null;
+/**
+ * The shown route: empty (fewer than two points), save (new, or changed since it was saved), saved (and unchanged).
+ * Declared before the first saveEntry call below: the dev server (unbundled ES module) keeps `let` in its temporal dead
+ * zone, so a later declaration crashed `npm run dev` ("Cannot access 'saveState' before initialization", donald 2026-11-13).
+ */
+let saveState: 'empty' | 'save' | 'saved' = 'empty';
 saveEntry('empty'); // the header's Save: greyed until a route exists (renderSaved keeps it current)
 // the plan sheet's three steps (sheetstep.ts – the app's PlanSize): handle, chevron, a click on the summary; remembered
 /** A shared link's first route is loading on a phone: the peek shows the link's name, the wait is the load overlay. */
@@ -1301,7 +1307,7 @@ addEventListener('online', () => { dataRetryFor = ''; retryMissingData(); });
  */
 async function adoptSnapped(routed: LatLon[], snapped: LatLon[]) {
   if (snapped.length !== routed.length || state.points !== routed) return;
-  const wasSaved = state.savedCode != null && (await untitled(sharedPlan())) === (await savedUntitled(state.savedCode));
+  const wasSaved = await samePointsAsSaved();
   // asked again after the engine answered: an edit queued behind this plan (a second quick click) may have set newer
   // points meanwhile – the old snapped list over them would drop that point (robust-smoke, CI 2026-11-03 / 11-05)
   if (state.points !== routed) return;
@@ -1468,19 +1474,31 @@ function render() {
   renderFabs();
 }
 
-const untitled = (p: SharedPlan) => engine.encode({ ...p, title: null });
-let savedUntitledMemo: { code: string; key: Promise<string | null> } | null = null;
-function savedUntitled(code: string): Promise<string | null> {
-  if (savedUntitledMemo?.code !== code) {
-    savedUntitledMemo = { code, key: engine.parse('p=' + code).then((p) => (p ? untitled(p) : null)) };
+/**
+ * The app's RouteRules.isUnsaved: only the points count (their lat/lon) – a changed activity, T level, point name, pin
+ * or title is no change (laptop 2026-11-15, as the app). Compared as codes of the saved plan with the one or the other
+ * point list, so both go through the same rounding.
+ */
+const pointsOnly = (p: SharedPlan, points: SharedPlan['points']) => engine.encode({ ...p, points, title: null, pinned: [], names: {} });
+let savedPointsMemo: { code: string; plan: Promise<SharedPlan | null>; key: Promise<string | null> } | null = null;
+function savedPoints(code: string) {
+  if (savedPointsMemo?.code !== code) {
+    const plan = engine.parse('p=' + code);
+    savedPointsMemo = { code, plan, key: plan.then((p) => (p ? pointsOnly(p, p.points) : null)) };
   }
-  return savedUntitledMemo.key;
+  return savedPointsMemo;
+}
+/** The plan on the map has the saved plan's points (RouteRules.isUnsaved false); false when nothing was saved. */
+async function samePointsAsSaved(): Promise<boolean> {
+  if (state.savedCode == null) return false;
+  const points = state.points, m = savedPoints(state.savedCode), saved = await m.plan;
+  return !!saved && (await pointsOnly(saved, points)) === (await m.key);
 }
 
 /** "Saved as …" under the summary while the plan is a saved one (the app's sheet line after Save). */
-/** The saved plan on the map changed since its Save (the name is in the code too, but naming it is not a change). */
+/** The saved plan on the map changed since its Save – its points only (RouteRules.isUnsaved). */
 async function savedPlanChanged(): Promise<boolean> {
-  return state.savedCode != null && (await ready) && (await untitled(sharedPlan())) !== (await savedUntitled(state.savedCode));
+  return state.savedCode != null && (await ready) && !(await samePointsAsSaved());
 }
 /** The plan on the map differs from its saved version (or was never saved) – Meine Touren's „Speichern“ on its row. */
 let planUnsaved = false;
@@ -1523,8 +1541,6 @@ let changedSeen: PlanResult | null = null;
 /** A legend distance: "1.2 km" / "350 m" in the page's language (the app's Format.distance for these lengths). */
 const km = (m: number, _total: number) => (m >= 1000 ? `${number(m / 1000, 1)} km` : `${Math.round(m)} m`);
 
-/** The shown route: empty (fewer than two points), save (new, or changed since it was saved), saved (and unchanged). */
-let saveState: 'empty' | 'save' | 'saved' = 'empty';
 /**
  * Speichern in the plan bar (web-sync.md §14.6; owner 2026-11-06, A: always "Speichern" – paired it also sends, "Aufs
  * Handy" beside it says where): dark (the app green) while anything is to save – the shown route new or changed, or
@@ -2001,7 +2017,7 @@ const plansHost = {
     return {
       title: state.title || null, points: state.points.length, savedId: state.savedId, savedFolder: state.savedFolder,
       recentId: state.recentId, pointsKey: enc(state.points), unsaved: state.savedId ? planUnsaved : state.points.length >= 2, canSave: state.points.length >= 2,
-      stats: routed ? { m: p!.distanceM, up: p!.ascentM, down: p!.descentM } : null,
+      stats: routed ? { m: p!.distanceM, up: p!.ascentM, down: p!.descentM, s: p!.timeS } : null,
       segs: routed ? p!.legs.map((l) => l.points.map(([la, lo]) => [la, lo] as [number, number])) : null,
     };
   },
@@ -2161,7 +2177,7 @@ const gpxImport = setupGpxImport({
   },
 });
 (window as unknown as { __gpx: typeof gpxImport }).__gpx = gpxImport; // for the browser tests
-(window as unknown as { __planStats: unknown }).__planStats = { keepStats, planKey, trackKey, keepShape }; // for the browser tests (sort-smoke, routes-smoke)
+(window as unknown as { __planStats: unknown }).__planStats = { keepStats, planKey, trackKey, keepShape, statsText }; // for the browser tests (sort-smoke, routes-smoke)
 $('credits').onclick = () => credits();
 $('changedLine').onclick = () => { changedSeen = state.plan; $('changedLine').hidden = true; fitRoute(); }; // the app's tapRouteChangedLine
 $('warning').onclick = () => { const sp = $('spots'); sp.hidden = !sp.hidden; $('warning').setAttribute('aria-expanded', String(!sp.hidden)); };

@@ -69,6 +69,15 @@ check(c[0].label === 'Sorted: Newest first' && c[2].label === 'Sort: Length', 't
 check(await P.isVisible('#planSearch') && (await P.evaluate(() => { const s = document.querySelector('.plansearch').getBoundingClientRect(), r = document.getElementById('planSort').getBoundingClientRect(); return r.top >= s.bottom - 1; })),
   'the chips sit under the search');
 check(same(await names(P), NEWEST), 'newest first: ' + (await names(P)).join(', '));
+// the row facts as the app's card (RouteRowActions.facts): km · ↑ climb · the model time (Format.duration), no ↓
+{
+  const facts = await P.$$eval('#planList li[data-id]', (els) => els.map((li) => li.querySelector('.stats')?.textContent.replace(/ /g, ' ') ?? null));
+  check(same(facts, ['8.0 km · ↑ 100 m · 2 h 46 min', null, '5.0 km · ↑ 900 m · 2 h 00 min', '12.0 km · ↑ 800 m · 4 h 00 min']),
+    'the facts like the app: km · ↑ · time (the plan never routed here: none) – ' + JSON.stringify(facts));
+  // numbers kept before 2026-11-13 have no time: km · ↑ only, never a made-up "0 min"
+  const old = await P.evaluate(() => { const st = window.__planStats; return [st.statsText({ m: 4100, up: 82, down: 10 }), st.statsText({ m: 650, up: 5, down: 5, s: 1500 })]; });
+  check(same(old.map((x) => x.replace(/ /g, ' ')), ['4.1 km · ↑ 82 m', '650 m · ↑ 5 m · 25 min']), 'without a time: km · ↑ only; under an hour "25 min" – ' + JSON.stringify(old));
+}
 
 await tap(P, 'LENGTH');
 c = await chips(P);

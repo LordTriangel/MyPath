@@ -271,9 +271,13 @@ check(myRow.name === 'Test loop' && myRow.live === 'Test loop' && JSON.stringify
 {
   const st = await page.evaluate(() => { const li = document.querySelector('#planList li[data-id]'), s = li.querySelector('.stats');
     const n = li.querySelector('.name').getBoundingClientRect(), r = s?.getBoundingClientRect();
-    return { text: s?.textContent ?? null, dist: document.querySelector('#summary .dist')?.textContent ?? '', below: !!r && r.top > n.bottom - 1 }; });
-  check(st.text !== null && st.text.startsWith(st.dist + ' · ↑ ') && /↑ \d+ m ↓ \d+ m$/.test(st.text) && st.below,
-    `My routes: length and climb under the name (the app's L1), "${st.text}" (sheet: ${st.dist})`);
+    const sp = (x) => x?.replace(/ /g, ' ') ?? null; // the row keeps each value together with no-break spaces (the app's facts)
+    return { text: sp(s?.textContent), nbsp: / /.test(s?.textContent ?? ''), dist: sp(document.querySelector('#summary .dist')?.textContent ?? ''),
+      time: sp(document.querySelector('#summary .time')?.textContent ?? ''), below: !!r && r.top > n.bottom - 1 }; });
+  // the app's facts (RouteRowActions.facts, laptop 2026-11-15): km · ↑ climb · the model time – the sheet's time, no ↓
+  check(st.text !== null && st.text === `${st.dist} · ↑ ${st.text.split(' · ')[1]?.slice(2)} · ${st.time}` && /^↑ \d+ m$/.test(st.text.split(' · ')[1] ?? '')
+    && /\d+ min$/.test(st.time) && st.nbsp && st.below,
+    `My routes: length, climb and time under the name (the app's L1), "${st.text}" (sheet: ${st.dist}, ${st.time})`);
 }
 await page.click('#closePlans');
 if (await page.isEnabled('#undo')) { // a change → Save dark; Save overwrites; My routes ⋮ → Save as copy makes a copy
@@ -284,6 +288,35 @@ if (await page.isEnabled('#undo')) { // a change → Save dark; Save overwrites;
   await answerSave(null);
   await page.waitForFunction(() => document.getElementById('menuSavePlan').dataset.state === 'done', null, { timeout: 10_000 }).catch(() => {});
   check((await saveHead()).state === 'done' && JSON.stringify(await savedTitles()) === '["Test loop"]', 'Save: the changed route saved over "Test loop" (its name kept)');
+  // unsaved = the points only (the app's RouteRules.isUnsaved, laptop 2026-11-15): another activity is no change – Save
+  // stays ✓ „Saved“, the line „Saved as …“, the Zuletzt row keeps its „Saved“ tag; a click on Save still saves (overwrites
+  // with the new activity, like the app's Save), then the activity goes back the same way
+  {
+    const was = await page.evaluate(() => ({ act: window.__state.activity, sac: window.__state.sac }));
+    const stored = () => page.evaluate(async () => (await window.__sync.list()).find((p) => p.title === 'Test loop').plan);
+    const plan0 = await stored();
+    await page.click('#activityChip');
+    await page.click(`#activityMenu [data-act=${was.act === 'MTB' ? 'BIKE_TOURING' : 'MTB'}]`);
+    await page.waitForTimeout(800); // renderSaved runs after the change (an engine round trip)
+    const head = await saveHead(), line = await page.textContent('#savedLine');
+    await page.click('#menuPlans');
+    await page.waitForSelector('dialog.plans[open] #planList li[data-live]'); // the list filters on the planning activity (now the other one): the live row
+    const tags = await page.$$eval('#planList li[data-live] .tag', (els) => els.map((e) => e.textContent.trim()));
+    await page.click('#closePlans');
+    check(head.state === 'done' && /Saved as Test loop/.test(line) && !/changed, not saved/.test(line) && tags.includes('Saved'),
+      `another activity is no change (points only, the app's rule): Save ✓, "${line.trim()}", Zuletzt tags ${JSON.stringify(tags)} (${JSON.stringify(head)})`);
+    await page.click('#menuSavePlan'); await answerSave(null); // the overwrite's name dialog, name kept
+    for (let i = 0; i < 40 && (await stored()) === plan0; i++) await page.waitForTimeout(250);
+    check((await stored()) !== plan0 && (await saveHead()).state === 'done' && JSON.stringify(await savedTitles()) === '["Test loop"]',
+      'a click on Save still saves the route with its new activity (overwrites "Test loop", as the app)');
+    await page.click('#activityChip');
+    await page.click(was.act === 'HIKE' ? `#activityMenu [data-sac="${was.sac}"]` : `#activityMenu [data-act=${was.act}]`);
+    if (await page.isVisible('#activityMenu')) await page.click('#actDone');
+    await page.waitForTimeout(500);
+    await page.click('#menuSavePlan'); await answerSave(null);
+    for (let i = 0; i < 40 && (await stored()) !== plan0; i++) await page.waitForTimeout(250);
+    check((await stored()) === plan0, 'back to the first activity and saved: the stored plan as before');
+  }
   const before = await page.evaluate(async () => (await window.__sync.list()).find((p) => p.title === 'Test loop').plan);
   await page.click('#menuPlans');
   await page.waitForSelector('dialog.plans[open] #planList li[data-id]');
