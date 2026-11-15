@@ -244,6 +244,12 @@ const waits = new OneWait(document.body);
 onShown((m) => waits.set('box', m?.id === 'routing'));
 /** The sync once it exists (the header's Save is drawn before it). */
 let syncRef: PlanSync | null = null;
+/**
+ * The shown route: empty (fewer than two points), save (new, or changed since it was saved), saved (and unchanged).
+ * Declared before the first saveEntry call below: the dev server (unbundled ES module) keeps `let` in its temporal dead
+ * zone, so a later declaration crashed `npm run dev` ("Cannot access 'saveState' before initialization", donald 2026-11-13).
+ */
+let saveState: 'empty' | 'save' | 'saved' = 'empty';
 saveEntry('empty'); // the header's Save: greyed until a route exists (renderSaved keeps it current)
 // the plan sheet's three steps (sheetstep.ts – the app's PlanSize): handle, chevron, a click on the summary; remembered
 /** A shared link's first route is loading on a phone: the peek shows the link's name, the wait is the load overlay. */
@@ -1505,8 +1511,6 @@ let changedSeen: PlanResult | null = null;
 /** A legend distance: "1.2 km" / "350 m" in the page's language (the app's Format.distance for these lengths). */
 const km = (m: number, _total: number) => (m >= 1000 ? `${number(m / 1000, 1)} km` : `${Math.round(m)} m`);
 
-/** The shown route: empty (fewer than two points), save (new, or changed since it was saved), saved (and unchanged). */
-let saveState: 'empty' | 'save' | 'saved' = 'empty';
 /**
  * Speichern in the plan bar (web-sync.md §14.6; owner 2026-11-06, A: always "Speichern" – paired it also sends, "Aufs
  * Handy" beside it says where): dark (the app green) while anything is to save – the shown route new or changed, or
