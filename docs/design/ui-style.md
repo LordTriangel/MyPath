@@ -261,8 +261,9 @@ for the map centre.
   the menu stays open and shows the new state. No „Nach Hause“ button during a tour (owner).
 - **Storage**: `SearchStore.saved()` in its own prefs `onpath-places` (Android's backup includes it); the backup folder
   gets `OnPath Orte.gpx` (`backup/PlacesBackup`: waypoints for other apps + the record `<onpath:places>`), written on each
-  change, retried at the next start; a restore joins it with the phone's places (the phone's home wins). Not synced to
-  the browser planner.
+  change, retried at the next start; a restore joins it with the phone's places (the phone's home wins). Synced with
+  the paired browser planner (`docs/design/web-sync.md` §5.4, item kind 5); every writer goes through
+  `SearchStore.update` (the menu, a restore, the sync's import).
 
 ## Rules for new UI
 - A question or must-know message → `Message` + `MessageCard` through the screen's host (Plan:

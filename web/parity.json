@@ -444,7 +444,7 @@
         "web/engine/src/main/kotlin/com/onpath/web/WebKept.kt",
         "web/app/src/keptplaces.ts"
       ],
-      "blob": "e4872915fcd3bc643a5bb9970c6bfcdec752d0be"
+      "blob": "de789779337b119b71b8d5e234f7d5b2d493efd1"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/search/SearchScreen.kt",
@@ -889,7 +889,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/search/SavedPlaces.kt": {
-      "blob": "f1041e24db48dede468535b2576304958520afd7",
+      "blob": "bad38bba5a4a70205769eaa8c57a464066f97f32",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/poi/Poi.kt": {
@@ -985,10 +985,11 @@
       ]
     },
     "app/src/main/java/com/onpath/app/sync/SyncItem.kt": {
-      "blob": "1003a665768f8937ac837a444a9a39d4b96737c4",
+      "blob": "67a041756f9369f70f537aaf9ea0573b3530ba6e",
       "perf": [
         "* only, missing = unknown), 7 = routing fingerprint (ASCII, \"r1-\" + 12 hex, ≤ [MAX_ROUTING]; kind 1 plan only),",
         "* 8 = routing data dates (ASCII, [SyncRoutingData] text, ≤ [MAX_ROUTING_DATA]; kind 1 plan only) – 7 and 8 are no",
+        "* ≤ [MAX_PLACE] bytes; kind 5 place only, also on its tombstone – [SyncPlaces]). Unknown tags are skipped",
         "const val ID_BYTES = 16",
         "const val DEVICE_BYTES = 8",
         "const val MAX_TITLE = 100",
@@ -999,6 +1000,7 @@
         "const val MAX_PAIR_CODE = 200",
         "const val MAX_ROUTING = 32",
         "const val MAX_ROUTING_DATA = 200",
+        "const val MAX_PLACE = 2000",
         "fun newId(random: ByteArray): String { require(random.size >= ID_BYTES); return B64.encode(random.copyOf(ID_BYTES)) }",
         "fun newDevice(random: ByteArray): String { require(random.size >= DEVICE_BYTES); return B64.encode(random.copyOf(DEVICE_BYTES)) }",
         "fun isId(s: String) = s.length == 22 && B64.decode(s)?.size == ID_BYTES",
@@ -1026,11 +1028,15 @@
         "private fun routingOf(s: String?): String? = s?.takeIf { it.isNotEmpty() && it.length <= MAX_ROUTING && it.all(B64::isCodeChar) }",
         "* not read are dropped; the text ends before [SyncFormat.MAX_ROUTING_DATA] bytes (whole entries only).",
         "if (sb.length + e.length + 1 > SyncFormat.MAX_ROUTING_DATA) break",
-        "val ID: String = B64.encode(Sha256.hash(\"OnPath join\".encodeToByteArray()).copyOf(SyncFormat.ID_BYTES))"
+        "val ID: String = B64.encode(Sha256.hash(\"OnPath join\".encodeToByteArray()).copyOf(SyncFormat.ID_BYTES))",
+        "val HOME_ID: String = B64.encode(Sha256.hash(\"OnPath home\".encodeToByteArray()).copyOf(SyncFormat.ID_BYTES))",
+        "B64.encode(Sha256.hash((\"OnPath place \" + line).encodeToByteArray()).copyOf(SyncFormat.ID_BYTES))",
+        "* The line as an item keeps it, or null: one line (no line break), at most [SyncFormat.MAX_PLACE] bytes, at least",
+        "if (l.isEmpty() || '\\n' in l || '\\r' in l || l.encodeToByteArray().size > SyncFormat.MAX_PLACE) return null"
       ]
     },
     "app/src/main/java/com/onpath/app/sync/SyncMerge.kt": {
-      "blob": "5d8d81e0a25f3af47cd4ae73cd6b186732851bb5",
+      "blob": "3b3217ab60ebf131a361a069ff9d44b7ce2e1732",
       "perf": [
         "val seed = \"OnPath copy \".encodeToByteArray() + (B64.decode(loser.id) ?: ByteArray(0)) +",
         "val base = (loser.title ?: \"Plan\").take(SyncFormat.MAX_TITLE - COPY.length)",
@@ -1038,7 +1044,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/sync/SyncLedger.kt": {
-      "blob": "2070471ea1f6958930d8ba86001e308e36ab0e76",
+      "blob": "7eeaf2fb9cb1f7acb22d85c9143faad8c2e022aa",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/sync/TrackCode.kt": {
@@ -1057,6 +1063,10 @@
         "if (tag == TAG_MARK.toLong() && marks.size < MAX_MARKS) {",
         "private fun clean(s: String?): String? = s?.filter { it >= ' ' }?.trim()?.take(MAX_NAME)?.trim()?.takeIf { it.isNotEmpty() }"
       ]
+    },
+    "app/src/main/java/com/onpath/app/sync/PlaceSync.kt": {
+      "blob": "1b8eb4d6b92f6849b396654336957b12acf68e9a",
+      "perf": []
     },
     "app/src/main/java/com/onpath/app/sync/SyncRound.kt": {
       "blob": "c0dff1eaa3d19a729f71bb07f60ac7a73b8c2d91",
@@ -1344,6 +1354,14 @@
         "// the item with it fits the blob limit",
         "assertTrue(SyncFormat.seal(keys, item, ByteArray(12)).size < SyncFormat.MAX_BLOB)",
         "assertTrue(b.size <= SyncFormat.MAX_TRACK)"
+      ]
+    },
+    "app/src/test/java/com/onpath/app/sync/SyncPlacesTest.kt": {
+      "blob": "80764e8d4be0f9315cd714c97a5663dce30ce501",
+      "perf": [
+        "private val phone = SyncFormat.newDevice(ByteArray(8) { 1 })",
+        "private val web = SyncFormat.newDevice(ByteArray(8) { 2 })",
+        "val unknown = byteArrayOf(1, 9) + ByteArray(16) { 7 } + ByteArray(8) { 1 } + byteArrayOf(10, 0, 40, 2, 'h'.code.toByte(), 'i'.code.toByte())"
       ]
     },
     "app/src/test/java/com/onpath/app/sync/SyncLimitsTest.kt": {
