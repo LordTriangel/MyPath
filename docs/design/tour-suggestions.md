@@ -218,6 +218,22 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   bike 3 h: desktop −Xmx72m is enough (Bench.java needed 160m), live peak ~67 MB, read 1.0 s; Pixel 8 live peak ~55 MB
   (was 230 MB), read 6.3 s (was 3.0 s – the per-kind tag text work is slower on ART; to speed up). Next: facts, place,
   character, generate, score as pure Kotlin on these arrays.
+- **Review 2026-11-16 (owner asked for a step back) – the build plan.** Kept: facts → place → character → candidates →
+  five axes → selection; measuring against official loops; the compact network core. Changed:
+  **a small suggest file per map cell, built by the map pipeline** (owner 2026-11-16: „Ja, Vorschlags-Datei“): the ~45 m
+  grid (nature, built-up, water, protected-area id, edge with a view), sights, and the signed loops as ordered lines
+  with name, family, km, ascent, start / parking – measured for the Hilden cell ~0.3 MB gzip (nature grid 38 KB, heights
+  115 KB, names 116 KB). The POC's `land.py` / `named.py` / `official.py extract` become that pipeline step; phone and
+  browser only read it. Falls away: rasterising tiles and decoding terrain at run time (the browser problem), and
+  the guessed order of a gapped signed route (`generate.pool` "Rundweg" by 24 directions) – official loops are
+  candidates from data. To port: only facts, place, character, generate, score (~830 Python lines).
+  To try before the freeze: the yardstick from the place alone, not "best loop of the pool" (a loop's points must not
+  change when another candidate is added). Stages, each with its acceptance: **0 freeze** (comment round done, sets +
+  cases measured, tag; no method change in Python afterwards) → **1 data** (laptop, test cells; the POC reads the file
+  and gives the same suggestions) → **2 core** (Kotlin on `suggest/`; compare sets and `cases.py` run against it via a
+  JVM entry; same results as the frozen POC; the Python method is deleted, settings stay one file) → **3 planner**
+  (sketch 4, behind the switch, owner tests in NRW, deploy on his word) → **4 app** → **5 all cells** get the file
+  (before 3 goes public; a cell without it says the map is being updated).
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
