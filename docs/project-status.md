@@ -23,6 +23,7 @@ release's notes) and the git history – this file keeps only the current state 
   offline corridor 10 km on foot, 20 km for bike activities (donald). Smaller open items: `docs/backlog.md`; open questions: backlog "Waiting for the owner"; the owner's own questions: the Fragenregister.
 
 ## Last session
+- **IR, night 2026-11-16/17 – tour suggestions (READ `docs/history/handoff-ir-2026-11-17.md`), on main, invisible:** owner's comments done (Nordkirchen 3 cards, ascent hard + hint, one selection ≤ 5 / 75 %), suggest file per cell (producer + pipeline patch), yardstick from the place, method frozen (tag) and ported to Kotlin `suggest/` with parity (65/65); stage 3 (planner) next.
 - **laptop, 2026-11-15 – planner follows the app's 11-15 changes (place menu, facts, unsaved rule), browser bin per the owner's decisions, kept places (browser-only, sync waits for donald's format), test cells with every route (19/21 Traumpfade):** `docs/history/handoff-laptop-2026-11-15.md`.
 - **donald, 2026-11-15 – the owner's hike findings, all on main, not released, not yet on the Pixel (unplugged):** place menu
 - **IR, 2026-11-15 – tour suggestions (READ `docs/history/handoff-ir-2026-11-15.md`), on main except the core branch (local on donald, gate red):** compared with official loops (Traumpfade 48 → 81 %), Kante mit Blick, official loops on the POC page (RLP + NRW), Pixel measurement (option 1), sketches 3/4 (variant A, calm map); three answers wait in the backlog.
