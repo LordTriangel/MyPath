@@ -49,7 +49,7 @@ gar nicht mehr wissen, warum").
 | start | [lon, lat] | |
 | activity, t_level | hike (T1–T5), bike, gravel, mtb | gives the character |
 | hours (or duration) | **[from, to]** hours | a single number is widened by ± 1 km on foot / ± 5 km by bike |
-| ascent | **[from, to]** metres up | missing = from flat up to what is usual for the activity and level |
+| ascent | **[from, to]** metres up | missing = from flat up to what is usual for the activity and level; one end alone is fine ("bis 350" = 0–350) |
 | natur, ruhe, bekannt | niedrig / mittel / hoch | nudge the axis weights / the worth of signed routes |
 | wasser | yes / no | "am Wasser entlang": water is what counts as special, the best loop at the water is shown first |
 | tips | yes / no | use the AI's region tips where a file exists |
@@ -107,19 +107,30 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
      direction's mean point in order, are the ring – turning points on the route there (7 on foot, 9 on wheels), its
      ways at 0.3 ×, gaps by the best way (measured against official loops, `tools/suggest-poc/README.md` "Official
      loops").
-   Kept: at most one meeting with the own way, time within −30 % / +10 % of the range, ascent not above it.
+   On foot a loop that would be out for a long stretch along a road is built once more with such stretches 8 × dearer
+   (`search.road_repair`): the way to the same turning points mostly exists without the road (Nordkirchen on foot:
+   12 of 22 loops were out, 4 of 14 after it). Kept: at most one meeting with the own way, time within −30 % / +10 %
+   of the range, ascent not above it – for official loops too. When no loop stays under a wished maximum that is lower
+   than usual, the loops are built once more with climbing dearer (`search.climb`; always on it made the comparison
+   sets worse), and if still none fits, the flattest are shown, each with "↑ 416 m – mehr als gewünscht (350 m)" and
+   a note in the run (Große Dhünntalsperre, bike, ≤ 350 m: the flattest has 416 m).
 6. **Judging** (`score.py`): the four place axes as means over the loop beyond the way out, read between "poor here"
    and the best loop of our own pool (an official loop is measured on it, it does not move it); on Besonderes + 0.05
    per sight passed (at most 3) and + 0.15 for a signed loop walked round, ours or an official one (what the place's
    makers laid out) – only while its longest stretch along a road with cars stays within 300 m (owner 2026-11-16:
    on wheels the road rule beats the bonus; on foot such a loop is out anyway); Form from the ranges, the share walked twice and a meeting; points = weighted mean.
-7. **Selection**: the best first; with "am Wasser entlang" the best loop really at the water is always shown and
-   first; then what stands out gets its best loop (a first-rank line, each area) if within 15 points; then further
-   loops that share at most 60 % of their way beyond the way out and are within 18 points. At most five; fewer than
-   three is fine when the rest is poor. Where official loops are known (the POC page: Rheinland-Pfalz), up to three
-   that lie in reach and fit the wish join the list, judged with the same yardstick (from their own start, the
-   parking place); an own loop that runs ≥ 80 % on one of them is left out; the list is sorted by points (loops
-   inside the wished time first).
+7. **Selection** – one selection over all cards: our loops and, where official loops are known (the POC page:
+   Rheinland-Pfalz, Nordrhein-Westfalen), the official loops in reach that fit the wish (time as for our loops, ascent
+   not above the wished maximum), judged with the same yardstick (from their own start, the parking place). No two
+   cards share more than 75 % of the shorter one's way beyond the way out (`select.overlap`; owner 2026-11-16: "60 %
+   … vielleicht 75 %"); an official loop gets + 5 points in the selection only, so between two similar loops the
+   official one wins unless it is clearly worse (owner: the official loops are generally good). The best first; with
+   "am Wasser entlang" the best loop really at the water is always shown and first; then what stands out gets its best
+   loop if within 15 points: an official loop inside the wished time, a first-rank line, each area; then further
+   different loops within 18 points. At most five. While fewer than three are shown, further different loops may be
+   up to 30 points behind (Nordkirchen on foot: the Hirschpark loops are far ahead of everything else, the other
+   directions still give walkable loops); fewer than three is fine when the rest is poorer still. The list is sorted
+   by points (loops inside the wished time first).
 8. **Words**: a title from what the loop really uses (protected areas with ≥ 0.8 km, a lake, the main known route;
    else direction), a reason line with kilometres, honest hints (longer / shorter than wished, at a road, through
    houses, walked twice, crosses itself, at the edge of a range), "stark bei … · schwächer bei …", and **one line
@@ -223,8 +234,8 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
   list, official loops and ours mixed, sorted by "passt zum Wunsch"; a badge shows the origin ("Ausgeschildert · Traumpfad" /
   "Vorschlag"); the same five Werte on every card; on the map **one line style for all** (no dashed official loops – the card shows the origin) and the loops not chosen
-  only as a breath, barely visible (owner 2026-11-15: "nur quasi als Hauch … die Karte muss ruhig sein"). An own loop that runs ≥ 80 % on an
-  official one is simply not shown – no "deckt sich mit unserem Vorschlag" note (owner: "was bringt das dem Benutzer?").
+  only as a breath, barely visible (owner 2026-11-15: "nur quasi als Hauch … die Karte muss ruhig sein"). Of an own loop and an official one that share more
+  than 75 % only one is shown, the official one unless clearly worse (§3.7) – no "deckt sich mit unserem Vorschlag" note (owner: "was bringt das dem Benutzer?").
   The short text per card (built in the POC page 2026-11-15): one line, full on the chosen card; official loops get
   the same generated line as ours from what the loop passes (2026-11-16: no OSM descriptions any more – copyright). On the map a fine line from the start to the chosen official loop's parking place.
 - Where the entry appears (owner 2026-11-15: "wenn ‚Von hier starten' kommt, dann kann auch ‚Rundtour von hier' kommen"):

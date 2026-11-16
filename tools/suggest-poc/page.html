@@ -56,7 +56,7 @@
   </div>
   <div class="row">
     <div><label>Dauer von – bis (Stunden) <span id="km"></span></label><div class="row"><input type="number" id="h0" value="1.5" min="0.25" max="10" step="0.25"><input type="number" id="h1" value="2.5" min="0.25" max="10" step="0.25"></div></div>
-    <div><label>Höhenmeter von – bis</label><div class="row"><input type="number" id="up0" min="0" step="50" placeholder="auto" title="leer = von flach bis zu dem, was für diese Aktivität üblich ist"><input type="number" id="up1" min="0" step="50" placeholder="auto"></div></div>
+    <div><label>Höhenmeter von – bis</label><div class="row"><input type="number" id="up0" min="0" step="50" placeholder="auto" title="leer = von flach bis zu dem, was für diese Aktivität üblich ist; ein Feld allein genügt"><input type="number" id="up1" min="0" step="50" placeholder="auto"></div></div>
   </div>
   <label>Was ist dir wichtig?</label>
   <div class="lv" data-k="natur"><span>Natur</span></div>
@@ -114,7 +114,7 @@ async function find() {
 $('find').onclick = find;
 $('place').onkeydown = e => { if (e.key === 'Enter') find(); };
 const wish = () => ({start, start_name: $('place').value, activity: $('activity').value, t_level: +$('t_level').value, hours: [+$('h0').value, +$('h1').value],
-  ascent: $('up0').value !== '' && $('up1').value !== '' ? [+$('up0').value, +$('up1').value] : null,
+  ascent: $('up0').value !== '' || $('up1').value !== '' ? [$('up0').value === '' ? null : +$('up0').value, $('up1').value === '' ? null : +$('up1').value] : null,
   ...level, wasser: $('wasser').checked, tips: $('tips').checked, official: $('official').checked, seed});
 async function go() {
   $('status').textContent = 'Runden werden gesucht …'; $('cards').innerHTML = ''; $('notes').innerHTML = '';
@@ -207,7 +207,7 @@ fetch(BASE + 'places').then(r => r.json()).then(d => {
   if (P.get('run')) fetch(BASE + 'run/' + P.get('run')).then(r => r.json()).then(r => {
     const w = r.wish;
     $('activity').value = w.activity; forActivity(); $('t_level').value = w.t_level; $('h0').value = +w.hours[0].toFixed(2); $('h1').value = +w.hours[1].toFixed(2);
-    if (w.ascent) { $('up0').value = w.ascent[0]; $('up1').value = w.ascent[1]; }
+    if (w.ascent) { $('up0').value = w.ascent[0] ?? ''; $('up1').value = w.ascent[1] ?? ''; }
     $('wasser').checked = w.wasser; $('tips').checked = w.tips; $('official').checked = w.official !== false;
     document.querySelectorAll('.lv').forEach(row => row.querySelectorAll('button').forEach(b => b.className = b.textContent === w[row.dataset.k] ? 'on' : ''));
     Object.keys(level).forEach(k => level[k] = w[k]);

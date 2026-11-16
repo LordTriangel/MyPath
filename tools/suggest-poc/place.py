@@ -43,7 +43,7 @@ def groups(net, edges):
 
 
 class Place:
-    def __init__(self, net, F, ch, S, tips=None):
+    def __init__(self, net, F, ch, S, tips=None, climb=False):
         P, Q = S["place"], S["search"]
         n, things, tips = len(net.edges), F.things, tips or {}
         ok = [ei for ei in range(n) if F.ok[ei]]
@@ -69,10 +69,16 @@ class Place:
         # --- how good a way is *here*, and what the search pays for it
         wsum = sum(ch.axes[a] for a in AXES)
         self.good, self.cost = [0.0] * n, [-1.0] * n
+        # climb: no loop stayed below a wished maximum of ascent – now climbing costs extra (in metres of flat way per
+        # metre up by the time model, the more the lower the maximum), so the loops seek the flatter ways
+        per_up = Q["climb"] * max(0.0, 1.0 - ch.up[1] / ch.usual_up) * ch.pace * 1000.0 / ch.family["ascent_m_per_h"] if climb else 0.0
         for ei in ok:
             g = self.good[ei] = sum(ch.axes[a] * self.rel(a, v[a][ei]) for a in AXES) / wsum
             self.cost[ei] = F.ln[ei] * (1 + Q["taste"] * (1 - g)) * (1 + Q["road"] * F.traffic[ei]) \
                 * (1 + Q["profile"] * (F.costfactor[ei] - 1))
+            h = (net.nodes[net.edges[ei][0]][2], net.nodes[net.edges[ei][1]][2])
+            if per_up and min(h) > -1000:
+                self.cost[ei] += per_up * abs(h[0] - h[1])
         self.d0, self.prev0, self.pe0, self.len0 = dijkstra(net, net.start, self.cost)
         reach = [ei for ei in ok if self.d0[net.edges[ei][0]] < INF]
         # --- what stands out here: areas and lines

@@ -139,9 +139,11 @@ def explain(P, c):
                     + ["%s %s" % (w, nm) if nm != w else w for w, nm in n["sights"][:1]] + (["mit Fähre"] if n["ferry_m"] else []))[:5]
     ch, h = P.ch, c["hours"]
     edge = lambda v, rng: rng[1] > rng[0] and (v - rng[0]) / (rng[1] - rng[0])
-    c["hints"] = (["etwas kürzer als gewünscht"] if h < ch.hours[0] else ["etwas länger als gewünscht"] if h > ch.hours[1] else
+    c["hints"] = (["↑ %d m – mehr als gewünscht (%d m)" % (c["up"], ch.up[1])] if c["up"] > ch.up[1] else []) \
+        + (["etwas kürzer als gewünscht"] if h < ch.hours[0] else ["etwas länger als gewünscht"] if h > ch.hours[1] else
                   ["am oberen Rand der gewünschten Zeit"] if edge(h, ch.hours) > 0.9 else []) \
-        + (["weniger Höhenmeter als gewünscht"] if c["up"] < ch.up[0] else ["am oberen Rand der Höhenmeter"] if edge(c["up"], ch.up) > 0.9 else []) \
+        + (["weniger Höhenmeter als gewünscht"] if c["up"] < ch.up[0] else
+           ["am oberen Rand der Höhenmeter"] if 0.9 < edge(c["up"], ch.up) <= 1.0 else []) \
         + (["%d m an einer Straße am Stück" % n["road_longest_m"]] if n["road_longest_m"] >= 200 else []) \
         + (["%d %% doppelt" % n["doubled_pct"]] if n["doubled_pct"] >= 8 else []) \
         + (["kreuzt sich einmal"] if n["self_cross"] else []) + (["%d %% durch Häuser" % n["town_pct"]] if n["town_pct"] >= 30 else [])
@@ -186,20 +188,26 @@ def line(n):
 
 
 def choose(P, S, cands):
-    """The best first; further ones must be different and not far behind; what stands out in reach (a top line, an
-    area) gets the loop that uses it best, if that loop is good enough. Fewer than three is fine when the rest is poor."""
+    """One selection over all cards – our loops and the official loops that fit the wish alike. The best first;
+    further ones must be different (no two share more than `overlap` of the shorter one's way beyond the way out) and
+    not far behind; what stands out in reach (a top line, an area) gets the loop that uses it best, if that loop is
+    good enough. Between similar loops an official one wins unless it is clearly worse (`official_ahead` points).
+    When fewer than `least` are shown, further different loops may lie up to `least_behind` points behind; fewer is
+    fine when the rest is poor."""
     F, K = P.F, S["select"]
     lo, hi = P.ch.hours
     fits = lambda c: lo <= c["hours"] <= hi  # the wished time is the wish: loops inside it come before loops near it
-    ranked = sorted((c for c in cands if not c["out"]), key=lambda c: (not fits(c), -c["score"]))
+    pts = lambda c: c["score"] + (K["official_ahead"] if c.get("official") else 0.0)
+    ranked = sorted((c for c in cands if not c["out"]), key=lambda c: (not fits(c), -pts(c)))
     if not ranked:
         return []
     core = {id(c): {e for e in c["edges"] if P.core(e)} or set(c["edges"]) for c in ranked}
     length = lambda es: sum(F.ln[e] for e in es) or 1.0
 
     def fresh(c, shown):
-        return all(length(core[id(c)] & core[id(o)]) <= K["overlap"] * length(core[id(c)]) for o in shown)
+        return all(length(core[id(c)] & core[id(o)]) <= K["overlap"] * min(length(core[id(c)]), length(core[id(o)])) for o in shown)
     uses = lambda c, thing: length(core[id(c)] & thing["edges"]) >= (0.25 * P.target if thing["kind"] != "area" else min(2500.0, 0.3 * thing["m"]))
+    top = pts(ranked[0])
     # what the wish names is always shown: with "am Wasser entlang" the best loop really at the water (and first),
     # with "Bekannte Wege: hoch" the best loop along the first known route here
     at_water = lambda c: not order(P, c)[0]
@@ -210,17 +218,22 @@ def choose(P, S, cands):
     if route:  # the clean loop that stays on the route longest
         on_it = [c for c in ranked if uses(c, route) and c["axes"]["form"] >= 0.5]
         shown += [c for c in sorted(on_it, key=lambda c: -length(core[id(c)] & route["edges"]))[:1] if c not in shown]
-    # what stands out here is shown if its best loop is good enough: the top lines, then the areas
+    # what stands out here is shown if its best loop is good enough: an official loop inside the wished time (what
+    # the place's makers laid out), the top lines, then the areas
+    for c in ranked:
+        if c.get("official") and fits(c) and c not in shown and len(shown) < K["max"] and pts(c) >= top - K["cover_behind"] \
+                and fresh(c, shown):
+            shown.append(c)
     for thing in [ln for ln in P.lines if ln["rank"] >= 0.9][:2] + P.areas:
         best = next((c for c in ranked if uses(c, thing)), None)
-        if best and best not in shown and len(shown) < K["max"] and best["score"] >= ranked[0]["score"] - K["cover_behind"] \
-                and fresh(best, shown):
+        if best and best not in shown and len(shown) < K["max"] and pts(best) >= top - K["cover_behind"] and fresh(best, shown):
             shown.append(best)
-    for c in ranked:
-        if len(shown) >= K["max"]:
-            break
-        if c not in shown and c["score"] >= ranked[0]["score"] - K["behind"] and fresh(c, shown):
-            shown.append(c)
+    for behind, most in ((K["behind"], K["max"]), (K["least_behind"], K["least"])):
+        for c in ranked:
+            if len(shown) >= most:
+                break
+            if c not in shown and pts(c) >= top - behind and fresh(c, shown):
+                shown.append(c)
     return sorted(shown[:K["max"]], key=lambda c: order(P, c))
 
 

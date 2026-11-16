@@ -7,7 +7,8 @@ further out, MTB wants trails. The page's few controls only nudge it. Pure: wish
 def wish(b, S):
     """The page's / the planner's controls -> a complete wish. Unknown or missing values fall back to the middle.
     Time and ascent are ranges: `hours` (or `duration`) = [from, to] hours, `ascent` = [from, to] metres up. A single
-    number of hours is widened to the usual band; no ascent = from flat up to what is usual for this character.
+    number of hours is widened to the usual band; no ascent = from flat up to what is usual for this character; one
+    end of the ascent may be missing.
     `pace` (km/h) is not asked on the page: the activity's pace turns time into distance."""
     act = b.get("activity") if b.get("activity") in S["activities"] and b.get("activity") != "_about" else "hike"
     A = S["activities"][act]
@@ -22,11 +23,23 @@ def wish(b, S):
     up = b.get("ascent")
     return {"start": [float(b["start"][0]), float(b["start"][1])], "start_name": str(b.get("start_name", ""))[:80],
             "activity": act, "t_level": max(1, min(5, int(b.get("t_level") or 2))), "hours": hours, "pace": pace,
-            "ascent": sorted(max(0.0, float(x)) for x in up[:2]) if isinstance(up, (list, tuple)) and len(up) == 2 else None,
+            "ascent": ascent(up),
             "natur": word("natur", S["controls"]["level"], "mittel"), "ruhe": word("ruhe", S["controls"]["level"], "mittel"),
             "bekannt": word("bekannt", S["controls"]["level"], "mittel"), "wasser": bool(b.get("wasser")),
             "seed": int(b.get("seed") or 1), "official": b.get("official") is not False,
             "tips": bool(b.get("tips") or b.get("ai"))}
+
+
+def ascent(up):
+    """[from, to] metres up; either end may be missing (None or ""): no "from" = flat, no "to" = what is usual
+    (Character). Nothing given -> None. A wish of only "bis 350" is a wish (owner 2026-11-16)."""
+    if not isinstance(up, (list, tuple)) or len(up) != 2:
+        return None
+    lo, hi = (None if x in (None, "") else max(0.0, float(x)) for x in up)
+    if lo is None and hi is None:
+        return None
+    lo = lo or 0.0
+    return [min(lo, hi), max(lo, hi)] if hi is not None else [lo, None]
 
 
 class Character:
@@ -53,7 +66,9 @@ class Character:
         self.hours = tuple(w["hours"])
         self.min_m, self.max_m = (h * self.pace * 1000.0 for h in self.hours)
         self.target_m = 0.5 * (self.min_m + self.max_m)
-        self.up = tuple(w["ascent"] or (0.0, round(mix(*F["up_m_per_h"]) * self.hours[1], -1)))
+        self.usual_up = usual = round(mix(*F["up_m_per_h"]) * self.hours[1], -1)
+        lo, hi = w["ascent"] or (0.0, None)
+        self.up = (lo, hi if hi is not None else max(usual, lo + usual))
         self.kv = ({"consider_traffic": 1} if self.bike else
                    {"SAC_scale_limit": w["t_level"], "SAC_scale_preferred": min(w["t_level"], 3)})
         self.kv["mainroad_penalty"] = 3.0

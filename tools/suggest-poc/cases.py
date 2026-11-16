@@ -5,7 +5,8 @@
   python3 tools/suggest-poc/cases.py heide zons      only cases whose name contains one of the words
   python3 tools/suggest-poc/cases.py --old <dir>     the same wishes through an older version of the POC (its folder)
 
-Each case is one wish and a few statements about the suggestions it must give, in the owner's sense. A check gets
+Each case is one wish and a few statements about the suggestions it must give, in the owner's sense; it runs as on
+the page, with the official loops near the start (where a loops file exists). A check gets
 `s` = the shown suggestions (best first), each as a small record (see `view`). Not a test suite: a yardstick to read.
 """
 import json
@@ -77,10 +78,23 @@ CASES = [
     ("meran-flach", {"start": [11.1597, 46.6713], "hours": [2.5, 3.5], "ascent": [0, 200]},
      "„eine Einschränkung bei den Höhenmetern“: höchstens 200 m", [
          ("keine Runde über 200 m", lambda s: all(r["up"] <= 200 for r in s))]),
+    ("nordkirchen-wandern-3h", {"start": [7.52518, 51.73802], "hours": [2.5, 3.25], "natur": "hoch"},
+     "„warum wird nur ein Weg angezeigt, gibt viel mehr“ (2026-11-16)", [
+         ("mindestens 3 Vorschläge", lambda s: len(s) >= 3),
+         ("keine Runde mit > 300 m an einer Straße", lambda s: all(r["road"] <= 300 for r in s))]),
+    ("nordkirchen-rad-3h", {"start": [7.52518, 51.73802], "activity": "bike", "hours": [2.5, 3.25], "natur": "hoch"},
+     "zu viele ähnliche Karten (2026-11-16: 5 eigene + 3 offizielle)", [
+         ("höchstens 5 Karten, mindestens 3", lambda s: 3 <= len(s) <= 5)]),
+    ("dhuenn-rad-350", {"start": [7.20201, 51.07514], "activity": "bike", "hours": [2.5, 3.75], "wasser": True,
+                        "ascent": [None, 350]},
+     "„Höhenmeter-Filter war auf 350, scheint nicht zu zählen“ (nur „bis“ ausgefüllt, 2026-11-16)", [
+         ("keine Karte über 350 m ohne Hinweis auf der Karte", lambda s: all(r["up"] <= 350 or any("mehr als gewünscht" in h for h in r["hints"]) for r in s)),
+         ("geht es hier nicht so flach, sagt der Lauf es", lambda s: all(r["up"] <= 350 for r in s) or any("Höhenmetern" in n for n in NOTES))]),
     ("meran-steil", {"start": [11.1597, 46.6713], "hours": [4, 5], "ascent": [500, 900], "t_level": 3},
      "500–900 Höhenmeter gewünscht: ein echter Anstieg", [
          ("erste Runde 500–900 m", lambda s: 500 <= s[0]["up"] <= 900)]),
 ]
+NOTES = []  # the run's notes, for checks about what the run says
 EVERY = [("keine Runde kreuzt sich mehr als einmal", lambda s: all(r["cross"] <= 1 for r in s)),
          ("jede Runde hat einen echten Namen", lambda s: all(r["name"] and "Grünstück" not in r["name"] for r in s))]
 
@@ -101,7 +115,8 @@ def view(result):
                     "town": n.get("town_pct", n.get("built_pct", 0)), "road": n.get("road_longest_m", n.get("main_longest_m", 0)),
                     "cross": n.get("self_cross", 0), "doubled": n.get("doubled_pct", 0), "named": named,
                     "reserves": len(n.get("reserves") or []), "reserve_km": sum(r[1] for r in n.get("reserves") or []),
-                    "dir": DIRS[int((b + 22.5) // 45) % 8] if isinstance(b, (int, float)) else str(b), "notes": result.get("notes", [])})
+                    "dir": DIRS[int((b + 22.5) // 45) % 8] if isinstance(b, (int, float)) else str(b), "notes": result.get("notes", []),
+                    "hints": c.get("hints", [])})
     return out
 
 
@@ -116,10 +131,12 @@ def run(body, old=None):
             return None  # ranges did not exist
         r = subprocess.run([sys.executable, "-c", OLD, json.dumps(body)], cwd=old, capture_output=True, text=True, timeout=300)
         return json.loads(r.stdout) if r.returncode == 0 else {"candidates": [], "notes": [r.stderr[-200:]]}
+    import official
     import suggest as S
     from character import wish as make_wish
     st = S.load_settings()
-    return S.suggest(make_wish(body, st), st)
+    w = make_wish(body, st)
+    return S.suggest(w, st, official.near(w, st))  # as on the page: official loops near the start join the list
 
 
 if __name__ == "__main__":
@@ -134,6 +151,7 @@ if __name__ == "__main__":
             print("–  %-20s gab es in dieser Version nicht" % name)
             continue
         s = view(result)
+        NOTES[:] = result.get("notes", [])
         failed = [text for text, test in checks + EVERY if not (s and test(s))]
         good, total = good + len(checks) + len(EVERY) - len(failed), total + len(checks) + len(EVERY)
         print("%s  %-20s %d Vorschläge, %.1f s · %s" % ("ok" if not failed else "✗ ", name, len(s), result.get("seconds", 0),
