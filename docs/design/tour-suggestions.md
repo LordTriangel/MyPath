@@ -193,6 +193,10 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   but reading the network through BRouter's objects peaks at 230 of 256 MB (bike 3 h). **Owner 2026-11-15: option 1** –
   the port reads the rd5 data itself straight into compact arrays (~33 MB), no map change; a precomputed compact network
   per map area stays in reserve.
+- **The owner's answers 2026-11-16:** (1) wheels: the road rule beats the bonus for going round a signed loop (hikes
+  unchanged); (2) copyright: in the app always our own generated text line, never OSM / operator descriptions; badge
+  „Ausgeschildert · <name>“ instead of „Offiziell“; nothing from operators' websites; a check before release; (3) all
+  map cells get every signed route per way when the build into planner / app comes, not before.
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
