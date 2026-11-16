@@ -325,8 +325,33 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   links and takes sampled allowed links), `RouterProfileTest`. The files are in `app/web-shared-files.txt`; TeaVM
   translates them (checked with a temporary export). Memory and time: `tools/suggest-poc/bench-phone/` (`BENCH=net`) –
   bike 3 h: desktop −Xmx72m is enough (Bench.java needed 160m), live peak ~67 MB, read 1.0 s; Pixel 8 live peak ~55 MB
-  (was 230 MB), read 6.3 s (was 3.0 s – the per-kind tag text work is slower on ART; to speed up). Next: facts, place,
-  character, generate, score as pure Kotlin on these arrays.
+  (was 230 MB), read 6.3 s (was 3.0 s – the per-kind tag text work is slower on ART; to speed up).
+  **Stage 2, the method (IR 2026-11-16 night, branch `wip/ir-2026-11-16-port`, ported from the frozen state
+  `suggest-poc-frozen-2026-11-16`; still invisible, nothing calls it):** `TourSuggester.suggest(wish, NetSource,
+  SuggestFiles, SuggestSettings) → SuggestResult` (shown cards first, then the rest of the pool). Files:
+  `SuggestFile` (reader of §4a, `java.util.zip.Inflater` – TeaVM 0.16's classlib has `TInflater`, `TBigDecimal`,
+  regex), `SuggestSettings` (a small JSON reader; **one settings file: `tools/suggest-poc/settings.json`**, the core
+  gets its text – the POC reads it as before; when the Python method is deleted it moves to the app's assets and the
+  planner fetches it like the BRouter profiles), `Character` (+ `Wish`), `Land` (grids, rim, place names – the POC's
+  "last grid" rule included), `Named` (routes, lakes, sights + index), `Facts`, `Place` (with `top`), `Generate`
+  (turning points, pairs, climb, chains, closed signed rings, lines, road repair, the flatter re-build; **not ported:
+  the guessed order of a gapped signed route** – the files' signed loops replace it), `Official` (the LOOP section →
+  laid onto the network → candidates), `Score` (judge, numbers, selection, title / reasons / hints / generated line),
+  `PyIntSet` (Python's set order: where the method takes "the first of equals", the port takes the POC's first, so
+  parity is exact), `SuggestGeo` (Python's round / % / str). Lengths, heights and cost factors are taken as the POC's
+  route service printed them (0.1 m, shortest float text) – the same numbers, not new ones.
+  **Parity** (`tools/suggest-poc/port/parity.sh`, plain JVM with Gradle's Kotlin compiler, no Gradle run; the 22
+  reference wishes of `reference.py` in `~/onpath-suggest-poc/reference/`, the suggest files of
+  `~/onpath-suggest-poc/suggest-file/cells/`): with the POC's own network (`graph`) every loop of every pool is the
+  same (line, axes, points 0.0 apart), the choice the same in 18 of 22, `cases.py` 65 of 65; the only differences are
+  the not ported gapped "Rundweg" loops (0–11 per wish) and official loops whose cell's suggest file has no LOOP
+  section yet (Nordkirchen, Altenkirchen) – the four other choices differ only by those. With the app's `NetReader`
+  (`reader`: same nodes and links in another order, BRouter's stricter "allowed", the app's profile files without the
+  POC's `mainroad_penalty`… see below) 80–100 % of each pool is the same loop, points within 0–2 (one 4.3), the choice
+  the same in 13 of 22, `cases.py` 65 of 65. Time on the desktop JVM (warm, network read included): hike 2 h Hilden
+  0.23 s, bike 3 h Zons 1.9 s / Nordkirchen 1.4 s (Python: 1.5 s / 14 s). Unit tests: `SuggestCoreTest` (file reader
+  against `suggest_file.py`, Python's set order, the character, the settings; fixtures by
+  `tools/suggest-poc/port/fixtures.py`).
 - **Review 2026-11-16 (owner asked for a step back) – the build plan.** Kept: facts → place → character → candidates →
   five axes → selection; measuring against official loops; the compact network core. Changed:
   **a small suggest file per map cell, built by the map pipeline** (owner 2026-11-16: „Ja, Vorschlags-Datei“): the ~45 m

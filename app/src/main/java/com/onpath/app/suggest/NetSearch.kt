@@ -15,7 +15,11 @@ import kotlin.math.hypot
  *
  * Pure Kotlin (shared with the web planner).
  */
-class NetSearch(val net: WayNet) {
+class NetSearch(
+    val net: WayNet,
+    /** Metres per link the searches count (default the network's; the method passes its own 0.1 m lengths, `Facts.ln`). */
+    val lengths: DoubleArray = DoubleArray(net.linkCount) { net.linkLen[it].toDouble() },
+) {
     private val n = net.nodeCount
     /** Cost so far per node ([INF] = not reached) of the last [run]. */
     val dist = DoubleArray(n) { INF }
@@ -47,7 +51,7 @@ class NetSearch(val net: WayNet) {
         dist[src] = 0.0
         touched[touchedN++] = src
         push(src, 0.0)
-        val adjOff = net.adjOff; val adjLink = net.adjLink; val adjNode = net.adjNode; val len = net.linkLen
+        val adjOff = net.adjOff; val adjLink = net.adjLink; val adjNode = net.adjNode; val len = lengths
         while (heapSize > 0) {
             val du = heapKey[0]
             val u = pop()
@@ -241,7 +245,7 @@ class LoopAssembly(
                 if (leg == null || (leg.isEmpty() && w != cur)) return null
                 var node = cur
                 for (e in leg) {
-                    walked += net.linkLen[e]
+                    walked += search.lengths[e]
                     node = net.other(e, node)
                     if (walked > freeStemM) {
                         if (pen[e] == 0.0) penSet[penN++] = e
@@ -255,7 +259,7 @@ class LoopAssembly(
                 }
                 cur = w
             }
-            val cut = cutSpurs(net, start, edges.toIntArray())
+            val cut = cutSpurs(net, start, edges.toIntArray(), search.lengths)
             return if (cut.size >= 3) cut else null
         } finally {
             for (i in 0 until penN) pen[penSet[i]] = 0.0
@@ -264,7 +268,8 @@ class LoopAssembly(
 
     companion object {
         /** generate.py `cut_spurs`: cut a spur (out to a point and back the same way, also with a small loop at its tip). */
-        fun cutSpurs(net: WayNet, start: Int, input: IntArray): IntArray {
+        fun cutSpurs(net: WayNet, start: Int, input: IntArray,
+                     lengths: DoubleArray = DoubleArray(net.linkCount) { net.linkLen[it].toDouble() }): IntArray {
             var edges = input
             while (true) {
                 val out = ArrayList<Int>(edges.size)
@@ -281,9 +286,11 @@ class LoopAssembly(
                     val pieceLen = k + 1 - i
                     if (i in 1..k && pieceLen < 0.6 * edges.size) {
                         var walked = 0.0
-                        for (j in i..k) walked += net.linkLen[edges[j]]
+                        for (j in i..k) walked += lengths[edges[j]]
                         var once = 0.0
-                        for (e in (i..k).map { edges[it] }.toSortedSet()) once += net.linkLen[e]
+                        val piece = PyIntSet()
+                        for (j in i..k) piece.add(edges[j])
+                        for (e in piece.toIntArray()) once += lengths[e]
                         if (walked - once >= 0.3 * walked) { cutAt = i; cutEnd = k; break }
                     }
                 }
