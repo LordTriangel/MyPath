@@ -391,6 +391,53 @@ abstract class E2EBase {
         return r
     }
 
+    /**
+     * Brings the POI [id] at [lat], [lon] into the open map (upper middle, clear of the search pill and the sheet) at
+     * z 16, waits until MapLibre DRAWS its symbol – asked of the map itself (queryRenderedFeatures on the style's icon
+     * [layer]), not of the app's own list – and then for the app's read of the shown POIs (first map idle after the
+     * camera stopped). Returns the symbol's screen position (device pixels).
+     */
+    protected fun drawnPoiSymbol(id: String, lat: Double, lon: Double, layer: String): Pair<Float, Float> {
+        scenario.onActivity { vm(it).followMe = false }
+        onMap { m -> m.moveCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(LatLng(lat, lon), 16.0)) }
+        Thread.sleep(800)
+        val (w, h) = mapSize()
+        onMap { m -> m.projection.toScreenLocation(LatLng(lat, lon)).let { s -> m.scrollBy(w * 0.40f - s.x, h * 0.32f - s.y) } }
+        fun drawnAt(): Pair<Float, Float>? {
+            var r: Pair<Float, Float>? = null
+            val done = CountDownLatch(1)
+            scenario.onActivity { a ->
+                val mv = mapView(a)!!
+                val loc = IntArray(2).also { mv.getLocationOnScreen(it) }
+                mv.getMapAsync { m ->
+                    val drawn = m.queryRenderedFeatures(android.graphics.RectF(0f, 0f, mv.width.toFloat(), mv.height.toFloat()), layer)
+                        .any { it.getStringProperty("id") == id }
+                    if (drawn) m.projection.toScreenLocation(LatLng(lat, lon)).let { s -> r = (loc[0] + s.x) to (loc[1] + s.y) }
+                    done.countDown()
+                }
+            }
+            done.await(5, TimeUnit.SECONDS)
+            return r
+        }
+        var hit: Pair<Float, Float>? = null
+        val end = System.currentTimeMillis() + 20_000
+        while (hit == null && System.currentTimeMillis() < end) { Thread.sleep(500); hit = drawnAt() }
+        if (hit == null) { shot("no-poi-symbol"); fail("the symbol of POI $id is not drawn (layer $layer) – ${state()}") }
+        Thread.sleep(2_000) // the app reads the shown POIs on the map idle after the camera stopped
+        return hit!!
+    }
+
+    /**
+     * Map data like map cells bring it (format 2, the owner's phone): an empty `overlays.pmtiles` next to the tiny base
+     * map, and the POI vector tiles the phone builds from the cells' [geojson] (`PoiTiles`, style `style/f2`).
+     */
+    protected fun writeCellPois(dir: File, geojson: File) {
+        PmTiles.write(mapOf(Triple(0, 0, 0) to PmTiles.gzip(ByteArray(0))), File(dir, com.onpath.app.data.DataFiles.OVERLAYS))
+        val built = com.onpath.app.cells.PoiTiles.build(listOf(com.onpath.app.cells.PoiTiles.Input(geojson) { _, _ -> true }),
+            File(dir, com.onpath.app.cells.PoiTiles.FILE), File(dir, "poi-tiles-work"))
+        if (built == null) fail("no POI tiles written from ${geojson.name}")
+    }
+
     protected fun waitForMap(reloaded: Boolean = false) {
         waitUntil("map shown", 30_000) {
             var ok = false

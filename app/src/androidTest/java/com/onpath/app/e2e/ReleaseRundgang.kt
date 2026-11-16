@@ -628,6 +628,30 @@ class ReleaseRundgang : E2EBase() {
         shot("3-asked-again")
     }
 
+    /**
+     * 17 · Tap / hold a POI drawn on the map (field bug 2026-11-16 23:35, owner's Pixel in Hilden: a tap on a restaurant
+     * showed nothing, a hold set no point; fix 43091d6b – core feature C19, `CorePoiTapE2ETest` in both map formats):
+     * with the map cells' POI tiles (format 2, like the owner's phone) a real tap on the restaurant's drawn symbol shows
+     * its details, a real hold on it in Plan opens its menu. The same POI file as `CorePoiTapE2ETest`: MapLibre keeps a
+     * PMTiles archive's directory per URL for the whole process, and a different `pois.pmtiles` written at the same path
+     * by an earlier test in the run was read with the old directory ("unknown pbf field type", donald 2026-11-16).
+     */
+    @Test fun flow17_tapAndHoldADrawnPoiSymbol() {
+        val poi = CorePoiTapE2ETest
+        launch(extraData = { dir -> writeCellPois(dir, java.io.File(dir, "pois.geojson").apply { writeText(poi.POIS) }) }) { demoAt(THEATRE) }
+        val at = drawnPoiSymbol(poi.POI_ID, poi.POI_LAT, poi.POI_LON, poi.ICON_LAYER)
+        press(at.first, at.second, 60)
+        waitUntil("the details after a tap on the symbol", 8_000) { read { it.selectedPoi?.id } == poi.POI_ID }
+        assertNotNull("the details sheet with its name", findFresh(By.text(poi.POI_NAME), 5_000))
+        shot("1-details")
+        scenario.onActivity { vm(it).selectedPoi = null }
+        assertTrue("the details closed", goneFresh(By.text(poi.POI_NAME), 5_000))
+        hold(at.first, at.second)
+        waitUntil("the POI menu after a hold on the symbol", 8_000) { read { it.poiMenu?.id } == poi.POI_ID }
+        assertNotNull("the menu with its name", findFresh(By.text(poi.POI_NAME), 5_000))
+        shot("2-menu")
+    }
+
     private fun share(text: String) {
         scenario.onActivity { a ->
             a.startActivity(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
