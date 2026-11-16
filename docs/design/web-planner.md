@@ -1191,6 +1191,14 @@ e72fb540 / c543cd5a, 21c0eac1, 725b68e9 / 6ba34792, 21dcc5f5 / de1afd21, 870bff0
 - **POIs read once per camera stop / tap from the last idle** (796c9b84 / dffa9914): not mirrored. The app's lookup
   waited for MapLibre Native's render thread (1447 ms); GL JS has none – `main.ts poiAt` asks at the click, p50 0.1 ms,
   worst ~20 ms in Köln (`poi-fps.mjs`). `poi/PoiTap.kt` is on the parity watch list.
+  2026-11-16 (search-smoke flaky, 1 in 3): `poiAt` reads GL JS's last symbol placement, which keeps the old screen
+  positions after a camera move until the next placement is done (a few hundred ms, ~1 s on SwiftShader). A click on a
+  POI drawn right there (Gasthaus Egger, icon visible) found nothing – or the POI that stood there before the move – and
+  the click closed the found place's menu / added a point instead. Now a click right after a move waits for the map's
+  `idle` (placement done for this camera; 1 s at most) and looks at the clicked spot as it is then (`main.ts
+  settledPoint`) – as the app reads its POIs at the camera's idle. search-smoke: the map jumps and
+  the click comes in the same task (no frame between) → the POI's menu. ui-smoke: its two clicks on the map go to the
+  nearest spot without a POI once the cells' POIs are drawn (a POI dot at Schenna / in Meran took them before).
 
 ## 31. Place menu „Einfügen“ / „Neues Ziel“ and a POI click everywhere (laptop, 2026-11-15 – app 551ac1ae / aacd722e, 41571fec, ba904656)
 

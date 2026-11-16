@@ -742,6 +742,29 @@ map.on('mousemove', (e) => {
 });
 map.on('mouseout', () => { map.getCanvas().style.cursor = ''; routeProfile.hover(null); });
 
+/**
+ * The POI lookup (`poiAt`) reads MapLibre's last symbol placement. Right after the map moved (a pan, the search's own
+ * move for the found place's menu) that placement still holds the old screen positions until the next one is done –
+ * a few hundred ms, more on a slow GPU: a click on a POI drawn right there found nothing, or the POI that stood there
+ * before the move (search-smoke, Gasthaus Egger, 2026-11-16). So a click waits for the map to settle ('idle' = the
+ * placement done for this camera), 1 s at most, and then looks at the clicked place's spot as it is now. The app reads
+ * its POIs at the camera's idle, too (PoiTap).
+ */
+let mapSettled = false;
+map.on('movestart', () => { mapSettled = false; });
+map.on('idle', () => { mapSettled = true; });
+async function settledPoint(at: maplibregl.LngLat): Promise<maplibregl.Point> {
+  if (!mapSettled) {
+    await new Promise<void>((done) => {
+      const fin = () => { clearTimeout(timer); map.off('idle', fin); done(); };
+      const timer = setTimeout(fin, 1000);
+      map.on('idle', fin);
+      map.triggerRepaint(); // nothing left to draw: 'idle' comes with the next frame
+    });
+  }
+  return map.project(at);
+}
+
 async function press(at: maplibregl.LngLat, marker: number, pt?: maplibregl.Point) {
   const results = document.getElementById('results');
   if (results && !results.hidden) { results.hidden = true; return; } // a click beside the search results only closes them
@@ -749,11 +772,14 @@ async function press(at: maplibregl.LngLat, marker: number, pt?: maplibregl.Poin
     placeCard.close();
     // a click on a POI shows it at once – its menu in place of the closed one, no second click (the app ba904656, owner
     // 2026-11-15 on a hike: a tap on a POI works also with a menu open)
-    const poi = !terrain3d.on && pt && markerNear(pt) < 0 ? poiAt(pt) : null;
+    if (terrain3d.on || !pt) return;
+    pt = await settledPoint(at);
+    const poi = markerNear(pt) < 0 ? poiAt(pt) : null;
     if (poi) void poiMenu(poi);
     return;
   }
   if (terrain3d.on) { closeMenu(); return; } // 3D is for looking (the note on the map says so); planning is on the flat map
+  if (pt) pt = await settledPoint(at); // clicks in a row keep their order: they wait for the same 'idle'
   if (marker < 0 && pt) marker = markerNear(pt);
   const poi = pt && marker < 0 ? poiAt(pt) : null;
   const action = await engine.call('gesture', menu != null, marker, poi != null, state.points.length === 0);
