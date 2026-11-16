@@ -99,8 +99,10 @@ def read_cell(x, y):
         with open(pois, encoding="utf-8") as f:
             out["sights"] = [{"name": ft["properties"].get("name") or SIGHTS[k], "what": SIGHTS[k], "p": ft["geometry"]["coordinates"][:2]}
                              for ft in json.load(f).get("features", []) for k in [ft["properties"].get("kind")] if k in SIGHTS]
-    with open(cache, "w", encoding="utf-8") as f:
+    tmp = "%s.%d" % (cache, os.getpid())  # written whole, then moved: runs side by side must never read half a file
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False)
+    os.replace(tmp, cache)
     return out
 
 

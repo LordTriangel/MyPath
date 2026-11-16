@@ -109,7 +109,8 @@ def compare_page():
             "Parkplatz, Aktivität, seine Zeit ±15 %%, Höhenmeter 60–130 %%). Gemessen: wie viel der offiziellen Runde unsere "
             "erste / beste gezeigte / beste aller gebauten Runden abläuft (Median), wie oft unsere erste die offizielle ist, "
             "und welchen Rang die offizielle in unseren eigenen Punkten hätte. „Karte heute“ = unsere Karte, wie sie ist; "
-            "„vollständig“ = als ob jeder Rundweg ganz in der Karte stünde.</p>%s" % (rows or "<p>Noch kein Vergleich gerechnet.</p>"))
+            "„vollständig“ = als ob jeder Rundweg ganz in der Karte stünde. Stand: base / neu = vor / nach der Runde vom 15.11.; "
+            "b16 / f16 = vor / nach der Runde vom 16.11. (Räder: Straßenregel vor dem Rundweg-Bonus; kürzere Titel; NRW-Sätze neu).</p>%s" % (rows or "<p>Noch kein Vergleich gerechnet.</p>"))
 
 
 if __name__ == "__main__":

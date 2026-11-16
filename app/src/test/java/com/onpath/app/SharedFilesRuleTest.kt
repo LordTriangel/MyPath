@@ -18,7 +18,7 @@ class SharedFilesRuleTest {
     /** Outside the app: what the web build stubs or brings (tools/routing/jvm-test/stubs, the web's stand-ins). */
     private val external = listOf(
         "kotlin", "java.", "javax.xml.parsers.", "org.xml.sax.", "org.json.", "com.google.gson.", "org.maplibre.geojson.",
-        "btools.router.", "org.jetbrains.compose.resources.StringResource", "com.onpath.strings.",
+        "btools.", "org.jetbrains.compose.resources.StringResource", "com.onpath.strings.",
         "android.content.Context", "android.content.Intent", "android.content.ActivityNotFoundException", "android.net.Uri",
     )
     /** App classes the web replaces with its own stand-ins. */

@@ -64,7 +64,7 @@
   <div class="lv" data-k="bekannt"><span>Bekannte Wege</span></div>
   <div class="opts"><label style="margin:0"><input type="checkbox" id="wasser"> am Wasser entlang</label>
     <label style="margin:0"><input type="checkbox" id="tips"> mit KI-Regionswissen</label>
-    <label style="margin:0" title="Offizielle Rundwege kennt die Seite in Rheinland-Pfalz und Nordrhein-Westfalen (Traumpfade, Traumschleifen, Rad- und MTB-Rundwege aus OpenStreetMap)"><input type="checkbox" id="official" checked> offizielle Rundwege (Rheinland-Pfalz, NRW)</label></div>
+    <label style="margin:0" title="Ausgeschilderte Rundwege kennt die Seite in Rheinland-Pfalz und Nordrhein-Westfalen (Traumpfade, Traumschleifen, Rad- und MTB-Rundwege aus OpenStreetMap)"><input type="checkbox" id="official" checked> ausgeschilderte Rundwege (Rheinland-Pfalz, NRW)</label></div>
   <div class="btns"><button class="pri" id="go">Vorschläge</button><button id="again">Neue Vorschläge</button></div>
   <div id="status"></div><div id="notes"></div>
   <div class="opts"><label style="margin:0"><input type="checkbox" id="all"> alle Kandidaten</label>
@@ -137,7 +137,7 @@ function show(r) {
     const n = c.numbers, d = document.createElement('div');
     const o = c.official;
     d.className = 'card';
-    d.innerHTML = `<span class="badge${o ? ' off' : ''}">${o ? 'Offiziell · ' + esc(o.badge) : 'Vorschlag'}</span>
+    d.innerHTML = `<span class="badge${o ? ' off' : ''}">${o ? 'Ausgeschildert · ' + esc(o.badge) : 'Vorschlag'}</span>
       <h3><span>${i + 1} · ${esc(c.name)}</span><b>${Math.round(c.score)} Punkte</b></h3>
       <div class="big">${km(n.km)} km · ${hm(n.hours)} h · ↑ ${n.ascent} m</div>
       ${o ? `<div class="from">${o.start_km < 0.3 ? 'Start hier' : `Start ${km(o.start_km)} km entfernt`}${o.parking ? ' · am Parkplatz' : ''}</div>` : ''}

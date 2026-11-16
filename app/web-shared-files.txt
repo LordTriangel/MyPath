@@ -107,6 +107,14 @@ routing/PlanNames.kt
 sync/SaveRule.kt
 # tours per phone in sync (owner 2026-11-07: 250)
 sync/SyncLimits.kt
+# tour suggestions, the core (docs/design/tour-suggestions.md §7, IR 2026-11-16): the way network read from the rd5
+# parts into compact arrays and the graph searches – not called by WebApi yet
+suggest/LongIntMap.kt
+suggest/WayKinds.kt
+suggest/WayNet.kt
+suggest/NetReader.kt
+suggest/NetSearch.kt
+suggest/RouterProfile.kt
 
 [tests]
 routing/OfflineCorridorTest.kt
