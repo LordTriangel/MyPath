@@ -769,9 +769,10 @@ private fun TourCard(
                 Column(Modifier.weight(1f)) {
                     // from the browser and not opened yet (owner 2026-10-31): a "New" / "Changed" tag after the name, until opened
                     RouteTitle(t.name, tag, tag2)
-                    ActivityLine(t, loop)
-                    Text(instrument(RouteRowActions.facts(Format.distance(t.distanceM), Format.meters(t.ascentM), Format.duration(t.durationS)),
-                        MaterialTheme.typography.bodySmall, muted), style = MaterialTheme.typography.bodySmall)
+                    // a done tour with its average (owner 2026-11-16): "… · 10,3 km/h", the time beside the activity
+                    val facts = RouteRowActions.rowFacts(t.distanceM, t.ascentM, t.durationS, t.avgKmh)
+                    ActivityLine(t, loop, facts.time)
+                    Text(instrument(facts.line, MaterialTheme.typography.bodySmall, muted), style = MaterialTheme.typography.bodySmall)
                     if (recording) Text(str(Res.string.routes_recording_now), style = MaterialTheme.typography.bodySmall, color = OnPathColors.Rec)
                     if (justSaved) Text(str(Res.string.routes_just_saved), style = MaterialTheme.typography.labelLarge,
                         color = OnPathColors.ActionEdit, modifier = Modifier.padding(top = 2.dp))
@@ -797,27 +798,32 @@ private val MAP_TILE_LARGE_FONT = 64.dp
 
 /**
  * "Wandern · T2" / "Fahrrad" / "Gravel" … with the activity's sign (the app's chip labels), then "· ↻ Rundtour" for a
- * round trip ([loop], owner 2026-11-13 variant A – the plan sheet's ↻ sign and word); nothing when neither is known.
+ * round trip ([loop], owner 2026-11-13 variant A – the plan sheet's ↻ sign and word), then a done tour's [time] when its
+ * average took the time's place in the facts ("MTB · 3 h 12 min", owner 2026-11-16); nothing when none is known. The
+ * pieces wrap between each other at a large font, never inside one – a time is never cut.
  */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun ActivityLine(t: Tour, loop: Boolean) {
+private fun ActivityLine(t: Tour, loop: Boolean, time: String? = null) {
     val a = t.activity?.let { n -> Activity.entries.firstOrNull { it.name == n } }
-    if (a == null && !loop) return
+    if (a == null && !loop && time == null) return
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        if (a != null) {
+    val small = MaterialTheme.typography.bodySmall
+    androidx.compose.foundation.layout.FlowRow {
+        if (a != null) Row(Modifier.align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically) {
             val text = if (a == Activity.HIKE && t.sac in 1..5) str(Res.string.activity_chip_with_level, a.chip, t.sac) else a.chip
             Icon(a.icon, contentDescription = null, tint = muted, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
-            Text(text, style = MaterialTheme.typography.bodySmall, color = muted, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, fill = false))
+            Text(text, style = small, color = muted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (loop) {
-            if (a != null) Text(" · ", style = MaterialTheme.typography.bodySmall, color = muted)
+        if (loop) Row(Modifier.align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically) {
+            if (a != null) Text(" · ", style = small, color = muted)
             Icon(Icons.Outlined.Loop, contentDescription = null, tint = muted, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(3.dp))
-            Text(str(Res.string.plan_round_trip), style = MaterialTheme.typography.bodySmall, color = muted, maxLines = 1)
+            Text(str(Res.string.plan_round_trip), style = small, color = muted, maxLines = 1)
         }
+        if (time != null) Text((if (a != null || loop) " · " else "") + time, style = small, color = muted, maxLines = 1, softWrap = false,
+            modifier = Modifier.align(Alignment.CenterVertically))
     }
 }
 

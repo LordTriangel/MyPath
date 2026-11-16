@@ -19,6 +19,20 @@ class TourTimesStore(private val file: File) {
         null
     }
 
+    /** Every stored entry by tour id, read once (My routes' list); an unreadable entry is left out (reported). */
+    fun all(): Map<Long, TourTimes> {
+        val o = read()
+        return o.keys().asSequence().mapNotNull { k ->
+            val id = k.toLongOrNull() ?: return@mapNotNull null
+            try {
+                o.optJSONObject(k)?.let { id to TourTimes.fromJson(it) }
+            } catch (e: Exception) {
+                Problems.warn("time", "Tour times file (tour-times.json) entry $k unreadable; its row shows no average", e)
+                null
+            }
+        }.toMap()
+    }
+
     fun put(tourId: Long, t: TourTimes) {
         try {
             val o = read()

@@ -73,6 +73,29 @@ class TourReviewTest {
         assertNull(TourReview.of(listOf(pts), times.copy(plannedS = null), 0.0, 3000.0).planPct)
     }
 
+    /**
+     * My routes' row (owner 2026-11-16) shows the overview's „Ø Tempo“ from the stored times alone: the same number as
+     * the review whenever the times know start and end – else nothing (never a number computed another way).
+     */
+    @Test fun theRowsAverageIsTheReviewsFromTheStoredTimes() {
+        val pts = walk(t0, 0.0, 301)
+        val times = TourTimes(movingS = 2400.0, breakS = 300.0, startMs = t0, endMs = t0 + 3_600_000L)
+        val review = TourReview.of(listOf(pts), times, durationS = 0.0, distanceM = 3000.0)
+        assertEquals(4.5, review.avgKmh!!, 0.001) // 3 km in 40 min moving
+        assertEquals(review.avgKmh!!, TourReview.averageFromTimes(times, 3000.0)!!, 1e-9)
+        // moving longer than on the way: both cap it at on the way
+        val over = times.copy(movingS = 5000.0)
+        assertEquals(TourReview.of(listOf(pts), over, 0.0, 3000.0).avgKmh!!, TourReview.averageFromTimes(over, 3000.0)!!, 1e-9)
+        // start / end not known (tours before 2026-11-01): the review needs the points – the row says nothing
+        assertNull(TourReview.averageFromTimes(times.copy(startMs = null), 3000.0))
+        assertNull(TourReview.averageFromTimes(times.copy(endMs = t0), 3000.0))
+        assertNull(TourReview.averageFromTimes(null, 3000.0))
+        // under a minute of moving time, no length: no average, as in the review
+        assertNull(TourReview.averageFromTimes(times.copy(movingS = 50.0), 3000.0))
+        assertNull(TourReview.of(listOf(pts), times.copy(movingS = 50.0), 0.0, 3000.0).avgKmh)
+        assertNull(TourReview.averageFromTimes(times, 0.0))
+    }
+
     @Test fun noTimesAtAllSaysNothingAboutMovingOrPauses() {
         val pts = walk(t0, 0.0, 301).map { it.copy(timeMs = null) }
         val r = TourReview.of(listOf(pts), times = null, durationS = 5400.0, distanceM = 3000.0)

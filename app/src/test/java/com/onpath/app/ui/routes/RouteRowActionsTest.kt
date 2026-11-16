@@ -119,6 +119,17 @@ class RouteRowActionsTest {
         assertFalse("an imported track has no followed plan", Action.GO in RouteRowActions.of(Section.SAVED, TourKind.IMPORTED, hasPlan = true).menu)
     }
 
+    /** A done tour's row (owner 2026-11-16): km · ↑ m · km/h, the time to the activity line; no average = as before. */
+    @Test fun aDoneTourWithItsAverageMovesTheTimeToTheActivityLine() {
+        val nb = ' '
+        val with = RouteRowActions.rowFacts(32_800.0, 940.0, 3.2 * 3600, 10.25)
+        assertEquals("32.8 km · ↑ 940 m · 10.3 km/h".replace(' ', nb).replace("$nb·$nb", " · "), with.line)
+        assertEquals("3 h 12 min".replace(' ', nb), with.time)
+        val without = RouteRowActions.rowFacts(32_800.0, 940.0, 3.2 * 3600, null)
+        assertEquals(RouteRowActions.facts("32.8 km", "940 m", "3 h 12 min"), without.line)
+        assertEquals(null, without.time)
+    }
+
     @Test fun aValueNeverBreaksInside() {
         val f = RouteRowActions.facts("4,1 km", "82 m", "1 h 15 min")
         assertEquals("4,1 km · ↑ 82 m · 1 h 15 min", f)

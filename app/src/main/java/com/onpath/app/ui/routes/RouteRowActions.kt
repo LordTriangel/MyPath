@@ -31,6 +31,23 @@ object RouteRowActions {
     fun facts(distance: String, ascent: String, duration: String): String =
         listOf(distance, "↑ $ascent", duration).joinToString(" · ") { it.replace(' ', ' ') }
 
+    /** A row's facts line and the time for its activity line ([time] null = the time stays in [line]). */
+    data class RowFacts(val line: String, val time: String?)
+
+    /**
+     * A done tour with its average speed (owner 2026-11-16, [com.onpath.app.data.Tour.avgKmh] – the overview's „Ø Tempo“):
+     * "32,8 km · ↑ 940 m · 10,3 km/h", the time moves to the activity line ("MTB · 3 h 12 min", no-break spaces inside).
+     * Without an average (planned routes, imports, tours whose moving time is not known) the facts end with the time as
+     * before.
+     */
+    fun rowFacts(distanceM: Double, ascentM: Double, durationS: Double, avgKmh: Double?): RowFacts {
+        val dist = com.onpath.app.data.Format.distance(distanceM)
+        val up = com.onpath.app.data.Format.meters(ascentM)
+        val time = com.onpath.app.data.Format.duration(durationS)
+        return if (avgKmh == null) RowFacts(facts(dist, up, time), null)
+        else RowFacts(facts(dist, up, com.onpath.app.ui.ReviewText.kmh(avgKmh)), time.replace(' ', ' '))
+    }
+
     /** [inline] on the row, [menu] in its ⋮ (in this order), [chevron] = "›" (a tap opens the overview). */
     data class Row(val inline: List<Action>, val menu: List<Action>, val chevron: Boolean, val opensOverview: Boolean)
 

@@ -34,6 +34,8 @@ abstract class RouteSortLargeFontTest {
     @Test fun routesActivityMenu() = shots.activityFilter(com.onpath.app.routing.Activity.HIKE, menuTop = 240.dp, menuStart = 100.dp)
     @Test fun routesActivityAll() = shots.routesActivityAll()
     @Test fun tours() = shots.tours()
+    /** Gemacht with the average (owner 2026-11-16): „MTB · 3 h 12 min“ and „… · 10,3 km/h“ wrap between pieces, never cut. */
+    @Test fun toursDone() = shots.toursDone()
 }
 
 /** The same in German. */
