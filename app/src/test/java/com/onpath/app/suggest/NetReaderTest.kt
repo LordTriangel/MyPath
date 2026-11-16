@@ -88,10 +88,13 @@ class NetReaderTest {
             for (v in 0 until net.nodeCount) at[pos(net.nodeLon[v], net.nodeLat[v])] = v
             val rnd = Random(7)
             var steps = 0
-            repeat(12) {
+            var routes = 0
+            var tries = 0
+            while (routes < 12 && tries++ < 500) {
                 val a = rnd.nextInt(net.nodeCount); val b = rnd.nextInt(net.nodeCount)
-                if (a == b || far(net, a) || far(net, b)) return@repeat
-                val track = route(profile, net, intArrayOf(a, b)) ?: return@repeat
+                if (a == b || far(net, a) || far(net, b)) continue
+                val track = route(profile, net, intArrayOf(a, b))?.points ?: continue
+                routes++
                 var last = -1
                 for (p in track) {
                     val v = at[p] ?: continue
@@ -118,22 +121,28 @@ class NetReaderTest {
             val rnd = Random(11)
             var checked = 0
             var tries = 0
+            var direct = 0
+            var cheaper = 0
             val wrong = ArrayList<String>()
             while (checked < 25 && tries++ < 2000) {
                 val e = rnd.nextInt(net.linkCount)
                 val a = net.linkA[e]; val b = net.linkB[e]
                 if (net.linkLen[e] < 40f || far(net, a) || !net.allowed(e, a)) continue
-                // a → middle of the link → b: BRouter must stay on the link (any other way would contain the link
-                // walked back and forth, which costs more – unless BRouter refuses the link a → b)
-                val track = route(profile, net, intArrayOf(a, -1 - e, b)) ?: run { wrong.add("link $e: no route"); null } ?: continue
-                val m = trackMetres(track)
-                if (abs(m - net.linkLen[e]) > maxOf(3.0, 0.03 * net.linkLen[e])) {
-                    wrong.add("link $e (${net.lon(a)},${net.lat(a)} → ${net.lon(b)},${net.lat(b)}, ${net.linkLen[e]} m): BRouter $m m")
-                }
+                // a → a point on the link → b: BRouter goes along the link, unless it refuses it – or turns back and
+                // takes a way that costs less than the link could ever cost (cost factor × metres is its lower bound)
+                val r = route(profile, net, intArrayOf(a, -1 - e, b))
                 checked++
+                if (r == null) { wrong.add("link $e: no route"); continue }
+                val m = trackMetres(r.points)
+                if (abs(m - net.linkLen[e]) <= maxOf(3.0, 0.03 * net.linkLen[e])) { direct++; continue }
+                val least = net.costFactor(e, a) * net.linkLen[e]
+                if (r.cost < least) { cheaper++; continue }
+                wrong.add("link $e (${net.lon(a)},${net.lat(a)} → ${net.lon(b)},${net.lat(b)}, ${net.linkLen[e]} m, " +
+                    "cost ≥ $least): BRouter $m m, cost ${r.cost}")
             }
             assertTrue("$activity: ${wrong.size} of $checked allowed links not taken: ${wrong.take(5)}", wrong.isEmpty())
             assertEquals(25, checked)
+            assertTrue("$activity: only $direct of 25 taken straight ($cheaper cheaper ways)", direct >= 20)
         }
     }
 
@@ -240,7 +249,9 @@ class NetReaderTest {
      * BRouter's route through the given nodes (a negative number −1 − e = the middle shape point / middle of link e),
      * with the profile and parameters the app routes with → the positions of the track, or null when it fails.
      */
-    private fun route(profile: NetReader.Profile, net: WayNet, points: IntArray): List<Long>? {
+    private class Routed(val points: List<Long>, val cost: Int)
+
+    private fun route(profile: NetReader.Profile, net: WayNet, points: IntArray): Routed? {
         val wps = points.mapIndexed { i, p ->
             OsmNodeNamed().apply {
                 name = if (i == 0) "from" else if (i == points.size - 1) "to" else "via$i"
@@ -262,7 +273,7 @@ class NetReaderTest {
         engine.doRun(20_000)
         if (engine.errorMessage != null) return null
         val track = engine.foundTrack ?: return null
-        return track.nodes.map { pos(it.iLon, it.iLat) }
+        return Routed(track.nodes.map { pos(it.iLon, it.iLat) }, track.cost)
     }
 
     private fun trackMetres(track: List<Long>): Double {
