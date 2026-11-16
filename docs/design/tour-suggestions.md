@@ -143,8 +143,104 @@ the port's tests.
 | heights for "edge with a view" | `terrain.pmtiles` of the map areas (Terrarium WebP, zoom 12) sampled into the 45 m grid (the POC decodes with Pillow) | the same files |
 
 Missing in our map: which pieces form one circular route and in which order (a signed loop cannot be offered "as it
-is"); ferries, monasteries, city parks, cable cars as named things. Map areas a run needs are fetched as the app does;
+is" – the suggest file below has them); ferries, monasteries, city parks, cable cars as named things. Map areas a run
+needs are fetched as the app does;
 a run says when an area cannot be had (without the map there is no nature, no settlement, no names).
+
+## 4a. The suggest file of a map cell (stage 1 of the build plan, 2026-11-16)
+
+Everything in rows 2–5 of the table, plus the signed loops, computed **once per map cell by the map pipeline** into one
+small file `suggest.bin`; phone, browser and the POC only read it. Built: the format + reader (`tools/suggest_file.py`,
+standard library only), the producer (`tools/build_suggest.py`), the POC's reader switch. Not yet in the pipeline –
+that is the laptop's (patch: `tools/cells/suggest-layer.patch`, notes below).
+
+**Format** (exact bytes: the head of `tools/suggest_file.py`): 8 plain bytes – magic `OPSG`, u16 format version (1),
+u16 0 – then one zlib stream. Inside: sections of 4 letters + u32 length + payload; a reader skips sections it does not
+know. Numbers little-endian, varints, coordinates in 1e-6 degrees, lines as differences. A reader needs an inflater and a
+byte buffer, nothing else (Kotlin: `java.util.zip.Inflater`; no Android, no image decoder, no tile reader).
+
+| Section | Content | Hilden 10-531-342 | Traumpfade 10-532-345 | Meran 10-543-361 |
+| --- | --- | --- | --- | --- |
+| `GRID` | 550 × ~560 squares of ~45 m, one byte: nature · protected · built-up · water · trees | 32 KB | 27 KB | 24 KB |
+| `AREA` | per square the number of the protected area + its names | 6 KB | 4 KB | 1 KB |
+| `HGHT` | per square the height in metres (int16, as differences to left + above − above-left) | 66 KB | 108 KB | 172 KB |
+| `PLAC` | place names with point and class ("Wald bei <Ort>") | 3 KB | 2 KB | 1 KB |
+| `ROUT` | signed routes as the map has them: kind, label, rank, pieces (which way is on which route; following a line) | 70 KB | 62 KB | 59 KB |
+| `LAKE` | named lakes with their shore | 4 KB | 0.3 KB | 0.3 KB |
+| `SGHT` | sights: kind, name, point (viewpoint, castle, ruin, chapel, cave, waterfall) | 2 KB | 4 KB | 3 KB |
+| `LOOP` | signed loops in walking order: OSM id, kind hike / bicycle / mtb, T level, metres to the nearest parking place, length, ascent (or unknown), name, ref, network, the closed line from the parking place | 25 KB (26 loops) | 22 KB (20) | not built |
+| **file** | | **212 KB** | **233 KB** | **264 KB** |
+
+All 144 cells the POC has on this computer: median 202 KB, 90 % under 278 KB, largest 418 KB; the 28 with loops median
+249 KB. These cells are schema 7; with `routelines` (schema 8) `ROUT` grows – not measured yet.
+
+**Decisions and why:**
+- *Heights, not a ready "edge with a view":* the edge value is a rule with thresholds (20 m … 60 m lower, 90–300 m
+  away, open = not under trees – `land.rim`); stored as a value, every change of a threshold would rebuild all cells.
+  The height grid is the raw thing and with the plane guess it is small (flat 66 KB, alpine 172 KB). At 90 m squares it
+  would be a quarter of that, but the edge value changes – not done.
+- *Raw, not scored:* classes, heights, lines. The file keeps more loops than the method offers today (on foot 1.5–35 km,
+  on wheels 5–120 km; the method takes 4–20 / 15–60 km), jogging circuits included; the reader filters (`official.KM`,
+  `NOT_A_TOUR`). Parking is the distance in metres, not yes / no.
+- *No texts* but names: no description, no operator text (owner 2026-11-16).
+- *One loop, one cell:* a loop lies in the file of the cell that holds most of its length; the cut of every cell has
+  the route relations whole (`osmium extract -S types=…,route`), so every cell decides the same. A start whose reach
+  holds the whole loop has that cell loaded.
+- *Loops need the OSM cut:* `routelines` in the tiles is clipped at tile and cell borders and simplified – it gives no
+  order across a border. The producer makes its own pass over the cell's cut (pyosmium, filters inside osmium; a
+  route whose ways are together longer than any loop we keep is not chained): 3–9 s per cell.
+- *Ascent of a loop* comes from the cell's own heights, so it is known only for loops that stay inside the cell
+  (82 % of the 1298 in the 28 cells); else "unknown" and the reader takes the way network's heights as today. A rough number for sorting out
+  loops before they are laid onto the network, not for the card.
+
+**Producer:** `python3 tools/build_suggest.py OUT/suggest.bin --cell 10/X/Y --from <folder with base.pmtiles,
+overlays.pmtiles, pois.geojson, terrain.pmtiles> --osm cell.osm.pbf --ids <osmium renumber index> --osm-date D`.
+Needs what the job image has (pyosmium for the loops, Pillow for the WebP terrain); the rest is standard library and
+the small tile reader `tools/suggest_tiles.py` (the POC's former `pmt.py`). The code is lifted, not rewritten:
+`land.py` / `named.py` / `official.py extract` now call the same functions. Hilden in the job image: 7 s, 335 MB.
+
+**Reader in the POC:** `SUGGEST_FILE=0` never reads the file (tiles and terrain at run time, as before), `1` reads
+only files (a cell without one has no data and the run says "Die Karte wird hier gerade aktualisiert" – what phone
+and planner will do), default: the file where a cell has one. Files lie in the cell's folder (`cells.py` downloads
+`suggest.bin` once the manifest lists it) or under `SUGGEST_FILES/10-x-y/`.
+
+**Acceptance (2026-11-16, files built on donald for all 144 local cells, loops for 28):**
+- Data: for all 144 cells grid, area names, places, heights, routes, lakes, sights read from the file are equal to
+  what the POC computes from the tiles – byte for byte.
+- Loops: 28 cells (Hilden, the six Traumpfade cells, the cells of the two NRW sets) against the region loops files:
+  1010 of 1010 loops there, same line, start, parking, T level, km. Three more in the files: loops across the
+  NRW / Rheinland-Pfalz border, whole only in a cut from both extracts.
+- `cases.py`: 14 wishes, every loop of every pool equal (line, points, axes, numbers); 54 of 54 statements both ways.
+- `official.py compare`: Traumpfade 21, NRW hikes 24, NRW wheels 14 loops – every row equal, so the medians too
+  (Traumpfade first loop on the official 81 %, 11 of 21; NRW hikes 20 %; NRW wheels 13 %).
+  No difference to explain: the file holds the same squares and whole metres the POC computed before.
+
+**Compatibility:**
+- Released apps: they download every file a manifest lists and join only the names they know
+  (the download loop in `MapCells`, the join's `CellStore.LAYERS` / `POIS` / addresses) – `suggest.bin` is fetched (+ ~0.25 MB per cell, about
+  1 %), ignored and removed with the download folder. Checked by reading the code, not on a phone.
+- The reader (later the Kotlin core): no file for a cell in reach, or format version below the one it needs, or
+  `content` below the one it needs → no suggestions from that cell and the line "die Karte wird hier gerade
+  aktualisiert" (+ ask for the refresh). A format version above the reader's own → the same line with "App
+  aktualisieren". New sections and new fields at the end of `HEAD` need no new version.
+- Two numbers, on purpose: the **layer schema** in `cells.py` says "this cell's file is stale, rebuild it" (server
+  side); the **format version / content** in the file says "this reader can use it" (reader side).
+
+**Integration (for the laptop; `tools/cells/suggest-layer.patch`, applies to main 186224c5, `git apply`):**
+- `cells.py`: layer `suggest` (file `suggest.bin`) with `LAYER_SCHEMA` 9, `CELL_SCHEMA` 9; it needs the cut
+  (`OSM_LAYERS`); `LAYER_INPUTS = {"suggest": (base, overlays, pois, terrain)}` – `rebuild_plan` rebuilds it whenever
+  one of them is rebuilt.
+- `build_cell.sh`: step `suggest` after terrain / contours, from this run's layers or, in a partial rebuild, from
+  `SUGGEST_FROM` (the published version's files).
+- `job_build.py`: `layer_inputs` fetches those published files (size + sha256 checked) before a partial build; step
+  progress.
+- Tried on donald in the job image: `LAYERS=suggest` for Hilden = 37 s (cut 11 s, renumber 2 s, suggest 24 s – that
+  was before the producer's speed-up, alone it now takes 7 s), version `…-s9`, manifest with 7 files and `layers.suggest.schema 9`.
+- Left for the laptop: `test_cloud.py` pins the layer table (7 tests need the new layer), `wrangler.toml`
+  `CELL_SCHEMA` 9, `docs/map-pipeline.md` / `map-hosting.md`, the fetch against the real store. The bump makes every
+  phone download its cells once more (the whole new version) for a file it does not use – unless it rides on a
+  rebuild that happens anyway.
+- Later, with stage 4: the app keeps `suggest.bin` per cell at the join (as `addresses/<cell>.sqlite` today).
 
 ## 5. The owner's taste rules
 
@@ -230,7 +326,7 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   To try before the freeze: the yardstick from the place alone, not "best loop of the pool" (a loop's points must not
   change when another candidate is added). Stages, each with its acceptance: **0 freeze** (comment round done, sets +
   cases measured, tag; no method change in Python afterwards) → **1 data** (laptop, test cells; the POC reads the file
-  and gives the same suggestions) → **2 core** (Kotlin on `suggest/`; compare sets and `cases.py` run against it via a
+  and gives the same suggestions – producer, reader and acceptance done 2026-11-16, §4a; the pipeline step is open) → **2 core** (Kotlin on `suggest/`; compare sets and `cases.py` run against it via a
   JVM entry; same results as the frozen POC; the Python method is deleted, settings stay one file) → **3 planner**
   (sketch 4, behind the switch, owner tests in NRW, deploy on his word) → **4 app** → **5 all cells** get the file
   (before 3 goes public; a cell without it says the map is being updated). Owner 2026-11-16 late: the file is built now, with the map rebuild of these days, as its own layer with its own version and a compatibility check – released apps have no tour planner and ignore it.

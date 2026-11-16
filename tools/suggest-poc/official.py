@@ -23,107 +23,38 @@ import math
 import os
 import sys
 
+import cells as CE
 import suggest as S
+from build_suggest import loops as osm_loops, square as cell, squares_around as around
 from character import Character, wish as make_wish
 from net import climb, dijkstra, dist, load, path, runs_along, INF
 
 OUT = os.path.join(S.DATA, "official-compare")
-SAC = {"hiking": 1, "mountain_hiking": 2, "demanding_mountain_hiking": 3, "alpine_hiking": 4,
-       "demanding_alpine_hiking": 5, "difficult_alpine_hiking": 6}
 NEAR = 25.0  # metres: a point of one loop counts as walked by the other within this distance
 
 
 # ---------------------------------------------------------------- extract (pyosmium)
 
-KINDS = {"hiking": "hike", "foot": "hike", "bicycle": "bicycle", "mtb": "mtb"}
 KM = {"hike": (4.0, 20.0), "bicycle": (15.0, 60.0), "mtb": (15.0, 60.0)}
+PARKING = 250.0  # metres: a parking place this near the loop's start counts as "has parking"
+
+
+def as_loop(lp):
+    """A loop as build_suggest.loops finds it / a suggest file has it -> as the comparison and the page use it."""
+    return {"id": lp["id"], "kind": lp["kind"], "name": lp["name"], "ref": lp["ref"], "network": lp["network"],
+            "operator": lp.get("operator", ""), "km": round(lp["m"] / 1000.0, 2),
+            "parking": lp["parking_m"] is not None and lp["parking_m"] < PARKING, "t": lp["t"], "coords": lp["coords"]}
 
 
 def extract(pbf, bbox=None, region=""):
-    import osmium
-    rels, need = [], set()
-    for r in osmium.FileProcessor(pbf, osmium.osm.RELATION):
-        t = r.tags
-        if t.get("type") == "route" and t.get("route") in KINDS:
-            ways = [(m.ref, m.role) for m in r.members if m.type == "w" and m.role in ("", "main", "forward", "backward", "route")]
-            if ways:
-                rels.append({"id": r.id, "kind": KINDS[t.get("route")], "name": t.get("name", ""), "ref": t.get("ref", ""),
-                             "network": t.get("network", ""), "operator": t.get("operator", ""), "ways": ways})
-                need.update(w for w, _ in ways)
-    geo, sac, parking = {}, {}, []
-    for o in osmium.FileProcessor(pbf, osmium.osm.NODE | osmium.osm.WAY).with_locations():
-        if o.is_node():
-            if o.tags.get("amenity") == "parking":
-                parking.append((o.location.lon, o.location.lat))
-        elif o.id in need or o.tags.get("amenity") == "parking":
-            try:
-                pts = [(n.lon, n.lat) for n in o.nodes]
-            except osmium.InvalidLocationError:  # expected: a way at the edge of the extract
-                continue
-            if o.id in need:
-                geo[o.id] = pts
-                sac[o.id] = SAC.get(o.tags.get("sac_scale"), 1)
-            if o.tags.get("amenity") == "parking":
-                parking.append(pts[0])
-    pgrid = {}
-    for p in parking:
-        pgrid.setdefault(cell(p, 300.0), []).append(p)
-    loops = []
-    for r in rels:
-        ways = r.pop("ways")
-        # a cycle route often runs one way on each side of a road ("forward" / "backward"): then the one direction is the ring
-        ring = chain([geo[w] for w, _ in ways if w in geo]) or chain([geo[w] for w, role in ways if w in geo and role != "backward"])
-        if not ring:
-            continue
-        km = sum(dist(a, b) for a, b in zip(ring, ring[1:])) / 1000.0
-        lo, hi = KM[r["kind"]]
-        if not lo <= km <= hi or (bbox and not all(bbox[0] <= p[0] <= bbox[2] and bbox[1] <= p[1] <= bbox[3] for p in ring)):
-            continue
-        best = (1e9, 0)
-        for i, p in enumerate(ring):
-            for q in around(pgrid, p, 300.0):
-                best = min(best, (dist(p, q), i))
-        k = best[1]
-        ring = ring[k:-1] + ring[:k + 1]  # the loop starts and ends at the parking place
-        loops.append(dict(r, km=round(km, 2), parking=best[0] < 250.0, t=max(sac.get(w, 1) for w, _ in ways),
-                          coords=[[round(x, 6), round(y, 6)] for x, y in ring]))
+    loops = [as_loop(lp) for lp in osm_loops(pbf, KM, bbox, log=print)]
     os.makedirs(OUT, exist_ok=True)
     name = "loops-%s.json" % region if region else "loops.json"
     with open(os.path.join(OUT, name), "w", encoding="utf-8") as f:
         json.dump(loops, f, ensure_ascii=False)
     count = lambda k: sum(lp["kind"] == k for lp in loops)
-    print("%d route relations, closed loops: %d hiking 4–20 km, %d cycling + %d MTB 15–60 km -> %s" % (
-        len(rels), count("hike"), count("bicycle"), count("mtb"), os.path.join(OUT, name)))
-
-
-def chain(ways, gap=40.0):
-    """The member ways end to end (nearest free end next, either direction) -> a closed ring of points, or None when
-    they do not form one loop (a gap, a branch, an approach path)."""
-    if not ways:
-        return None
-    ring, free = list(ways[0]), ways[1:]
-    while free:
-        tail, head = ring[-1], ring[0]
-        d, i, flip, front = min((min((dist(tail, w[0]), i, False, False), (dist(tail, w[-1]), i, True, False),
-                                     (dist(head, w[-1]), i, False, True), (dist(head, w[0]), i, True, True)))
-                                 for i, w in enumerate(free))
-        if d > gap:
-            return None
-        w = free.pop(i)
-        w = w[::-1] if flip else w
-        ring = (w + ring) if front else (ring + w)
-    return ring if dist(ring[0], ring[-1]) <= gap else None
-
-
-def cell(p, size):
-    return int(p[0] * 111320.0 * math.cos(math.radians(p[1])) / size), int(p[1] * 111320.0 / size)
-
-
-def around(grid, p, size):
-    cx, cy = cell(p, size)
-    for dx in (-1, 0, 1):
-        for dy in (-1, 0, 1):
-            yield from grid.get((cx + dx, cy + dy), ())
+    print("closed loops: %d hiking 4–20 km, %d cycling + %d MTB 15–60 km -> %s" % (
+        count("hike"), count("bicycle"), count("mtb"), os.path.join(OUT, name)))
 
 
 # ---------------------------------------------------------------- geometry helpers
@@ -205,6 +136,17 @@ _region = []
 NOT_A_TOUR = re.compile(r"laufstrecke|lauftreff|nordic[- ]?walking|trimm|finnenbahn|walking[- ]?strecke", re.I)
 
 
+def loops_in_reach(start, reach):
+    """The official loops to look at around a start: from the suggest files of the cells in reach when every cell there
+    that has map data has one with loops (a loop is in the file of the cell that holds most of it; the file keeps
+    more lengths than we offer – KM), else from this computer's loops files."""
+    files = [CE.suggest(*c) for c in CE.cells_for(start[0], start[1], reach) if CE.usable(*c)]
+    if CE.file_only() or (files and all(sf and sf["loops"] is not None for sf in files)):
+        return [as_loop(lp) for sf in files if sf for lp in sf["loops"] or ()
+                if KM[lp["kind"]][0] <= lp["m"] / 1000.0 <= KM[lp["kind"]][1] and not NOT_A_TOUR.search(lp["name"])]
+    return region_loops()
+
+
 def region_loops():
     """Every official loop this computer knows: the loops files in official-compare/ (one per extracted region;
     Rheinland-Pfalz, Nordrhein-Westfalen)."""
@@ -236,7 +178,7 @@ def near(wish, S):
     def extra(P):
         reach = 0.95 * min(P.ch.family["reach_max_m"], max(1500.0, S["search"]["radius"] * P.ch.max_m))
         out = []
-        for lp in region_loops():
+        for lp in loops_in_reach(start, reach):
             if lp.get("kind", "hike") not in kinds or not all(dist(start, p) <= reach for p in lp["coords"][::5]):
                 continue
             first = min(range(len(P.net.nodes)), key=lambda v: dist(P.net.nodes[v], lp["coords"][0]))

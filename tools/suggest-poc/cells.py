@@ -16,12 +16,15 @@ import re
 import sys
 import urllib.request
 
+import pmt  # noqa: F401 – puts tools/ on the path
+import suggest_file
+
 DATA = os.environ.get("SUGGEST_DATA", os.path.expanduser("~/onpath-suggest-poc"))
 CELLS = os.path.join(DATA, "cells")
 API = os.environ.get("ONPATH_MAP_API", "https://maps-test.free-your-pictures.org/v1")
 FORMAT = 2
 APP = "0.17.9"
-WANT = ("base.pmtiles", "overlays.pmtiles", "pois.geojson", "terrain.pmtiles")
+WANT = ("base.pmtiles", "overlays.pmtiles", "pois.geojson", "terrain.pmtiles", suggest_file.NAME)
 
 
 def _key():
@@ -76,6 +79,35 @@ def folder(x, y):
 
 def have(x, y):
     return os.path.isfile(os.path.join(folder(x, y), "manifest.json"))
+
+
+_suggest = {}
+
+
+def file_only():
+    """SUGGEST_FILE=1: only the cells' suggest files count (as phone and planner will work) – a cell without one has
+    no data. 0: never read them (the old way: tiles and terrain at run time). Default: the file where a cell has one."""
+    return os.environ.get("SUGGEST_FILE", "auto") == "1"
+
+
+def suggest(x, y):
+    """The cell's suggest file (tools/suggest_file.py, built by tools/build_suggest.py), read once – or None. It lies in
+    the cell's folder, or in SUGGEST_FILES/10-x-y/ (files built on this computer)."""
+    if os.environ.get("SUGGEST_FILE", "auto") == "0":
+        return None
+    if (x, y) not in _suggest:
+        root = os.environ.get("SUGGEST_FILES")
+        path = os.path.join(os.path.join(root, "10-%d-%d" % (x, y)) if root else folder(x, y), suggest_file.NAME)
+        try:
+            _suggest[(x, y)] = suggest_file.read(path) if os.path.isfile(path) else None
+        except Exception:  # expected: a half or foreign file – as if the cell had none
+            _suggest[(x, y)] = None
+    return _suggest[(x, y)]
+
+
+def usable(x, y):
+    """Is there map data for this cell – its suggest file, or (unless only files count) the downloaded cell?"""
+    return suggest(x, y) is not None or (not file_only() and have(x, y))
 
 
 def status(cells):
