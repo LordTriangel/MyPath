@@ -32,7 +32,7 @@ release's notes) and the git history – this file keeps only the current state 
   verlassen?“ gone, trace line counts it); Zuletzt gesucht 20; My routes overview swipeable („3 von 27“) with stored map
   pictures (`files/overviews/`, newest 20 + favourites, cap 40); a done tour's overview = tour review (big values, picture +
   profile, „x % schneller als geplant“, highlights, Details, share GPX / plan – F-NAV-07); kept places: Zuhause + favourite
-  places in the search (F-PLAN-14, backup yes, planner sync no). Sketches: insert https://claude.ai/artifact/PPZqDYbSJyjnU5GdzexrZh ·
+  places in the search (F-PLAN-14, backup yes, planner sync: format + phone side on main 2026-11-16, web side the laptop). Sketches: insert https://claude.ai/artifact/PPZqDYbSJyjnU5GdzexrZh ·
   review https://claude.ai/artifact/4QQF66CN7f8L2pJ15xY5fm · places https://claude.ai/artifact/LqFT7h7KhEmKRdGJUVtrG9. Next: the
   owner's Pixel look, then a release on his word; the local emulator AVD Medium_Phone was out of disk space.
 - **laptop, 2026-11-13/14 – planner follows 0.17.9 + 0.17.10, sync pacing, owner field fixes (live):** favourites, map pictures, activity filter, Zuletzt + bin, search menu, one wait at a time, load card with percent, phone link view; details `docs/history/handoff-laptop-2026-11-14.md`.
