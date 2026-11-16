@@ -165,3 +165,21 @@ phone, day trips from one base.
 2. §7: the moment for the map download.
 3. Stage 2/3 need a sketch of the planner (points list with day headers, trim handles) before anything is built.
 4. §4: floating by itself after a change (recommended), or only after a question?
+
+## 10. UI – a separate round with the owner (2026-11-16: "über die UI reden wir noch einmal separat")
+
+Nothing here is designed yet. The topics to bring to that round, with sketches (at most three variants, his yes before
+any build):
+
+1. **Tour overview in the plan** (owner 2026-11-16: "eine schöne Routenübersicht über die einzelnen Tage und
+   Höhenmeter"): all days at a glance – per day distance, ascent, time, the overnight place; the height profile of
+   the whole tour with the day borders in it.
+2. The points list with a header per day; folding days open and shut.
+3. The three day-end markers (free ring, fixed ring, bed) on the map and in the profile; dragging a day end.
+4. "Split into days…" – number of days or limits per day; what it says about fixed day ends and stays.
+5. The menus: day end (fix / let the app place it / remove), day header (split this day / join with the next),
+   place ("Accommodation" → which day, "replaces Hotel X").
+6. The orange day header when a day is above the limit.
+7. GPX: the two trim handles on the line and in the profile, "Append to the plan".
+8. Phone: the tour's row in My routes with its days, picking a day or a range, the maps question with the size.
+9. The tour's description – where it is written and shown.
