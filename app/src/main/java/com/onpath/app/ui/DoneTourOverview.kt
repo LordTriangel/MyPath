@@ -143,6 +143,30 @@ internal object ReviewText {
 
     private fun at(m: Double) = Txt.s(Res.string.routes_review_at_km, km(m))
 
+    /**
+     * The three big values on top (value, label) – owner 2026-11-16: km · ↑ m · km/h, Strecke · Aufstieg · Ø Tempo (the
+     * average while moving, km/h for every activity). Without an average (moving time not known / under a minute) the
+     * total time is third, as before – never an empty slot.
+     */
+    fun top(t: Tour, r: TourReview?): List<Pair<String, String>> = listOf(
+        Format.distance(t.distanceM) to Txt.s(Res.string.routes_review_distance),
+        ascent(t.ascentM) to Txt.s(Res.string.routes_review_ascent),
+        r?.avgKmh?.let { kmh(it) to Txt.s(Res.string.routes_review_avg) } ?: total(t, r),
+    )
+
+    /**
+     * The row under the picture: Gesamtzeit (when the average took its place on top) · In Bewegung · Pausen (n) – only
+     * the known ones; empty without a review.
+     */
+    fun lower(t: Tour, r: TourReview?): List<Pair<String, String>> = if (r == null) emptyList() else listOfNotNull(
+        if (r.avgKmh != null) total(t, r) else null,
+        r.movingS?.let { time(it) to Txt.s(Res.string.routes_review_moving) },
+        r.pauseS?.let { time(it) to pausesLabel(r.pauseCount) },
+    )
+
+    /** The time on the way: the review's (start to end), else the tour's stored duration. */
+    private fun total(t: Tour, r: TourReview?) = time(r?.totalS ?: t.durationS) to Txt.s(Res.string.routes_review_total)
+
     /** The Details sheet's numbers (label, value) – only the known ones. */
     fun details(t: Tour, r: TourReview): List<Pair<String, String>> = listOfNotNull(
         if (r.startMs != null && r.endMs != null) Txt.s(Res.string.routes_review_on_the_way) to clockRange(r.startMs, r.endMs) else null,
@@ -158,8 +182,9 @@ internal object ReviewText {
 
 /**
  * The large overview of a done tour (owner 2026-11-15, round 3 of the tour analysis – the compromise between the owner's
- * other proposal and the compact sketch, in the app's colours): title + share, three big values (distance, ascent, total
- * time), the map picture with the height profile under it in one card, moving | pauses, the plan line, the highlights,
+ * other proposal and the compact sketch, in the app's colours): title + share, three big values (distance, ascent, average
+ * speed – owner 2026-11-16, [ReviewText.top]), the map picture with the height profile under it in one card, total time |
+ * moving | pauses ([ReviewText.lower]), the plan line, the highlights,
  * „Details ›“ (a sheet with the further numbers) and the overview's foot. One screen at a normal font; at a large font the
  * page scrolls (nothing is cut). [review] null = still read / not known: the stored numbers only.
  */
@@ -178,11 +203,7 @@ internal fun DoneTourOverview(
         top = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ReviewHead(t, onExportTrack, onExportPlan)
-                BigValues(listOf(
-                    Format.distance(t.distanceM) to str(Res.string.routes_review_distance),
-                    ReviewText.ascent(t.ascentM) to str(Res.string.routes_review_ascent),
-                    ReviewText.time(r?.totalS ?: t.durationS) to str(Res.string.routes_review_total),
-                ), dividerBelow = true)
+                BigValues(ReviewText.top(t, r), dividerBelow = true)
             }
         },
         middle = {
@@ -193,11 +214,8 @@ internal fun DoneTourOverview(
         },
         bottom = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                val two = listOfNotNull(
-                    r?.movingS?.let { ReviewText.time(it) to str(Res.string.routes_review_moving) },
-                    r?.pauseS?.let { ReviewText.time(it) to ReviewText.pausesLabel(r.pauseCount) },
-                )
-                if (two.isNotEmpty()) BigValues(two, dividerBelow = true, top = false)
+                val lower = ReviewText.lower(t, r)
+                if (lower.isNotEmpty()) BigValues(lower, dividerBelow = true, top = false)
                 r?.let { ReviewText.plan(it.planPct) }?.let { PlanLine(it, faster = (r.planPct ?: 0) >= 0) }
                 r?.let { ReviewText.highlights(t, it) }?.forEach { HighlightRow(it) }
                 if (r != null && ReviewText.details(t, r).isNotEmpty()) DetailsRow { details = true }

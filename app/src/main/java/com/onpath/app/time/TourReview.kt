@@ -91,7 +91,7 @@ data class TourReview(
                 totalS = total, movingS = moving, pauseS = pause,
                 pauseCount = pauses.size.takeIf { timed.isNotEmpty() },
                 startMs = start?.takeIf { end != null && end > it }, endMs = end?.takeIf { start != null && it > start },
-                avgKmh = moving?.takeIf { it >= 60 && distanceM > 0 }?.let { distanceM / 1000.0 / (it / 3600.0) },
+                avgKmh = average(moving, distanceM),
                 upMh = up, downMh = down,
                 planPct = if (planOk) ((p!! - n!!) / p * 100).roundToInt() else null,
                 plannedS = p.takeIf { planOk }, neededS = n.takeIf { planOk },
@@ -101,6 +101,22 @@ data class TourReview(
                 profile = profileOf(along),
                 rank = rankOf(distanceM, lengths),
             )
+        }
+
+        /** Average speed while moving (km/h): [distanceM] over [movingS]; null under a minute of moving time or without a length. */
+        fun average(movingS: Double?, distanceM: Double): Double? =
+            movingS?.takeIf { it >= 60 && distanceM > 0 }?.let { distanceM / 1000.0 / (it / 3600.0) }
+
+        /**
+         * The same average as [of] gives, from the stored times alone – for My routes' row (owner 2026-11-16), which does
+         * not read the points. Only when the times decide it: start and end known (then [of] takes "on the way" from
+         * them and the moving time from [TourTimes.movingS], capped by it – the points change nothing). Else null.
+         */
+        fun averageFromTimes(times: TourTimes?, distanceM: Double): Double? {
+            val s = times?.startMs ?: return null
+            val e = times.endMs ?: return null
+            if (e <= s) return null
+            return average(times.movingS.takeIf { it > 0 }?.coerceAtMost((e - s) / 1000.0), distanceM)
         }
 
         /** A point with its distance along the track (gaps between segments not counted) and its time. */

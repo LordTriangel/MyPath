@@ -4804,11 +4804,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // the newest read wins: an older one ending late must not hide a row added since (RoutesState.show)
         val load = routes.beginLoad()
         viewModelScope.launchSafe("app", "refreshTours", Dispatchers.IO) {
+            // a done tour's row shows the overview's average speed (owner 2026-11-16) – from the stored times, read once
+            val times = com.onpath.app.time.TourTimesStore(
+                File(getApplication<Application>().filesDir, com.onpath.app.time.TourTimesStore.FILE)).all()
             val list = routes.load { t -> withModelTime(t).let { m ->
                 // a recorded tour's followed plan: a round trip for certain when its points end at its start (RoundTrip)
                 if (m.kind == TourKind.RECORDED && m.hasPlan) m.copy(roundTrip = runCatching { db.planPoints(m.id) }
                     .onFailure { e -> Problems.warn("routes", "The followed plan's points of tour ${m.id} not read – its row guesses from the track", e) }
                     .getOrNull()?.let { w -> com.onpath.app.routing.PlanEdits.isRoundTrip(w.map { GeoPoint(it.lat, it.lon) }) })
+                else m
+            }.let { m ->
+                // rides taken out: the overview recomputes the times from the kept points – the row does not know them
+                val asRecorded = m.rides == null || m.rides.choice == com.onpath.app.rides.RideChoice.AS_RECORDED
+                if (m.kind == TourKind.RECORDED && asRecorded)
+                    m.copy(avgKmh = com.onpath.app.time.TourReview.averageFromTimes(times[m.id], m.distanceM))
                 else m
             } }
             withContext(Dispatchers.Main) { routes.show(list, load); kickThumbs() }

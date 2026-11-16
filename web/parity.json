@@ -10,7 +10,7 @@
         "web/app/src/routefilter.ts",
         "web/app/src/style.css"
       ],
-      "blob": "b292ee876513c91ea0e49684f614aa60e385398c"
+      "blob": "b55a1476b69442bd3a8196dd87e0644e95483330"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapOverlays.kt",
@@ -170,7 +170,7 @@
         "web/app/src/plans.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "ede3f38ec4ca61fb7ef308233deb88a5c430841f"
+      "blob": "238cb1f86cbd14eb08e36eeb8f5f119060fb81a0"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",

@@ -69,6 +69,11 @@ data class Tour(
      * (ui/routes/RoundTrip); null = not known there (no plan: the row guesses from the line). Not stored.
      */
     val roundTrip: Boolean? = null,
+    /**
+     * Recorded: the average speed while moving (km/h) – the overview's „Ø Tempo“ (TourReview.averageFromTimes), set when
+     * My routes reads the list from `tour-times.json`; null = not known there (the row shows its time instead). Not stored.
+     */
+    val avgKmh: Double? = null,
 )
 
 /**
