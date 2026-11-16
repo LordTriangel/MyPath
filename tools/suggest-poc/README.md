@@ -60,6 +60,7 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
 | `region_ai.py` | optional: the AI's region tips per map area (one call per area, picks from our own list) |
 | `remote/` | the locked front and the test planner for testing on the road (services stopped; see its README) |
 | `settings.json` | every number of the method |
+| `reference.py`, `FROZEN.md` | the frozen method's reference runs for the Kotlin port; what is frozen and the numbers to reproduce |
 
 ## Weak spots (2026-11-16, evening)
 
