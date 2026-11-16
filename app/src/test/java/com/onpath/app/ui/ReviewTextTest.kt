@@ -42,6 +42,29 @@ class ReviewTextTest {
         assertEquals(listOf("km 6.2", "km 6.1", "km 9"), rows.map { it.where })
     }
 
+    /** Owner 2026-11-16: on top km · ↑ m · km/h; the total time goes down to moving · breaks. */
+    @Test fun withAnAverageTheTopEndsWithItAndTheTotalGoesDown() {
+        val r = TourReview(totalS = 16_500.0, movingS = 13_080.0, pauseS = 3420.0, pauseCount = 4, avgKmh = 3.4)
+        assertEquals(listOf("12.4 km" to "Distance", "↑620 m" to "Ascent", "3.4 km/h" to "Ø speed"), ReviewText.top(hike, r))
+        assertEquals(listOf("4:35 h" to "Total time", "3:38 h" to "Moving", "57 min" to "Breaks (4)"), ReviewText.lower(hike, r))
+        // only the known ones below: no moving time known → the total alone under the picture
+        assertEquals(listOf("Total time"), ReviewText.lower(hike, TourReview(totalS = 16_500.0, avgKmh = 3.4)).map { it.second })
+        // the review has no total: the tour's stored duration
+        assertEquals("4:35 h" to "Total time", ReviewText.lower(hike, TourReview(avgKmh = 3.4)).first())
+    }
+
+    /** No average (moving time not known / under a minute): the top keeps the total time third, nothing empty, no "–". */
+    @Test fun withoutAnAverageTheTopKeepsTheTotalTime() {
+        val r = TourReview(totalS = 16_500.0, movingS = 13_080.0, pauseS = 3420.0, pauseCount = 4)
+        assertEquals(listOf("Distance", "Ascent", "Total time"), ReviewText.top(hike, r).map { it.second })
+        assertEquals("4:35 h", ReviewText.top(hike, r)[2].first)
+        assertEquals(listOf("Moving", "Breaks (4)"), ReviewText.lower(hike, r).map { it.second })
+        // no review yet (still read / not known): the stored numbers only
+        assertEquals(listOf("12.4 km", "↑620 m", "4:35 h"), ReviewText.top(hike, null).map { it.first })
+        assertTrue(ReviewText.lower(hike, null).isEmpty())
+        assertTrue(ReviewText.lower(hike, TourReview()).isEmpty())
+    }
+
     @Test fun pausesWithTheirNumberWhenKnown() {
         assertEquals("Breaks (4)", ReviewText.pausesLabel(4))
         assertEquals("Breaks", ReviewText.pausesLabel(0))
