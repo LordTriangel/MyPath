@@ -104,7 +104,7 @@ class NetReader(private val segmentsDir: File) {
             try {
                 nc.matchWaypointsToNodes(list, snapM, OsmNodePairSet(1))
             } catch (e: IllegalArgumentException) {
-                throw ReadException("no routing data at the start: ${e.message}", e)
+                throw ReadException("no routing data at the start", e)
             }
             val n1 = mwp.node1 ?: throw ReadException("no way within ${snapM.toInt()} m of the start")
             return n1.idFromPos

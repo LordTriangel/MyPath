@@ -197,6 +197,25 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   unchanged); (2) copyright: in the app always our own generated text line, never OSM / operator descriptions; badge
   „Ausgeschildert · <name>“ instead of „Offiziell“; nothing from operators' websites; a check before release; (3) all
   map cells get every signed route per way when the build into planner / app comes, not before.
+- **In the app code now (IR 2026-11-16, branch `wip/ir-2026-11-15-suggest-core`; invisible, nothing calls it):**
+  `app/src/main/java/com/onpath/app/suggest/` – `NetReader` reads the way network around a start from the rd5 files
+  into a `WayNet` of plain arrays (nodes, links, metres, metres up / down, way kind, allowed per direction, shape
+  points; `WayKinds` = per distinct way description the cost factors and ~20 way tags as byte codes + the signed-route
+  bits). The rd5 format is decoded by BRouter only (`MicroCache2` per 1/32° tile, `OsmNode.parseNodeBody`); a tile's
+  nodes are kept as small arrays and BRouter's objects dropped node by node; tiles with queued nodes stay, others go
+  beyond 12 MB. The walk is the POC's (`/graph`): same nodes and links (Hilden hike 2 h 19 966 / 26 180, bike 2 h
+  167 145 / 194 026, bike 3 h 250 000 / 291 748, Zons bike 3 h 245 958 / 288 338). "Allowed" = BRouter's routing rule
+  (way cost factor ≤ 9998 and the end node not barred – a few links stricter than the POC's way-only rule); the profile
+  and parameters are the router's (`RouterProfile`, a guarded copy of BRouterEngine's key values). `NetSearch` /
+  `LoopAssembly` = net.py's searches (full, with stop, bounded, path, seat_start, climb) and generate.py's assemble +
+  cut_spurs, with costs passed in. Tests: `NetSearchParityTest` (same numbers as the Python, fixture by
+  `tools/suggest-poc/port_parity.py`), `NetReaderTest` (needs E5_N50.rd5: POC counts; the same graph and verdicts as a
+  walk on BRouter's own objects for hike T2 / T5, bike, MTB; BRouter with the app's parameters only routes over allowed
+  links and takes sampled allowed links), `RouterProfileTest`. The files are in `app/web-shared-files.txt`; TeaVM
+  translates them (checked with a temporary export). Memory and time: `tools/suggest-poc/bench-phone/` (`BENCH=net`) –
+  bike 3 h: desktop −Xmx72m is enough (Bench.java needed 160m), live peak ~67 MB, read 1.0 s; Pixel 8 live peak ~55 MB
+  (was 230 MB), read 6.3 s (was 3.0 s – the per-kind tag text work is slower on ART; to speed up). Next: facts, place,
+  character, generate, score as pure Kotlin on these arrays.
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
