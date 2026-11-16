@@ -18,8 +18,32 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 await page.goto(url + 'index.html');
 await page.waitForFunction(() => document.body.dataset.engine === 'ready', null, { timeout: 60_000 });
 // Meran town centre → Schenna, one click each (map centred on 11.16 / 46.67 at z12)
+// A click on a drawn POI opens its menu (the app's hold), so each click goes to the nearest spot with no POI symbol or
+// name within reach – once the map has settled (the POIs loaded and their symbols placed for this view; a POI dot at
+// Schenna, then one in Meran took the click once the page waited for the placement, 2026-11-16)
 const clickAt = async (lon, lat) => {
-  const p = await page.evaluate(([lo, la]) => { const m = window.__map; const q = m.project([lo, la]); return [q.x, q.y]; }, [lon, lat]);
+  const p = await page.evaluate(async ([lo, la]) => {
+    const m = window.__map;
+    const layers = m.getStyle().layers.filter((l) => l.id.startsWith('poi-')).map((l) => l.id);
+    // the cells' POIs arrive a moment after the engine is ready: wait until the number of POI symbols drawn
+    // holds between two looks (none at all: a few looks – no map store, no POIs)
+    let last = -1;
+    for (let i = 0; i < 40 && layers.length; i++) {
+      await new Promise((r) => { const t = setTimeout(r, 2000); m.once('idle', () => { clearTimeout(t); r(); }); m.triggerRepaint(); });
+      await new Promise((r) => setTimeout(r, 500));
+      const n = m.isMoving() ? -1 : m.queryRenderedFeatures({ layers }).length;
+      if (n === last && (n > 0 || i >= 6)) break;
+      last = n;
+    }
+    // (the page point clicked is the projected one as it always was – the map starts under the top bar, so the spot
+    // looked at is that point on the canvas)
+    const q = m.project([lo, la]), cr = m.getCanvas().getBoundingClientRect();
+    for (let d = 0; d <= 60; d += 4) for (const [dx, dy] of [[0, 0], [d, 0], [-d, 0], [0, d], [0, -d], [d, d], [-d, -d], [d, -d], [-d, d]]) {
+      const x = q.x + dx, y = q.y + dy, cx = x - cr.x, cy = y - cr.y;
+      if (!m.queryRenderedFeatures([[cx - 14, cy - 14], [cx + 14, cy + 14]], { layers }).length) return [x, y];
+    }
+    return [q.x, q.y];
+  }, [lon, lat]);
   await page.mouse.click(p[0], p[1]);
 };
 await clickAt(11.1600, 46.6700);

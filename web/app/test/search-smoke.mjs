@@ -176,6 +176,28 @@ check(await page.locator('.holdpopup.pinmenu').count() === 0 && (await menuHead(
   `a click on a POI with the found place's menu open: that menu closes, the POI's menu opens at once (${poiOpen.name})`);
 await page.keyboard.press('Escape');
 await page.waitForTimeout(300);
+// A click on a POI right after the map moved: MapLibre's symbol placement (what the POI lookup reads) still has the old
+// screen positions until its next placement – the click found nothing (flaky above, 1 in 3: the search's move for the
+// menu ended just before the click). Made sure here: the map jumps and the click comes in the same task, before any frame.
+{
+  const moved = await findPoi();
+  const r = await page.evaluate((p) => {
+    const map = window.__map, c = map.getCanvas(), cr = c.getBoundingClientRect();
+    const at = map.unproject([p.x, p.y]);
+    map.panBy([0, -60], { animate: false });
+    const q = map.project(at), x = cr.x + q.x, y = cr.y + q.y;
+    const o = { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, view: window };
+    c.dispatchEvent(new MouseEvent('mousedown', { ...o, buttons: 1 }));
+    c.dispatchEvent(new MouseEvent('mouseup', o));
+    c.dispatchEvent(new MouseEvent('click', o));
+    return { x: Math.round(q.x), y: Math.round(q.y) };
+  }, moved);
+  await page.waitForSelector('.holdpopup:not(.pinmenu) .pointmenu', { timeout: 15_000 }).catch(() => {});
+  check((await menuHead()).includes(moved.name), `a click on a POI right after the map moved opens its menu (${moved.name} at ${r.x},${r.y})`);
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => window.__map.panBy([0, 60], { animate: false }));
+  await page.waitForTimeout(300);
+}
 
 // A POI's menu → „Neues Ziel“ / "New destination" (the app 0.17.10, PlaceAddMenu.keepsOldGoal, owner 2026-11-14 „beim
 // Planen anhängen, unterwegs ersetzen“): the planner has no tours – it always appends, the old goal stays as stop 2 and
