@@ -23,8 +23,19 @@
    („test cells first, all cells after IR's check“) and the open owner question on the extra download wave; also
    donald's s8 run is going tonight – an s9 bump now would make the whole rebuild start again. Built on a branch +
    test cells only; the owner decides in the morning.
-5. Branch cleanup (owner's yes 2026-11-15) – retried when GitHub's search API is free.
+5. Branch cleanup (owner's yes 2026-11-15): done – four remote wip branches deleted via `prune_branches.sh` (it now
+   falls back to GraphQL when the search API is rate-limited). The local branches `laptop-base-1113` and
+   `laptop/ci-smokes-2026-11-13` stay – deleting local branches is denied to me; harmless.
+6. **Suggest layer (schema 9)** built on `wip/laptop-2026-11-17-suggest-layer` with 7 test cells
+   (`onpath-data/store-test-routes/.../2026-11-15-s9/`), acceptance replayed: data equal, loops 229/229. Not on main.
+7. **Found while checking: every schema bump makes phones re-download whole cells** (9–23 MB per refreshed cell):
+   the app never reuses unchanged files of the installed version. This also holds for the s8 bump I pushed yesterday –
+   I told the owner „the map stays the same, +5–10 %“ but did not say that each refreshed cell is downloaded whole once
+   (only cells a phone refreshes: after routing, „Karten jetzt aktualisieren“, a class mismatch – not by looking at the
+   map). Proposal to donald in the backlog: reuse files with equal sha256 → later waves tiny.
 
 ## Open for the owner (morning)
-- Suggest file into all cells (schema 9): yes / when? (download-wave answer in §… once the agent reports)
+- Suggest file into all cells (schema 9): yes / when? Each refreshed cell is downloaded whole again (9–23 MB), not
+  only the 0.3 MB file – unless donald's app first reuses unchanged files (one app release). Recommendation: app fix
+  first, then s9; or s9 now if the extra download is fine (only refreshed cells, once).
 - Everything else: see `handoff-laptop-2026-11-15.md` §5 (CI smokes PR later).
