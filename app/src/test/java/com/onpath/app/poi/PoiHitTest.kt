@@ -108,4 +108,28 @@ class PoiHitTest {
         val lookup = tap.substringAfter("fun at(").substringBefore("private fun read(")
         assertFalse("ShownPois.at reads only its own list", lookup.contains("queryRenderedFeatures"))
     }
+
+    /**
+     * Field bug 2026-11-16 23:35 (owner's Pixel, Hilden, restaurants drawn with their symbol): a tap showed nothing and a
+     * hold set no point – the symbol layers were told apart by reading each layer's icon image at runtime, which found no
+     * POI layer. The bundled styles' layer ids decide: every poi- icon layer is a symbol layer, a -name layer never is.
+     */
+    @Test fun everyPoiIconLayerOfTheBundledStylesIsASymbolLayer() {
+        val styles = File("src/main/assets/style").walkTopDown().filter { it.name == "onpath.json" }.toList()
+        assertTrue("bundled styles found", styles.isNotEmpty())
+        for (f in styles) {
+            val ids = Regex("\"id\"\\s*:\\s*\"(poi-[^\"]+)\"").findAll(f.readText()).map { it.groupValues[1] }.toList()
+            val symbols = ids.filter { PoiHit.symbolLayer(it) }
+            assertTrue("${f.path}: symbol layers $ids", symbols.any { it == "poi-tier1" })
+            for (id in ids) assertEquals("${f.path}: $id", !id.endsWith("-name"), PoiHit.symbolLayer(id))
+        }
+        assertFalse(PoiHit.symbolLayer("route-line"))
+    }
+
+    /** The rule is the layer id, never the layer's icon image read at runtime (that read failed on the phone). */
+    @Test fun symbolLayersAreToldByTheirId() {
+        val tap = File("src/main/java/com/onpath/app/poi/PoiTap.kt").readText()
+        assertTrue(tap.contains("partition { PoiHit.symbolLayer(it) }"))
+        assertFalse(tap.contains("iconImage"))
+    }
 }

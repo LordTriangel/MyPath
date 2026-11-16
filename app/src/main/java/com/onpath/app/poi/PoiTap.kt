@@ -6,8 +6,6 @@ import android.view.View
 import com.onpath.app.debug.Problems
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
-import org.maplibre.android.style.layers.Layer
-import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.geojson.Feature
 import java.util.concurrent.Executors
 import kotlin.math.abs
@@ -17,15 +15,20 @@ import kotlin.math.abs
  * shows (screen position, symbol drawn or not). A POI is hit only through its drawn symbol: the finger's box ([pick]
  * boxPx, 24 dp) touches its icon; the nearest POI point wins. A name the map drew without its symbol (an older style,
  * or any case the style check missed) is no POI – the hold is a plain map hold (owner 2026-11-15, Hilden: a bus stop's
- * bare name „Dorothea-Erxleben-Straße" read like a street name and a hold on it opened the place menu). Since then the
- * style draws a POI's name only together with its symbol (tools/make_style.py pois(), PoiSymbolStyleTest), and the
- * name beside a symbol is not a target of its own: the map does not tell which names it placed.
+ * bare name „Dorothea-Erxleben-Straße" read like a street name and a hold on it opened the place menu). How names are
+ * drawn is still the owner's open choice (backlog „Waiting for the owner“, POI names A/B/C).
  */
 object PoiHit {
     class Candidate(val poi: Poi, val x: Float, val y: Float, val icon: Boolean)
 
     /** Half the icon's size in dp (badge 24 px at icon-size ~1). */
     const val ICON_HALF_DP = 11f
+
+    /**
+     * Whether the style layer [id] draws the POI symbol: every `poi-` layer except the text-only `-name` layers (the
+     * style's naming, tools/make_style.py pois()). A name from a `-name` layer is never a hit of its own.
+     */
+    fun symbolLayer(id: String): Boolean = id.startsWith(POI_LAYER_PREFIX) && !id.endsWith("-name")
 
     fun pick(cands: List<Candidate>, fx: Float, fy: Float, boxPx: Float, dpPx: Float): Poi? {
         val reach = boxPx / 2f + ICON_HALF_DP * dpPx
@@ -104,10 +107,10 @@ class ShownPois {
             val t0 = SystemClock.uptimeMillis()
             val style = map.style ?: return
             if (!style.isFullyLoaded) return
-            // a layer that draws the POI symbol (since 2026-11-16 every poi- layer: the icon and its name in one symbol);
-            // a text-only layer (an older style) gives names without their symbol – kept, but never a POI hit
-            val (iconIds, nameIds) = style.layers.filter { it.id.startsWith(POI_LAYER_PREFIX) }
-                .partition { drawsIcon(it) }.let { (i, n) -> i.map { it.id } to n.map { it.id } }
+            // symbol layers by their id (PoiHit.symbolLayer): reading a layer's icon image at runtime said "no icon" for
+            // every POI layer on the owner's Pixel (2026-11-16 23:35, no POI hit any more) – the id rule is the style's own
+            val (iconIds, nameIds) = style.layers.map { it.id }.filter { it.startsWith(POI_LAYER_PREFIX) }
+                .partition { PoiHit.symbolLayer(it) }
             val box = RectF(0f, 0f, view.width.toFloat(), view.height.toFloat())
             fun query(layers: List<String>): List<Feature> =
                 if (layers.isEmpty()) emptyList() else map.queryRenderedFeatures(box, *layers.toTypedArray())
@@ -131,15 +134,6 @@ class ShownPois {
         } catch (e: Exception) {
             Problems.warn("poi", "Shown POIs not read (map idle), a tap or hold uses the last list", e)
         }
-    }
-
-    /** True when [layer] draws an icon (a symbol layer with an icon image); a layer we cannot read counts as one. */
-    private fun drawsIcon(layer: Layer): Boolean = try {
-        val image = (layer as? SymbolLayer)?.iconImage
-        image != null && !image.isNull && (image.isExpression || !image.value.isNullOrEmpty())
-    } catch (e: Exception) {
-        Problems.warn("poi", "POI layer ${layer.id}: icon not readable, counted as a symbol layer", e)
-        true
     }
 
     companion object {
