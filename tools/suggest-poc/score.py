@@ -11,6 +11,8 @@ The first four are means over the loop beyond the unavoidable way out, read betw
 yardstick) and the best any loop from this start reaches – the loops are judged together, so 100 means "as good as it
 gets from here". Form is absolute. The total is their mean, weighted by the character.
 """
+import re
+
 from net import direction, dist
 
 AXES = ("natur", "ruhe", "weg", "besonderes", "form")
@@ -28,7 +30,10 @@ def judge(P, S, cands, sights):
         c["raw"] = {a: sum(P.v[a][e] * F.ln[e] for e in core) / m for a in AXES[:4]}
         c["sights"] = [dict(s) for s in {s["name"]: s for s in sights
                                           if any(dist(net.nodes[x], s["p"]) < 120.0 for x in c["nodes"][::3])}.values()]
-        c["raw"]["besonderes"] += K["sight"] * min(3, len(c["sights"])) + K["ring"] * (c["origin"] in ("Rundweg", "offiziell"))
+        # going round a signed loop is what the place's makers laid out – but along a road is always bad (owner
+        # 2026-11-16: on wheels the road rule beats the bonus; on foot such a loop is out anyway)
+        ring = c["origin"] in ("Rundweg", "offiziell") and road_run(F, c["edges"]) <= K["ring_road_m"]
+        c["raw"]["besonderes"] += K["sight"] * min(3, len(c["sights"])) + K["ring"] * ring
     # the yardstick is our own pool: official loops are measured on it, they do not move it
     top = {a: max([c["raw"][a] for c in cands if c["origin"] != "offiziell"] + [P.low[a] + min_span]) for a in AXES[:4]}
     for c in cands:
@@ -57,19 +62,17 @@ def numbers(P, c, sights):
     """The plain facts of a loop for the card and for judging – absolute, not relative to the place."""
     F, net, edges, total = P.F, P.net, c["edges"], c["m"]
     pct = lambda test: int(round(100.0 * sum(F.ln[e] for e in edges if test(e)) / total))
-    km_by, run, longest = {}, 0.0, 0.0
+    km_by = {}
     for e in edges:
         for key in [("reserves", F.areas[F.area[e]])] * (F.area[e] > 0) + [
                 ({"route": "known", "lake": "lakes"}.get(F.things[i]["kind"]), F.things[i]["name"]) for i in F.named[e]]:
             if key[0]:
                 km_by[key] = km_by.get(key, 0.0) + F.ln[e] / 1000.0
-        run = run + F.ln[e] if F.traffic[e] >= 0.45 and not F.built[e] else 0.0
-        longest = max(longest, run)
     top = lambda kind, least: [[nm, round(km, 1)] for (k, nm), km in sorted(km_by.items(), key=lambda x: -x[1]) if k == kind and km >= least][:4]
     return {"km": round(total / 1000.0, 2), "hours": round(c["hours"], 2), "ascent": int(c["up"]),
             "forest_pct": pct(lambda e: F.green[e] >= 0.5), "deep_pct": pct(lambda e: F.depth[e] >= 0.5),
             "town_pct": pct(lambda e: F.built[e]), "street_pct": pct(lambda e: F.traffic[e] >= 0.15),
-            "road_longest_m": int(longest), "signed_pct": pct(lambda e: F.signed[e] > 0),
+            "road_longest_m": int(road_run(F, edges)), "signed_pct": pct(lambda e: F.signed[e] > 0),
             "water_km": round(sum(F.ln[e] for e in edges if F.water[e] > 0) / 1000.0, 1),
             "water_pct": int(round(100.0 * sum(F.ln[e] * F.water[e] for e in edges) / total)),  # big water counts full, small half
             "rail_km": round(sum(F.ln[e] for e in edges if F.rail[e]) / 1000.0, 1),
@@ -81,14 +84,52 @@ def numbers(P, c, sights):
             "sights": [[s["what"], s["name"]] for s in sights][:6]}
 
 
+def road_run(F, edges):
+    """The longest stretch in metres along a road with cars outside a town."""
+    run = longest = 0.0
+    for e in edges:
+        run = run + F.ln[e] if F.traffic[e] >= 0.45 and not F.built[e] else 0.0
+        longest = max(longest, run)
+    return longest
+
+
+def short(name, most=30):
+    """A protected area's name short enough for a title: without brackets and what follows " mit "; over 40
+    characters without a place tail (" zwischen …", " von …"); a list ("A, B und C", "A - B") gives its more telling
+    part (fewer small words; the first when equal) while it is longer than `most`."""
+    s = re.sub(r"\s*\([^)]*\)", "", name).split(" mit ")[0].strip()
+    if len(s) > 40:
+        s = re.split(r" (?:zwischen|von|vom|bei|südlich|nördlich|westlich|östlich) ", s)[0]
+    small = lambda p: sum(1 for w in p.split() if not w[:1].isupper())
+    for sep in (", ", " - ", " – ", " / ", " und "):
+        while len(s) > most and re.search(r"(?<!-)" + sep, s):
+            a, b = re.split(r"(?<!-)" + sep, s, maxsplit=1)
+            s = a if small(a) <= small(b) else b
+    return s or name
+
+
+def short_route(name):
+    """A signed route's name for a title or the line: without brackets; over 40 characters only its head (before
+    ", " or " - ": a stage, a part), then without its ref ("NST · …")."""
+    s = re.sub(r"\s*\([^)]*\)", "", name).strip()
+    for sep in (", ", " - "):
+        if len(s) > 40 and sep in s:
+            s = s.split(sep)[0]
+    if len(s) > 40 and " · " in s:
+        s = s.split(" · ", 1)[1]
+    return s or name
+
+
 def explain(P, c):
     """Title, the reason line and the five-word verdict of a loop."""
     n, net = c["numbers"], P.net
     far = max(c["nodes"], key=lambda x: dist(net.nodes[net.start], net.nodes[x]))
     where = "Richtung %s" % direction(net.nodes[net.start], net.nodes[far])
-    main = [x[0] for x in n["reserves"][:2]] + [x[0] for x in n["lakes"][:1]] \
-        + [x[0] for x in n["known"][:1] if x[1] >= 0.25 * n["km"]] + (["Bahntrasse"] if n["rail_km"] >= 0.25 * n["km"] else [])
-    c["name"] = " – ".join(list(dict.fromkeys(main))[:2]) or next((a for a in c["aim"] if " bei " in a or " im " in a), where)
+    main = list(dict.fromkeys([short(x[0]) for x in n["reserves"][:2]] + [x[0] for x in n["lakes"][:1]]
+                              + [short_route(x[0]) for x in n["known"][:1] if x[1] >= 0.25 * n["km"]]
+                              + (["Bahntrasse"] if n["rail_km"] >= 0.25 * n["km"] else [])))[:2]
+    title = " – ".join(main)
+    c["name"] = (title if len(title) <= 45 else main[0]) if main else next((a for a in c["aim"] if " bei " in a or " im " in a), where)
     c["bearing"] = where
     km = lambda rows, pre: ["%s km %s%s" % (str(k).replace(".", ","), pre, nm) for nm, k in rows]
     kind = lambda nm: nm if "schutzgebiet" in nm.lower() or nm.startswith(("Nationalpark", "Naturpark")) else "Schutzgebiet " + nm
@@ -132,12 +173,12 @@ def line(n):
     things = [say(w, nm) for w, nm in named] + [w for w, nm in n["sights"] if nm == w and w != "Aussichtspunkt"
                                                 and w not in {x for x, _ in named}]  # an unnamed one only when none of its kind has a name
     views = [nm for w, nm in n["sights"] if w == "Aussichtspunkt"]
-    bits = (["durch " + both([kind(nm) for nm, _ in n["reserves"][:2]])] if n["reserves"] else []) \
+    bits = (["durch " + both([kind(short(nm)) for nm, _ in n["reserves"][:2]])] if n["reserves"] else []) \
         + ([am(n["lakes"][0][0])] if n["lakes"] else []) \
         + (["vorbei an " + both(list(dict.fromkeys(things))[:3])] if things else []) \
         + (["%s km an Kanten mit Weitblick" % num(n["rim_km"])] if n["rim_km"] >= 0.5 else []) \
         + (["Aussicht " + (views[0] if views[0] != "Aussichtspunkt" else "unterwegs")] if views else []) \
-        + ["%s km auf %s" % (num(k), nm) for nm, k in n["known"][:1] if k >= 0.25 * n["km"]] \
+        + ["%s km auf %s" % (num(k), short_route(nm)) for nm, k in n["known"][:1] if k >= 0.25 * n["km"]] \
         + (["%s km am Wasser" % num(n["water_km"])] if n["water_km"] >= 1 and not n["lakes"] else []) \
         + (["%s km Bahntrasse" % num(n["rail_km"])] if n["rail_km"] >= 1 else [])
     text = ", ".join(bits) or "%d %% am Wald, %d %% auf Naturwegen" % (n["forest_pct"], n["ground_pct"][2] + n["ground_pct"][3])

@@ -105,11 +105,13 @@ def build(x, y):
             if nm and nm not in labels and len(labels) < 255:
                 labels.append(nm)
             _fill(grid, w, h, west, north, f["parts"], PROTECTED, names, labels.index(nm) if nm in labels else 0)
-    with open(os.path.join(d, "nature-v%d.bin" % VERSION), "wb") as f:
-        f.write(bytes(grid) + bytes(names))
-    with open(os.path.join(d, "nature-v%d.json" % VERSION), "w", encoding="utf-8") as f:
-        json.dump({"w": w, "h": h, "west": west, "north": north, "labels": labels,
-                   "places": list(places.values())}, f, ensure_ascii=False)
+    for name, data in (("nature-v%d.bin" % VERSION, bytes(grid) + bytes(names)),
+                       ("nature-v%d.json" % VERSION, json.dumps({"w": w, "h": h, "west": west, "north": north, "labels": labels,
+                                                                "places": list(places.values())}, ensure_ascii=False).encode("utf-8"))):
+        tmp = os.path.join(d, "%s.%d" % (name, os.getpid()))  # written whole, then moved: runs side by side
+        with open(tmp, "wb") as f:
+            f.write(data)
+        os.replace(tmp, os.path.join(d, name))
 
 
 def cell(x, y):

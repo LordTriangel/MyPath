@@ -136,9 +136,9 @@ def suggest(wish, S=None, extra=None):
         c["chosen"] = c in shown
         if c["chosen"]:
             explain(P, c)
-            if c.get("official"):  # its own description, else the line without its own name as "km auf …"
+            if c.get("official"):  # our own line from what it passes (never the operators' texts), without "km auf <itself>"
                 nm, n = c["official"]["name"], c["numbers"]
-                c["name"], c["line"] = nm, c["official"]["description"] or line(dict(n, known=[k for k in n["known"] if nm not in k[0]]))
+                c["name"], c["line"] = nm, line(dict(n, known=[k for k in n["known"] if nm not in k[0]]))
         nodes = c.pop("nodes")
         c["coords"], c["cls"] = [[round(v, 6) for v in net.nodes[nodes[0]][:2]]], ""
         for ei, frm in zip(c.pop("edges"), nodes):

@@ -53,8 +53,8 @@
   },
 
   "form": {
-    "_about": "The Form axis and the few hard rules. Inside the wished ranges of time and ascent every loop is equally fine. short_zero = share below the shortest wished time at which the time part is 0; long_zero = share above the longest from which a loop is no longer offered; under the wished ascent the part falls gently, above it the loop is not offered. doubled_zero = share walked twice (beyond the free stem) at which that part is 0. cross = factor for one meeting with the own way; max_cross = more meetings than this are never offered. sight = bonus on Besonderes per sight passed (viewpoint, castle, ruin, chapel, cave, waterfall; at most 3). ring = bonus on Besonderes for walking a signed circular route round (ours, origin Rundweg, and an official loop itself: what the place's makers laid out).",
-    "short_zero": 0.3, "long_zero": 0.1, "doubled_zero": 0.25, "cross": 0.5, "max_cross": 1, "sight": 0.05, "ring": 0.15
+    "_about": "The Form axis and the few hard rules. Inside the wished ranges of time and ascent every loop is equally fine. short_zero = share below the shortest wished time at which the time part is 0; long_zero = share above the longest from which a loop is no longer offered; under the wished ascent the part falls gently, above it the loop is not offered. doubled_zero = share walked twice (beyond the free stem) at which that part is 0. cross = factor for one meeting with the own way; max_cross = more meetings than this are never offered. sight = bonus on Besonderes per sight passed (viewpoint, castle, ruin, chapel, cave, waterfall; at most 3). ring = bonus on Besonderes for walking a signed circular route round (ours, origin Rundweg, and an official loop itself: what the place's makers laid out) – only while its longest stretch along a road with cars stays within ring_road_m (along a road is always bad; on foot longer is out anyway).",
+    "short_zero": 0.3, "long_zero": 0.1, "doubled_zero": 0.25, "cross": 0.5, "max_cross": 1, "sight": 0.05, "ring": 0.15, "ring_road_m": 300
   },
 
   "select": {
