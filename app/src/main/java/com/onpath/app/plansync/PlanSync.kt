@@ -84,6 +84,8 @@ class PlanSync(
     /** This phone's routing (fingerprint + rd5 dates) for the plans it saves and the synced plans it opens. */
     private val routing: RoutingStamp = FileRoutingStamp({ n -> context.assets.open("brouter/$n").use { it.readBytes() } },
         { com.onpath.app.data.DataFiles(context.applicationContext).segmentsDir }),
+    /** The phone's kept places (Zuhause + favourites, owner 2026-11-15 „Ja, mit Abgleich“; web-sync.md §5.4). */
+    private val places: PlaceStore? = SearchPlaceStore(com.onpath.app.search.SearchStore(context.applicationContext)),
 ) {
     private val app = context.applicationContext
     val files = SyncFiles(dir)
@@ -158,7 +160,7 @@ class PlanSync(
 
     private fun pass() = PlanSyncPass(files, store, ::mailbox, ::randomBytes, System::currentTimeMillis, deviceName,
         { if (it == SyncItem.TRACK) Txt.s(Res.string.sync_untitled_track) else Txt.s(Res.string.sync_untitled_route) }, JcaAead,
-        copyLabel(Txt.s(Res.string.sync_copy)), routing)
+        copyLabel(Txt.s(Res.string.sync_copy)), routing, places)
 
     private fun mailbox(keys: SyncKeys): Mailbox = mailboxForTests?.invoke(keys) ?: HttpMailbox(server, keys)
     private fun randomBytes(n: Int) = ByteArray(n).also { rnd.nextBytes(it) }
@@ -236,6 +238,8 @@ class PlanSync(
             safely("forget") { pass().forgetHere() }
             safely("ended note") { files.saveEnded(System.currentTimeMillis()) }
         } else if (!(quiet && idle(r))) Problems.trace("sync", "Sync ($why): ${describe(r)}")
+        // kept places from the browser: into the places backup file (OnPath Orte.gpx) like a change in the place menu
+        if (r?.placesChanged == true) com.onpath.app.backup.Backups.placesChanged(app)
         refreshState(r)
         report(Report(manual, r, ended = ended))
         if (!handshake) paceNext(r?.outcome, mine)
@@ -476,13 +480,14 @@ class PlanSync(
         fun idle(r: PlanSyncPass.Result?): Boolean {
             val o = r?.outcome as? SyncRound.Outcome.Done ?: return false
             return o.pulled == 0 && o.pushed == 0 && o.unreadable == 0 && r.added == 0 && r.updated == 0 && r.binned == 0 &&
-                r.failed == 0 && !r.toursChanged && !r.skippedForRecording
+                r.failed == 0 && !r.toursChanged && !r.skippedForRecording && !r.placesChanged
         }
 
         fun describe(r: PlanSyncPass.Result?): String = when (val o = r?.outcome) {
             null -> "not paired"
             is SyncRound.Outcome.Done -> "read ${o.pulled}, sent ${o.pushed}, ${o.left} left, ${o.unreadable} unreadable; " +
                 "${r.added} new, ${r.updated} changed, ${r.binned} to the bin, ${r.failed} failed" +
+                (if (r.placesChanged) ", kept places changed" else "") +
                 (if (r.skippedForRecording) ", import after the tour" else "")
             is SyncRound.Outcome.Offline -> "offline"
             is SyncRound.Outcome.Ended -> "pairing ended in the browser"

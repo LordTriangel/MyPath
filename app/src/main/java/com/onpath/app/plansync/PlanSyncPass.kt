@@ -7,6 +7,7 @@ import com.onpath.app.gpx.TrackPoint
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.sync.Aead
 import com.onpath.app.sync.Mailbox
+import com.onpath.app.sync.PlaceSync
 import com.onpath.app.sync.SyncFormat
 import com.onpath.app.sync.SyncItem
 import com.onpath.app.sync.SyncKeys
@@ -16,6 +17,7 @@ import com.onpath.app.sync.SyncLedger
 import com.onpath.app.sync.SyncMerge
 import com.onpath.app.sync.SyncRound
 import com.onpath.app.sync.SyncRoutingData
+import com.onpath.app.search.SavedPlaces
 
 /**
  * The phone's saved routes and imported tracks as the sync sees them (AppSync: the tour database; tests: a list).
@@ -46,6 +48,8 @@ interface TourStore {
  * 3. **import** – what came from the other side into the tours: a new plan / track is added (a plan is routed
  *    afterwards, [Result.toRoute]), a change updates it, a delete moves it to the recycle bin – never deletes it.
  *    New and changed ones are marked until opened ([SyncFiles.marks], My routes: a "New" / "Changed" tag).
+ * Kept places (Zuhause + favourites, [places], §5.4) go the same way: exported before the round ([PlaceSync.export]),
+ * what the round changed is pending in the links until it is in the phone's places ([PlaceSync.import]).
  *
  * The ledger and the links are written after the round, also when it failed, and before the import starts; an import
  * that fails stays [SyncLinks.pending] and is tried again next pass. Runs on a background thread; never during a
@@ -64,7 +68,13 @@ class PlanSyncPass(
     private val copyLabel: String = SyncMerge.COPY,
     /** This phone's routing: written into the plans it saves (fields 7, 8), compared with the plans that come in. */
     private val routing: RoutingStamp? = null,
+    /** The phone's kept places (Zuhause + favourites, owner 2026-11-15 „Ja, mit Abgleich“); null = not synced. */
+    private val places: PlaceStore? = null,
 ) {
+    private val placeSync: PlaceSync? = places?.let { PlaceSync(it::encode, it::decode) }
+    /** The kept places changed in this pass (reset by [run]). */
+    private var placesChanged = false
+
     /** The phone's rd5 dates, read once per pass when a plan needs them. */
     private var days: Map<String, Long?>? = null
     private fun days(): Map<String, Long?> = days ?: (try { routing?.days() } catch (e: Exception) {
@@ -100,11 +110,14 @@ class PlanSyncPass(
          * (a reinstalled phone, field bug 2026-11-12): linked to the route instead of added again.
          */
         val relinked: Int = 0,
+        /** The phone's kept places (Zuhause, favourites) changed from the other side: show them again, back them up. */
+        val placesChanged: Boolean = false,
     )
 
     /** Runs one pass; null when not paired. Throws only when the sync files cannot be written (reported by the caller). */
     fun run(recording: () -> Boolean): Result? {
         days = null
+        placesChanged = false
         val pairing = files.pairing() ?: return null
         val keys = SyncKeys(pairing.secret ?: return null)
         val device = files.device(random)
@@ -112,19 +125,21 @@ class PlanSyncPass(
         val links = files.links()
         val now = clock()
         export(ledger, links, now, device)
+        val seen = exportPlaces(ledger, links, now, device, recording)
         ledger.hello(device, deviceName, now, SyncItem.ROLE_PHONE)
         val before = ledger.entries.mapValues { it.value.item }
         val outcome = SyncRound(keys, mailbox(keys), { random(12) }, aead).run(ledger)
         // what the round changed (only the other side and the merge change items): new or different items, and the
-        // copies the merge kept – all to bring into the tours
+        // copies the merge kept – all to bring into the tours; kept places likewise into the phone's places
         for ((id, e) in ledger.entries) if (e.item.isUserItem && e.item != before[id]) links.markPending(id, agreedStar(before[id]))
+        if (places != null) for (id in PlaceSync.changed(before, ledger)) links.markPending(id)
         files.saveLinks(links)
         files.saveLedger(ledger)
         val peer = ledger.devices(device).firstOrNull()?.name
-        if (outcome is SyncRound.Outcome.Ended) return Result(outcome, peer)
+        if (outcome is SyncRound.Outcome.Ended) return Result(outcome, peer, placesChanged = placesChanged)
         if (recording()) {
             Problems.info("sync", "Sync: ${links.pending.size} changes from the browser wait until the tour has ended")
-            return Result(outcome, peer, skippedForRecording = true)
+            return Result(outcome, peer, skippedForRecording = true, placesChanged = placesChanged)
         }
         val r = import(ledger, links, before, now, device)
         files.saveLinks(links)
@@ -132,14 +147,20 @@ class PlanSyncPass(
             // the phone's own fresh items for routes the other side already had are tombstoned (import): send that now,
             // so the other side shows each route once without waiting for the next pass
             files.saveLedger(ledger)
+            val before2 = ledger.entries.mapValues { it.value.item }
             SyncRound(keys, mailbox(keys), { random(12) }, aead).run(ledger)
             for ((id, e) in ledger.entries) if (e.item.isUserItem && e.item != before[id] && links.tourOf(id) == null && !e.item.deleted) links.markPending(id)
+            if (places != null) for (id in PlaceSync.changed(before2, ledger)) links.markPending(id)
             files.saveLinks(links)
             files.saveLedger(ledger)
         }
+        importPlaces(ledger, links, seen)
+        files.saveLinks(links)
         if (outcome is SyncRound.Outcome.Done) files.saveLastOk(now)
-        return r.copy(outcome = outcome, peer = peer, unreadable = r.unreadable + ((outcome as? SyncRound.Outcome.Done)?.unreadable ?: 0) +
-            ledger.entries.values.count { !it.item.deleted && it.item.kind != SyncItem.DEVICE && it.item.kind != SyncItem.JOIN && !it.item.isUserItem })
+        return r.copy(outcome = outcome, peer = peer, placesChanged = placesChanged,
+            unreadable = r.unreadable + ((outcome as? SyncRound.Outcome.Done)?.unreadable ?: 0) +
+            ledger.entries.values.count { !it.item.deleted && it.item.kind != SyncItem.DEVICE && it.item.kind != SyncItem.JOIN &&
+                it.item.kind != SyncItem.PLACE && !it.item.isUserItem })
     }
 
     /**
@@ -159,6 +180,7 @@ class PlanSyncPass(
         val before = ledger.entries.mapValues { it.value.item }
         val outcome = SyncRound(keys, mailbox(keys), { random(12) }, aead).run(ledger) { it.id == hello }
         for ((id, e) in ledger.entries) if (e.item.isUserItem && e.item != before[id]) links.markPending(id, agreedStar(before[id]))
+        if (places != null) for (id in PlaceSync.changed(before, ledger)) links.markPending(id)
         files.saveLinks(links)
         files.saveLedger(ledger)
         val peer = ledger.devices(device).firstOrNull()?.name
@@ -241,6 +263,7 @@ class PlanSyncPass(
         }
         for (id in links.pending.toList()) {
             val item = ledger.get(id)
+            if (item?.kind == SyncItem.PLACE) continue // a kept place: importPlaces
             if (item == null || !item.isUserItem) { links.done(id); continue }
             val tour = links.tourOf(id)?.let { tours[it] }
             try {
@@ -300,6 +323,54 @@ class PlanSyncPass(
             "(${newer.joinToString()}) – checking for it now")
         return Result(null, added = added, updated = updated, binned = binned, failed = failed, unreadable = unreadable,
             toRoute = toRoute, toursChanged = added + updated + binned > 0, newerData = newer.toList(), relinked = relinked)
+    }
+
+    /** Place items whose change from the other side is not in the phone's places yet. */
+    private fun waitingPlaces(ledger: SyncLedger, links: SyncLinks): Set<String> =
+        links.pending.filterTo(HashSet()) { ledger.get(it)?.kind == SyncItem.PLACE }
+
+    /**
+     * The phone's kept places → ledger (before the round). A change from the other side still waiting from an earlier
+     * pass comes in first (not during a tour), so the export never takes it for the user's; while one still waits, or
+     * the places cannot be read, they are left out of this pass. Returns what the phone kept at the export (null = left
+     * out) – the import leaves a place the user changed since as he has it.
+     */
+    private fun exportPlaces(ledger: SyncLedger, links: SyncLinks, now: Long, device: String, recording: () -> Boolean): SavedPlaces? {
+        val store = places ?: return null
+        val sync = placeSync ?: return null
+        if (waitingPlaces(ledger, links).isNotEmpty()) {
+            if (recording()) return null
+            importPlaces(ledger, links, null)
+            if (waitingPlaces(ledger, links).isNotEmpty()) return null
+        }
+        return try {
+            val kept = store.read()
+            val n = sync.export(ledger, kept, now, device)
+            if (n > 0) Problems.info("sync", "Sync: $n kept place change(s) for the browser")
+            kept
+        } catch (e: Exception) {
+            Problems.warn("sync", "Sync: kept places not read – left out of this pass, tried again next time", e); null
+        }
+    }
+
+    /**
+     * Ledger → the phone's kept places for every pending place item ([PlaceSync.import]); done only once written. A
+     * failure stays pending and is tried again next pass (reported). [seen] = what the phone kept at the export.
+     */
+    private fun importPlaces(ledger: SyncLedger, links: SyncLinks, seen: SavedPlaces?) {
+        val store = places ?: return
+        val sync = placeSync ?: return
+        val ids = waitingPlaces(ledger, links)
+        if (ids.isEmpty()) return
+        try {
+            if (store.update { cur -> sync.import(ledger, ids, cur, seen) }) {
+                placesChanged = true
+                Problems.info("sync", "Sync from the browser: kept places (Zuhause / favourites) changed")
+            }
+            ids.forEach(links::done)
+        } catch (e: Exception) {
+            Problems.error("sync", "Sync: kept places from the browser could not be saved on the phone; tried again next time", e)
+        }
     }
 
     /**

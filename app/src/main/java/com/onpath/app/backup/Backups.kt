@@ -268,9 +268,9 @@ object Backups {
         places?.let { restored ->
             try {
                 val st = com.onpath.app.search.SearchStore(a)
-                val before = st.saved()
-                val merged = before.merge(restored)
-                st.save(merged)
+                var before = com.onpath.app.search.SavedPlaces()
+                // one step with the place menu and the browser sync's import (SearchStore.update)
+                val merged = st.update { cur -> before = cur; cur.merge(restored) }
                 placesAdded = BackupRestore.placesAdded(before, merged)
             } catch (e: Exception) { failed++; Problems.error("backup", "Restoring the places file failed", e) }
         }

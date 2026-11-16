@@ -2363,7 +2363,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleFavouritePlace(poi: com.onpath.app.poi.Poi) {
         val p = placeOf(poi)
         val on = !saved().isFavourite(p)
-        keepPlaces(saved().toggleFavourite(p))
+        keepPlaces { s -> if (s.isFavourite(p) != on) s.toggleFavourite(p) else s }
         Problems.trace("search", "Place menu: \"${p.title()}\" ${if (on) "kept as a favourite" else "no longer a favourite"}")
     }
 
@@ -2371,14 +2371,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleHomePlace(poi: com.onpath.app.poi.Poi) {
         val p = placeOf(poi)
         val remove = saved().isHome(p)
-        keepPlaces(saved().withHome(if (remove) null else p))
+        keepPlaces { s -> s.withHome(if (remove) null else p) }
         Problems.trace("search", "Place menu: \"${p.title()}\" ${if (remove) "no longer home" else "set as home"}")
     }
 
-    private fun keepPlaces(s: com.onpath.app.search.SavedPlaces) {
-        savedPlaces = s
-        searchStore.save(s)
+    /**
+     * One change of the kept places, made on what is stored now (read, change, write in one step – the browser sync may
+     * have brought places since this screen read them; web-sync.md §5.4); then backed up and sent to a paired browser.
+     */
+    private fun keepPlaces(change: (com.onpath.app.search.SavedPlaces) -> com.onpath.app.search.SavedPlaces) {
+        savedPlaces = try { searchStore.update(change = change) } catch (e: Exception) {
+            Problems.error("search", "Favourite places / Zuhause could not be saved", e); return
+        }
         com.onpath.app.backup.Backups.placesChanged(getApplication())
+        sync.changed("kept places")
     }
     private fun clearSearchMarkAt(lat: Double, lon: Double) = searchFlow.clearSearchMarkAt(lat, lon)
 
@@ -5057,6 +5063,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (r.manual) { syncPulling = false; syncPullTimeout?.cancel() } // pull to refresh: its pass ended (or was skipped)
         if (r.ended) sayInfo(Txt.s(Res.string.sync_ended), NoticePlace.SETTINGS)
         // Pair during a tour: only the handshake ran – Browser sync / ☰ show "Routes sync after the tour" (State.afterTour)
+        // Zuhause / favourites from the browser: read them again (the place menu and the empty search show them)
+        if (res?.placesChanged == true) savedPlaces = null
         if (res?.toursChanged == true) {
             refreshTours()
             followSyncedSavedPlan()
