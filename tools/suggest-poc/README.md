@@ -61,7 +61,7 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
 | `remote/` | the locked front and the test planner for testing on the road (services stopped; see its README) |
 | `settings.json` | every number of the method |
 
-## Weak spots (2026-11-16)
+## Weak spots (2026-11-16, evening)
 
 - **Following a river is brittle.** A loop along a line needs a way home that is not the line; at a river that means
   a bridge or a ferry at the right place. Zons, bike 3 h: the check (a loop ≥ 25 km on the Rheinradweg) holds since
@@ -85,6 +85,13 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
   walks 1.8 km through the town and back (28 % through houses) – the way out does not count, so its Natur is 100;
   the official loop leaves the town on its own way (6 %) and every metre of it counts (Natur 66). The way out should
   count as unavoidable only as far as no loop here avoids it. Not changed yet (one place; needs a measure).
+- **A low wished ascent in the hills** (Große Dhünntalsperre, bike 2.5–3.75 h, ≤ 350 m): no loop stays below it; the
+  run builds once more on flatter ways and shows the flattest (416 m) with "↑ 416 m – mehr als gewünscht (350 m)" and
+  a note. Steering towards flat ways from the start (`search.climb` always on) made every comparison set worse
+  (Traumpfade first 75 → 74 %, best shown 86 → 81 %, NRW hikes 42 → 38 %) – so it is only the fallback.
+- **Similar cards at 75 %** (owner's number, `select.overlap`): two cards may now share up to three quarters of their
+  way (Boppard 3 h: two own loops share 67 %); at 60 % the same wishes give a few tenths of a card less (sets: 4.4–4.6
+  instead of 4.6–4.8 cards) and "other RLP hiking" best shown 53 instead of 48 %.
 - **Brooks** come from the routing data's river class plus green beside the way; not checked on pictures.
 - **Wheels against official loops.** The official cycling loops of Rheinland-Pfalz ride a median 28 % on streets or
   through villages (longest stretch at a road 1.2 km); we keep the owner's rule (a road is always bad, 2026-11-16:
@@ -185,7 +192,7 @@ paved; ours stay in the forest (76 %) – the owner's road rule, not a gap to cl
 
 **The page** (`serve.py`): with "ausgeschilderte Rundwege" (on by default) up to three official loops that lie in reach
 and fit the wish join the list as cards ("Ausgeschildert · Traumpfad", start distance, parking; the text line is our
-own, generated from what the loop passes – no OSM / operator descriptions, owner 2026-11-16); an own loop that runs ≥ 80 % on one of them is left out; one line style on the
+own, generated from what the loop passes – no OSM / operator descriptions, owner 2026-11-16); they are chosen in one selection with ours (no two cards share more than 75 % of their way; official + 5 points between similar ones, 2026-11-16); one line style on the
 map, the chosen loop blue, the others a breath, a fine line to the chosen official loop's parking place. It knows
 official loops only where `official-compare/loops*.json` exists – today Rheinland-Pfalz and Nordrhein-Westfalen.
 
@@ -229,3 +236,46 @@ RLP first 12 → 10 %, best shown 19 → 15 %, and the Zons Rhine check fails.
 "Felder, Wiesen & Weiden": Natur 16, rank 30; Schwalmtalweg 2: Natur 6) – there our greener loop is the better
 suggestion by the owner's rules. Where the official loop is a real nature loop (Teutoschleife Dörenther Klippen,
 Monschau, Siebengebirge, Naafbachtal-Route, Von Ruhr zur Ruhr, Haard) it ranks 1–2 and the pool holds 50–90 % of it.
+
+## Fourth round (2026-11-16 evening): the owner's comments from the page
+
+Four comments (22:16–22:33), each looked at in its saved run and re-run (`run.py … --official --all`, `--official`
+is new: the official loops near the start join as on the page).
+
+- **One selection over all cards** (`score.choose`): our loops and the official loops that fit the wish (time as
+  ours, ascent not above the maximum) are chosen together; no two cards share more than `select.overlap` (0.75,
+  owner) of the shorter one's way beyond the way out; an official loop counts + 5 points in the selection only
+  (`official_ahead`: between similar ones it wins unless clearly worse); an official loop inside the wished time is
+  one of the things that stand out (shown if within 15 points, before lines and areas); at most five. Before: our
+  five, then up to three official loops on top (Nordkirchen bike 2.5–3.25 h: 8 cards; now 5, one official).
+  `select.official` and `on_official` are gone.
+- **At least three when there are three** (`least` 3, `least_behind` 30): while fewer than three are shown, further
+  different loops may be up to 30 points behind the first. Nordkirchen on foot 2.5–3.25 h: 1 → 3 cards.
+- **Road repair on foot** (`search.road_repair` 8): a loop that would be out for > 300 m along a road (here mostly a
+  path right beside a Landstraße) is built once more with such ways 8 × dearer. Nordkirchen on foot: 12 of 22 loops
+  were out, 4 of 14 after it.
+- **Ascent** (Dhünntalsperre): the owner had typed 350 into "bis" only; the page sent an ascent only when both fields
+  were filled, so the run used 0–730 m. Now one field is enough (only "bis" = 0–x, only "von" = x up to what is
+  usual), the status line shows the range used. The maximum stays hard for our and the official loops; when nothing
+  stays below it, see Weak spots "A low wished ascent".
+- `cases.py` runs as the page (official loops on) and has three more cases: Nordkirchen on foot 2.5–3.25 h (≥ 3
+  cards), Nordkirchen bike 2.5–3.25 h (3–5 cards), Dhünntalsperre ≤ 350 m (no card above 350 m without the hint).
+
+| Set (loops common to all) | first on the official | best shown | pool | cards | |
+| --- | --- | --- | --- | --- | --- |
+| Traumpfade (21) | 81 → 75 % (≥ 80 %: 11 → 10) | 86 → 86 % | 87 → 87 % | 4.7 → 4.8 | one loop: Heidehimmel's first is another loop (74.2 vs 73.0 points), the official one still shown |
+| Traumschleifen (24) | 43 → 43 % | 56 → 61 % | 63 → 63 % | 4.5 → 4.8 | |
+| RLP cycling / MTB (30) | 12 → 12 % | 19 → 19 % | 34 → 34 % | 4.1 → 4.2 | |
+| other RLP hiking (24) | 23 → 23 % | 53 → 48 % | 64 → 64 % | 4.5 → 4.6 | at 60 %: 53 % |
+| NRW hiking (24) | 20 → 20 % | 42 → 42 % | 53 → 53 % | 4.5 → 4.7 | |
+| NRW cycling / MTB (14) | 13 → 13 % | 25 → 25 % | 40 → 40 % | 4.4 → 4.8 | |
+
+`cases.py` 65 of 65 (the 54 old ones and 11 new statements; before this round the three new cases fail). The
+comparison sets measure only our own selection (their official loop is measured, never shown); a set now has 1–2
+more rows where earlier nothing was shown below the wished ascent and now the flattest is.
+
+Comments 2 (Nordkirchen bike, "warum nicht weiter nördlich durch die Aue") and 3 (Hilden bike, "ist der Chorbusch den
+Weg durch Dormagen und den Chempark wert") gave no general change: the Stever loops north of Lüdinghausen, routed by
+hand, run 40–44 % on streets and along the Dortmund-Ems-Kanal and score 60–68 against 75; the Chorbusch loop passes
+1.4 km through Dormagen and 1.2 km through Worringen (west of the Chempark, not through it) and wins by Besonderes
+(four protected areas, the Rheinradweg) and Form – the 11 km way out of Hilden does not count (Weak spot "The way out").

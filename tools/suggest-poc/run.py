@@ -53,6 +53,7 @@ if __name__ == "__main__":
         ap.add_argument("--" + k, default=default)
     ap.add_argument("--wasser", action="store_true")
     ap.add_argument("--tips", action="store_true", help="mit KI-Regionswissen (region_ai.py)")
+    ap.add_argument("--official", action="store_true", help="official loops near the start join the list, as on the page")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--all", action="store_true", help="every loop of the pool, not only the suggestions")
     ap.add_argument("--png", action="store_true")
@@ -61,7 +62,10 @@ if __name__ == "__main__":
     place = S.find_place(a.start, st)
     if not place:
         raise SystemExit("Ort nicht gefunden: " + a.start)
-    r = S.suggest(make_wish(dict(vars(a), start=place[1], start_name=place[0]), st), st)
+    w = make_wish(dict(vars(a), start=place[1], start_name=place[0]), st)
+    if a.official:
+        import official
+    r = S.suggest(w, st, official.near(w, st) if a.official else None)
     S.save_run(r)
     print(S.table(r, a.all))
     print("Lauf %s" % r["run"])

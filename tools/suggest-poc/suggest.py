@@ -21,7 +21,7 @@ from facts import Facts
 from generate import measure, pool
 from net import load, seat_start
 from place import Place
-from score import choose, explain, judge, line, order
+from score import choose, explain, judge, line
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SERVICE = os.environ.get("SUGGEST_SERVICE", "http://127.0.0.1:8791")
@@ -91,9 +91,8 @@ def tips(wish, reach_m):
 
 def suggest(wish, S=None, extra=None):
     """extra(P) -> loops from elsewhere ({edges, origin, aim, start?, show?, official?}; official.py), judged with the pool.
-    Without `show` they are only measured (the comparison); with it they are official loops shown beside ours: those
-    that fit the wish (at most select.official) join the list, sorted together by points, and an own loop that runs
-    for the most part (select.on_official) on one of them is not shown."""
+    Without `show` they are only measured (the comparison); with it they are official loops: those that fit the wish
+    (time and ascent as for our own loops) go into the one selection with ours (score.choose)."""
     S = S or load_settings()
     t, times = time.time(), {}
 
@@ -115,24 +114,37 @@ def suggest(wish, S=None, extra=None):
     if moved:
         notes.append("Der Startpunkt lag auf einem Weg ohne Anschluss – die Runden beginnen %d m weiter am nächsten Weg." % moved)
     lap("facts")
-    P = Place(net, F, ch, S, tips(wish, radius))
+    tp = tips(wish, radius)
+    P = Place(net, F, ch, S, tp)
     if P.access >= 0.1 * ch.target_m:
         notes.append("Von hier sind es etwa %s km durch den Ort bis ins Grüne. Dieser Weg hinaus und zurück ist bei jeder "
                      "Runde gleich und zählt bei der Bewertung nicht mit." % ("%.1f" % (P.access / 1000.0)).replace(".", ","))
     lap("place")
     cands = pool(P, S)
+    if not cands and P.steep and ch.up[1] < ch.usual_up:  # nothing below the wished ascent: once more on flatter ways
+        steep, P = P.steep, Place(net, F, ch, S, tp, climb=True)
+        cands = pool(P, S)
+        P.steep += steep
     others = [dict(m, **o) for o in (extra(P) if extra else []) for m in [measure(P, o["edges"], o.get("start"))] if m]
     lap("loops")
     sights = [{"name": th["name"], "what": th["what"], "p": th["dense"][0]} for th in things if th["kind"] == "sight"]
     for i, c in enumerate(judge(P, S, cands + others, sights)):
         c["id"] = i + 1
-    fits = lambda c: (1 - S["form"]["short_zero"]) * ch.hours[0] <= c["hours"] <= (1 + S["form"]["long_zero"]) * ch.hours[1] \
-        and c["up"] <= ch.up[1]
-    official = sorted((o for o in others if o.get("show") and fits(o)), key=lambda o: -o["score"])[:S["select"]["official"]]
-    on = lambda c, o: sum(F.ln[e] for e in set(c["edges"]) & set(o["edges"])) >= S["select"]["on_official"] * c["m"]
-    shown = choose(P, S, [c for c in cands if not any(on(c, o) for o in official)])
-    shown = sorted(shown + official, key=lambda c: order(P, c))
-    for c in cands + others:
+    in_time = lambda c: (1 - S["form"]["short_zero"]) * ch.hours[0] <= c["hours"] <= (1 + S["form"]["long_zero"]) * ch.hours[1]
+    shown = choose(P, S, cands + [o for o in others if o.get("show") and in_time(o) and o["up"] <= ch.up[1]])
+    steep = []
+    if not shown:  # nothing stays below the wished ascent: the flattest few, each with a clear hint (the wish is hard)
+        over = P.steep + [o for o in others if o.get("show") and in_time(o)]
+        if over:
+            least = min(c["up"] for c in over)
+            steep = P.steep  # judged together (their own yardstick: there is no pool below the wish), the flattest offered
+            for i, c in enumerate(judge(P, S, steep, sights)):
+                c["id"] = len(cands) + len(others) + i + 1
+            shown = choose(P, S, [c for c in over if c["up"] <= S["form"]["steep_share"] * least])
+            shown = shown[:S["form"]["steep_cards"]]
+            notes.append("Unter %d Höhenmetern gibt es von hier in dieser Zeit keine Runde – gezeigt sind die flachsten "
+                         "(ab etwa %d m)." % (ch.up[1], round(least, -1)))
+    for c in cands + others + steep:
         c["chosen"] = c in shown
         if c["chosen"]:
             explain(P, c)
@@ -160,7 +172,7 @@ def suggest(wish, S=None, extra=None):
                       "high": {k: round(v, 2) for k, v in P.high.items()},
                       "areas": [[a["name"], round(a["m"] / 1000.0, 1)] for a in P.areas],
                       "lines": [[ln["name"], ln["kind"], round(ln["m"] / 1000.0, 1)] for ln in P.lines[:12]]},
-            "candidates": shown + sorted((c for c in cands + others if not c["chosen"]), key=lambda c: -c["score"])}
+            "candidates": shown + sorted((c for c in cands + others + steep if not c["chosen"]), key=lambda c: -c["score"])}
 
 
 def save_run(result):

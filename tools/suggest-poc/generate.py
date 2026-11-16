@@ -13,6 +13,7 @@ A loop inside one big area needs no generator of its own: there the pleasant tur
 The wished time is a range: turning points are taken across all of it, and distance is counted in time.
 """
 from net import bearing, climb, dijkstra, dist, path, runs_along, INF
+from score import road_run
 
 
 def assemble(P, S, points, costs=None):
@@ -103,22 +104,36 @@ def measure(P, edges, start=None):
 
 
 def pool(P, S):
-    """All loops worth judging for this wish: [{edges, nodes, m, up, hours, …, origin, aim}].
+    """All loops worth judging for this wish: [{edges, nodes, m, up, hours, …, origin, aim}]. Loops that fit but climb
+    more than the wished maximum go to P.steep.
     Everything is planned in time, not metres: a turning point 300 m higher is further away than one on the flat."""
     net, ch, fam, Q = P.net, P.ch, P.ch.family, S["search"]
     (h_lo, h_hi), start = ch.hours, net.nodes[net.start]
     h_mid = 0.5 * (h_lo + h_hi)
     out, seen = [], set()
+    P.steep = []
+
+    road_max, F = fam["road_walk_max_m"], P.F
+    roadside = lambda e: F.traffic[e] >= 0.45 and not F.built[e]
+    calm_cost = [c * Q["road_repair"] if roadside(e) else c for e, c in enumerate(P.cost)] if road_max else None
 
     def add(points, origin, aim=(), costs=None):
-        """Assemble, measure, keep if it fits. -> its measures (also when it does not fit), None if nothing new came."""
+        """Assemble, measure, keep if it fits. -> its measures (also when it does not fit), None if nothing new came.
+        A loop that would be out for a long stretch along a road (on foot) is built once more with such stretches
+        made dear: the way to the same turning points mostly exists without the road."""
         edges = assemble(P, S, points, costs)
+        if edges and road_max and road_run(F, edges) > road_max:
+            calm = {i: calm_cost for i in range(len(points) + 1)}
+            for i, cost in (costs or {}).items():
+                calm[i] = [c * Q["road_repair"] if roadside(e) else c for e, c in enumerate(cost)]
+            edges = assemble(P, S, points, calm) or edges
         m = measure(P, edges) if edges and frozenset(edges) not in seen else None
         if m:
             seen.add(frozenset(edges))
             if m["cross"] <= S["form"]["max_cross"] and (1 - S["form"]["short_zero"]) * h_lo <= m["hours"] \
-                    <= (1 + S["form"]["long_zero"]) * h_hi and m["up"] <= ch.up[1]:
-                out.append(dict(m, origin=origin, aim=list(aim)))
+                    <= (1 + S["form"]["long_zero"]) * h_hi:
+                # above the wished ascent a loop is not offered – kept aside only for when nothing here stays below it
+                (out if m["up"] <= ch.up[1] else P.steep).append(dict(m, origin=origin, aim=list(aim)))
         return m
 
     reached = [v for v in range(len(net.nodes)) if 0 < P.len0[v] < ch.max_m and P.d0[v] < INF]
