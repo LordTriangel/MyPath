@@ -16,53 +16,64 @@ class PoiHitTest {
     private val dp = 2.75f // Pixel
     private val box = 24f * dp
     private fun poi(id: String, name: String? = null) = Poi(id, "restaurant", name, 51.5, -0.13)
-    private fun at(p: Poi, x: Float, y: Float, icon: Boolean = true, name: Boolean = false) =
-        PoiHit.Candidate(p, x, y, icon, if (name) p.name?.length ?: 0 else 0)
+    private fun at(p: Poi, x: Float, y: Float, icon: Boolean = true) = PoiHit.Candidate(p, x, y, icon)
+
+    /** The style's POI name size in dp at z16–17 (tools/make_style.py pois(): 10.5 at z14 → 12.5 at z17). */
+    private val em = 12f * dp
 
     @Test fun iconUnderTheFingerBoxIsHit() {
         val a = poi("a")
         val shown = listOf(at(a, 500f, 500f))
-        assertEquals(a, PoiHit.pick(shown, 500f, 500f, box, dp, 16.0))
+        assertEquals(a, PoiHit.pick(shown, 500f, 500f, box, dp))
         // finger box half 12 dp + icon half 11 dp
-        assertEquals(a, PoiHit.pick(shown, 500f + 22f * dp, 500f - 22f * dp, box, dp, 16.0))
-        assertNull(PoiHit.pick(shown, 500f + 24f * dp, 500f, box, dp, 16.0))
-        assertNull(PoiHit.pick(emptyList(), 500f, 500f, box, dp, 16.0))
+        assertEquals(a, PoiHit.pick(shown, 500f + 22f * dp, 500f - 22f * dp, box, dp))
+        assertNull(PoiHit.pick(shown, 500f + 24f * dp, 500f, box, dp))
+        assertNull(PoiHit.pick(emptyList(), 500f, 500f, box, dp))
     }
 
     @Test fun nearestPoiWins() {
         val a = poi("a"); val b = poi("b")
         val shown = listOf(at(a, 500f, 500f), at(b, 500f + 16f * dp, 500f))
-        assertEquals(b, PoiHit.pick(shown, 500f + 10f * dp, 500f, box, dp, 16.0))
-        assertEquals(a, PoiHit.pick(shown, 500f + 6f * dp, 500f, box, dp, 16.0))
+        assertEquals(b, PoiHit.pick(shown, 500f + 10f * dp, 500f, box, dp))
+        assertEquals(a, PoiHit.pick(shown, 500f + 6f * dp, 500f, box, dp))
     }
 
-    @Test fun placedNameBesideTheIconIsHit() {
-        val a = poi("a", "Pret A Manger") // 13 characters ≈ 7 em wide
-        val placed = listOf(at(a, 500f, 500f, name = true))
-        val notPlaced = listOf(at(a, 500f, 500f, name = false))
-        val em = PoiHit.nameSizeDp(16.0) * dp
-        // on the name, right of the icon (anchor "left") and left of it (anchor "right")
-        assertEquals(a, PoiHit.pick(placed, 500f + 5f * em, 500f, box, dp, 16.0))
-        assertEquals(a, PoiHit.pick(placed, 500f - 5f * em, 500f, box, dp, 16.0))
-        assertNull(PoiHit.pick(notPlaced, 500f + 5f * em, 500f, box, dp, 16.0))
-        // past the name's end, or well above it
-        assertNull(PoiHit.pick(placed, 500f + 10f * em, 500f, box, dp, 16.0))
-        assertNull(PoiHit.pick(placed, 500f + 5f * em, 500f - 3f * em, box, dp, 16.0))
+    /**
+     * The map does not tell which names it placed (the name and its symbol are one symbol since 2026-11-16), so a name
+     * beside its symbol is no target of its own: only the finger box on the symbol counts – its first ~10 dp still do.
+     */
+    @Test fun aNameBesideItsSymbolIsHitOnlyNearTheSymbol() {
+        val a = poi("a", "Pret A Manger")
+        val shown = listOf(at(a, 500f, 500f))
+        assertEquals(a, PoiHit.pick(shown, 500f + 20f * dp, 500f, box, dp))
+        assertNull(PoiHit.pick(shown, 500f + 5f * em, 500f, box, dp))
+        assertNull(PoiHit.pick(shown, 500f - 5f * em, 500f, box, dp))
     }
 
-    @Test fun nameShownWithoutItsIconIsHitOnlyOnTheName() {
-        val a = poi("a", "Zum Löwen")
-        val shown = listOf(at(a, 500f, 500f, icon = false, name = true))
-        assertNull(PoiHit.pick(shown, 500f, 500f, 4f * dp, dp, 16.0))
-        val em = PoiHit.nameSizeDp(16.0) * dp
-        assertEquals(a, PoiHit.pick(shown, 500f + 3f * em, 500f, 4f * dp, dp, 16.0))
-    }
-
-    @Test fun nameSizeFollowsTheStyle() {
-        assertEquals(10.5f, PoiHit.nameSizeDp(12.0), 0.01f)
-        assertEquals(10.5f, PoiHit.nameSizeDp(14.0), 0.01f)
-        assertEquals(12.5f, PoiHit.nameSizeDp(17.0), 0.01f)
-        assertEquals(12.5f, PoiHit.nameSizeDp(18.0), 0.01f)
+    /**
+     * Owner's Pixel 2026-11-15 / 16, Hilden, z ~16.8: the bus stop pair „Dorothea-Erxleben-Straße" on Gerresheimer
+     * Straße. The north stop is drawn with its bus symbol (it is route point 3); the south stop, ~120 m away, lost its
+     * symbol in the collision with the street name beside it, but its name was placed – grey text that reads like a
+     * street name. Two holds on the street there opened the place menu. A name without its symbol is no POI: the hold
+     * is a plain map hold. Only a POI whose symbol is drawn is hit.
+     */
+    @Test fun hildenBusStopNameWithoutItsSymbolIsNoPoi() {
+        val stopName = "Dorothea-Erxleben-Straße"
+        val north = Poi("n1", "bus", stopName, 51.1702, 6.9408)
+        val south = Poi("n2", "bus", stopName, 51.1691, 6.9414)
+        val pxPerM = dp / 0.86f // z16.8 at 51.17° N: ~0.86 m per dp
+        val nx = 600f; val ny = 1000f
+        val sx = nx + 40f * pxPerM; val sy = ny + 120f * pxPerM
+        val shown = listOf(at(north, nx, ny, icon = true), at(south, sx, sy, icon = false))
+        // on the south stop's bare name (left of its point, where it was drawn), its start, and where its symbol would be
+        assertNull("hold on the bare name", PoiHit.pick(shown, sx - 5f * em, sy, box, dp))
+        assertNull("hold on the bare name's start", PoiHit.pick(shown, sx - 2f * em, sy, box, dp))
+        assertNull("hold where the symbol would be", PoiHit.pick(shown, sx, sy, box, dp))
+        // the north stop's symbol is drawn: a hold on it is the POI
+        assertEquals(north, PoiHit.pick(shown, nx, ny, box, dp))
+        // once the south stop's symbol is drawn too, it is hit like any POI
+        val both = shown + at(south, sx, sy, icon = true)
+        assertEquals(south, PoiHit.pick(both, sx + 4f * dp, sy, box, dp))
     }
 
     /** Read once per camera stop / change, never again while the map just sits there (battery, owner's Pixel 2026-11-13). */

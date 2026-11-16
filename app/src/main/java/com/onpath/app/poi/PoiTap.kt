@@ -6,45 +6,31 @@ import android.view.View
 import com.onpath.app.debug.Problems
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.style.layers.Layer
+import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.geojson.Feature
 import java.util.concurrent.Executors
 import kotlin.math.abs
-import kotlin.math.ceil
-import kotlin.math.min
 
 /**
  * Which POI a tap or hold at a screen point means – pure, so it is unit tested. [Candidate]s are the POIs the map
- * shows (screen position, icon placed, the length of the name when the map placed it). A POI is hit when the finger's
- * box ([pick] boxPx, 24 dp) touches its icon or, for a placed name, the name beside it (left or right of the icon – the
- * style's first two anchors); the nearest POI point wins – the answer MapLibre's queryRenderedFeatures gave on the
- * icon and name layers.
+ * shows (screen position, symbol drawn or not). A POI is hit only through its drawn symbol: the finger's box ([pick]
+ * boxPx, 24 dp) touches its icon; the nearest POI point wins. A name the map drew without its symbol (an older style,
+ * or any case the style check missed) is no POI – the hold is a plain map hold (owner 2026-11-15, Hilden: a bus stop's
+ * bare name „Dorothea-Erxleben-Straße" read like a street name and a hold on it opened the place menu). Since then the
+ * style draws a POI's name only together with its symbol (tools/make_style.py pois(), PoiSymbolStyleTest), and the
+ * name beside a symbol is not a target of its own: the map does not tell which names it placed.
  */
 object PoiHit {
-    class Candidate(val poi: Poi, val x: Float, val y: Float, val icon: Boolean, val nameChars: Int)
+    class Candidate(val poi: Poi, val x: Float, val y: Float, val icon: Boolean)
 
     /** Half the icon's size in dp (badge 24 px at icon-size ~1). */
     const val ICON_HALF_DP = 11f
 
-    /** The style's POI name size (tools/make_style.py pois(): 10.5 at z14 → 12.5 at z17). */
-    fun nameSizeDp(zoom: Double): Float = (10.5 + (zoom.coerceIn(14.0, 17.0) - 14.0) * (2.0 / 3.0)).toFloat()
-
-    fun pick(cands: List<Candidate>, fx: Float, fy: Float, boxPx: Float, dpPx: Float, zoom: Double): Poi? {
-        val half = boxPx / 2f
-        val em = nameSizeDp(zoom) * dpPx
-        val icon = ICON_HALF_DP * dpPx
-        return cands.filter { c ->
-            val dx = fx - c.x; val dy = fy - c.y
-            val onIcon = c.icon && abs(dx) <= half + icon && abs(dy) <= half + icon
-            onIcon || c.nameChars > 0 && run {
-                // name box: radial offset 1.05 em from the point, at most 8 em wide (text-max-width), wrapped lines
-                val w = min(8f, c.nameChars * 0.55f) * em
-                val lines = ceil(c.nameChars * 0.55f / 8f).coerceAtLeast(1f)
-                val h = lines * 1.2f * em
-                val off = 1.05f * em
-                val side = abs(dx)
-                abs(dy) <= half + h / 2f && side >= off - half && side <= off + w + half
-            }
-        }.minByOrNull { c -> (fx - c.x) * (fx - c.x) + (fy - c.y) * (fy - c.y) }?.poi
+    fun pick(cands: List<Candidate>, fx: Float, fy: Float, boxPx: Float, dpPx: Float): Poi? {
+        val reach = boxPx / 2f + ICON_HALF_DP * dpPx
+        return cands.filter { c -> c.icon && abs(fx - c.x) <= reach && abs(fy - c.y) <= reach }
+            .minByOrNull { c -> (fx - c.x) * (fx - c.x) + (fy - c.y) * (fy - c.y) }?.poi
     }
 
     /**
@@ -77,7 +63,7 @@ object PoiHit {
  * involved). Main thread only. Never throws.
  */
 class ShownPois {
-    private class Entry(val poi: Poi, val icon: Boolean, val nameChars: Int)
+    private class Entry(val poi: Poi, val icon: Boolean)
 
     @Volatile private var entries: List<Entry> = emptyList()
     private val trigger = PoiHit.ReadTrigger()
@@ -102,9 +88,9 @@ class ShownPois {
         val list = entries
         val cands = list.map { e ->
             val s = map.projection.toScreenLocation(LatLng(e.poi.lat, e.poi.lon))
-            PoiHit.Candidate(e.poi, s.x, s.y, e.icon, e.nameChars)
+            PoiHit.Candidate(e.poi, s.x, s.y, e.icon)
         }
-        PoiHit.pick(cands, x, y, boxDp * dp, dp, map.cameraPosition.zoom).also {
+        PoiHit.pick(cands, x, y, boxDp * dp, dp).also {
             val ms = SystemClock.uptimeMillis() - t0
             if (ms > 50) Problems.trace("poi", "POI lookup at the finger took $ms ms (${list.size} shown POIs)")
         }
@@ -118,8 +104,10 @@ class ShownPois {
             val t0 = SystemClock.uptimeMillis()
             val style = map.style ?: return
             if (!style.isFullyLoaded) return
-            val ids = style.layers.map { it.id }.filter { it.startsWith(POI_LAYER_PREFIX) }
-            val (nameIds, iconIds) = ids.partition { it.endsWith("-name") }
+            // a layer that draws the POI symbol (since 2026-11-16 every poi- layer: the icon and its name in one symbol);
+            // a text-only layer (an older style) gives names without their symbol – kept, but never a POI hit
+            val (iconIds, nameIds) = style.layers.filter { it.id.startsWith(POI_LAYER_PREFIX) }
+                .partition { drawsIcon(it) }.let { (i, n) -> i.map { it.id } to n.map { it.id } }
             val box = RectF(0f, 0f, view.width.toFloat(), view.height.toFloat())
             fun query(layers: List<String>): List<Feature> =
                 if (layers.isEmpty()) emptyList() else map.queryRenderedFeatures(box, *layers.toTypedArray())
@@ -134,8 +122,7 @@ class ShownPois {
                     val icons = iconFeatures.mapNotNull { Poi.fromFeature(it) }.distinctBy { it.id }
                     val named = nameFeatures.mapNotNull { Poi.fromFeature(it) }.associateBy { it.id }
                     val iconIds2 = icons.map { it.id }.toSet()
-                    icons.map { Entry(it, true, named[it.id]?.name?.length ?: 0) } +
-                        named.values.filter { it.id !in iconIds2 }.map { Entry(it, false, it.name?.length ?: 0) }
+                    icons.map { Entry(it, true) } + named.values.filter { it.id !in iconIds2 }.map { Entry(it, false) }
                 } catch (e: Exception) {
                     Problems.warn("poi", "Shown POIs not read, a tap or hold uses the last list", e); null
                 }
@@ -144,6 +131,15 @@ class ShownPois {
         } catch (e: Exception) {
             Problems.warn("poi", "Shown POIs not read (map idle), a tap or hold uses the last list", e)
         }
+    }
+
+    /** True when [layer] draws an icon (a symbol layer with an icon image); a layer we cannot read counts as one. */
+    private fun drawsIcon(layer: Layer): Boolean = try {
+        val image = (layer as? SymbolLayer)?.iconImage
+        image != null && !image.isNull && (image.isExpression || !image.value.isNullOrEmpty())
+    } catch (e: Exception) {
+        Problems.warn("poi", "POI layer ${layer.id}: icon not readable, counted as a symbol layer", e)
+        true
     }
 
     companion object {
