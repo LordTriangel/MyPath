@@ -189,15 +189,27 @@ class PlaceAddMenuTest {
 
     /**
      * The field case (23:03, Hilden, a 4.3 km plan): the junction just beside the goal – appending costs about 90 m,
-     * inserting about 100 m. It asked; the owner expects plain „Neues Ziel“. Same shape: the last leg 275 m from the north.
+     * inserting about 100 m. On 2026-11-15 the owner wanted plain „Neues Ziel“ there; on 2026-11-16 he chose the band the
+     * same both ways and agreed that this junction asks again (both about equal) – „Neues Ziel“ first and tinted.
      */
-    @Test fun theJunctionBesideTheGoalIsTheNewGoalAtOnce() {
+    @Test fun theJunctionBesideTheGoalAsksNewGoalFirst() {
         val goal = at(here, 0.0, -2400.0)
         val plan = listOf(here, at(here, 0.0, -2125.0), goal)
         val junction = at(goal, 85.0, -30.0)
         val d = PlaceAddMenu.detours(plan, junction)!!
         assertTrue("appending ${d.appendM} ≤ inserting ${d.insertM}", d.appendM <= d.insertM)
-        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, planning(plan, junction))
+        assertEquals(PlaceAddMenu.HoldAction.ASK, planning(plan, junction))
+        assertEquals(Item.NEW_DESTINATION, PlaceAddMenu.planningMenu(d).emphasised)
+    }
+
+    /**
+     * The owner's field case 2026-11-16 23:27 (Hilden Süd, 16 points): appending 32 m, inserting into the last leg 62 m –
+     * it set the new goal silently, he could have meant a stop („ich wurde nicht gefragt“). Appending is not at most half
+     * of inserting → it asks, „Neues Ziel“ first.
+     */
+    @Test fun appendingCheaperButNotByHalfAsks() {
+        val d = PlaceAddMenu.Detours(insertM = 62.0, appendM = 32.0)
+        assertEquals(PlaceAddMenu.HoldAction.ASK, PlaceAddMenu.planningHold(93.0, d))
         assertEquals(Item.NEW_DESTINATION, PlaceAddMenu.planningMenu(d).emphasised)
     }
 
@@ -232,7 +244,9 @@ class PlaceAddMenuTest {
         val d = { i: Double, g: Double -> PlaceAddMenu.Detours(i, g) }
         assertEquals(PlaceAddMenu.HoldAction.STOP, PlaceAddMenu.planningHold(null, d(100.0, 100.0 * PlaceAddMenu.ASK_BAND)))
         assertEquals(PlaceAddMenu.HoldAction.ASK, PlaceAddMenu.planningHold(null, d(101.0, 200.0)))
-        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, PlaceAddMenu.planningHold(null, d(200.0, 200.0)))
+        assertEquals(PlaceAddMenu.HoldAction.ASK, PlaceAddMenu.planningHold(null, d(200.0, 200.0)))
+        assertEquals(PlaceAddMenu.HoldAction.ASK, PlaceAddMenu.planningHold(null, d(199.0, 100.0)))
+        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, PlaceAddMenu.planningHold(null, d(100.0 * PlaceAddMenu.ASK_BAND, 100.0)))
     }
 
     /** A round trip is never dropped by one hold: a spot far off its loop asks („Neues Ziel“ first, never silently). */

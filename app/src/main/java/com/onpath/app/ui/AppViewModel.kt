@@ -1967,7 +1967,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * A hold on the empty map in Plan ([MapGestures.Action.AddPoint], core feature C1), owner 2026-11-15. While planning
-     * the shorter detour decides ([PlaceAddMenu.planningHold]: on the line → the smart insertion, appending cheaper → the
+     * the shorter detour decides ([PlaceAddMenu.planningHold]: on the line → the smart insertion, appending much cheaper → the
      * new goal, inserting much cheaper → a stop, similar → the small menu „Einfügen“ / „Neues Ziel“, the cheaper first);
      * on a tour or a round trip the zone does ([PlaceAddMenu.asksOnHold]). Back / a tap elsewhere adds nothing.
      */
@@ -2003,7 +2003,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     addPoint(p, lineSnapM); return
                 }
                 PlaceAddMenu.HoldAction.NEW_GOAL -> {
-                    Problems.trace("plan", "New point by a hold: appending is shorter, the new goal at once ($why)")
+                    Problems.trace("plan", "New point by a hold: appending is much shorter, the new goal at once ($why)")
                     asNewDestination(p); return
                 }
                 PlaceAddMenu.HoldAction.STOP -> {

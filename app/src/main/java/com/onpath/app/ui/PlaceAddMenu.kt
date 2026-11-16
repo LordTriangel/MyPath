@@ -78,8 +78,9 @@ object PlaceAddMenu {
     const val LINE_SNAP_DP = 24.0
 
     /**
-     * The ask band: inserting is taken at once only when its detour is at most 1/[ASK_BAND] of what appending costs;
-     * between that and „appending is cheaper“ both are similar – the app asks.
+     * The ask band, the same both ways (owner 2026-11-16, field case Hilden Süd: appending 32 m, inserting 62 m – „ich
+     * wurde nicht gefragt, ob es ein Zwischenpunkt sein soll“): one is taken at once only when its detour is at most
+     * 1/[ASK_BAND] of the other's; between, both are similar – the app asks.
      */
     const val ASK_BAND = 2.0
 
@@ -102,12 +103,12 @@ object PlaceAddMenu {
      * A hold on the empty map with 2+ points while PLANNING – no tour, no round trip (those keep [asksOnHold] on the zone).
      * The owner's rule (2026-11-15, after a field case at a junction beside the goal of a long plan): „Die App nimmt, was
      * den kürzeren Umweg macht; sind beide ähnlich, fragt sie.“ On the line ([lineDp] ≤ [snapDp]) → [HoldAction.ON_LINE];
-     * appending no dearer than inserting → [HoldAction.NEW_GOAL]; inserting at most 1/[ASK_BAND] of appending →
+     * appending at most 1/[ASK_BAND] of inserting → [HoldAction.NEW_GOAL]; inserting at most 1/[ASK_BAND] of appending →
      * [HoldAction.STOP]; else [HoldAction.ASK]. [lineDp] null = no line yet.
      */
     fun planningHold(lineDp: Double?, d: Detours, snapDp: Double = LINE_SNAP_DP): HoldAction = when {
         lineDp != null && lineDp <= snapDp -> HoldAction.ON_LINE
-        d.appendM <= d.insertM -> HoldAction.NEW_GOAL
+        d.appendM * ASK_BAND <= d.insertM -> HoldAction.NEW_GOAL
         d.insertM * ASK_BAND <= d.appendM -> HoldAction.STOP
         else -> HoldAction.ASK
     }
