@@ -347,8 +347,8 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   the not ported gapped "Rundweg" loops (0–11 per wish) and official loops whose cell's suggest file has no LOOP
   section yet (Nordkirchen, Altenkirchen) – the four other choices differ only by those. With the app's `NetReader`
   (`reader`: same nodes and links in another order, BRouter's stricter "allowed", the app's profile files without the
-  POC's `mainroad_penalty`… see below) 80–100 % of each pool is the same loop, points within 0–2 (one 4.3), the choice
-  the same in 13 of 22, `cases.py` 65 of 65. Time on the desktop JVM (warm, network read included): hike 2 h Hilden
+  POC's `mainroad_penalty`) 70–100 % of the loops both build are the same, points within 0–2 (one 4.3), the
+  choice the same in 12 of 22, `cases.py` 65 of 65. Time on the desktop JVM (warm, network read included): hike 2 h Hilden
   0.23 s, bike 3 h Zons 1.9 s / Nordkirchen 1.4 s (Python: 1.5 s / 14 s). Unit tests: `SuggestCoreTest` (file reader
   against `suggest_file.py`, Python's set order, the character, the settings; fixtures by
   `tools/suggest-poc/port/fixtures.py`).
