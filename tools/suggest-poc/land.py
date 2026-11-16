@@ -24,90 +24,20 @@ import os
 from array import array
 
 import cells as CE
-import pmt
+from build_suggest import BUILT, DLAT, DLON, FOREST, NO_HEIGHT, PROTECTED, WATER, WOOD, grid as _grid, heights as _heights  # noqa: F401
 
 VERSION = 5
-DLAT = 0.0004
-DLON = 0.00064
-FOREST, PROTECTED, BUILT, WATER, WOOD = 1, 2, 4, 8, 16  # FOREST = any nature (also heath); WOOD = trees only
-NATURE_CLASSES = ("wood", "wetland")
-NATURE_SUB = ("wood", "forest", "heath", "scrub", "wetland", "bog", "marsh", "swamp")
-PROTECTED_CLASSES = ("naturschutzgebiet", "nature_reserve", "national_park", "nationalpark", "naturwaldzelle", "vogelschutzgebiet", "biotop")
-BUILT_CLASSES = ("residential", "commercial", "industrial", "retail", "railway", "garages", "school", "college",
-                 "university", "education", "kindergarten", "hospital", "military")
-WATER_CLASSES = ("lake", "river", "pond")
-PLACE_CLASSES = ("city", "town", "village", "suburb", "hamlet", "quarter", "neighbourhood")
 
 _mem = {}
 
 
-def _fill(grid, w, h, west, north, rings, bit, names=None, idx=0):
-    """Even-odd scanline fill of one polygon (all its rings) into the grid: sets `bit`; names[i] = idx where given."""
-    rows = {}
-    for ring in rings:
-        for (x1, y1), (x2, y2) in zip(ring, ring[1:]):
-            if y1 == y2:
-                continue
-            ra, rb = (north - y1) / DLAT - 0.5, (north - y2) / DLAT - 0.5
-            lo, hi = (ra, rb) if ra < rb else (rb, ra)
-            r0, r1 = max(0, int(math.ceil(lo))), min(h - 1, int(math.floor(hi)))
-            for r in range(r0, r1 + 1):
-                yc = north - (r + 0.5) * DLAT
-                rows.setdefault(r, []).append(x1 + (yc - y1) * (x2 - x1) / (y2 - y1))
-    for r, xs in rows.items():
-        xs.sort()
-        for a, b in zip(xs[0::2], xs[1::2]):
-            c0 = max(0, int(math.ceil((a - west) / DLON - 0.5)))
-            c1 = min(w - 1, int(math.floor((b - west) / DLON - 0.5)))
-            base = r * w
-            for c in range(c0, c1 + 1):
-                grid[base + c] |= bit
-                if names is not None:
-                    names[base + c] = idx
-
-
 def build(x, y):
     d = CE.folder(x, y)
-    west, south, east, north = CE.cell_bbox(x, y)
-    w, h = int(math.ceil((east - west) / DLON)), int(math.ceil((north - south) / DLAT))
-    grid, names = bytearray(w * h), bytearray(w * h)
-    labels = [""]
-    places = {}
-    ba = pmt.PMTiles(os.path.join(d, "base.pmtiles"))
-    for z, tx, ty in pmt.tiles_of_cell(x, y, 12):
-        raw = ba.tile(z, tx, ty)
-        if not raw:
-            continue
-        L = pmt.layers(raw, {"landcover", "park", "landuse", "water", "place"}, z, tx, ty)
-        for f in L.get("landcover", []):
-            t = f["tags"]
-            if f["type"] == 3 and (t.get("class") in NATURE_CLASSES or t.get("subclass") in NATURE_SUB):
-                wood = t.get("class") == "wood" or t.get("subclass") in ("wood", "forest")
-                _fill(grid, w, h, west, north, f["parts"], FOREST | (WOOD if wood else 0))
-        for f in L.get("landuse", []):
-            if f["type"] == 3 and f["tags"].get("class") in BUILT_CLASSES:
-                _fill(grid, w, h, west, north, f["parts"], BUILT)
-        for f in L.get("water", []):
-            if f["type"] == 3 and f["tags"].get("class") in WATER_CLASSES:
-                _fill(grid, w, h, west, north, f["parts"], WATER)
-        for f in L.get("place", []):
-            t = f["tags"]
-            nm = t.get("name:de") or t.get("name") or ""
-            if f["type"] == 1 and nm and t.get("class") in PLACE_CLASSES and f["parts"] and f["parts"][0]:
-                q = f["parts"][0][0]
-                if west <= q[0] < east and south < q[1] <= north:
-                    places["%s|%.3f|%.3f" % (nm, q[0], q[1])] = [nm, round(q[0], 5), round(q[1], 5), t.get("class")]
-        for f in L.get("park", []):
-            t = f["tags"]
-            if f["type"] != 3 or t.get("class") not in PROTECTED_CLASSES:
-                continue
-            nm = t.get("name") or t.get("name:de") or ""
-            if nm and nm not in labels and len(labels) < 255:
-                labels.append(nm)
-            _fill(grid, w, h, west, north, f["parts"], PROTECTED, names, labels.index(nm) if nm in labels else 0)
-    for name, data in (("nature-v%d.bin" % VERSION, bytes(grid) + bytes(names)),
+    g = _grid(os.path.join(d, "base.pmtiles"), x, y)
+    w, h, west, north, labels = g["w"], g["h"], g["west"], g["north"], g["labels"]
+    for name, data in (("nature-v%d.bin" % VERSION, g["grid"] + g["area"]),
                        ("nature-v%d.json" % VERSION, json.dumps({"w": w, "h": h, "west": west, "north": north, "labels": labels,
-                                                                "places": list(places.values())}, ensure_ascii=False).encode("utf-8"))):
+                                                                "places": g["places"]}, ensure_ascii=False).encode("utf-8"))):
         tmp = os.path.join(d, "%s.%d" % (name, os.getpid()))  # written whole, then moved: runs side by side
         with open(tmp, "wb") as f:
             f.write(data)
@@ -121,16 +51,24 @@ def cell(x, y):
         return _mem[(x, y)]
     d = CE.folder(x, y)
     meta = os.path.join(d, "nature-v%d.json" % VERSION)
+    sf = CE.suggest(x, y)  # the cell's suggest file has the grid, the names and the heights ready
     try:
-        if not os.path.isfile(meta):
+        if sf:
+            m = {k: sf[k] for k in ("w", "h", "west", "north", "labels", "places")}
+            raw = sf["grid"] + sf["area"]
+        elif CE.file_only():
+            _mem[(x, y)] = None
+            return None
+        elif not os.path.isfile(meta):
             if not os.path.isfile(os.path.join(d, "base.pmtiles")):
                 _mem[(x, y)] = None
                 return None
             build(x, y)
-        with open(meta, encoding="utf-8") as f:
-            m = json.load(f)
-        with open(os.path.join(d, "nature-v%d.bin" % VERSION), "rb") as f:
-            raw = f.read()
+        if not sf:
+            with open(meta, encoding="utf-8") as f:
+                m = json.load(f)
+            with open(os.path.join(d, "nature-v%d.bin" % VERSION), "rb") as f:
+                raw = f.read()
     except Exception:  # expected: a broken / half-written cache – the measure is 0 for this area
         _mem[(x, y)] = None
         return None
@@ -149,12 +87,9 @@ def cell(x, y):
                 sat[base + c + 1] = sat[up + c + 1] + run
         m[key] = sat
     m.update({"grid": grid, "names": names, "east": m["west"] + w * DLON, "south": m["north"] - h * DLAT,
-              "height": heights(x, y, m)})
+              "height": sf["heights"] if sf else heights(x, y, m)})
     _mem[(x, y)] = m
     return m
-
-
-NO_HEIGHT = -32768
 
 
 def heights(x, y, m):
@@ -165,26 +100,9 @@ def heights(x, y, m):
         if not os.path.isfile(src):
             return None
         try:
-            import io
-            from PIL import Image
+            out = _heights(src, m["w"], m["h"], m["west"], m["north"])
         except ImportError:  # expected: no Pillow on this computer – no heights, no "Kante mit Blick"
             return None
-        w, h, z = m["w"], m["h"], 12
-        out, tiles, n = array("h", [NO_HEIGHT]) * (w * h), {}, 1 << z
-        tp = pmt.PMTiles(src)
-        for r in range(h):
-            lat = m["north"] - (r + 0.5) * DLAT
-            fy = (1 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2 * n
-            for c in range(w):
-                fx = (m["west"] + (c + 0.5) * DLON + 180.0) / 360.0 * n
-                key = (int(fx), int(fy))
-                if key not in tiles:
-                    raw = tp.tile(z, *key)
-                    tiles[key] = Image.open(io.BytesIO(raw)).convert("RGB").load() if raw else None
-                px = tiles[key]
-                if px:
-                    rr, gg, bb = px[min(255, int((fx - key[0]) * 256)), min(255, int((fy - key[1]) * 256))]
-                    out[r * w + c] = max(-32000, min(32000, int(round(rr * 256 + gg + bb / 256.0 - 32768))))
         with open(path, "wb") as f:
             out.tofile(f)
     out = array("h")

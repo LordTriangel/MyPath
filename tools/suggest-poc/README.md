@@ -21,6 +21,10 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
   a loops file from `official.py extract` exists: today Rheinland-Pfalz and Nordrhein-Westfalen.
 - Ports: page 8790 (`--port` / `SUGGEST_PORT`), route service 8791 (`SUGGEST_SERVICE=http://127.0.0.1:<port>`).
 - Everything it writes goes to `~/onpath-suggest-poc/` (`SUGGEST_DATA`): map areas, runs, pictures, comments.
+- The suggest file of a map cell (`suggest.bin`, `docs/design/tour-suggestions.md` §4a; built by
+  `tools/build_suggest.py`): where a cell has one, land grid, heights, named things and the official loops are read from
+  it. `SUGGEST_FILE=0` never (tiles and terrain at run time), `=1` only files (as phone and planner will work),
+  `SUGGEST_FILES=<dir>` = files built on this computer in `<dir>/10-x-y/suggest.bin`.
 
 ## Judge it
 
@@ -52,7 +56,7 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
 | `generate.py` | one assembly routine, turning points from four sources → the pool of loops |
 | `score.py` | five axes, hard rules, selection, title / reasons / hints |
 | `net.py` | the way network and the graph routines (search, path) |
-| `land.py`, `named.py`, `cells.py`, `pmt.py` | our map areas: land grid, named routes / lakes / viewpoints, download, tile reader |
+| `land.py`, `named.py`, `cells.py`, `pmt.py` | our map areas: land grid, named routes / lakes / viewpoints, download, tile reader – from the cell's suggest file, else computed by the same code the file's producer uses (`tools/build_suggest.py`, `tools/suggest_tiles.py`) |
 | `service/` | the BRouter route service (Java) and the profile copies with the main-road cost |
 | `serve.py`, `page.html`, `run.py` | the page, its server, the terminal tool with pictures |
 | `cases.py`, `feedback.py` | the owner's comments as checks; his comments from the page |

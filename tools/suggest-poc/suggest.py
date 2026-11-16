@@ -106,6 +106,8 @@ def suggest(wish, S=None, extra=None):
     missing = cells.ensure(wish["start"][0], wish["start"][1], radius)[1]
     if missing:
         notes.append("Für %d Kartengebiete hier gibt es noch keine Karte – dort kennt der Vorschlag weder Natur noch Orte." % len(missing))
+    if cells.file_only() and not all(cells.suggest(*c) for c in cells.cells_for(wish["start"][0], wish["start"][1], radius)):
+        notes.append("Die Karte wird hier gerade aktualisiert – für einen Teil der Umgebung fehlen die Daten für Vorschläge noch.")
     net = load(SERVICE, ch.profile, ch.kv, wish["start"], radius, ch.family["coarse"])
     things = named.load(wish["start"], radius + 500.0, ch.bike, S["facts"]["rank"])
     lap("network")
