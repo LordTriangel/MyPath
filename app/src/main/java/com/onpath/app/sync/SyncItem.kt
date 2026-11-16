@@ -51,6 +51,12 @@ data class SyncItem(
      * older writer). Not content: [sameContent] and the merge's content order ignore it.
      */
     val starBase: Long? = null,
+    /**
+     * Kind [PLACE] only, field 11: the kept place as the app's SearchStore line (id, name, kind, sub, lat, lon, ele,
+     * address, source, town, village, shared – tab-separated, 6 decimals; docs/design/web-sync.md §5.4), carried as it
+     * is ([SyncPlaces.clean]). A tombstone carries the line of the place it removes. Null = none / unreadable.
+     */
+    val place: String? = null,
 ) {
     companion object {
         const val PLAN = 1
@@ -62,6 +68,12 @@ data class SyncItem(
          * browser – "use my mailbox instead". Older readers skip it; it is never a user item.
          */
         const val JOIN = 4
+        /**
+         * A kept place (owner 2026-11-15, „Orte merken“ synced: „Ja, mit Abgleich“) – „Zuhause“ (the one item
+         * [SyncPlaces.HOME_ID]) or a favourite (id [SyncPlaces.itemId] of its line). Older readers skip it; it is never
+         * a user item (never copied, never a tour).
+         */
+        const val PLACE = 5
 
         /** [role] of a hello: the phone app. */
         const val ROLE_PHONE = 1
@@ -75,7 +87,7 @@ data class SyncItem(
      */
     fun sameContent(o: SyncItem) =
         kind == o.kind && deleted == o.deleted && title == o.title && plan == o.plan && name == o.name && track == o.track &&
-            pairCode == o.pairCode && role == o.role && (favourite ?: false) == (o.favourite ?: false)
+            pairCode == o.pairCode && role == o.role && (favourite ?: false) == (o.favourite ?: false) && place == o.place
 
     /** A plan or a track – what the user saves, renames and deletes (copies keep the losing version of these). */
     val isUserItem: Boolean get() = kind == PLAN || kind == TRACK
@@ -92,7 +104,8 @@ data class SyncItem(
  * 8 = routing data dates (ASCII, [SyncRoutingData] text, ≤ [MAX_ROUTING_DATA]; kind 1 plan only) – 7 and 8 are no
  * content (docs/design/routing-fingerprint.md "Sync fields"), 9 = favourite (one varint: 1 starred, 0 not; kinds 1 / 2
  * plan and track only, missing = not said – the reader keeps its own star; owner 2026-11-13), 10 = star base (one varint:
- * the mailbox revision whose version this one only re-stars; no content). Unknown tags are skipped
+ * the mailbox revision whose version this one only re-stars; no content), 11 = kept place (UTF-8, the SearchStore line,
+ * ≤ [MAX_PLACE] bytes; kind 5 place only, also on its tombstone – [SyncPlaces]). Unknown tags are skipped
  * (newer apps); one tag never means two things (the reader does not look at the kind).
  *
  * Blob (what the server stores, version 1): version (1), nonce (12), AES-256-GCM(item) with the 16-byte tag. The
@@ -117,6 +130,8 @@ object SyncFormat {
     const val MAX_ROUTING = 32
     /** Longest routing data field ([SyncRoutingData]: about 13 bytes a tile, so 15 tiles). */
     const val MAX_ROUTING_DATA = 200
+    /** Longest kept-place line (UTF-8 bytes; a SearchStore line is ~60–250). */
+    const val MAX_PLACE = 2000
 
     private const val TAG_TITLE = 1
     private const val TAG_PLAN = 2
@@ -128,6 +143,7 @@ object SyncFormat {
     private const val TAG_ROUTING_DATA = 8
     private const val TAG_FAVOURITE = 9
     private const val TAG_STAR_BASE = 10
+    private const val TAG_PLACE = 11
 
     /** A new item id from 16 random bytes. */
     fun newId(random: ByteArray): String { require(random.size >= ID_BYTES); return B64.encode(random.copyOf(ID_BYTES)) }
@@ -166,6 +182,7 @@ object SyncFormat {
         if (item.isUserItem && !item.deleted) item.starBase?.takeIf { it > 0 }?.let { b ->
             out.field(TAG_STAR_BASE, Out().apply { varint(b) }.toArray())
         }
+        if (item.kind == SyncItem.PLACE) SyncPlaces.clean(item.place)?.let { out.field(TAG_PLACE, it.encodeToByteArray()) }
         return out.toArray()
     }
 
@@ -179,7 +196,7 @@ object SyncFormat {
             val flags = r.byte()
             var title: String? = null; var plan: String? = null; var name: String? = null; var track: String? = null
             var pairCode: String? = null; var role: Int? = null; var routing: String? = null; var routingData: String? = null
-            var favourite: Boolean? = null; var starBase: Long? = null
+            var favourite: Boolean? = null; var starBase: Long? = null; var place: String? = null
             while (r.more()) {
                 val tag = r.varint()
                 val len = r.varint()
@@ -199,13 +216,15 @@ object SyncFormat {
                     TAG_FAVOURITE.toLong() -> favourite = raw.takeIf { it.isNotEmpty() }?.let { In(it).varint() }
                         ?.let { v -> if (v == 1L) true else if (v == 0L) false else null } // another value: not said
                     TAG_STAR_BASE.toLong() -> starBase = raw.takeIf { it.isNotEmpty() }?.let { In(it).varint() }?.takeIf { it > 0 }
+                    TAG_PLACE.toLong() -> place = SyncPlaces.clean(raw.decodeToString())
                     else -> Unit // a field from a newer app: skip it
                 }
             }
             val deleted = flags and 1 != 0
             SyncItem(id, at, device, deleted, kind, title, plan, name, track, pairCode, role, routing, routingData,
                 favourite.takeIf { !deleted && (kind == SyncItem.PLAN || kind == SyncItem.TRACK) },
-                starBase.takeIf { !deleted && (kind == SyncItem.PLAN || kind == SyncItem.TRACK) })
+                starBase.takeIf { !deleted && (kind == SyncItem.PLAN || kind == SyncItem.TRACK) },
+                place.takeIf { kind == SyncItem.PLACE })
         }
     } catch (_: IndexOutOfBoundsException) {
         null // expected: cut-off bytes (damaged local store line); the caller counts it as unreadable
@@ -352,4 +371,49 @@ object SyncJoin {
 
     /** Browser side: the phone's pairing secret when a JOIN arrived in [ledger] (its own mailbox's ledger), else null. */
     fun secretIn(ledger: SyncLedger): ByteArray? = secretOf(ledger.get(ID))
+}
+
+/**
+ * Kept places in the sync (owner 2026-11-15 „Ja, mit Abgleich“; docs/design/web-sync.md §5.4). Pure, shared by app and
+ * web planner.
+ *
+ * A kept place is an item of kind [SyncItem.PLACE] carrying the place as the app's SearchStore line (field 11), as it is:
+ * - **Zuhause** is the one item [HOME_ID] per mailbox – a new home is a new version of it (it replaces the old one),
+ *   „Zuhause entfernen“ is its tombstone.
+ * - **A favourite** has the id [itemId] of its line, so the same place kept on two devices is one item (the same line →
+ *   the same id); „★ Gemerkt“ off is its tombstone. Two lines of one place (another id, the name nearby) are two items –
+ *   each device shows them once by the app's same-place rule (SavedPlaces.same).
+ * - A tombstone carries the line of the place it removes (the reader finds the place by the same-place rule).
+ * The conflict rule is [SyncMerge.reconcile]'s, without clocks: the mailbox's version stays, except that a live place
+ * made here beats a tombstone (or a line-less version) the other side wrote without seeing it; a home made here that
+ * loses to another home stays as a favourite – nothing kept is lost.
+ */
+object SyncPlaces {
+    /** The id of the home item: the first 16 bytes of SHA-256("OnPath home") – one per mailbox, the same everywhere. */
+    val HOME_ID: String = B64.encode(Sha256.hash("OnPath home".encodeToByteArray()).copyOf(SyncFormat.ID_BYTES))
+
+    /** A favourite's item id: the first 16 bytes of SHA-256("OnPath place " + line) – the same line, the same item. */
+    fun itemId(line: String): String =
+        B64.encode(Sha256.hash(("OnPath place " + line).encodeToByteArray()).copyOf(SyncFormat.ID_BYTES))
+
+    /**
+     * The line as an item keeps it, or null: one line (no line break), at most [SyncFormat.MAX_PLACE] bytes, at least
+     * the nine fields every SearchStore line has, a non-empty id and readable coordinates. Other fields stay as they are
+     * (a newer app's extra fields travel along).
+     */
+    fun clean(line: String?): String? {
+        val l = line?.trimEnd('\r', '\n') ?: return null
+        if (l.isEmpty() || '\n' in l || '\r' in l || l.encodeToByteArray().size > SyncFormat.MAX_PLACE) return null
+        val f = l.split('\t')
+        if (f.size < 9 || f[0].isBlank()) return null
+        val lat = f[4].toDoubleOrNull() ?: return null
+        val lon = f[5].toDoubleOrNull() ?: return null
+        return l.takeIf { lat in -90.0..90.0 && lon in -180.0..180.0 }
+    }
+
+    /** The place's own id in a line (its first field), or null. */
+    fun key(line: String?): String? = line?.substringBefore('\t')?.takeIf { it.isNotEmpty() }
+
+    /** [item] is a live kept place with a readable line. */
+    fun live(item: SyncItem?): Boolean = item != null && item.kind == SyncItem.PLACE && !item.deleted && item.place != null
 }

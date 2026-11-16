@@ -88,6 +88,9 @@ object SyncMerge {
                 e == null -> out[r.item.id] = SyncEntry(r.item, r.rev, dirty = false)
                 r.rev <= e.rev -> Unit
                 !e.dirty -> out[r.item.id] = SyncEntry(r.item, r.rev, dirty = false)
+                // kept places (§5.4): no clock, no copy – the mailbox's version stays, except a live place made here
+                // over a tombstone (or a line-less version) the other side wrote without seeing it
+                e.item.kind == SyncItem.PLACE || r.item.kind == SyncItem.PLACE -> place(out, e, r)
                 // a star never makes a copy (owner 2026-11-13): only the star changed here – the other side's version
                 // with our star (a delete of it wins, the star goes with it)
                 e.item.isUserItem && r.item.isUserItem && starOnly(e) -> {
@@ -122,6 +125,32 @@ object SyncMerge {
             }
         }
         return out
+    }
+
+    /**
+     * A kept place changed here ([e], dirty) meets a newer mailbox version [r] (docs/design/web-sync.md §5.4). Ours stays
+     * (on top of [r], to upload) only when it is a live place with a line and [r] is a tombstone or has no readable line
+     * (an older reader that re-sent it without field 11) – a keep the other side never saw beats its delete. Otherwise
+     * the mailbox's version stays (both live: the same place; our stale delete is dropped). A home of ours that loses
+     * to another home is kept as a favourite (to upload), so a place the user kept is never lost.
+     */
+    private fun place(out: MutableMap<String, SyncEntry>, e: SyncEntry, r: RemoteItem) {
+        val mine = e.item
+        val theirs = r.item
+        if (SyncPlaces.live(mine) && (theirs.deleted || theirs.kind != SyncItem.PLACE || theirs.place == null)) {
+            out[theirs.id] = SyncEntry(mine, r.rev, dirty = true)
+            return
+        }
+        out[theirs.id] = SyncEntry(theirs, r.rev, dirty = false)
+        val line = mine.place
+        if (theirs.id == SyncPlaces.HOME_ID && SyncPlaces.live(mine) && line != null && line != theirs.place &&
+            SyncPlaces.key(line) != SyncPlaces.key(theirs.place)) {
+            val fid = SyncPlaces.itemId(line)
+            val f = out[fid]
+            if (f == null || !SyncPlaces.live(f.item)) out[fid] = SyncEntry(
+                SyncItem(fid, maxOf(mine.updatedAt, (f?.item?.updatedAt ?: 0) + 1), mine.device, kind = SyncItem.PLACE, place = line),
+                f?.rev ?: 0, dirty = true)
+        }
     }
 
     /** [e] waits to go up and changes only the star of the version at its base ([SyncItem.starBase]). */

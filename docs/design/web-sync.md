@@ -91,7 +91,7 @@ Frozen test values (`PlanSyncTest`, `sync-engine.mjs`): secret bytes `i*7+1` (i 
 
 **Item** (plain bytes, version 1):
 ```
-version(1)=1 | kind(1): 1 plan, 2 device hello | id(16) | device(8) | updatedAt (varint, ms since 1970)
+version(1)=1 | kind(1): 1 plan, 2 device hello (3 track, 4 JOIN, 5 kept place – §5.1, §5.4) | id(16) | device(8) | updatedAt (varint, ms since 1970)
 | flags(1): bit 0 = deleted | fields until the end: tag (varint), length (varint), bytes
     1 = title (UTF-8, ≤ 100 chars)   2 = plan code (ASCII, PlanCode format v1)   3 = device name (UTF-8, ≤ 60)
     unknown tags are skipped (newer apps)
@@ -205,6 +205,88 @@ travels with it. One optional field for **kind 1 (plan) and kind 3 (track)** ite
   `aStarredRouteFromTheBrowserArrivesStarred` / `anOlderPageNeverTakesAStarAwayAndNoRouteGoesUpAgain` /
   `aStarMeetingAnUnseenRenameFollowsTheConflictRule`, `SyncRulesRandomTest.starsAgreeOnBothSidesAndNothingIsLost`.
 
+### 5.4 Kept places – Zuhause and the favourites (owner 2026-11-15 „Ja, mit Abgleich“) – format fixed, built on the app side
+
+F-PLAN-14's kept places (the held place's „☆ Merken“ / „⌂ Als Zuhause festlegen“, the empty search's Zuhause and
+Favoriten) travel between the phone and the paired browser like saved routes. One new item kind and one field, backward
+compatible (old readers skip unknown kinds and tags):
+
+    kind 5 = PLACE                                 never a user item: never copied „(copy)“, never a tour, not in the 250
+      11 = place   UTF-8, the app's SearchStore line as it is – id, name, kind, sub, lat, lon, ele, address, source,
+                   town, village, shared; tab-separated, lat / lon with 6 decimals (SearchStore.encode = WebKept.encode);
+                   ≤ 2000 bytes, no line break, ≥ 9 fields, a non-empty id, readable coordinates (SyncPlaces.clean),
+                   further fields of a newer app travel along untouched; kind 5 only, also on its tombstone
+    Zuhause   = the item with id SyncPlaces.HOME_ID = first 16 bytes of SHA-256("OnPath home") = "pgMGQeTKkugzkpC39hnwlw"
+                – one per mailbox; „Als Zuhause festlegen“ = a new version of it (the old home is replaced),
+                „Zuhause entfernen“ = its tombstone
+    favourite = the item with id SyncPlaces.itemId(line) = first 16 bytes of SHA-256("OnPath place " + line) – the same
+                line on two devices is the same item; „★ Gemerkt“ off = its tombstone
+    tombstone = flag deleted, field 11 = the line of the place it removes (the reader finds the place by the same-place rule)
+
+**Same place, one place.** Two lines of one place (the hut held on the map and the same hut from the online search:
+another id, the same name < 100 m away – `SavedPlaces.same`) are two items in the mailbox; each device shows the place
+once and „★ Gemerkt“ off takes every item of that place away. No clock decides anything.
+
+**Conflict rule** (`SyncMerge.reconcile`, a change made here meets a newer mailbox version – §6's "the version seen
+decides"): the mailbox's version stays (both live: the same place; a delete made here on an older version is dropped),
+except a live place made here (with its line) over a tombstone or a line-less version the other side wrote without
+seeing it – ours goes up on top. **Two new homes at once:** the one that reached the mailbox first stays Zuhause; the
+other one stays as a **favourite** on every device – nothing the user kept is lost (`aHomeThatLosesStaysAFavourite`).
+Field 11 missing on a live place (an older reader that re-sent it after the mailbox lost its history): read as "not
+said" – never shown, never a delete, and the device that has the line sends it again.
+
+**The steps, the same on both sides** (`sync/PlaceSync.kt`, shared – the planner calls it with WebKept's codec):
+1. **export** before the round: `PlaceSync.export(ledger, kept, now, device, waiting)` – a favourite with no live item of
+   the same place → `keepPlace`; a live item whose place is no longer kept → `unkeepPlace` (tombstone); Zuhause another
+   place → `setHome(line)`, none → `setHome(null)`. Items in `waiting` (their change from the other side has not reached
+   the device's places yet) and lines the device cannot read are left alone.
+2. **round** as for routes (§7; pacing ≤ 30 writes a round counts place items too).
+3. **import** after the round: `PlaceSync.changed(before, ledger)` = the place items the round changed →
+   `PlaceSync.import(ledger, ids, current, seen)` → the new kept places: a live favourite comes in first unless the same
+   place is kept already; a tombstone takes every copy of that place; the home item sets / clears Zuhause. `seen` = what
+   the device kept at the export: a home the user changed since, or a favourite he kept again since, stays as he has it
+   (the next export sends it).
+
+**Phone (built):** `PlanSyncPass` (`places: PlaceStore` = `SearchPlaceStore` over SearchStore's `onpath-places`): the
+changed ids wait in the links (`SyncLinks.pending`, no tour) until written to disk; a leftover from a failed pass comes in
+**before** the next export (else the export would take the missing place for a delete); none during a tour; an unreadable
+places file leaves the places out of the pass (never "none kept"). All writers of the places – the place menu, a backup
+restore, the sync's import – go through `SearchStore.update` (read, change, write in one step). A pass that changed places
+refreshes the menu / empty search and writes the places backup (`OnPath Orte.gpx`). Unpair (`forget`) drops the place
+items from the ledger; the next pairing exports the phone's places again (same lines → same ids → no copies). Tests:
+`SyncPlacesTest` (frozen bytes, merge, export / import – also in the web build's test list), `CorePlaceSyncTest` (phone ⇄
+browser: both ways, unkeep, Zuhause entfernen, a new home, two homes at once, pairing with places on both sides, a failed
+import, an unreadable file, a tour, an older reader, a phone without place sync).
+
+**Older readers** (an app or page before this): kind 5 is decoded, kept in the ledger, never shown, never copied; an older
+app counts such items as "from a newer app" (Settings → Browser sync says update OnPath) – app and planner go out
+together. An older reader drops field 11 when it writes its ledger; it only sends such an item again after the mailbox
+lost its history (`restart`) – the rule above makes the newer devices keep and resend their lines (`anOlderReaderLosesNothing`).
+
+**Examples** (frozen in `SyncPlacesTest.theFormatIsFrozen`): the line
+`n:4711⇥Leiter Alm⇥alpine_hut⇥⇥46.689000⇥11.140000⇥1522⇥⇥POI⇥⇥⇥` (⇥ = tab) is item `COgvE3Dj8pbgW9pnl8DPxw`;
+kept by device `AQEBAQEBAQE` at updatedAt 1000 its item bytes are `01 05 <id 16> <device 8> e807 00 0b 3e <the 62 line bytes>`.
+
+#### For the laptop (planner side) – what to build on this
+- **Engine** (`WebSync.kt`, yours): two calls over the shared `PlaceSync(WebKept::encode, WebKept::decode)` –
+  `syncPlacesExport(ledger, home, favourites, now, device, waiting)` → `PlaceSync.export` on
+  `SavedPlaces(decode(home), favourites.map(decode))`, returns the ledger; and `syncPlacesImport(ledger, ids, home,
+  favourites, seenHome, seenFavourites)` → `PlaceSync.import`, returns `{home, favourites}` lines like `WebKept.apply`;
+  plus `syncPlacesChanged(before, after)` (or compute the ids in the page: items of kind 5 whose bytes changed).
+- **Page:** the places live in the open folder's ledger like routes; per round: export (from `keptplaces.ts`) → round →
+  import → write `keptplaces.ts`. Keep the changed ids until the import is written (like the phone's pending) and import
+  a leftover **before** the next export. **Never export from a store that could not be read** – `keptStore` reads fall
+  back to "nothing kept", which the export would send as deletes of every place: skip the places for that round.
+- **When to send:** the browser sends routes only with Save (§14); kept places are no route – recommended: send them with
+  the next round at once (like the own hello), so a place kept in the browser reaches the phone without Save.
+- **Pairing:** browser-local places join the phone's folder like Without phone's routes (§14.6 rule 2): export them into
+  the folder's ledger at the first round; the same lines meet as one item, two lines of one place stay one place.
+  `syncRebase` with a new mailbox drops non-user items – export the places again afterwards.
+- **Unpair / another phone's folder:** recommended – kept places stay in the browser (one list per browser, not per
+  folder); a new pairing exports them into that phone's folder.
+- Tests on your side: a sync-smoke step (phone ★ Leiter Alm → browser's empty search; browser ⌂ → phone; ☆ off both
+  ways) and an engine test that `WebKept.encode` lines give the same item ids as the app (`SyncPlacesTest`'s frozen line).
+
 ## 6. Conflict rule (`SyncMerge`)
 
 Owner 2026-11-12, after the „Bad Honnef“ field bug (an old browser change pushed a phone tour away; research and the
@@ -227,6 +309,8 @@ four rules: `sync-research-2026-11-12.md`): **the version seen decides, not the 
   already in the target with other content leaves that one alone and comes as a copy.
 - `updatedAt` orders lists and breaks exact ties; local edits still get `max(now, previous + 1)`.
 - Device hellos and JOIN items (one writer each) keep the old rule: newer `updatedAt` wins (`SyncMerge.merge`).
+- Kept places (kind 5, §5.4): no clock and no copy – the mailbox's version stays, a live place made here beats an unseen
+  tombstone, a losing home stays a favourite.
 - Tested: `CorePlanSyncTest` (the incident: an old browser delete / rename, clock ahead, four quiet days, Save),
   `PlanSyncTest.takingAToursFolderNeverMakesOldDataNewer`, `SyncRulesRandomTest` (400 seeded random sequences: edits,
   deletes, skewed clocks, offline, late pushes, restart, take – both sides agree, no last-saved version lost unless a

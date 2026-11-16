@@ -38,6 +38,50 @@ class SyncLedger private constructor(
         .filter { it.kind == SyncItem.TRACK && !it.deleted }
         .sortedWith(compareByDescending<SyncItem> { it.updatedAt }.thenBy { it.id })
 
+    /** Kept favourite places (§5.4): live place items with a line, not the home, newest first. */
+    fun places(): List<SyncItem> = entries.values.map { it.item }
+        .filter { SyncPlaces.live(it) && it.id != SyncPlaces.HOME_ID }
+        .sortedWith(compareByDescending<SyncItem> { it.updatedAt }.thenBy { it.id })
+
+    /** „Zuhause“ (§5.4): the live home item with a line, or null. */
+    fun home(): SyncItem? = entries[SyncPlaces.HOME_ID]?.item?.takeIf { SyncPlaces.live(it) }
+
+    /**
+     * Keeps a favourite place ([line] = its SearchStore line): the item [SyncPlaces.itemId] of the line – new, or live
+     * again after a tombstone; nothing changes when it is kept already. Null when the line is not a place line.
+     */
+    fun keepPlace(line: String, now: Long, device: String): SyncItem? {
+        val l = SyncPlaces.clean(line) ?: return null
+        val id = SyncPlaces.itemId(l)
+        val old = entries[id]
+        if (old != null && SyncPlaces.live(old.item) && old.item.place == l) return old.item
+        return put(SyncItem(id, stamp(old, now), device, kind = SyncItem.PLACE, place = l), old)
+    }
+
+    /** A favourite no longer kept: its tombstone, carrying its line (§5.4). False when [id] is no live kept place. */
+    fun unkeepPlace(id: String, now: Long, device: String): Boolean {
+        val old = entries[id]?.takeIf { SyncPlaces.live(it.item) } ?: return false
+        put(SyncItem(id, stamp(old, now), device, deleted = true, kind = SyncItem.PLACE, place = old.item.place), old)
+        return true
+    }
+
+    /**
+     * „Als Zuhause festlegen“ ([line]) / „Zuhause entfernen“ (null): the one home item – a new version replaces the old
+     * home, its tombstone carries the old line. False when [line] is not a place line or nothing changes.
+     */
+    fun setHome(line: String?, now: Long, device: String): Boolean {
+        val old = entries[SyncPlaces.HOME_ID]
+        if (line == null) {
+            if (old == null || !SyncPlaces.live(old.item)) return false
+            put(SyncItem(SyncPlaces.HOME_ID, stamp(old, now), device, deleted = true, kind = SyncItem.PLACE, place = old.item.place), old)
+            return true
+        }
+        val l = SyncPlaces.clean(line) ?: return false
+        if (old != null && SyncPlaces.live(old.item) && old.item.place == l) return false
+        put(SyncItem(SyncPlaces.HOME_ID, stamp(old, now), device, kind = SyncItem.PLACE, place = l), old)
+        return true
+    }
+
     /** The other paired devices that said hello (newest first). */
     fun devices(myDevice: String): List<SyncItem> = entries.values.map { it.item }
         .filter { it.kind == SyncItem.DEVICE && !it.deleted && it.device != myDevice }

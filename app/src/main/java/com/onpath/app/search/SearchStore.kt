@@ -29,20 +29,42 @@ class SearchStore(context: Context) {
      * backup takes along (res/xml backup rules); the search prefs (recent, names) stay out of it. Never throws: an
      * unreadable entry is skipped (reported), an unreadable file = nothing kept.
      */
-    fun saved(): SavedPlaces = try {
-        SavedPlaces(home = places.getString("home", null)?.let { decode(it) },
-            favourites = places.getString("favourites", null).orEmpty().lines().filter { it.isNotBlank() }.mapNotNull { l ->
-                decode(l) ?: null.also { Problems.warn("search", "A favourite place could not be read – left out") }
-            })
-    } catch (e: Exception) {
+    fun saved(): SavedPlaces = try { savedOrThrow() } catch (e: Exception) {
         Problems.warn("search", "Favourite places / Zuhause unreadable – none shown", e); SavedPlaces()
     }
 
+    /**
+     * As [saved], but an unreadable file throws instead of reading as „nothing kept“ – the browser sync
+     * (plansync/SearchPlaceStore) must never take an unreadable file for places the user removed.
+     */
+    fun savedOrThrow(): SavedPlaces = SavedPlaces(home = places.getString("home", null)?.let { decode(it) },
+        favourites = places.getString("favourites", null).orEmpty().lines().filter { it.isNotBlank() }.mapNotNull { l ->
+            decode(l) ?: null.also { Problems.warn("search", "A favourite place could not be read – left out") }
+        })
+
     fun save(s: SavedPlaces) {
-        try {
-            places.edit().putString("home", s.home?.let { encode(it) })
-                .putString("favourites", s.favourites.joinToString("\n") { encode(it) }).apply()
-        } catch (e: Exception) { Problems.error("search", "Favourite places / Zuhause could not be saved", e) }
+        try { synchronized(LOCK) { write(s, durable = false) } } catch (e: Exception) {
+            Problems.error("search", "Favourite places / Zuhause could not be saved", e)
+        }
+    }
+
+    /**
+     * Changes the kept places in one step – read, [change], write – alone among every writer in the process (the place
+     * menu, a backup restore, the browser sync's import), so none of them writes over another's change. [durable] = on
+     * disk before it returns (the sync: its ledger already counts the change as done). Returns the new places; throws
+     * when they could not be read or written (nothing changed then).
+     */
+    fun update(durable: Boolean = false, change: (SavedPlaces) -> SavedPlaces): SavedPlaces = synchronized(LOCK) {
+        val cur = savedOrThrow()
+        val next = change(cur)
+        if (next != cur) write(next, durable)
+        next
+    }
+
+    private fun write(s: SavedPlaces, durable: Boolean) {
+        val e = places.edit().putString("home", s.home?.let { encode(it) })
+            .putString("favourites", s.favourites.joinToString("\n") { encode(it) })
+        if (durable) { if (!e.commit()) throw java.io.IOException("kept places not written") } else e.apply()
     }
 
     fun names(): Map<GeoPoint, String> = sp.getString("names", null).orEmpty().lines().mapNotNull { l ->
@@ -60,6 +82,8 @@ class SearchStore(context: Context) {
         const val MAX_RECENT = 20
         /** Zuhause + favourites: in Android's backup (backup_rules.xml / data_extraction_rules.xml). */
         const val PLACES_PREFS = "onpath-places"
+        /** One writer of the kept places at a time ([update]). */
+        private val LOCK = Any()
         private fun clean(s: String?) = s.orEmpty().replace('\t', ' ').replace('\n', ' ')
 
         fun encode(p: Place): String = listOf(p.id, clean(p.name), p.kind, p.sub.orEmpty(),

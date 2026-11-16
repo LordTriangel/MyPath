@@ -6,7 +6,7 @@ import com.onpath.app.data.Geo
  * Places the user keeps (owner 2026-11-15, „Orte merken“, sketches B4a5St5QFxAi7dKfG6SLXN + LqFT7h7KhEmKRdGJUVtrG9):
  * [home] („⌂ Zuhause“, one place or none) and [favourites] („★ Favoriten“, newest first). Set in the held place's menu,
  * shown at the top of the empty search. Unlike „Zuletzt gesucht“ (20, the oldest drop out) favourites never fall out.
- * On the phone only – in the app's backups, not synced to the browser planner. Pure.
+ * In the app's backups and synced with the paired browser planner (sync/PlaceSync, docs/design/web-sync.md §5.4). Pure.
  */
 data class SavedPlaces(val home: Place? = null, val favourites: List<Place> = emptyList()) {
 
