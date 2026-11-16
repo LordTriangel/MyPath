@@ -64,6 +64,7 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
 | `region_ai.py` | optional: the AI's region tips per map area (one call per area, picks from our own list) |
 | `remote/` | the locked front and the test planner for testing on the road (services stopped; see its README) |
 | `settings.json` | every number of the method |
+| `reference.py`, `FROZEN.md` | the frozen method's reference runs for the Kotlin port; what is frozen and the numbers to reproduce |
 
 ## Weak spots (2026-11-16, evening)
 
@@ -108,7 +109,11 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
 - **Not tried in this version:** the AI tips input (`--tips`), the remote front end to end (it compiles and the
   adapter is changed), the page's controls by hand (pictures are made from saved runs).
 - **Unmeasured guesses** in `settings.json`: the character table (axis weights at both ends, ground welcome, usual
-  ascent per hour) and the search factors are first values that passed the checks, nothing more.
+  ascent per hour) and the search factors are first values that passed the checks, nothing more. The same for
+  `place.top` (round 5: Natur 0.8, the rest 0.95, Besonderes + `form.ring`): read off 32 hiking places, not tuned.
+- **The yardstick's upper end varies by place** (round 5): what the best loop reaches lies ±0.1–0.2 around
+  `place.top` (Natur, Besonderes), so per place an axis weighs a little more or less than its character weight; the
+  pool's best loop did not have that, but moved every loop's points when a loop was added.
 
 ## Official loops (2026-11-15)
 
@@ -130,7 +135,7 @@ python3 tools/suggest-poc/official.py png --set neu-traumpfade --name Saynsteig 
 
 Per loop a wish made from it (start at the parking place; hike T2 or the loop's own T level, a cycling route bike –
 gravel when less than half is paved –, an MTB route mtb; its time ±15 %, 60–130 % of its ascent); the official loop is
-laid onto our network and judged as one more pool member on the same yardstick (it does not move the yardstick), but
+laid onto our network and judged on the place's yardstick like every loop (since round 5 no loop moves it), but
 never chosen (`suggest(wish, S, extra)`). Sets from the Geofabrik Rheinland-Pfalz extract (966 closed loops: 934
 hiking, 21 cycling, 11 MTB): the 21 Traumpfade around Mayen–Koblenz; 24 of the 43 Traumschleifen (Saar-Hunsrück,
 picked at random); all 31 cycling / MTB loops that lie on our network (one MTB tour does not); 24 other hiking loops
@@ -283,3 +288,34 @@ Weg durch Dormagen und den Chempark wert") gave no general change: the Stever lo
 hand, run 40–44 % on streets and along the Dortmund-Ems-Kanal and score 60–68 against 75; the Chorbusch loop passes
 1.4 km through Dormagen and 1.2 km through Worringen (west of the Chempark, not through it) and wins by Besonderes
 (four protected areas, the Rheinradweg) and Form – the 11 km way out of Hilden does not count (Weak spot "The way out").
+
+## Fifth round (2026-11-16 night): the yardstick from the place alone – then frozen
+
+The review's finding: a loop's four place axes were read up to the best raw value of the pool, so adding or dropping
+one candidate changed every loop's points (and official loops needed a rule of their own not to move it). Now
+(`place.top`, `Place.judge`): the upper end per axis is a quantile of the ways beyond the way out – Natur 0.8 (a loop's
+mean over mixed ways rarely reaches the very best ways; at 0.8 the median gap to the pool's best loop is 0.01 over 32
+hiking places), Ruhe / Weg / Besonderes 0.95, Besonderes plus `form.ring` (room for the bonus of going round a signed
+loop). A loop's points depend only on the place and itself; the rule "official loops do not move the yardstick" is
+gone with the pool maximum. Points are lower in absolute terms (our first loop's median 92 → 88 on the Traumpfade).
+
+| Set (loops) | first on the official: median (mean) | ≥ 80 % | best shown | pool | official ranks 1st | cards |
+| --- | --- | --- | --- | --- | --- | --- |
+| Traumpfade (21) | 75 → 75 % (0.63 → 0.62) | 10 → 10 | 86 → 86 % | 87 → 87 % | 5 → 9 | 4.8 → 4.8 |
+| Traumschleifen (24) | 43 → 28 % (0.40 → 0.39) | 2 → 3 | 61 → 61 % | 63 → 63 % | 9 → 12 | 4.8 → 4.9 |
+| RLP cycling / MTB (32) | 11 → 11 % (0.19 → 0.20) | 1 → 1 | 19 → 20 % | 34 → 34 % | 3 → 6 | 4.1 → 4.2 |
+| other RLP hiking (24) | 23 → 23 % (0.32 → 0.29) | 4 → 2 | 48 → 47 % | 64 → 64 % | 8 → 7 | 4.6 → 4.6 |
+| NRW hiking (25) | 20 → 22 % (0.30 → 0.33) | 2 → 3 | 42 → 42 % | 53 → 53 % | 1 → 4 | 4.6 → 4.6 |
+| NRW cycling / MTB (15) | 10 → 10 % (0.12 → 0.12) | 0 → 0 | 23 → 25 % | 30 → 30 % | 4 → 6 | 4.6 → 4.7 |
+
+`cases.py` 65 of 65 before and after. The Traumschleifen median falls by one loop crossing the middle (mean 0.40 →
+0.39, ≥ 50 % 9 → 10); overall neutral, and the official loops rank first in our own points more often.
+
+Tried and dropped (same sets): the upper end = the 95 % quantile of all ways in reach (`place.high`) for every axis –
+Traumpfade 75 → 57 % (mean 0.63 → 0.59), Traumschleifen 43 → 28 %: Besonderes saturates (59 % of the places have a
+loop above it), going round a signed loop no longer counts; the same with room for every bonus (ring + 3 sights) –
+Traumpfade 57 %, Traumschleifen 24 %: Besonderes is squeezed. Checked: with the old pool yardstick the rule for official
+loops is still needed (without it Traumschleifen 43 → 28 %).
+
+After this round the method is frozen: `FROZEN.md`.
+

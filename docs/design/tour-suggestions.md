@@ -30,8 +30,10 @@ machen würde"):
 | Besonderes | water, known routes by rank, a rail trail, a named protected area, an edge with a view, castles / ruins / chapels / viewpoints, a signed loop walked round, a tip | relative to the place |
 | Form | time and ascent inside the wished ranges, nothing walked twice, not crossing itself | absolute |
 
-"Relative to the place" = between the value that is poor here (a low quantile of the ways in reach) and the best any
-loop from this start reaches: the loops are judged together, 100 means "as good as it gets from here". The absolute
+"Relative to the place" = between the value that is poor here (a low quantile of the ways in reach) and what the ways
+beyond the way out offer at their best (a high quantile per axis, `place.top`; since 2026-11-16 – before, it was the
+best loop of the pool): each loop is judged on the place alone, so its points do not change when another loop is
+built, and 100 means "as good as a loop gets here". The absolute
 facts (km in a protected area, % through houses, longest stretch at a road) stay on the card, so a good score in a
 poor place does not hide what the place is.
 
@@ -334,8 +336,8 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   browser only read it. Falls away: rasterising tiles and decoding terrain at run time (the browser problem), and
   the guessed order of a gapped signed route (`generate.pool` "Rundweg" by 24 directions) – official loops are
   candidates from data. To port: only facts, place, character, generate, score (~830 Python lines).
-  To try before the freeze: the yardstick from the place alone, not "best loop of the pool" (a loop's points must not
-  change when another candidate is added). Stages, each with its acceptance: **0 freeze** (comment round done, sets +
+  Done before the freeze (2026-11-16): the yardstick from the place alone, not "best loop of the pool" (a loop's points
+  do not change when another candidate is added); see `tools/suggest-poc/FROZEN.md`. Stages, each with its acceptance: **0 freeze** (comment round done, sets +
   cases measured, tag; no method change in Python afterwards) → **1 data** (laptop, test cells; the POC reads the file
   and gives the same suggestions – producer, reader and acceptance done 2026-11-16, §4a; the pipeline step is open) → **2 core** (Kotlin on `suggest/`; compare sets and `cases.py` run against it via a
   JVM entry; same results as the frozen POC; the Python method is deleted, settings stay one file) → **3 planner**

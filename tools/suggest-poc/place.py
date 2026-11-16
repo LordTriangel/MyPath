@@ -2,7 +2,9 @@
 
   * how good every way is on four axes (Natur, Ruhe, Weg, Besonderes) for this character – absolute 0..1;
   * the place's own yardstick: per axis the value that is poor here (low quantile) and the one that is as good as it
-    gets here (high quantile). In flat farmland a quiet field way is top, in the mountains the bar is higher by itself;
+    gets here (high quantile) – the search's measure of a way; and `top`, what a loop's mean counts full at (a high
+    quantile of the ways beyond the way out). In flat farmland a quiet field way is top, in the mountains the bar is
+    higher by itself; a loop's points depend only on the place and itself, never on the other loops;
   * what stands out here: the best share of the ground, connected = the areas (a forest, a heath, a park like the
     Hirschpark, a river meadow) and the lines (a known route, a rail trail, a bank) the loops aim at;
   * the unavoidable part: how far it is from this start until one has left the houses. That way out and back is the
@@ -99,10 +101,20 @@ class Place:
             b[0], b[1] = b[0] + F.built[ei] * F.ln[ei], b[1] + F.ln[ei]
         first = next((k for k in sorted(bands) if bands[k][0] < P["access_built"] * bands[k][1]), 0)
         self.access = min(first * step, P["access_max"] * self.target)
+        # --- the yardstick a loop is judged on: from "poor here" (low) to what the ways beyond the way out offer at their
+        # best (a high quantile per axis – Natur lower: a loop's mean over mixed ways rarely reaches the very best;
+        # Besonderes with room for the bonus of going round a signed loop). Only the place, never the other loops.
+        core = [ei for ei in reach if self.core(ei)] or reach
+        self.top = {a: max(quantile([(v[a][ei], F.ln[ei]) for ei in core], P["top"][a]) + S["form"]["ring"] * (a == "besonderes"),
+                           self.low[a] + P["min_span"]) for a in AXES}
 
     def rel(self, axis, value):
         """An absolute value on this place's yardstick: 0 = poor here, 1 = as good as it gets here."""
         return max(0.0, min(1.0, (value - self.low[axis]) / (self.high[axis] - self.low[axis])))
+
+    def judge(self, axis, value):
+        """A loop's mean value on an axis: 0 = poor here, 1 = as good as a loop can get here (`top`)."""
+        return max(0.0, min(1.0, (value - self.low[axis]) / (self.top[axis] - self.low[axis])))
 
     def core(self, ei):
         """Beyond the unavoidable way out – only this part of a loop is judged and compared."""

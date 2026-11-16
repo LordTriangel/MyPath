@@ -172,6 +172,7 @@ def suggest(wish, S=None, extra=None):
                                                                                     "axes": {k: round(v, 2) for k, v in ch.axes.items()}},
             "place": {"nodes": len(net.nodes), "access_m": int(P.access), "low": {k: round(v, 2) for k, v in P.low.items()},
                       "high": {k: round(v, 2) for k, v in P.high.items()},
+                      "top": {k: round(v, 3) for k, v in P.top.items()},
                       "areas": [[a["name"], round(a["m"] / 1000.0, 1)] for a in P.areas],
                       "lines": [[ln["name"], ln["kind"], round(ln["m"] / 1000.0, 1)] for ln in P.lines[:12]]},
             "candidates": shown + sorted((c for c in cands + others + steep if not c["chosen"]), key=lambda c: -c["score"])}

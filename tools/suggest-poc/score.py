@@ -7,9 +7,11 @@
               viewpoints, a tip – what makes it more than a way
   Form        a clean loop: about the wished length, nothing walked twice, not crossing itself, ascent that fits
 
-The first four are means over the loop beyond the unavoidable way out, read between "poor here" (the place's
-yardstick) and the best any loop from this start reaches – the loops are judged together, so 100 means "as good as it
-gets from here". Form is absolute. The total is their mean, weighted by the character.
+The first four are means over the loop beyond the unavoidable way out, read on the place's yardstick: between
+"poor here" (a low quantile of the ways in reach) and "as good as a loop gets here" (a high quantile of the ways beyond
+the way out, `place.top`) – a loop's points depend only on the place and the loop itself, never on which other loops
+were built (2026-11-16; before, 100 was the best loop of the pool). Form is absolute. The total is their mean,
+weighted by the character.
 """
 import re
 
@@ -21,9 +23,9 @@ WORDS = {"natur": "Natur", "ruhe": "Ruhe", "weg": "Weg", "besonderes": "Besonder
 
 def judge(P, S, cands, sights):
     """Fills every loop with axes, points, numbers and the reason a hard rule drops it (c["out"]).
-    The loops are looked at together: on each of the four place axes a loop is measured between what is poor here
-    (the place's low quantile) and the best any loop from this start reaches."""
-    F, net, K, min_span = P.F, P.net, S["form"], S["place"]["min_span"]
+    Each loop on its own: on each of the four place axes it is read on the place's yardstick (P.low .. P.top), so
+    its points never depend on which other loops were built."""
+    F, net, K = P.F, P.net, S["form"]
     for c in cands:
         core = [e for e in c["edges"] if P.core(e)] or c["edges"]
         m = sum(F.ln[e] for e in core)
@@ -34,11 +36,7 @@ def judge(P, S, cands, sights):
         # 2026-11-16: on wheels the road rule beats the bonus; on foot such a loop is out anyway)
         ring = c["origin"] in ("Rundweg", "offiziell") and road_run(F, c["edges"]) <= K["ring_road_m"]
         c["raw"]["besonderes"] += K["sight"] * min(3, len(c["sights"])) + K["ring"] * ring
-    # the yardstick is our own pool: official loops are measured on it, they do not move it
-    top = {a: max([c["raw"][a] for c in cands if c["origin"] != "offiziell"] + [P.low[a] + min_span]) for a in AXES[:4]}
-    for c in cands:
-        ax = {a: max(0.0, min(1.0, (c["raw"][a] - P.low[a]) / (top[a] - P.low[a]))) for a in AXES[:4]}
-        _finish(P, S, c, ax)
+        _finish(P, S, c, {a: P.judge(a, c["raw"][a]) for a in AXES[:4]})
     return cands
 
 

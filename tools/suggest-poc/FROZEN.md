@@ -1,0 +1,46 @@
+# Tour suggestions POC – frozen (stage 0, 2026-11-16)
+
+From now on **no method change in Python.** The method (facts → place → character → candidates → five axes →
+selection, `settings.json`) is the one of commit `a351d48c` (tag `suggest-poc-frozen-2026-11-16`). Changes to the
+method go to the Kotlin core (`app/src/main/java/com/onpath/app/suggest/`) once it is ported (stage 2); until then they
+wait. Allowed in Python: the data step (the suggest file per map cell, stage 1) as long as the POC reading it gives the
+same suggestions, bug fixes that change no number below (or say so here), tools to compare the port.
+
+## The reference the port must reproduce
+
+The six comparison sets (`official.py compare`, commands in the README; labels `fzf` in
+`~/onpath-suggest-poc/official-compare/compare-fzf-<set>-partial.json`, runs in `~/onpath-suggest-poc/runs/`), medians
+over the loops, map data of 2026-11-16:
+
+| Set (loops) | first loop on the official | first ≥ 80 % | best shown | best of pool | rank of the official | official 1st | cards |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Traumpfade (21) | 75 % | 10 | 86 % | 87 % | 2 | 9 | 4.8 |
+| Traumschleifen (24) | 28 % | 3 | 61 % | 63 % | 2 | 12 | 4.9 |
+| RLP cycling / MTB (32) | 11 % | 1 | 20 % | 34 % | 7 | 6 | 4.2 |
+| other RLP hiking (24) | 23 % | 2 | 47 % | 64 % | 4 | 7 | 4.6 |
+| NRW hiking (25) | 22 % | 3 | 42 % | 53 % | 7 | 4 | 4.6 |
+| NRW cycling / MTB (15) | 10 % | 0 | 25 % | 30 % | 3 | 6 | 4.7 |
+
+`cases.py`: **65 of 65** statements (15 cases, as on the page with the official loops near the start).
+
+**Reference runs** (`reference.py`): per wish the whole pool – line (lon / lat), origin, raw place values, five axes,
+points, hard-rule reason, chosen, numbers – plus the wish and the place's yardstick (`low`, `high`, `top`, way out).
+In git (1.2 MB gzip): `app/src/test/resources/suggest/reference/` – six case starts (hilden-wandern, heide-wandern,
+nordkirchen-rad-3h, zons-rad-3h, meran-flach, dhuenn-rad-350) and five official loops' wishes (NRW: Teutoschleife
+Dörenther Klippen, Unterwegs in Monschau [35], Naafbachtal-Route; RLP: Traumpfad Saynsteig, [AK4] Blick über
+Altenkirchen). All 15 case starts + the five: `~/onpath-suggest-poc/reference/` (2.2 MB, outside git). The runs are
+deterministic (same wish, same data → the same file byte for byte).
+
+## Settings that are guesses (first values that passed the checks, not measured)
+
+- `character`: the axis weights at both ends (gemütlich / wild), `depth`, `signed`; `family.*.ground` (ground
+  welcome), `up_m_per_h`, `ascent_m_per_h`.
+- `search`: `taste`, `road`, `profile`, `used`, `beside_used`, `line`, `radius`, `road_repair`, `climb`.
+- `place`: `low` / `high`, `top` (Natur 0.8, rest 0.95 – read off 32 hiking places), `standout`, `min_area`,
+  `access_built`, `access_max`, `rim`, `sight`, `rim_natur`.
+- `form`: `sight` 0.05, `ring` 0.15 (measured on two sets only), `short_zero`, `long_zero`, `doubled_zero`, `cross`.
+- `select`: `behind`, `cover_behind`, `official_ahead` 5, `least` 3 / `least_behind` 30 (`overlap` 0.75 and
+  `ring_road_m` / `road_walk_max_m` 300 are the owner's numbers).
+- `facts`: the road factors, `calm`, `beside`, `big_water`, the rim heights.
+
+Known weak spots stay as listed in the README ("Weak spots"); they are for the Kotlin core now.

@@ -42,9 +42,10 @@
   },
 
   "place": {
-    "_about": "Level 2 – the place as the yardstick. A value is poor at the `low` quantile of the ways in reach and full at the `high` one (at least min_span apart). standout = the best share of the ground here: connected it forms the areas and lines the loops aim at; an area counts from min_area x the wished length. access_built = the way out ends where less than this share of the ways runs through houses; access_max = at most this share of the wished length counts as the unavoidable way out. rim / sight = what an edge with a view (facts rim, 0..1) and a way at a sight are worth on Besonderes; rim_natur = on Natur (an open edge with a view is not 'out of the forest').",
+    "_about": "Level 2 – the place as the yardstick. A value is poor at the `low` quantile of the ways in reach and full at the `high` one (at least min_span apart). standout = the best share of the ground here: connected it forms the areas and lines the loops aim at; an area counts from min_area x the wished length. access_built = the way out ends where less than this share of the ways runs through houses; access_max = at most this share of the wished length counts as the unavoidable way out. rim / sight = what an edge with a view (facts rim, 0..1) and a way at a sight are worth on Besonderes; rim_natur = on Natur (an open edge with a view is not 'out of the forest'). top = per axis the quantile of the ways beyond the way out at which a loop counts full (100): a loop is judged on the place alone, never against the other loops (2026-11-16); Natur lower, since a loop's mean over mixed ways rarely reaches the very best; Besonderes gets form.ring on top (room for going round a signed loop).",
     "low": 0.25, "high": 0.95, "min_span": 0.15, "standout": 0.3, "min_area": 0.12, "access_built": 0.3, "access_max": 0.2,
-    "rim": 0.8, "sight": 0.8, "rim_natur": 1.0
+    "rim": 0.8, "sight": 0.8, "rim_natur": 1.0,
+    "top": {"natur": 0.8, "ruhe": 0.95, "weg": 0.95, "besonderes": 0.95}
   },
 
   "search": {
