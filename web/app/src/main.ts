@@ -732,9 +732,11 @@ map.on('mousemove', (e) => {
     const pt = hoverAt!; hoverAt = null;
     // in 3D nothing is clickable (view only), and a hit test there samples the terrain for every feature – the costliest
     // work of a pointer move in 3D (owner 2026-11-06: slow); skip it
+    // a POI only through its symbol (poiAt – a bare name is no POI)
     const layers = map.isMoving() || terrain3d.on ? [] : map.getStyle().layers
-      .filter((l) => l.id.startsWith('poi-') || l.id === 'planned-route' || l.id === 'planned-route-casing').map((l) => l.id);
-    const hit = layers.length > 0 && map.queryRenderedFeatures([[pt.x - 10, pt.y - 10], [pt.x + 10, pt.y + 10]], { layers }).length > 0;
+      .filter((l) => l.id === 'planned-route' || l.id === 'planned-route-casing').map((l) => l.id);
+    const hit = !map.isMoving() && !terrain3d.on && (poiAt(pt) != null
+      || (layers.length > 0 && map.queryRenderedFeatures([[pt.x - 10, pt.y - 10], [pt.x + 10, pt.y + 10]], { layers }).length > 0));
     // on the route: the profile's cursor follows (terrain view A) – in 3D the pointer only shows, it does not plan
     const onRoute = routeProfile.hover(map.isMoving() ? null : pt);
     map.getCanvas().style.cursor = hit && !terrain3d.on ? 'pointer' : onRoute ? 'crosshair' : '';
@@ -803,23 +805,145 @@ function markerNear(pt: maplibregl.Point): number {
   return best;
 }
 
-function poiAt(pt: maplibregl.Point): MapGeoJSONFeature | null {
-  const layers = map.getStyle().layers.filter((l) => l.id.startsWith('poi-')).map((l) => l.id); // POI_LAYER_PREFIX
-  if (!layers.length) return null;
-  const f = map.queryRenderedFeatures([[pt.x - 10, pt.y - 10], [pt.x + 10, pt.y + 10]], { layers });
-  return f.find((x) => x.geometry.type === 'Point') ?? null;
+/**
+ * The style layers that draw a POI's symbol – the app's PoiHit.symbolLayer: every `poi-` layer except the text-only
+ * `-name` ones. A name drawn without its symbol is no POI (owner 2026-11-15, Hilden: a bus stop's bare name read like a
+ * street name and a hold on it opened the place menu; core feature C19).
+ */
+function poiSymbolLayers(): string[] {
+  return map.getStyle().layers.map((l) => l.id).filter((id) => id.startsWith('poi-') && !id.endsWith('-name')); // POI_LAYER_PREFIX
 }
 
-/** A click on the empty map or the line: the point goes where the app puts it (WaypointInsertion, in the engine). */
+/** The click box's half (px) and the app's PoiHit.ICON_HALF_DP: a POI is hit only through its icon, not its name. */
+const CLICK_HALF_PX = 10, ICON_HALF_PX = 11;
+
+/**
+ * The POI under a click (the app's PoiHit.pick): one the map draws with its symbol whose icon the click's box touches –
+ * the name beside an icon is no target of its own; the nearest POI point wins.
+ */
+function poiAt(pt: maplibregl.Point): MapGeoJSONFeature | null {
+  const layers = poiSymbolLayers();
+  if (!layers.length) return null;
+  const f = map.queryRenderedFeatures([[pt.x - CLICK_HALF_PX, pt.y - CLICK_HALF_PX], [pt.x + CLICK_HALF_PX, pt.y + CLICK_HALF_PX]], { layers });
+  const reach = CLICK_HALF_PX + ICON_HALF_PX;
+  let best: MapGeoJSONFeature | null = null, bestD = Infinity;
+  for (const x of f) {
+    if (x.geometry.type !== 'Point') continue;
+    const s = map.project((x.geometry as GeoJSON.Point).coordinates as [number, number]);
+    if (Math.abs(s.x - pt.x) > reach || Math.abs(s.y - pt.y) > reach) continue;
+    const d = (s.x - pt.x) ** 2 + (s.y - pt.y) ** 2;
+    if (d < bestD) { bestD = d; best = x; }
+  }
+  return best;
+}
+
+/** A hold's answer from the engine (WebApi.holdOnMap = the app's AppViewModel.holdOnMap). */
+type HoldAnswer = { action: 'ADD'; index: number; why: string } | { action: 'ASK'; main: string[]; stop: number; why: string };
+
+/** The engine's answer for a click at [at] with the points as they are now; [lineSnapM] = 24 px on screen in metres. */
+async function holdAnswer(at: maplibregl.LngLat, lineSnapM: number): Promise<HoldAnswer> {
+  return JSON.parse(await engine.call('holdOnMap', enc(state.points), at.lat, at.lng, state.roundTrip, lineSnapM)) as HoldAnswer;
+}
+
+/**
+ * A click (the app's hold) on the empty map or the line – the app's holdOnMap (F-PLAN-15, owner 2026-11-15 / 2026-11-16:
+ * „Die App nimmt, was den kürzeren Umweg macht; sind beide ähnlich, fragt sie.“): fewer than 2 points or on the line →
+ * where WaypointInsertion puts it; appending at most half of inserting → the new goal; inserting at most half of
+ * appending → a stop; else the small menu „Einfügen“ / „Neues Ziel“ beside a ring at the spot (holdAddMenu).
+ */
 function addPoint(at: maplibregl.LngLat) {
   // ~24 px on screen = "clicked on the line" (the phone uses 24 dp)
   const mPerPx = 40075016 * Math.cos((at.lat * Math.PI) / 180) / (512 * 2 ** map.getZoom());
   return queueEdit(async () => {
-    const i = await engine.insertIndex(state.points, at.lat, at.lng, 24 * mPerPx);
+    const a = await holdAnswer(at, 24 * mPerPx);
+    if (a.action === 'ASK') { holdAddMenu(at, a, 24 * mPerPx); return null; }
     const pts = state.points.slice(), meta = state.meta.slice();
+    const i = Math.max(0, Math.min(a.index, pts.length));
     pts.splice(i, 0, [at.lat, at.lng]); meta.splice(i, 0, { pinned: false });
     return { planned: commit(pts, meta) };
   });
+}
+
+/** The ring at a held spot while its hold menu is open (the app's HOLD_RING_DP, px). */
+const HOLD_RING_PX = 12;
+
+/**
+ * The hold menu at a held spot (the app's HoldAddOverlay + HoldAddMenu, owner 2026-11-15): a small ring marks the spot,
+ * beside it only the two rows „Einfügen“ / „Neues Ziel“, the cheaper first and tinted, no title – never over the spot
+ * (MapGestures.placeBeside, in the engine). A click elsewhere / Escape adds nothing; the menu closes when the spot leaves
+ * the map.
+ */
+function holdAddMenu(at: maplibregl.LngLat, a: { main: string[]; stop: number }, lineSnapM: number) {
+  const p: LatLon = [at.lat, at.lng];
+  const asked = state.points;
+  const strong = emphasised(a.main);
+  const items = a.main.map((item): MenuItem => item === 'ADD_STOP'
+    ? { icon: 'addLocation', label: t('plan_add_as_stop'), key: item, strong: item === strong, act: () => {
+      void queueEdit(async () => {
+        // the points changed while the menu was open: where the stop goes, worked out again
+        const stop = state.points === asked ? a.stop : (await holdAnswerStop(at, lineSnapM));
+        const pts = state.points.slice(), meta = state.meta.slice();
+        const i = Math.max(0, Math.min(stop, pts.length));
+        pts.splice(i, 0, p); meta.splice(i, 0, { pinned: false });
+        return { planned: commit(pts, meta) };
+      });
+    } }
+    : { icon: 'flag', label: t('plan_make_destination'), key: item, strong: item === strong, act: () => {
+      // „Neues Ziel“ while planning: appended, the old goal stays as the last stop (PlaceAddMenu.keepsOldGoal)
+      void queueEdit(async () => ({ planned: commit([...state.points, p], [...state.meta, { pinned: false }]) }));
+    } });
+  closeMenu();
+  const box = holdMenu('', items, closeMenu);
+  box.classList.add('holdadd');
+  const m = new maplibregl.Popup({ anchor: 'top-left', offset: [0, 0], closeButton: false, closeOnClick: false, maxWidth: '320px',
+    className: 'holdpopup holdaddpopup' }).setDOMContent(box).setLngLat(at).addTo(map);
+  const ring = document.createElement('div');
+  ring.className = 'holdring';
+  ring.style.width = ring.style.height = `${2 * HOLD_RING_PX}px`;
+  const marker = new maplibregl.Marker({ element: ring }).setLngLat(at).addTo(map);
+  const place = async () => {
+    const s = map.project(at), c = map.getCanvas();
+    const w = c.clientWidth, h = c.clientHeight;
+    if (s.x < 0 || s.y < 0 || s.x > w || s.y > h) { if (menu === m) closeMenu(); return; } // MapGestures.anchorVisible
+    const el = m.getElement().querySelector<HTMLElement>('.maplibregl-popup-content');
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const room = menuRoom(s.x);
+    const ctl = document.querySelector('.maplibregl-ctrl-bottom-right .maplibregl-ctrl-group')?.getBoundingClientRect();
+    const column = ctl && ctl.width > 0 ? Math.round(ctl.width + 16 + 8) : 0; // the zoom buttons at the right edge + their margin
+    const margin = 12, gap = HOLD_RING_PX + 10;
+    const xy = (await engine.call('placeBeside', s.x, s.y, Math.round(r.width), Math.round(r.height), margin, Math.round(room.top),
+      w - margin, Math.floor(room.bottom), gap, column) as string).split(',').map(Number);
+    if (menu === m) m.setOffset([xy[0] - s.x, xy[1] - s.y]);
+  };
+  let placing = false; // one placement at a time (a move sends many frames)
+  const onMove = () => { if (placing) return; placing = true; void place().finally(() => { placing = false; }); };
+  map.on('move', onMove);
+  m.on('close', () => { map.off('move', onMove); marker.remove(); if (menu === m) menu = null; });
+  menu = m;
+  void place();
+}
+
+/**
+ * The free map between the top bar and the plan sheet (phone) or the big profile / the map's bottom (wide), above the
+ * footer (scale + credits) where it lies under [x] (map pixels; on a wide screen it stands in the corner beside the
+ * sheet): the found place's pin and its name chip (search.ts) and the hold menu never go under it (the app's
+ * PinMenuOverlay / HoldAddOverlay bottomPx = the bottom panel with its footer).
+ */
+function menuRoom(x: number): { top: number; bottom: number } {
+  const st = $('stage').getBoundingClientRect(), bar = $('topbar').getBoundingClientRect(), bp = $('bigProfile');
+  const top = bar.height > 0 ? bar.bottom - st.top : 0;
+  const under = phoneWidth() ? $('sheet').getBoundingClientRect().top : bp.hidden ? st.bottom : bp.getBoundingClientRect().top;
+  const foot = $('footer').getBoundingClientRect(), px = st.left + x;
+  const footTop = foot.height > 0 && px >= foot.left - PIN_CHIP_HALF_W && px <= foot.right + PIN_CHIP_HALF_W ? foot.top - 4 : st.bottom;
+  return { top, bottom: Math.max(top, Math.min(st.bottom, under, footTop) - st.top) };
+}
+
+/** Where „Einfügen“ of a held spot goes now (the points changed while its menu was open). */
+async function holdAnswerStop(at: maplibregl.LngLat, lineSnapM: number): Promise<number> {
+  const a = await holdAnswer(at, lineSnapM);
+  return a.action === 'ASK' ? a.stop
+    : (JSON.parse(await engine.call('placeMenu', enc(state.points), at.lat, at.lng, state.roundTrip)) as { stop: number }).stop;
 }
 
 const position = new Position(map, () => { renderFabs(); locateNotice(); void updateLocateLabel(); });
@@ -1876,18 +2000,7 @@ placeCard = setupSearch({
     const info = JSON.parse(await engine.call('poiMenu', h.kind, h.name ?? '', '', h.lat, h.lon)) as { sub: string; color: string } | null;
     return placeRows(h, { title: h.title, sub: info?.sub ?? h.subtitle, color: info?.color ?? h.color }, true);
   },
-  // the free map between the top bar and the plan sheet (phone) or the big profile / the map's bottom (wide), above the
-  // footer (scale + credits): the found place's pin and its name chip never go under it (the app's PinMenuOverlay
-  // bottomPx = the bottom panel with its footer)
-  // – where the footer lies under the place [x] (map pixels; on a wide screen it stands in the corner beside the sheet)
-  menuRoom: (x) => {
-    const st = $('stage').getBoundingClientRect(), bar = $('topbar').getBoundingClientRect(), bp = $('bigProfile');
-    const top = bar.height > 0 ? bar.bottom - st.top : 0;
-    const under = phoneWidth() ? $('sheet').getBoundingClientRect().top : bp.hidden ? st.bottom : bp.getBoundingClientRect().top;
-    const foot = $('footer').getBoundingClientRect(), px = st.left + x;
-    const footTop = foot.height > 0 && px >= foot.left - PIN_CHIP_HALF_W && px <= foot.right + PIN_CHIP_HALF_W ? foot.top - 4 : st.bottom;
-    return { top, bottom: Math.max(top, Math.min(st.bottom, under, footTop) - st.top) };
-  },
+  menuRoom, // the free map for the found place's pin and its menu (menuRoom above)
   cardShown: (open) => document.body.classList.toggle('card-open', open),
   placeShown: (lat, lon) => areas?.wantPoint(lat, lon, 'searched'), // T2
 }, $('searchbox'), $('placecard'));

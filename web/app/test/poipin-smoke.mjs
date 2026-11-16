@@ -37,7 +37,7 @@ const ready = async (hash = '') => {
   await page.waitForFunction(() => document.body.dataset.engine === 'ready', null, { timeout: 60_000 });
 };
 /** A POI drawn on the map with its own symbol, near the middle of the view: { kind, lat, lon, x, y }. */
-const findPoi = () => page.waitForFunction(() => {
+const findPoi = (pg = page) => pg.waitForFunction(() => {
   const map = window.__map;
   if (!map.loaded()) return null;
   const layers = map.getStyle().layers.filter((l) => l.id.startsWith('poi-') && !l.id.endsWith('-name')).map((l) => l.id);
@@ -101,6 +101,61 @@ await page.mouse.move(pb.x + pb.width / 2 + 60, pb.y + pb.height / 2 + 40, { ste
 await page.mouse.up();
 await page.waitForFunction(() => document.querySelectorAll('.pin.poipin').length === 0, null, { timeout: 30_000 }).catch(() => {});
 check(await page.locator('.pin.poipin').count() === 0, '(c) the stop dragged off the POI is a plain dot again');
+
+// (d) a POI name drawn without its symbol is no POI (core feature C19, owner 2026-11-15, Hilden: a bus stop's bare name
+// opened the place menu – the app's PoiHit: symbol layers by id, every `poi-` layer except `-name`; a hit only through
+// the icon). A click on a name whose symbol is not drawn is a plain map click – on the empty plan the first-point menu
+// „New plan“, not the POI's menu. (A click on a drawn symbol opens its menu: (a).)
+// a fresh page: an empty plan (this browser's Zuletzt would bring the plan above back)
+const dctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 2 });
+await dctx.route('https://photon.komoot.io/**', (r) => r.abort());
+const dp = await dctx.newPage();
+dp.on('pageerror', (e) => errors.push(String(e)));
+await dp.goto(url + 'index.html?lang=en&at=' + VIEW);
+await dp.waitForFunction(() => document.body.dataset.engine === 'ready', null, { timeout: 60_000 });
+await findPoi(dp);
+/** A pixel on a POI's drawn name (a `-name` layer) with no symbol in a click's reach: { name, x, y, dx, dy } or null. */
+const onName = () => dp.evaluate(() => {
+  const map = window.__map, c = map.getCanvas(), w = c.clientWidth, h = c.clientHeight;
+  const nameLayers = map.getStyle().layers.filter((l) => l.id.startsWith('poi-') && l.id.endsWith('-name')).map((l) => l.id);
+  const iconLayers = map.getStyle().layers.filter((l) => l.id.startsWith('poi-') && !l.id.endsWith('-name') && map.getLayoutProperty(l.id, 'visibility') !== 'none').map((l) => l.id);
+  const named = map.queryRenderedFeatures([[w * 0.2, h * 0.2], [w * 0.8, h * 0.8]], { layers: nameLayers }).filter((f) => f.properties?.name && f.geometry.type === 'Point');
+  for (const f of named) {
+    const p = map.project(f.geometry.coordinates);
+    for (let dy = -24; dy <= 30; dy += 2) for (let dx = -90; dx <= 90; dx += 3) {
+      const x = p.x + dx, y = p.y + dy;
+      const hit = map.queryRenderedFeatures([x, y], { layers: nameLayers }).some((g) => g.properties?.name === f.properties.name);
+      // nothing with a symbol within a click's reach (10 px box + the 11 px icon half, a little more) – else that POI is the target
+      const icons = map.queryRenderedFeatures([[x - 26, y - 26], [x + 26, y + 26]], { layers: iconLayers })
+        .filter((g) => { const q = map.project(g.geometry.coordinates); return Math.abs(q.x - x) <= 26 && Math.abs(q.y - y) <= 26; });
+      if (hit && !icons.length) return { name: String(f.properties.name), x, y, dx, dy };
+    }
+  }
+  return null;
+});
+const clickName = async (n) => {
+  const cb = await dp.locator('#map canvas').first().boundingBox();
+  await dp.mouse.click(cb.x + n.x, cb.y + n.y);
+  await dp.waitForSelector('.holdpopup .menuhead', { timeout: 15_000 }).catch(() => {});
+  return dp.evaluate(() => ({ head: document.querySelector('.holdpopup .menuhead')?.textContent ?? null,
+    rows: [...document.querySelectorAll('.holdpopup .pointmenu button .txt > span:first-child')].map((b) => b.textContent) }));
+};
+// a name drawn without its symbol: every symbol layer hidden, the names stay
+await dp.evaluate(() => {
+  const map = window.__map;
+  for (const l of map.getStyle().layers) if (l.id.startsWith('poi-') && !l.id.endsWith('-name')) map.setLayoutProperty(l.id, 'visibility', 'none');
+});
+await dp.waitForFunction(() => window.__map.loaded() && !window.__map.isMoving(), null, { timeout: 30_000 }).catch(() => {});
+await dp.waitForTimeout(1000);
+const bare = await onName();
+check(!!bare, '(d) a POI name drawn without its symbol found in the view');
+if (bare) {
+  const m = await clickName(bare);
+  check(m.head != null && !m.head.includes(bare.name) && m.rows.join('|') === 'Start here|Go here',
+    `(d) a click on the bare name „${bare.name}“ (no symbol drawn) is a plain map click, no POI menu: ${JSON.stringify(m)}`);
+  await dp.keyboard.press('Escape');
+}
+await dctx.close();
 
 // as search-smoke: a missing map file (404) or a dropped request is no fault of this page
 const real = errors.filter((e) => !/status of 404/.test(e) && !/ERR_FAILED|net::|CORS policy/.test(e) && !/^\[Problems\] (INFO|WARN|TRACE) /.test(e));
