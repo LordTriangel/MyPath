@@ -160,3 +160,7 @@ Written by `tools/dev/prune_branches.sh` (owner said yes in the chat). Bring one
 | 2026-11-08 | `ci/donald-r173-backup` | `e0f258c156c97cf108ad4d506b938a97d868c1e9` | main |
 | 2026-11-08 | `ci/donald-pf2-a` | `2b1b888365d571484d83dfa55211ba152f16de65` | checked by hand: only TEMP bisect commits of the 2026-11-07 perf hunt; owner said delete 2026-11-08 |
 | 2026-11-08 | `ci/donald-pf2-b` | `fe4e731ffd419c9a8f1a9669cf6d610fb56bc38d` | checked by hand: only TEMP bisect commits of the 2026-11-07 perf hunt; owner said delete 2026-11-08 |
+| 2026-11-17 | `wip/laptop-2026-11-13-sync-pace` | `9e8d9df2452f4e2a4ba2450c291ef68b9ec385f8` | main |
+| 2026-11-17 | `wip/laptop-2026-11-14-favourites` | `023e01cf1f1e5d9f7cb9f621028eafca58011e54` | main |
+| 2026-11-17 | `wip/laptop-2026-11-14-search-menu` | `54ccc0ee73717103ba8fb0c71b0ea24fd1f1c10d` | main |
+| 2026-11-17 | `wip/laptop-2026-11-15-kept-places` | `0100ef136e739376b47618e21056ce2eefa7d71b` | main |

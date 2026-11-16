@@ -27,7 +27,9 @@ why_kept() {
   git rev-parse -q --verify "$ref^{commit}" >/dev/null || { echo "not on origin"; return; }
   age=$(( ( $(date +%s) - $(git log -1 --format=%ct "$ref") ) / 3600 ))
   (( age < MIN_AGE_H )) && { echo "last commit ${age} h ago (< ${MIN_AGE_H} h – a session may be on it)"; return; }
+  # the search API is shared by every session and often rate-limited (2026-11-16) – then ask GraphQL (gh pr list)
   open=$(gh api -X GET search/issues -f q="repo:happychriss/OnPath is:pr is:open head:$b" --jq '.total_count' 2>/dev/null) \
+    || open=$(gh pr list --repo happychriss/OnPath --head "$b" --state open --json number --jq length 2>/dev/null) \
     || { echo "could not check for an open pull request"; return; }
   [[ $open != 0 ]] && { echo "open pull request"; return; }
   [[ -n $by_hand ]] && return
