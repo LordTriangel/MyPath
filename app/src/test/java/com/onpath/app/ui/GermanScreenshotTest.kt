@@ -37,6 +37,9 @@ class GermanScreenshotTest {
     @Test fun poiMenu() = shots.poiMenu()
     @Test fun routesOverviewSwipe() = shots.routesOverviewSwipe()
     @Test fun poiMenuClearGoal() = shots.poiMenuClearGoal()
+    // a hold on the empty map in doubt (owner 2026-11-15): the same two rows, no title
+    @Test fun holdAddMenu() = shots.holdAddMenu()
+    @Test fun holdAddMenuGoalFirst() = shots.holdAddMenuGoalFirst()
     @Test fun planLocateFar() = shots.planLocateFar()
     @Test fun overviewHint() = shots.overviewHint()
     @Test fun planReliefOffNote() = shots.planReliefOffNote()

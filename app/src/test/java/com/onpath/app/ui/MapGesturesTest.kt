@@ -36,6 +36,20 @@ class MapGesturesTest {
         assertEquals(Action.PointMenu(2), plan(Press.HOLD, marker = 2, poi = true))
     }
 
+    // --- the hold menu beside the spot (owner 2026-11-15): never over the spot, not over the right column if it fits ---
+    @Test fun theHoldMenuSitsBesideTheSpot() {
+        // screen 1080 × 2000 px, menu 500 × 300, column 220 px at the right, gap 40, margins 36
+        fun at(x: Float, y: Float) = MapGestures.placeBeside(x, y, 500, 300, 36, 200, 1044, 1500, 40, 220)
+        fun covers(p: Pair<Int, Int>, x: Float, y: Float) = x >= p.first && x <= p.first + 500 && y >= p.second && y <= p.second + 300
+        val left = at(200f, 800f)
+        assertEquals(240, left.first) // right of the spot, clear of the column (240 + 500 ≤ 824)
+        assertEquals(650, left.second) // centred on the spot
+        val right = at(700f, 800f)
+        assertEquals(160, right.first) // would reach the column → left of the spot
+        for ((x, y) in listOf(200f to 800f, 700f to 800f, 540f to 220f, 540f to 1480f, 60f to 800f, 1000f to 800f))
+            assertFalse("($x, $y) covered", covers(at(x, y), x, y))
+    }
+
     // --- hold ---
     @Test fun holdOnMapOrLineAddsPoint() = assertEquals(Action.AddPoint, plan(Press.HOLD))
     @Test fun holdOnPoiOpensPoiMenu() = assertEquals(Action.PoiMenu, plan(Press.HOLD, poi = true))

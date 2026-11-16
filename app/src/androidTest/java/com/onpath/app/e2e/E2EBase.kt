@@ -313,10 +313,17 @@ abstract class E2EBase {
     }
 
     /** A finger resting [ms] at a screen point (the app's hold is 0.3 s; MapLibre's long press ~0.5 s). */
-    protected fun hold(x: Float, y: Float, ms: Int = 900) {
+    protected fun hold(x: Float, y: Float, ms: Int = 900, takeAddMenu: Boolean = true) {
         dismissSystemDialogs()
         device.swipe(x.toInt(), y.toInt(), x.toInt(), y.toInt(), ms / 5) // one step ≈ 5 ms
         Thread.sleep(400)
+        // a hold on the empty map in doubt asks „Einfügen“ / „Neues Ziel“ (owner 2026-11-15): the tests that set points by
+        // a hold take the likelier row, as a user following the suggestion does
+        if (takeAddMenu && launched) scenario.onActivity { a ->
+            val v = vm(a)
+            val m = v.holdAddMenu ?: return@onActivity
+            if (m.menu.emphasised == com.onpath.app.ui.PlaceAddMenu.Item.NEW_DESTINATION) v.holdAsNewDestination() else v.holdAsStop()
+        }
     }
 
     /**

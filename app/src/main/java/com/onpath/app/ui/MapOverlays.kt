@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -112,6 +113,15 @@ fun MapOverlayHost(
         Anchored(c, p, cameraTick, topPx, bottomPx, onGone = { com.onpath.app.debug.Problems.trace("plan", "First-point menu closed: held spot left the visible map (onGone)"); vm.firstPointMenu = null }) {
             FirstPointMenu(MapGestures.fromMeBlocked(gps, vm.tracker.location.value != null),
                 onStartHere = { vm.startHere(p) }, onFromMe = { vm.routeFromMyLocation(p) }, startHere = startHere)
+        }
+    }
+    vm.holdAddMenu?.let { a ->
+        cameraTick() // re-read the projection on every camera move
+        val s = c.toScreen(a.p)
+        if (s == null) LaunchedEffect(a) { vm.holdAddMenu = null }
+        else HoldAddOverlay(Offset(s.x, s.y), topPx, bottomPx,
+            onGone = { com.onpath.app.debug.Problems.trace("plan", "Hold menu closed: held spot left the visible map (onGone)"); vm.holdAddMenu = null }) {
+            HoldAddMenu(a.menu, onAddStop = vm::holdAsStop, onNewDestination = vm::holdAsNewDestination)
         }
     }
     // the found place's name chip "Name ›" under its pin (owner 2026-11-02; since 2026-11-13 the name only – the menu
@@ -362,6 +372,43 @@ fun AnchoredOverlay(anchor: Offset, topPx: Int, bottomPx: Int, onGone: () -> Uni
 }
 
 /**
+ * The hold menu at a held spot (owner 2026-11-15): a small ring marks the spot and [content] sits beside it, never over it,
+ * clear of the map's control column at the right when it fits ([MapGestures.placeBeside]). [onGone] when the spot leaves
+ * the map.
+ */
+@Composable
+fun HoldAddOverlay(anchor: Offset, topPx: Int, bottomPx: Int, onGone: () -> Unit = {}, content: @Composable () -> Unit) {
+    val d = LocalDensity.current
+    val margin = with(d) { 12.dp.roundToPx() }
+    val gap = with(d) { HOLD_RING_DP.dp.roundToPx() + 10.dp.roundToPx() }
+    val column = with(d) { (ControlsPlacement.END_DP.dp + MAP_FAB + 8.dp).roundToPx() }
+    val maxW = with(d) { 320.dp.roundToPx() }
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val w = constraints.maxWidth; val h = constraints.maxHeight
+        if (!MapGestures.anchorVisible(anchor.x, anchor.y, w, h)) {
+            LaunchedEffect(Unit) { onGone() }
+            return@BoxWithConstraints
+        }
+        val ring = OnPathColors.ActionEdit
+        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+            val r = HOLD_RING_DP.dp.toPx()
+            drawCircle(Color.White, radius = r, center = anchor, style = androidx.compose.ui.graphics.drawscope.Stroke(5.dp.toPx()))
+            drawCircle(ring, radius = r, center = anchor, style = androidx.compose.ui.graphics.drawscope.Stroke(2.5.dp.toPx()))
+            drawCircle(ring, radius = 3.dp.toPx(), center = anchor)
+        }
+        Layout(content = { Box { content() } }, modifier = Modifier.fillMaxSize()) { measurables, cs ->
+            val pl = measurables.first().measure(cs.copy(minWidth = 0, minHeight = 0, maxWidth = minOf(maxW, w - 2 * margin)))
+            val (x, y) = MapGestures.placeBeside(anchor.x, anchor.y, pl.width, pl.height, margin, topPx, w - margin, h - bottomPx,
+                gap, column)
+            layout(w, h) { pl.place(x, y) }
+        }
+    }
+}
+
+/** The ring at a held spot while its hold menu is open, dp radius. */
+private const val HOLD_RING_DP = 12
+
+/**
  * First hold on an empty plan: "Start here" or "Go here" (this spot = destination). The second
  * one is disabled with a short reason ([fromMeBlocked], e.g. "Searching GPS…") while there is no usable position.
  */
@@ -418,15 +465,13 @@ fun PoiMenu(poi: Poi, onAdd: () -> Unit, onGoogle: () -> Unit, modifier: Modifie
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         // the rows in their order (PinMenuItems): the same for a hold and for a picked search result (owner 2026-11-13)
-        @Composable fun addRow(item: PlaceAddMenu.Item, icon: ImageVector, label: String, onClick: () -> Unit) =
-            HoldMenuItem(icon, label, strong = menu?.emphasised == item, onClick = onClick)
         for (r in PinMenuItems.of(emptyPlan, startHere, menu, pin = onRemovePin != null, keep = favourite != null)) when (r) {
             PinMenuItems.Row.START_HERE -> HoldMenuItem(Icons.Outlined.TripOrigin, str(Res.string.plan_start_here), onClick = onAdd)
             PinMenuItems.Row.GO_HERE -> HoldMenuItem(Icons.Outlined.MyLocation, str(Res.string.plan_go_here), enabled = fromMeBlocked == null,
                 supporting = fromMeBlocked, onClick = onFromMe)
             PinMenuItems.Row.ADD -> HoldMenuItem(Icons.Outlined.AddLocationAlt, addLabel, onClick = onAdd)
-            PinMenuItems.Row.ADD_STOP -> addRow(PlaceAddMenu.Item.ADD_STOP, Icons.Outlined.AddLocationAlt, str(Res.string.plan_add_as_stop), onAddStop)
-            PinMenuItems.Row.NEW_DESTINATION -> addRow(PlaceAddMenu.Item.NEW_DESTINATION, Icons.Outlined.Flag, str(Res.string.plan_make_destination), onNewDestination)
+            PinMenuItems.Row.ADD_STOP -> AddRow(PlaceAddMenu.Item.ADD_STOP, menu, onAddStop)
+            PinMenuItems.Row.NEW_DESTINATION -> AddRow(PlaceAddMenu.Item.NEW_DESTINATION, menu, onNewDestination)
             PinMenuItems.Row.FAVOURITE -> {
                 // a thin line between the route rows and what is about the place itself (sketch B4a5St5Q…, picture 2)
                 HorizontalDivider(Modifier.padding(horizontal = 16.dp, vertical = 2.dp), color = MaterialTheme.colorScheme.outlineVariant)
@@ -438,6 +483,29 @@ fun PoiMenu(poi: Poi, onAdd: () -> Unit, onGoogle: () -> Unit, modifier: Modifie
             PinMenuItems.Row.GOOGLE -> HoldMenuItem(Icons.Outlined.Map, str(Res.string.plan_open_google_maps), onClick = onGoogle)
             PinMenuItems.Row.REMOVE_PIN -> HoldMenuItem(Icons.Outlined.WrongLocation, str(Res.string.plan_remove_pin), onClick = { onRemovePin?.invoke() })
         }
+    }
+}
+
+/**
+ * „Einfügen“ or „Neues Ziel“ – one row of an add menu ([PlaceAddMenu], owner's words 2026-11-15), tinted when it is the
+ * likelier one ([PlaceAddMenu.Menu.emphasised]). The same row for a held place ([PoiMenu]) and a held spot ([HoldAddMenu]).
+ */
+@Composable
+private fun AddRow(item: PlaceAddMenu.Item, menu: PlaceAddMenu.Menu?, onClick: () -> Unit) =
+    if (item == PlaceAddMenu.Item.ADD_STOP)
+        HoldMenuItem(Icons.Outlined.AddLocationAlt, str(Res.string.plan_add_as_stop), strong = menu?.emphasised == item, onClick = onClick)
+    else HoldMenuItem(Icons.Outlined.Flag, str(Res.string.plan_make_destination), strong = menu?.emphasised == item, onClick = onClick)
+
+/**
+ * A hold on the empty map in a doubtful spot (owner 2026-11-15, [PlaceAddMenu.asksOnHold]): only the two rows of [menu],
+ * „Einfügen“ and „Neues Ziel“, the likelier first and tinted – no title (the spot is just a spot; where it goes shows on the
+ * map once chosen). Back / a tap elsewhere adds nothing.
+ */
+@Composable
+fun HoldAddMenu(menu: PlaceAddMenu.Menu, onAddStop: () -> Unit, onNewDestination: () -> Unit, modifier: Modifier = Modifier) {
+    MenuSurface(modifier) {
+        Spacer(Modifier.height(4.dp))
+        for (item in menu.main) AddRow(item, menu, if (item == PlaceAddMenu.Item.ADD_STOP) onAddStop else onNewDestination)
     }
 }
 

@@ -247,17 +247,14 @@ fun MapHost(
                 // a hold on a route point is the point's (its menu); a tap on a POI that is a route point shows the POI
                 val poi = if (marker >= 0 && press == MapGestures.Press.HOLD) null else mark?.toPoi() ?: shownPois.at(map, screen.x, screen.y)
                 // ~24 dp around the planned line counts as "on the line" (smart insertion into that leg).
-                val snap = c?.let { it.dpToPx(24f) * it.metersPerPixel() } ?: 30.0
+                val snap = c?.let { it.dpToPx(PlaceAddMenu.LINE_SNAP_DP.toFloat()) * it.metersPerPixel() } ?: 30.0
                 val p = GeoPoint(ll.latitude, ll.longitude)
                 return when (val a = MapGestures.decide(edit, press, vm.mapOverlayOpen, marker, poi != null, vm.waypoints.isEmpty())) {
                     is MapGestures.Action.PointMenu -> { vm.openPointMenu(a.index, dpOf(a.index)); true }
                     MapGestures.Action.PoiMenu -> { poi?.let(vm::openPoiMenu); true }
                     MapGestures.Action.FirstPointMenu -> { vm.openFirstPointMenu(p); true }
-                    MapGestures.Action.AddPoint -> {
-                        vm.closeMapOverlays("hold on the map (new point)")
-                        com.onpath.app.debug.Problems.trace("plan", "New point by a hold: plan ${pts.size} → ${pts.size + 1}")
-                        vm.addPoint(p, snap); true
-                    }
+                    // set at once in a clear case, the small „Einfügen“ / „Neues Ziel“ menu in doubt (owner 2026-11-15)
+                    MapGestures.Action.AddPoint -> { vm.holdOnMap(p, snap); true }
                     MapGestures.Action.CloseMenu -> { vm.closeMapOverlays(if (press == MapGestures.Press.TAP) "tap outside" else "hold outside"); true }
                     MapGestures.Action.PoiDetails -> {
                         if (vm.mapOverlayOpen) vm.closeMapOverlays("tap on a POI (its details instead)")

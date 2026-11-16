@@ -27,6 +27,7 @@ class PlaceAddMenuLargeFontGermanTest {
 
     @Test fun poiMenu() = shots.poiMenu()
     @Test fun poiMenuClearGoal() = shots.poiMenuClearGoal()
+    @Test fun holdAddMenu() = shots.holdAddMenu()
 }
 
 /** The same at font size 1.3 (a common "larger" setting). */
@@ -44,4 +45,5 @@ class PlaceAddMenuMidFontGermanTest {
 
     @Test fun poiMenu() = shots.poiMenu()
     @Test fun poiMenuClearGoal() = shots.poiMenuClearGoal()
+    @Test fun holdAddMenu() = shots.holdAddMenu()
 }

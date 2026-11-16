@@ -1916,30 +1916,122 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      */
     fun placeMenu(poi: com.onpath.app.poi.Poi): PlaceAddMenu.Menu {
         val p = GeoPoint(poi.lat, poi.lon)
-        val n = waypoints.size
         val touring = recState.value != null
-        if (n < 2) return PlaceAddMenu.menu(n, touring, zone = null)
+        // while planning the same decision as a plain hold (the shorter detour first – one rule everywhere, owner 2026-11-15)
+        if (!touring && !isRoundTrip()) PlaceAddMenu.detours(waypoints.toList(), p)?.let { return PlaceAddMenu.planningMenu(it) }
+        return PlaceAddMenu.menu(waypoints.size, touring, zoneFor(p))
+    }
+
+    /**
+     * How clear the case of a new point [p] is ([PlaceAddMenu.zone]), measured on the route still to go – during a tour from
+     * my position; null with fewer than 2 points. The one measure of a held place's menu and of a hold on the map.
+     */
+    private fun zoneFor(p: GeoPoint): PlaceAddMenu.Zone? {
+        if (waypoints.size < 2) return null
+        val touring = recState.value != null
         val ins = insertionFor(p, 30.0)
         val pos = myPosition()
         // during a tour the route to go starts here (TourSplit's ahead list already does; else put my position first)
         val ahead = if (ins.inTour || !touring || pos == null) ins.points else listOf(pos) + ins.points
-        return PlaceAddMenu.menu(n, touring, PlaceAddMenu.zone(ahead, p, loop = isRoundTrip()))
+        return PlaceAddMenu.zone(ahead, p, loop = isRoundTrip())
     }
 
     /** Place menu → „Einfügen“: where it fits best on the route ahead, never behind the goal (the goal stays). */
-    fun addPoiAsStop(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) = addPoiWith(poi, "as a stop") { p ->
-        val ins = insertionFor(p, lineSnapM, stopOnly = true)
-        change { add(ins.index.coerceIn(0, size), p) }
-    }
+    fun addPoiAsStop(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) =
+        addPoiWith(poi, "as a stop") { p -> insertAsStop(p, lineSnapM) }
 
     /**
      * Place menu → „Neues Ziel“ (owner 2026-11-14): while planning (no tour) the route goes on to the place and the old
      * goal stays as the last stop – planning forward; during a tour the place replaces the old goal (no detour back to a
      * goal one changed one's mind about – flow map N3, owner 2026-11-07). [PlaceAddMenu.keepsOldGoal]; Undo either way.
      */
-    fun poiAsNewDestination(poi: com.onpath.app.poi.Poi) = addPoiWith(poi, "as the new destination") { p ->
+    fun poiAsNewDestination(poi: com.onpath.app.poi.Poi) = addPoiWith(poi, "as the new destination") { p -> asNewDestination(p) }
+
+    /** „Einfügen“ of a place or a held spot: the stop-only insertion on the route ahead (the goal stays). */
+    private fun insertAsStop(p: GeoPoint, lineSnapM: Double) {
+        val ins = insertionFor(p, lineSnapM, stopOnly = true)
+        change { add(ins.index.coerceIn(0, size), p) }
+    }
+
+    /** „Neues Ziel“ of a place or a held spot: appended while planning, replaces the goal on a tour. */
+    private fun asNewDestination(p: GeoPoint) {
         val keep = PlaceAddMenu.keepsOldGoal(touring = recState.value != null)
         change { if (isEmpty() || keep) add(p) else set(lastIndex, p) }
+    }
+
+    /** A hold on the empty map in a doubtful spot (owner 2026-11-15): the spot, its two rows and the hold's snap distance. */
+    class HoldAdd(val p: GeoPoint, val menu: PlaceAddMenu.Menu, val lineSnapM: Double)
+
+    /** The open „Einfügen“ / „Neues Ziel“ menu of a hold on the empty map; null = none ([holdOnMap]). */
+    var holdAddMenu by mutableStateOf<HoldAdd?>(null)
+
+    /**
+     * A hold on the empty map in Plan ([MapGestures.Action.AddPoint], core feature C1), owner 2026-11-15. While planning
+     * the shorter detour decides ([PlaceAddMenu.planningHold]: on the line → the smart insertion, appending cheaper → the
+     * new goal, inserting much cheaper → a stop, similar → the small menu „Einfügen“ / „Neues Ziel“, the cheaper first);
+     * on a tour or a round trip the zone does ([PlaceAddMenu.asksOnHold]). Back / a tap elsewhere adds nothing.
+     */
+    fun holdOnMap(p: GeoPoint, lineSnapM: Double) {
+        closeMapOverlays("hold on the map (new point)")
+        val n = waypoints.size
+        val touring = recState.value != null
+        if (n < 2) {
+            Problems.trace("plan", "New point by a hold: plan $n → ${n + 1}")
+            addPoint(p, lineSnapM)
+            return
+        }
+        val menu = if (touring || isRoundTrip()) {
+            // on a tour / a round trip: the zone on the route ahead decides (a loop is never dropped by one hold)
+            val zone = zoneFor(p)
+            if (!PlaceAddMenu.asksOnHold(zone)) {
+                Problems.trace("plan", "New point by a hold: plan $n → ${n + 1} (clear case $zone: set at once)")
+                addPoint(p, lineSnapM)
+                return
+            }
+            Problems.trace("plan", "Hold on the map in doubt (zone $zone, $n points)")
+            PlaceAddMenu.menu(n, touring, zone)
+        } else {
+            // planning: „Die App nimmt, was den kürzeren Umweg macht; sind beide ähnlich, fragt sie.“
+            val mPerDp = lineSnapM / PlaceAddMenu.LINE_SNAP_DP
+            val line = (if (routing) null else route?.points)?.takeIf { it.size >= 2 } ?: waypoints.toList()
+            val lineDp = Geo.distanceToLine(p, line) / mPerDp
+            val d = PlaceAddMenu.detours(waypoints.toList(), p)!!
+            val why = "line ${lineDp.toInt()} dp, insert +${d.insertM.toInt()} m, append ${d.appendM.toInt()} m, $n points"
+            when (PlaceAddMenu.planningHold(lineDp, d)) {
+                PlaceAddMenu.HoldAction.ON_LINE -> {
+                    Problems.trace("plan", "New point by a hold: on the line, set at once ($why)")
+                    addPoint(p, lineSnapM); return
+                }
+                PlaceAddMenu.HoldAction.NEW_GOAL -> {
+                    Problems.trace("plan", "New point by a hold: appending is shorter, the new goal at once ($why)")
+                    asNewDestination(p); return
+                }
+                PlaceAddMenu.HoldAction.STOP -> {
+                    Problems.trace("plan", "New point by a hold: inserting is much shorter, a stop at once ($why)")
+                    insertAsStop(p, lineSnapM); return
+                }
+                PlaceAddMenu.HoldAction.ASK -> Problems.trace("plan", "Hold on the map in doubt ($why)")
+            }
+            PlaceAddMenu.planningMenu(d)
+        }
+        holdAddMenu = HoldAdd(p, menu, lineSnapM)
+        Problems.trace("plan", "Hold on the map: asks ${menu.main.joinToString(" / ")}")
+    }
+
+    /** The hold menu's „Einfügen“. */
+    fun holdAsStop() {
+        val a = holdAddMenu ?: return
+        holdAddMenu = null
+        Problems.trace("plan", "Hold menu: Einfügen (plan ${waypoints.size} → ${waypoints.size + 1})")
+        insertAsStop(a.p, a.lineSnapM)
+    }
+
+    /** The hold menu's „Neues Ziel“. */
+    fun holdAsNewDestination() {
+        val a = holdAddMenu ?: return
+        holdAddMenu = null
+        Problems.trace("plan", "Hold menu: Neues Ziel (${if (recState.value != null) "replaces the goal on the tour" else "appended"})")
+        asNewDestination(a.p)
     }
 
     /** The bookkeeping of a place taken from its menu (name, pin, candidate fit), then [edit] with its point. */
@@ -2002,7 +2094,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var firstPointMenu by mutableStateOf<GeoPoint?>(null)
 
     val mapOverlayOpen: Boolean get() =
-        poiMenu != null || pointMenu != null || firstPointMenu != null || planPoi != null
+        poiMenu != null || pointMenu != null || firstPointMenu != null || holdAddMenu != null || planPoi != null
 
     /** Closes every map menu; [why] goes into the gesture log (Diagnostics) when a point menu was open. */
     fun closeMapOverlays(why: String = "closed") {
@@ -2011,7 +2103,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         closePointMenu(why)
         if (firstPointMenu != null) Problems.trace("plan", "First-point menu closed: $why")
         if (poiMenu != null) Problems.trace("plan", "POI menu closed: $why")
-        poiMenu = null; firstPointMenu = null; if (planPoi != null) closePlaceCard()
+        if (holdAddMenu != null) Problems.trace("plan", "Hold menu closed: $why (nothing added)")
+        poiMenu = null; firstPointMenu = null; holdAddMenu = null; if (planPoi != null) closePlaceCard()
     }
 
     /** Closes the point menu (if open) and logs by what (core feature C1 diagnostics). */
@@ -2430,7 +2523,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // as passed, so the split says NothingAhead – GitHub run 2026-11-07, as for edits in change())
         routeBackAsk = split == TourSplit.Outcome.NothingAhead && !plan.leftIsHere(myPosition())
         oneLeftGoesFromHere(before)
-        closePointMenu("undo / redo"); firstPointMenu = null
+        closePointMenu("undo / redo"); firstPointMenu = null; holdAddMenu = null
         prefs.planWaypoints = waypoints.toList()
         planEditPending = true
         planChanged()
@@ -2458,7 +2551,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         Problems.trace("plan", "Clear route: plan ${waypoints.size} → 0 points" + if (recState.value != null) " (tour running)" else "")
         val planLine = route?.points
         if (waypoints.isNotEmpty()) change { clear() } else recalc()
-        closePointMenu("plan cleared"); firstPointMenu = null; highlight = null
+        closePointMenu("plan cleared"); firstPointMenu = null; holdAddMenu = null; highlight = null
         removePin("plan cleared")
         // the empty sheet says how to start a plan: not rolled up
         if (planSize == PlanSize.COLLAPSED) planSize = PlanSize.MINI
@@ -3764,7 +3857,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // the start zoom of Navigate, once per start (owner); the map takes it when it follows
         if (m == AppMode.NAVIGATE && was != AppMode.NAVIGATE) navStartZoom = AppMode.navStartZoom(activity)
         else if (m != AppMode.NAVIGATE) navStartZoom = null
-        if (m == AppMode.NAVIGATE) { planPoi = null; poiMenu = null; closePointMenu("mode change to Navigate"); firstPointMenu = null; highlight = null; followMe = true }
+        if (m == AppMode.NAVIGATE) { planPoi = null; poiMenu = null; closePointMenu("mode change to Navigate"); firstPointMenu = null; holdAddMenu = null; highlight = null; followMe = true }
         // Plan keeps the compass choice: walking direction up stays turned and following (until you edit or move the
         // map); north up stops following
         else followMe = headingUp && followMe && tracker.location.value != null
