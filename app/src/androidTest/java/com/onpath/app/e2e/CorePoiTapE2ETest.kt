@@ -1,0 +1,125 @@
+package com.onpath.app.e2e
+
+import androidx.test.uiautomator.By
+import com.onpath.app.ui.AppMode
+import com.onpath.app.ui.AppViewModel
+import com.onpath.strings.Res
+import com.onpath.strings.Txt
+import com.onpath.strings.plan_start_here
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
+
+/**
+ * CORE FEATURE C19: a POI whose symbol the map DRAWS answers a real finger – a tap shows its details, a hold in Plan
+ * opens its menu; a hold beside it is a plain map hold. Field bug 2026-11-16 23:35 (owner's Pixel, Hilden: a tap on a
+ * restaurant showed nothing, a hold set no point – „That's an essential functionality“): after 2797bb7f `ShownPois`
+ * told the POI symbol layers by each layer's icon image read at runtime, which (43091d6b) said "no icon" on the Pixel.
+ * JVM tests have no MapLibre and no E2E test put a finger on a drawn POI. Here the bundled style draws the POI and the
+ * finger goes onto the drawn symbol, in both map formats: [format] 1 = the region package every E2E test uses
+ * (`pois.geojson`, style `style/onpath.json`), 2 = what map cells bring – the owner's phone (`overlays.pmtiles` + the
+ * POI vector tiles `pois.pmtiles` built on the phone by `PoiTiles`, style `style/f2/onpath.json`).
+ * Not reproduced here (donald 2026-11-16): on the emulator (API 35, x86_64, MapLibre 13.7.1) 2797bb7f's runtime read
+ * found the icon layers and all six cases passed with it too – this test guards the whole tap / hold path on the real
+ * map, not that one read.
+ */
+@RunWith(Parameterized::class)
+class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
+
+    private lateinit var symbol: Pair<Float, Float>
+
+    @Before fun setUp() {
+        launch(extraData = { dir -> writePois(dir) })
+        assertEquals("the app opens in Plan", AppMode.PLAN, read { it.mode })
+        symbol = drawnPoiSymbol(POI_ID, POI_LAT, POI_LON, ICON_LAYER)
+    }
+
+    /** a) a real tap on the drawn symbol → the POI's details (sheet with its name). */
+    @Test fun tapOnADrawnPoiSymbolShowsItsDetails() {
+        press(symbol.first, symbol.second, 60)
+        waitFor("the POI details after a tap on its symbol at ${at(symbol)}") { read { it.selectedPoi?.id } == POI_ID }
+        assertNotNull("the details sheet shows the name", findFresh(By.text(POI_NAME), 5_000))
+        assertNull("a tap sets no point", read { vm -> vm.waypoints.firstOrNull() })
+        shot("details")
+    }
+
+    /** b) a real hold on the drawn symbol in Plan → the POI menu; „Start here“ there sets the plan's start on the POI. */
+    @Test fun holdOnADrawnPoiSymbolOpensItsMenu() {
+        hold(symbol.first, symbol.second)
+        waitFor("the POI menu after a hold on its symbol at ${at(symbol)}") { read { it.poiMenu?.id } == POI_ID }
+        assertNull("the POI menu, not the plain first-point menu", read { it.firstPointMenu })
+        assertNotNull("the menu shows the POI's name", findFresh(By.text(POI_NAME), 5_000))
+        shot("menu")
+        clickText(Txt.s(Res.string.plan_start_here))
+        waitUntil("the start on the POI") { waypointCount() == 1 }
+        val p = read { it.waypoints.first() }
+        assertTrue("the start is the POI ($p)", dist(p.lat, p.lon, POI_LAT, POI_LON) < 5.0)
+    }
+
+    /** c) a hold on the empty map beside the symbol (beyond the finger box + icon) → the plain hold, no POI menu. */
+    @Test fun holdBesideADrawnPoiSymbolIsAPlainMapHold() {
+        val dp = android.content.res.Resources.getSystem().displayMetrics.density
+        val beside = (symbol.first + 90 * dp) to symbol.second
+        hold(beside.first, beside.second)
+        waitFor("the plain hold's first-point menu at ${at(beside)}") { read { it.firstPointMenu } != null }
+        assertNull("no POI menu beside the symbol", read { it.poiMenu })
+        shot("plain-hold")
+        clickText(Txt.s(Res.string.plan_start_here))
+        waitUntil("a point by the plain hold") { waypointCount() == 1 }
+        val p = read { it.waypoints.first() }
+        assertTrue("the point is where the finger was, not on the POI ($p)", dist(p.lat, p.lon, POI_LAT, POI_LON) > 30.0)
+    }
+
+    // ------------------------------------------------------------------------------------------------ helpers
+
+    /** The POI data of [format]: `pois.geojson`; format 2 adds the cells' overlays file and POI tiles. */
+    private fun writePois(dir: java.io.File) {
+        val geojson = java.io.File(dir, "pois.geojson").apply { writeText(POIS) }
+        if (format == 2) writeCellPois(dir, geojson)
+    }
+
+    private fun waitFor(what: String, cond: () -> Boolean) {
+        val end = System.currentTimeMillis() + 8_000
+        while (!cond()) {
+            if (System.currentTimeMillis() > end) {
+                shot("fail")
+                throw AssertionError("timeout: $what – POI ${read { it.selectedPoi?.id }} / menu ${read { it.poiMenu?.id }} / " +
+                    "first-point menu ${read { it.firstPointMenu }} – ${state()}")
+            }
+            Thread.sleep(100)
+        }
+    }
+
+    private fun at(p: Pair<Float, Float>) = "(${p.first.toInt()}, ${p.second.toInt()})"
+
+    private fun <T> read(f: (AppViewModel) -> T): T {
+        var v: T? = null
+        scenario.onActivity { v = f(vm(it)) }
+        @Suppress("UNCHECKED_CAST") return v as T
+    }
+
+    private fun dist(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val dy = (lat1 - lat2) * 111_320.0
+        val dx = (lon1 - lon2) * 111_320.0 * Math.cos(Math.toRadians(lat1))
+        return Math.hypot(dx, dy)
+    }
+
+    companion object {
+        @JvmStatic @Parameterized.Parameters(name = "format {0}") fun formats(): List<Int> = listOf(1, 2)
+
+        const val POI_ID = "poi-tap-1"
+        const val POI_NAME = "Restaurant Sissi"
+        const val POI_LAT = 46.6700
+        const val POI_LON = 11.1655
+        /** The style's symbol layer that draws restaurants (tools/make_style.py pois(): tier 1, from z 12). */
+        const val ICON_LAYER = "poi-tier1"
+        val POIS = """{"type":"FeatureCollection","features":[
+            {"type":"Feature","geometry":{"type":"Point","coordinates":[$POI_LON,$POI_LAT]},"properties":{"kind":"restaurant","name":"$POI_NAME","id":"$POI_ID"}}
+        ]}"""
+    }
+}
