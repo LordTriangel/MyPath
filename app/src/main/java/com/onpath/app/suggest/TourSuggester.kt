@@ -1,0 +1,120 @@
+package com.onpath.app.suggest
+
+
+/** Where the core gets the way network around the start for a character (profile, parameters) and radius. */
+fun interface NetSource {
+    fun read(ch: Character, radiusM: Double): WayNet
+}
+
+/** The routing data as the app has it: [NetReader] with the character's profile (see [RouterProfile]) and coarse filter. */
+class ReaderNetSource(private val reader: NetReader, private val profileOf: (Character) -> NetReader.Profile) : NetSource {
+    override fun read(ch: Character, radiusM: Double): WayNet = reader.read(profileOf(ch), ch.wish.lon, ch.wish.lat, radiusM, coarseOf(ch))
+
+    companion object {
+        /** settings.json family.coarse → the reader's filter (wheels: minor ways left out unless a signed route runs there). */
+        fun coarseOf(ch: Character): NetReader.Coarse {
+            val c = ch.family["coarse"]
+            if (c.isNull) return NetReader.Coarse.NONE
+            return NetReader.Coarse(c["maxcf"].d.toFloat(), Regex(c["skip"].s), Regex(c["keep"].s))
+        }
+    }
+}
+
+/** What one wish gave: the shown suggestions first (in list order), then the rest of the pool by points. */
+class SuggestResult(
+    val ch: Character,
+    val net: WayNet,
+    val place: Place,
+    val notes: List<String>,
+    val candidates: List<Candidate>,
+    /** seconds per phase: network, facts, place, loops, judging */
+    val times: LinkedHashMap<String, Double>,
+) {
+    val shown: List<Candidate> get() = candidates.filter { it.chosen }
+}
+
+/**
+ * Tour suggestions – a wish in, a few loops out, each with its reasons (docs/design/tour-suggestions.md §3; the POC's
+ * `suggest.py`, frozen 2026-11-16). Pure Kotlin, no Android, shared with the web planner; nothing calls it yet.
+ *
+ * Inputs: the [Wish], the way network ([NetSource]), the map cells' suggest files ([SuggestFiles]: land grid, heights,
+ * names, signed routes and loops) and the method's numbers ([SuggestSettings], one file). Blocking (a 3 h bike wish:
+ * a few seconds on a phone).
+ */
+object TourSuggester {
+    fun suggest(wish: Wish, netSource: NetSource, files: SuggestFiles, S: SuggestSettings): SuggestResult {
+        val times = LinkedHashMap<String, Double>()
+        var t = System.nanoTime()
+        fun lap(key: String) { val now = System.nanoTime(); times[key] = (now - t) / 1e9; t = now }
+        val notes = ArrayList<String>()
+        val ch = Character(wish, S)
+        val radius = ch.radius(S)
+        if (Land.cellsFor(wish.lon, wish.lat, radius).any { files.cell(it[0], it[1]) == null }) {
+            notes.add("Die Karte wird hier gerade aktualisiert – für einen Teil der Umgebung fehlen die Daten für Vorschläge noch.")
+        }
+        val net = netSource.read(ch, radius)
+        val things = Named.load(files, wish.lon, wish.lat, radius + 500.0, ch.bike, S["facts"]["rank"])
+        lap("network")
+        val land = Land(files)
+        val F = Facts(net, Named.Index(things), S["facts"], ch.bike, land)
+        val (start, moved) = NetSearch.seatStart(net, net.start, F.ok)
+        if (moved > 0) notes.add("Der Startpunkt lag auf einem Weg ohne Anschluss – die Runden beginnen $moved m weiter am nächsten Weg.")
+        lap("facts")
+        val search = NetSearch(net, F.ln)
+        var P = Place(net, F, ch, S, start, land, search)
+        if (P.access >= 0.1 * ch.targetM) {
+            notes.add("Von hier sind es etwa ${SuggestGeo.comma(SuggestGeo.pyRound(P.access / 1000.0, 1))} km durch den Ort bis ins Grüne. Dieser Weg hinaus " +
+                "und zurück ist bei jeder Runde gleich und zählt bei der Bewertung nicht mit.")
+        }
+        lap("place")
+        var cands = Generate(P, S).pool()
+        if (cands.isEmpty() && P.steep.isNotEmpty() && ch.up[1] < ch.usualUp) {  // nothing below the wished ascent: flatter ways
+            val steep = ArrayList(P.steep)
+            P = Place(net, F, ch, S, start, land, search, climb = true)
+            cands = Generate(P, S).pool()
+            P.steep.addAll(steep)
+        }
+        val others = if (wish.official) Official.near(P, S, files) else emptyList()
+        lap("loops")
+        val sights = things.filter { it.kind == "sight" }.map { Score.Sight(it.name, it.what, it.dense[0], it.dense[1]) }
+        val all = cands + others
+        Score.judge(P, S, all, sights)
+        for ((i, c) in all.withIndex()) c.id = i + 1
+        val form = S["form"]
+        fun inTime(c: Candidate) = (1 - form["short_zero"].d) * ch.hours[0] <= c.hours && c.hours <= (1 + form["long_zero"].d) * ch.hours[1]
+        var shown = Score.choose(P, S, cands + others.filter { it.show && inTime(it) && it.up <= ch.up[1] })
+        var steep: List<Candidate> = emptyList()
+        if (shown.isEmpty()) {  // nothing stays below the wished ascent: the flattest few, each with a clear hint
+            val over = P.steep + others.filter { it.show && inTime(it) }
+            if (over.isNotEmpty()) {
+                var least = over[0].up
+                for (c in over) least = minOf(least, c.up)
+                steep = ArrayList(P.steep)
+                Score.judge(P, S, steep, sights)
+                for ((i, c) in steep.withIndex()) c.id = all.size + i + 1
+                shown = Score.choose(P, S, over.filter { it.up <= form["steep_share"].d * least }).take(form["steep_cards"].i)
+                notes.add("Unter ${ch.up[1].toInt()} Höhenmetern gibt es von hier in dieser Zeit keine Runde – gezeigt sind die " +
+                    "flachsten (ab etwa ${SuggestGeo.pyRound(least, -1).toInt()} m).")
+            }
+        }
+        val every = all + steep
+        for (c in every) {
+            c.chosen = shown.any { it === c }
+            if (c.chosen) {
+                Score.explain(P, c)
+                val off = c.official
+                if (off != null) {  // our own line from what it passes, without "km auf <itself>"
+                    c.name = off.name
+                    c.line = Score.line(c.numbers, c.numbers.known.filter { off.name !in it.first })
+                }
+            }
+        }
+        if (shown.isEmpty()) notes.add("Von hier ließ sich keine passende Runde finden.")
+        else if (shown.maxOf { it.up } < ch.up[0]) {
+            notes.add("So viele Höhenmeter sind in dieser Zeit von hier aus nicht zu finden – die Vorschläge haben weniger.")
+        }
+        lap("judging")
+        val rest = every.filter { !it.chosen }.sortedBy { -it.score }
+        return SuggestResult(ch, net, P, notes, shown + rest, times)
+    }
+}
