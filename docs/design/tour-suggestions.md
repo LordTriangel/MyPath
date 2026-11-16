@@ -111,7 +111,8 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
 6. **Judging** (`score.py`): the four place axes as means over the loop beyond the way out, read between "poor here"
    and the best loop of our own pool (an official loop is measured on it, it does not move it); on Besonderes + 0.05
    per sight passed (at most 3) and + 0.15 for a signed loop walked round, ours or an official one (what the place's
-   makers laid out); Form from the ranges, the share walked twice and a meeting; points = weighted mean.
+   makers laid out) – only while its longest stretch along a road with cars stays within 300 m (owner 2026-11-16:
+   on wheels the road rule beats the bonus; on foot such a loop is out anyway); Form from the ranges, the share walked twice and a meeting; points = weighted mean.
 7. **Selection**: the best first; with "am Wasser entlang" the best loop really at the water is always shown and
    first; then what stands out gets its best loop (a first-rank line, each area) if within 15 points; then further
    loops that share at most 60 % of their way beyond the way out and are within 18 points. At most five; fewer than
@@ -123,8 +124,9 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
    else direction), a reason line with kilometres, honest hints (longer / shorter than wished, at a road, through
    houses, walked twice, crosses itself, at the edge of a range), "stark bei … · schwächer bei …", and **one line
    on what the loop really passes** (protected areas, a lake, castles / ruins / chapels, km at edges with a view, a
-   viewpoint, the main known route, water, a rail trail); an official loop shows its OSM `description` instead where
-   it has one.
+   viewpoint, the main known route, water, a rail trail) – for an official loop too (never its OSM / operator
+   description, owner 2026-11-16). Long protected-area names are shortened for titles and the line (without brackets
+   and what follows " mit "; a list gives its more telling part).
 
 For the port: `facts`, `place`, `character`, `generate`, `score` are pure (no I/O); the edges are the network source,
 the map-area reader and the grids. `tools/suggest-poc/cases.py` holds the owner's comments as checks – they become
@@ -219,13 +221,12 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
-  list, official loops and ours mixed, sorted by "passt zum Wunsch"; a badge shows the origin ("Offiziell · Traumpfad" /
+  list, official loops and ours mixed, sorted by "passt zum Wunsch"; a badge shows the origin ("Ausgeschildert · Traumpfad" /
   "Vorschlag"); the same five Werte on every card; on the map **one line style for all** (no dashed official loops – the card shows the origin) and the loops not chosen
   only as a breath, barely visible (owner 2026-11-15: "nur quasi als Hauch … die Karte muss ruhig sein"). An own loop that runs ≥ 80 % on an
   official one is simply not shown – no "deckt sich mit unserem Vorschlag" note (owner: "was bringt das dem Benutzer?").
-  The short text per card (built in the POC page 2026-11-15): one line, full on the chosen card; official loops the
-  OSM `description` where it exists (12 of 21 Traumpfade, 4 of 43 Traumschleifen), else the same generated line as
-  ours from what the loop passes. On the map a fine line from the start to the chosen official loop's parking place.
+  The short text per card (built in the POC page 2026-11-15): one line, full on the chosen card; official loops get
+  the same generated line as ours from what the loop passes (2026-11-16: no OSM descriptions any more – copyright). On the map a fine line from the start to the chosen official loop's parking place.
 - Where the entry appears (owner 2026-11-15: "wenn ‚Von hier starten' kommt, dann kann auch ‚Rundtour von hier' kommen"):
   wherever a menu offers "Hier starten" – the first tap into an empty plan, the menu of a place / map symbol – it
   also offers "Rundtour von hier"; no extra rule of its own.

@@ -17,8 +17,8 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
   (`ONPATH_SEGMENTS`), a map key for the test map server in `~/.gradle/gradle.properties` (map areas are fetched as
   the app does). Python: standard library only – except Pillow for the terrain model (WebP); without it there is no
   "Kante mit Blick" and nothing else changes.
-- The page shows official circular routes near the start beside ours (checkbox "offizielle Rundwege") – only where a
-  loops file from `official.py extract` exists: today Rheinland-Pfalz.
+- The page shows official circular routes near the start beside ours (checkbox "ausgeschilderte Rundwege") – only where
+  a loops file from `official.py extract` exists: today Rheinland-Pfalz and Nordrhein-Westfalen.
 - Ports: page 8790 (`--port` / `SUGGEST_PORT`), route service 8791 (`SUGGEST_SERVICE=http://127.0.0.1:<port>`).
 - Everything it writes goes to `~/onpath-suggest-poc/` (`SUGGEST_DATA`): map areas, runs, pictures, comments.
 
@@ -61,12 +61,12 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
 | `remote/` | the locked front and the test planner for testing on the road (services stopped; see its README) |
 | `settings.json` | every number of the method |
 
-## Weak spots (2026-11-15)
+## Weak spots (2026-11-16)
 
 - **Following a river is brittle.** A loop along a line needs a way home that is not the line; at a river that means
-  a bridge or a ferry at the right place. Zons, bike 3 h: the Rhine ride (north to Düsseldorf and back on the other
-  bank, 59 km) comes out in a trace but not reliably in a run – the one failing check in `cases.py`. The 2 h Rhine
-  ride from Stürzelberg works.
+  a bridge or a ferry at the right place. Zons, bike 3 h: the check (a loop ≥ 25 km on the Rheinradweg) holds since
+  the routelines test cells, but the first loop is "Rheinaue Langel-Merkenich – Chorbusch", the Rhine ride only
+  further down; a hard road limit for wheels (600 m) loses it again.
 - **Direction variety.** Hilden, bike 2 h: the three first loops all go west to the Rhine; the ring through the green
   belts east of the town, which the first version had on top, is not offered.
 - **Meeting the own way.** At 2 of 20 judged wishes the first loop still meets its own way once (the coast at
@@ -76,12 +76,21 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
 - **Roads for bikes.** In farmland and at the coast a first loop can have 500–800 m on a road at a stretch.
 - **Speed.** Walks 0.2–2 s (München centre 5 s), bikes 2–14 s on this computer; on big bike networks the facts take
   the most. Memory is not measured; nothing is measured on a phone.
-- **Names.** Long protected-area names; unnamed areas are "Wald bei <Ort>"; in the mountains many titles are only a
-  direction.
+- **Names.** Long names are shortened for titles and the card line (`score.short`, `short_route`: no brackets, an
+  area without what follows " mit ", a list's more telling part, a route's head without stage / ref); titles over
+  40 characters 121 → 28 of 587 in the comparison sets, longest 109 → 70 (the rest 41–45 characters, or one route
+  name without a break, e.g. "Deutsch-französischer Pamina-Radweg Lautertal"). Unnamed areas are "Wald bei <Ort>"; in the mountains many titles
+  are only a direction.
+- **The way out counts too little against an official loop** (Traumschleife Marienberg, Boppard): our first loop
+  walks 1.8 km through the town and back (28 % through houses) – the way out does not count, so its Natur is 100;
+  the official loop leaves the town on its own way (6 %) and every metre of it counts (Natur 66). The way out should
+  count as unavoidable only as far as no loop here avoids it. Not changed yet (one place; needs a measure).
 - **Brooks** come from the routing data's river class plus green beside the way; not checked on pictures.
 - **Wheels against official loops.** The official cycling loops of Rheinland-Pfalz ride a median 28 % on streets or
-  through villages (longest stretch at a road 1.2 km); we keep the owner's rule (a road is always bad), so our first
-  loop matches them only by 12 %. MTB loops: our wheel network (minor ways left out) holds only 45–85 % of several MTB
+  through villages (longest stretch at a road 1.2 km); we keep the owner's rule (a road is always bad, 2026-11-16:
+  also above the bonus for a signed loop), so our first loop matches them only by 12 % (Nordrhein-Westfalen 13 %).
+  "Blick über Altenkirchen" (957 m at a road) stays first there without the bonus: signed all the way, sights, and
+  the loops without the road are rougher (Weg 53) or shorter in Form. MTB loops: our wheel network (minor ways left out) holds only 45–85 % of several MTB
   park tours – that comparison says little.
 - **Signed loops from pieces** need the route in our map: many Traumschleifen run on the Saar-Hunsrück-Steig, which
   takes their ways in our overlays (one route per way), so the loop is not there to follow.
@@ -102,6 +111,8 @@ python3 tools/suggest-poc/official.py compare --set neu-traumpfade --name Traump
 python3 tools/suggest-poc/official.py compare --set neu-traumschleifen --name Traumschleife --sample 24
 python3 tools/suggest-poc/official.py compare --set neu-wheel --kind wheel --max 40
 python3 tools/suggest-poc/official.py compare --set neu-andere --skip Traumpf,Traumschleife --sample 24
+python3 tools/suggest-poc/official.py compare --set neu-nrw-wandern --loops nrw --pick nrw-wandern --kind all
+python3 tools/suggest-poc/official.py compare --set neu-nrw-rad --loops nrw --pick nrw-rad --kind all
 python3 tools/suggest-poc/official.py summary --labels base,neu        # the table below; the page shows it at /vergleich
 python3 tools/suggest-poc/official.py png --set neu-traumpfade --name Saynsteig   # our first blue, the official red
 ```
@@ -172,11 +183,49 @@ paved; ours stay in the forest (76 %) – the owner's road rule, not a gap to cl
 - "Kante mit Blick" is measured on a 45 m grid from zoom-12 heights: valley rims of 20 m and more; checked on a few
   pictures (Dhrontalsperre, Moselhang), not more.
 
-**The page** (`serve.py`): with "offizielle Rundwege" (on by default) up to three official loops that lie in reach and
-fit the wish join the list as cards ("Offiziell · Traumpfad", start distance, parking; their OSM `description` as the
-text line, else the generated one); an own loop that runs ≥ 80 % on one of them is left out; one line style on the
+**The page** (`serve.py`): with "ausgeschilderte Rundwege" (on by default) up to three official loops that lie in reach
+and fit the wish join the list as cards ("Ausgeschildert · Traumpfad", start distance, parking; the text line is our
+own, generated from what the loop passes – no OSM / operator descriptions, owner 2026-11-16); an own loop that runs ≥ 80 % on one of them is left out; one line style on the
 map, the chosen loop blue, the others a breath, a fine line to the chosen official loop's parking place. It knows
-official loops only where `official-compare/loops*.json` exists – today Rheinland-Pfalz.
+official loops only where `official-compare/loops*.json` exists – today Rheinland-Pfalz and Nordrhein-Westfalen.
 
 Data and results outside git: `~/onpath-suggest-poc/official-compare/` (`loops.json`, `compare-<label>-<set>-*.json`,
 `summary.json`, `logs/`, `pictures/` of the first round, `pictures-2/` of this one, `REPORT.md`, `REPORT-2.md`).
+
+## Third round (2026-11-16): the owner's answers, Nordrhein-Westfalen
+
+- **Wheels: the road rule beats the ring bonus** (owner). The + 0.15 for going round a signed loop counts only while
+  the loop's longest stretch along a road with cars stays within `form.ring_road_m` (300 m, the foot rule's number;
+  on foot a longer stretch is out anyway, so hikes are unchanged). The same for an official loop on the page.
+  Official cycling loops with long road stretches fall back (RLP: median rank of the official loop 5 → 7, official
+  ahead of our first 5 → 3; NRW 3 → 4, 5 → 4); our own first loops stay (they rarely went round a road-heavy route).
+  "Blick über Altenkirchen" stays first without the bonus (80 vs 76 points: signed all the way, sights; the quieter
+  loops there are rougher or less clean).
+- **Copyright** (owner): the badge reads "Ausgeschildert · <family>", the checkbox "ausgeschilderte Rundwege"; the
+  card line of an official loop is our own line from what it passes; `extract` no longer keeps OSM descriptions
+  (removed from the loops files too).
+- **Two NRW comparison sets** (`official.PICKS`, `--loops nrw --pick …`): 25 well-known hiking loops (EifelSchleifen,
+  Monschau, Rureifel, Siebengebirge, Sieg, Bergisches Land / Neanderland, Sauerland / Rothaarsteig-Spuren,
+  Niederrhein, Teutoschleifen, Velmerstot; one does not lie on our network) and 15 cycling / MTB loops (Hilden,
+  Apfelroute, Naafbachtal, Rur, Nettetal, Rees, Hülser Berg, Ruhr, Haltern, Tecklenburg, Nordkirchen, Rothaar,
+  bike arena Sauerland, Eifel, Haard; one not on our network).
+- **Shorter names** in titles and card lines (`score.short`, `score.short_route`), see Weak spots "Names".
+- Cache files of the map areas are written whole and then moved (`named`, `land`): parallel runs read half a file.
+
+| Set (loops) | first on the official (median) | first = official | best shown | pool | rank of the official | official ahead |
+| --- | --- | --- | --- | --- | --- | --- |
+| Traumpfade (21) | 81 → 81 % | 11 → 11 | 86 → 86 % | 87 → 87 % | 2 → 2 | 5 → 5 |
+| Traumschleifen (24) | 43 → 43 % | 2 → 2 | 57 → 57 % | 63 → 63 % | 3 → 3 | 9 → 9 |
+| RLP cycling / MTB (30) | 12 → 12 % | 1 → 1 | 19 → 19 % | 34 → 34 % | 5 → 7 | 5 → 3 |
+| other RLP hiking (24) | 23 → 23 % | 4 → 4 | 53 → 53 % | 64 → 64 % | 7 → 7 | 8 → 8 |
+| NRW hiking (24) | 20 → 20 % | 1 → 1 | 42 → 42 % | 53 → 53 % | 8 → 8 | 2 → 2 |
+| NRW cycling / MTB (14) | 13 → 13 % | 0 → 0 | 26 → 25 % | 40 → 40 % | 3 → 4 | 5 → 4 |
+
+`cases.py` 54 of 54 before and after. Tried and dropped: a hard road limit for wheels (`road_walk_max_m` 600):
+RLP first 12 → 10 %, best shown 19 → 15 %, and the Zons Rhine check fails.
+
+**What NRW shows:** against the well-known NRW loops our first loop runs only 20 % on the official one (Traumpfade
+81 %), the official loop ranks 8th in our own points. Many of them cross fields and villages (KapellenSchleife 1
+"Felder, Wiesen & Weiden": Natur 16, rank 30; Schwalmtalweg 2: Natur 6) – there our greener loop is the better
+suggestion by the owner's rules. Where the official loop is a real nature loop (Teutoschleife Dörenther Klippen,
+Monschau, Siebengebirge, Naafbachtal-Route, Von Ruhr zur Ruhr, Haard) it ranks 1–2 and the pool holds 50–90 % of it.

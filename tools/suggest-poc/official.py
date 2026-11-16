@@ -5,10 +5,10 @@
   python3 official.py png --set base-traumpfade --name Saynsteig   pictures from a saved comparison (our first blue, official red)
   python3 official.py summary [--labels base,neu]   the sets' medians side by side -> official-compare/summary.json (the page's "Vergleich")
   python3 official.py compare [--kind hike|wheel] [--name Traumpfad] [--skip Traumpf] [--sample 24] [--max 25]
-                              [--complete] [--set traumpfade] [--png Saynsteig,Vulkanpfad]
+                              [--complete] [--set traumpfade] [--png Saynsteig,Vulkanpfad] [--loops nrw --pick nrw-wandern]
 
-extract  keeps closed loops (hiking 4–20 km, cycling / MTB 15–60 km) whose ways chain up end to end, with name, network
-         and the OSM description; the start is the loop point nearest a parking place (else its first point)
+extract  keeps closed loops (hiking 4–20 km, cycling / MTB 15–60 km) whose ways chain up end to end, with name and network
+         (no description texts: the cards carry our own line); the start is the loop point nearest a parking place
          -> official-compare/loops.json (the page uses it too: official loops near a start)
 compare  per loop: a wish built from the loop (start; hike T2 or its own T level, a cycling route bike – gravel when less
          than half of it is paved –, an MTB route mtb; time ±15 %, ascent 60–130 %), suggest(),
@@ -48,8 +48,7 @@ def extract(pbf, bbox=None, region=""):
             ways = [(m.ref, m.role) for m in r.members if m.type == "w" and m.role in ("", "main", "forward", "backward", "route")]
             if ways:
                 rels.append({"id": r.id, "kind": KINDS[t.get("route")], "name": t.get("name", ""), "ref": t.get("ref", ""),
-                             "network": t.get("network", ""), "operator": t.get("operator", ""),
-                             "description": t.get("description:de") or t.get("description") or "", "ways": ways})
+                             "network": t.get("network", ""), "operator": t.get("operator", ""), "ways": ways})
                 need.update(w for w, _ in ways)
     geo, sac, parking = {}, {}, []
     for o in osmium.FileProcessor(pbf, osmium.osm.NODE | osmium.osm.WAY).with_locations():
@@ -244,8 +243,7 @@ def near(wish, S):
             edges = lay_on(P.net, P.F.ok, lp["coords"], first)
             if edges and covered(dense(lp["coords"]), line_of(P.net, edges, first)) >= 0.8:
                 out.append({"edges": edges, "start": first, "origin": "offiziell", "aim": [lp["name"]], "show": True,
-                            "official": {"name": lp["name"], "badge": badge(lp), "description": lp.get("description", ""),
-                                         "parking": lp["parking"], "p": lp["coords"][0], "osm": lp["id"],
+                            "official": {"name": lp["name"], "badge": badge(lp), "parking": lp["parking"], "p": lp["coords"][0], "osm": lp["id"],
                                          "start_km": round(dist(start, lp["coords"][0]) / 1000.0, 1)}})
         return out
     return extra
@@ -332,7 +330,19 @@ def picture(row, tag="vs"):
 
 
 SETS = {"traumpfade": "Traumpfade Mayen–Koblenz", "traumschleifen": "Traumschleifen Saar-Hunsrück",
-        "wheel": "Rad- und MTB-Rundwege Rheinland-Pfalz", "andere": "andere Rundwanderwege Rheinland-Pfalz"}
+        "wheel": "Rad- und MTB-Rundwege Rheinland-Pfalz", "andere": "andere Rundwanderwege Rheinland-Pfalz",
+        "nrw-wandern": "bekannte Rundwanderwege Nordrhein-Westfalen", "nrw-rad": "Rad- und MTB-Rundwege Nordrhein-Westfalen"}
+# hand-picked comparison sets (OSM relation ids) from loops-<region>.json: well-known loops over different landscapes,
+# no jogging circuits, no tiny village loops
+PICKS = {
+    "nrw-wandern": [71391, 11898298, 11230849, 11510957, 13525574, 12104493, 9644622, 970089,   # Eifel, Rureifel, Monschau
+                    14865493, 14482475, 11659767, 2581603,                                    # Siebengebirge, Sieg
+                    112280, 537638, 14977732, 12130356,                                       # Bergisches Land, Neanderland
+                    9857315, 3538592, 10307518,                                               # Sauerland, Rothaar
+                    1018916, 18906942, 8457628,                                               # Niederrhein
+                    11372986, 4054617, 252131],                                               # Teutoburger Wald, Egge
+    "nrw-rad": [31665, 11930753, 12244602, 2736292, 2577631, 6594500, 17354714, 2092950, 13641942, 2946192, 13898849,
+                14378818, 3032109, 3321835, 11332858]}
 
 
 def medians(rows):
@@ -378,6 +388,8 @@ def main():
     ap.add_argument("--set", default="", help="name of the comparison set: results go to compare-<set>-<partial|complete>.json")
     ap.add_argument("--max", type=int, default=25)
     ap.add_argument("--region", default="", help="extract: write loops-<region>.json (the page reads every loops*.json)")
+    ap.add_argument("--loops", default="", help="compare: take the loops from loops-<this>.json (e.g. nrw)")
+    ap.add_argument("--pick", default="", choices=("",) + tuple(PICKS), help="compare: a hand-picked set of loops (any kind)")
     ap.add_argument("--png", default="", help="a picture (official + our first) for the loops whose name contains one of these")
     ap.add_argument("--complete", action="store_true",
                     help="as if our map carried every circular route whole (today a way keeps only its most important route)")
@@ -393,11 +405,13 @@ def main():
                     print("\n".join(picture(row, a.set.split("-")[0])))
         return
     st = S.load_settings()
-    with open(os.path.join(OUT, "loops.json"), encoding="utf-8") as f:
+    with open(os.path.join(OUT, "loops-%s.json" % a.loops if a.loops else "loops.json"), encoding="utf-8") as f:
         every = json.load(f)
     has = lambda lp, words: any(n.lower() in lp["name"].lower() for n in words.split(","))
     kind = lambda lp: a.kind == "all" or (lp.get("kind", "hike") == "hike") == (a.kind == "hike")
     loops = [lp for lp in every if kind(lp) and (not a.name or has(lp, a.name)) and not (a.skip and has(lp, a.skip))]
+    if a.pick:
+        loops = [lp for i in PICKS[a.pick] for lp in every if lp["id"] == i]
     if a.sample:
         import random
         loops = random.Random(1).sample(loops, min(a.sample, len(loops)))
