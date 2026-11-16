@@ -122,6 +122,9 @@ button.wide.twoline { justify-content: flex-start; text-align: left; }
 .pinchip > b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pinchip:hover { filter: brightness(.97); }
 .pinchip:focus-visible { outline: 2px solid #243C31; outline-offset: 1px; }
+/* over the footer (scale + credits, z-index 1) where they still meet; the map's popups (menus, added later) stay over
+   the chip, the sheet and the big profile (z-index 2, later in the page) over both */
+.pinchip, #map .maplibregl-popup { z-index: 2; }
 .menuhead .addr { display: block; }
 .placecard.pinmenucard { top: auto; bottom: 16px; padding: 0; gap: 0; overflow: hidden; }
 .placecard.pinmenucard .pointmenu { min-width: 0; }
