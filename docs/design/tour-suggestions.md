@@ -233,7 +233,7 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   and gives the same suggestions) → **2 core** (Kotlin on `suggest/`; compare sets and `cases.py` run against it via a
   JVM entry; same results as the frozen POC; the Python method is deleted, settings stay one file) → **3 planner**
   (sketch 4, behind the switch, owner tests in NRW, deploy on his word) → **4 app** → **5 all cells** get the file
-  (before 3 goes public; a cell without it says the map is being updated).
+  (before 3 goes public; a cell without it says the map is being updated). Owner 2026-11-16 late: the file is built now, with the map rebuild of these days, as its own layer with its own version and a compatibility check – released apps have no tour planner and ignore it.
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
