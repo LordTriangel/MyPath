@@ -269,6 +269,18 @@ for (const [name, vp, phone] of [['desktop', { width: 1440, height: 900 }, false
   check(await page.locator('.pinchip').isHidden(), `${P} the name chip hides while the menu is open`);
   await page.screenshot({ path: path.join(shots, `${name}-card.png`) });
   await page.keyboard.press('Escape');
+  // the chip shows again where it can be clicked: not under the footer (credits), the sheet or anything else – the
+  // element at its centre is the chip itself (CI 2026-11-16: on a phone the taller menu with Merken / Zuhause pushed
+  // the pin down to the credits)
+  await page.waitForSelector('.pinchip', { state: 'visible', timeout: 10_000 }).catch(() => {});
+  await settle(page);
+  const onTop = await page.evaluate(() => {
+    const c = document.querySelector('.pinchip'), r = c?.getBoundingClientRect();
+    if (!r || r.height === 0) return { shown: false };
+    const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return { shown: true, own: !!at && c.contains(at), at: at ? `${at.tagName}#${at.id}.${at.className}` : null, y: Math.round(r.top) };
+  });
+  check(onTop.own, `${P} after Escape the name chip is on top at its centre, not under the credits / sheet (${JSON.stringify(onTop)})`);
   const joinCount = () => page.evaluate(() => window.__map.getSource('candidate-join')?.serialize().data.features.length ?? 0);
   const cand = await page.evaluate(() => ({ pin: !!document.querySelector('.candidate svg path[fill="#1E3FAE"]'), chip: document.querySelector('.pinchip b')?.textContent,
     chipBelow: document.querySelector('.pinchip').getBoundingClientRect().y >= document.querySelector('.candidate').getBoundingClientRect().bottom - 6,

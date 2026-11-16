@@ -1166,6 +1166,14 @@ e72fb540 / c543cd5a, 21c0eac1, 725b68e9 / 6ba34792, 21dcc5f5 / de1afd21, 870bff0
   („Als Start“ / „Als Ziel“ / „Von hier entfernen“) and the „+ Hinzufügen“ · „⋯ Mehr“ chip are gone, as in the app.
   Tests: search-smoke (rows per plan size, above the pin, chip, Escape, the card on a low map), pinmenu-check (the app's
   PinMenuPlaceTest numbers), sheet- / import- / follow-smoke.
+  2026-11-16 (CI red after the kept-places rows made the menu taller): on a phone the pin ended low, and after Escape
+  its name chip sat under the credits. Now the room ends above the footer (scale + credits) where it lies under the
+  place (`menuRoom(x)`; on a wide screen it stands in the corner); the map's move for the menu above first keeps the
+  name chip's room under the tip (`search.ts UNDER_TIP` = max(TIP_ROOM, 6 + 48 + 4)), else the app's TIP_ROOM; when the
+  menu closes and the chip would lie under the footer / sheet / big profile, the map moves up just that far
+  (`chipClear`, never the head under the top bar). The chip is over the footer where they still meet (`.pinchip`
+  z-index 2; the map's popups too, so a menu stays over the chip). sheet-smoke: after Escape the chip's centre is the
+  chip (phone + wide).
 - **Very long route → Abbrechen moves the map back** (app 4216a144): `longroute.ts cancelCamera` = LongRouteCancelCamera
   without a tour – two or more points: the whole plan (route line + points), one point: that point at z16, none: the
   map stays. Only that Cancel (also the web's „Far from your route“ Cancel), not Stop or the slow plan's Cancel.
