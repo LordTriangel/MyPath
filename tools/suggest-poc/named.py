@@ -2,7 +2,7 @@
 
 The same files the phone has (cells.py fetches them): overlays.pmtiles layer `routes` (kind hike / bike, name, ref,
 net 4 international … 2 regional) and, where a cell has it, `routelines` (every signed route relation whole, also a
-local one on the ways of a bigger one – extract_overlays.py --all-routes, test cells so far), `trailnames` (local
+local one on the ways of a bigger one – every cell from schema 8; an older cell has only `routes`), `trailnames` (local
 circular walks, promenades, Waalwege), base.pmtiles `water` + `water_name`, pois.geojson (sights: viewpoints, castles,
 ruins, chapels, caves, waterfalls). Read once per map area, kept as attr-v7.json beside it.
 """

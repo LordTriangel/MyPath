@@ -64,9 +64,9 @@ class Osm:
                 + "\n".join(self.nodes + self.ways + self.rels) + "\n</osm>\n")
 
 
-def run_extract(osm, tmp, x0=-50, y0=-50, x1=550, y1=350, extra=(), env=None):
+def run_extract(osm, tmp, x0=-50, y0=-50, x1=550, y1=350, extra=()):
     """extract_overlays.py --tiles on the made-up file -> {layer: [features]} of the tile inputs (routelines only when
-    it was written: --all-routes)."""
+    it was written: not with --no-all-routes)."""
     src = os.path.join(tmp, "t.osm")
     with open(src, "w") as f:
         f.write(osm.xml())
@@ -75,8 +75,7 @@ def run_extract(osm, tmp, x0=-50, y0=-50, x1=550, y1=350, extra=(), env=None):
     hi, ha = at(x1, y1)
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "extract_overlays.py")
     res = subprocess.run([sys.executable, script, src, tmp, str(lo), str(la), str(hi), str(ha),
-                          "--tiles", out, "--no-geojson", "--smooth", *extra], capture_output=True, text=True,
-                         env={**os.environ, "ONPATH_ALL_ROUTES": "", **(env or {})})
+                          "--tiles", out, "--no-geojson", "--smooth", *extra], capture_output=True, text=True)
     if res.returncode:
         raise AssertionError(res.stdout + res.stderr)
     layers = {}
@@ -253,9 +252,9 @@ class BikeMap(unittest.TestCase):
 
 @unittest.skipUnless(HAVE_LIBS, "pyosmium / shapely not installed")
 class EveryRouteOfAWay(unittest.TestCase):
-    """--all-routes (IR 2026-11-15, test cells first): a way keeps every signed route over it. A local loop (Traumpfad)
-    that runs on a regional route's way (Moselsteig) for a stretch stays whole in the tile layer routelines; the drawn
-    layer "routes" is the same as without the switch."""
+    """routelines (IR 2026-11-15; every cell from schema 8, owner 2026-11-16): a way keeps every signed route over it.
+    A local loop (Traumpfad) that runs on a regional route's way (Moselsteig) for a stretch stays whole in the tile
+    layer routelines; the drawn layer "routes" is the same as with --no-all-routes."""
 
     @staticmethod
     def make():
@@ -278,9 +277,9 @@ class EveryRouteOfAWay(unittest.TestCase):
             d = os.path.join(cls.tmp.name, name)
             os.makedirs(d)
             return run_extract(cls.make(), d, **kw)
-        cls.on = run("on", extra=["--all-routes"])
-        cls.env = run("env", env={"ONPATH_ALL_ROUTES": "1"})
-        cls.off = run("off")
+        cls.on = run("on")  # the normal build
+        cls.flag = run("flag", extra=["--all-routes"])
+        cls.off = run("off", extra=["--no-all-routes"])
 
     @classmethod
     def tearDownClass(cls):
@@ -308,11 +307,11 @@ class EveryRouteOfAWay(unittest.TestCase):
         self.assertEqual(len(self.on["routelines"]), 4)  # one line per relation
         self.assertTrue(all(f["tippecanoe"] == {"minzoom": 10, "maxzoom": 14} for f in self.on["routelines"]))
 
-    def test_env_switch(self):
-        self.assertEqual(sorted(f["properties"]["rid"] for f in self.env["routelines"]),
+    def test_on_by_default(self):
+        self.assertEqual(sorted(f["properties"]["rid"] for f in self.flag["routelines"]),
                          sorted(f["properties"]["rid"] for f in self.on["routelines"]))
 
-    def test_off_by_default_and_drawn_layer_unchanged(self):
+    def test_switch_off_and_drawn_layer_unchanged(self):
         self.assertNotIn("routelines", self.off)
         self.assertEqual(self.on["routes"], self.off["routes"])
 

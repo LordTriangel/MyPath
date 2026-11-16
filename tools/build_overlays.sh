@@ -19,7 +19,7 @@
 #                       (per-feature zoom range from extract_overlays.py)
 #   streets     z13-14  small streets (OpenMapTiles minor / service), the base map has none there (trim_base.sh)
 #   trails      z13-14  ways       z13-14  trailnames z13-14  routes z9-14
-#   routelines  z10-14  every signed route relation whole (extract_overlays.py --all-routes; not drawn by the style)
+#   routelines  z10-14  every signed route relation whole (cell schema 8; not drawn by the style)
 #   barriers    z14     barrier nodes that block an activity (--wayclass; optional)
 #   areas       z14     street areas: pedestrian areas, traffic islands, squares, platforms, bridges (optional)
 # With router classes (wayclass.json) the tile file's description says "onpath-wayclass:<profile hash>".
@@ -60,7 +60,7 @@ layer trails 13 14
 layer ways 13 14
 layer trailnames 13 14
 layer routes 9 14
-layer routelines 10 14  # only with extract_overlays.py --all-routes (test cells): every signed route whole
+layer routelines 10 14  # every signed route whole (cell schema 8; absent only with extract_overlays.py --no-all-routes)
 layer barriers 14 14
 layer areas 14 14
 DESC=()

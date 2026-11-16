@@ -731,8 +731,11 @@ class PartialRebuild(unittest.TestCase):
                 "nothing published": (None, "2026-10-19", 10, 543, 361),
             }.items():
                 self.assertIsNone(plan(*args), why)
+        # the real table: schema 8 (layer routelines) rebuilds only the overlays of an s7 cell
+        self.assertEqual(plan(self.published(), "2026-10-19", 10, 543, 361), ["overlays"])
         # nothing stale (a plain rebuild) and everything stale: whole cell, as before
-        self.assertIsNone(plan(self.published(), "2026-10-19", 10, 543, 361))
+        cur = f"2026-10-19-s{job_build.cell_tools.CELL_SCHEMA}"
+        self.assertIsNone(plan(self.published(cur), "2026-10-19", 10, 543, 361))
         with mock.patch.dict(job_build.cell_tools.LAYER_SCHEMA, {k: 8 for k in LAYER_FILES}):
             self.assertIsNone(plan(self.published(), "2026-10-19", 10, 543, 361))
         # optional layers may be missing: contours of a cell at sea level are not built again for it

@@ -254,7 +254,7 @@ The format-1 code paths stay (cost nothing); no app uses f1 cells.
 Why: cells built before the overlays layer `streets` existed showed no small streets (the style draws them at z13+
 only from it), and a version named by the OSM date alone would give a rebuild on the same OSM date the same
 (immutable, cached) name. So:
-- **Builder:** version folder = `<osm_date>-s<schema>` (`tools/cells/cells.py CELL_SCHEMA`, currently 7 – see below); the manifest has
+- **Builder:** version folder = `<osm_date>-s<schema>` (`tools/cells/cells.py CELL_SCHEMA`, currently 8 – see below); the manifest has
   `version` and `schema`. A build whose name is already published (a pipeline fix rebuilt on the same OSM date) gets a
   rebuild number: `<osm_date>.N-s<schema>`, first free N ≥ 2 (`job_build.py rebuild_number` → `build_cell.sh REBUILD`;
   2026-10-30, the Bremen / Berlin repair) – app and doorman compare names only, so the repaired cell reaches phones
@@ -286,6 +286,18 @@ only from it), and a version named by the OSM date alone would give a rebuild on
   docs/map-pipeline.md 5b) is look-only too:** builder and doorman 7, `CELL_SCHEMA_SERVE` and the app stay at 3. An s6
   cell just keeps the unsigned route lines and has no local route names, bicycle streets or footbridge flag; the
   `lb` pieces also carry `majoronly`, so a style from before s7 leaves them out of the band and the major layers.
+- **Schema 8 (overlays layer `routelines`: every signed route relation whole, one line per relation – owner
+  2026-11-16 „Ja, einschalten“ after the test cells: official loops whole at 19 of 21 Traumpfade instead of 7;
+  docs/map-pipeline.md 5b) is look-only in the other direction – no style reads the layer:** builder (`cells.py`
+  `CELL_SCHEMA` 8, `LAYER_SCHEMA` overlays 8) and doorman (`wrangler.toml`, `config.js` default) 8,
+  `CELL_SCHEMA_SERVE` and the app stay at 3. The map of an s8 cell looks the same as s7 (the owner: no local route
+  names on the map); the layer is for the tour suggestions (`tools/suggest-poc/named.py`). Every app version ignores a
+  source-layer its style does not name and extra manifest keys (`layers`, `reused_from`), so old apps just download
+  the s8 version at their next refresh. The first bump that uses the partial rebuild (§7h): an s7 cell with the same OSM
+  date as the extract is rebuilt **overlays only** (base, pois, addresses, terrain, contours copied); an older OSM
+  date or an older schema is rebuilt whole, as before. `extract_overlays.py` writes the layer by default;
+  `--no-all-routes` stays for before / after comparisons and the tests only (a cell built with it would lack a layer
+  its schema promises – the build scripts never pass it). +5–10 % overlays per cell.
 
 ## 7d. Released APKs, loading modal, fresh-install reset
 

@@ -46,22 +46,23 @@ FORMAT = 1  # default; build_cell.sh passes --format (format 2: docs/design/map-
 # extract_overlays.py TownIndex / link_pieces, "quiet towns", plus the router classes of the bike footway
 # cost fix; 7 = bike map: cycle routes only of the networks lcn / rcn / ncn / icn, label lines "lb" for
 # named local cycle routes, "bs" on bicycle streets, "br" / "fw" / tn "p" | "t" in "paths", street areas (layer "areas"), short town
-# sidewalk stubs hidden). The
+# sidewalk stubs hidden; 8 = overlays layer "routelines": every signed route relation whole – extract_overlays.py
+# route_lines, owner 2026-11-16; not drawn by any style, read by tools/suggest-poc). The
 # version folder is "<osm_date>-s<schema>", so a rebuild is a new version for app and caches; the doorman rebuilds
 # cells of an older schema when asked (wrangler.toml CELL_SCHEMA; older cells from CELL_SCHEMA_SERVE on are served while
 # rebuilt), the app re-requests installed cells below the schema its style needs (cells/CellApi.CELL_SCHEMA – stays 3
-# for schemas 4 to 7: s3 cells just place same-kind POIs in tile order / show the older router classes / draw towns and
-# bike routes as before). Keep builder
+# for schemas 4 to 8: s3 cells just place same-kind POIs in tile order / show the older router classes / draw towns and
+# bike routes as before; s8 adds a layer no style reads). Keep builder
 # and doorman in step. CELL_SCHEMA stays a plain number on this line (tools/dev/publish_area.sh reads it) and is always
 # the highest value in LAYER_SCHEMA (selftest).
-CELL_SCHEMA = 7
+CELL_SCHEMA = 8
 # Per-layer content schema (docs/design/map-hosting.md §7h "Partial rebuild"): for each layer of a format-2 cell, the
 # cell schema in which its data last changed. A change bumps CELL_SCHEMA (version name, doorman and app see only that)
 # AND the layer(s) it touches; a change that needs two layers in step (e.g. trim_base hiding lines the overlays draw
 # from then on) bumps both. When the OSM extract date is the same, job_build.py then rebuilds only the layers whose
 # schema is newer than the published version's and copies the others into the new version. 7 = all layers when the
-# table came in: older versions (< PARTIAL_FROM_SCHEMA) are always rebuilt whole.
-LAYER_SCHEMA = {"base": 7, "overlays": 7, "pois": 7, "addresses": 7, "terrain": 7, "contours": 7}
+# table came in: older versions (< PARTIAL_FROM_SCHEMA) are always rebuilt whole. 8 = overlays only (routelines).
+LAYER_SCHEMA = {"base": 7, "overlays": 8, "pois": 7, "addresses": 7, "terrain": 7, "contours": 7}
 PARTIAL_FROM_SCHEMA = 7
 OSM_LAYERS = ("base", "overlays", "pois", "addresses")  # these need the OSM cut; terrain + contours only AWS tiles
 REQUIRED_LAYERS = ("base", "overlays", "terrain")       # a published version without one of them is never reused

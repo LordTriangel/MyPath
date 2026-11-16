@@ -6,7 +6,7 @@ Output (in OUT_DIR):
       band is transparent); major routes (net >= 2) again as original pieces with "majoronly": 1, ref, name, net;
       named cycle routes not named by such a piece as label lines "lb": 1, "majoronly": 1, name, ref (no net).
       Cycle routes only of the networks lcn / rcn / ncn / icn (BIKE_NETWORKS)
-  routelines (tile layer only; --all-routes or ONPATH_ALL_ROUTES=1, test cells so far) - EVERY signed route relation
+  routelines (tile layer only, every --tiles build; cell schema 8, owner 2026-11-16) - EVERY signed route relation
       whole, one line per relation: kind, name, ref, net, rid (relation id). "routes" keeps one route per way and kind
       (the band, the highlight), so a local route on the ways of a bigger one (a Traumpfad on the Moselsteig) has no
       named piece there; routelines has it whole. The map style does not draw this layer (no doubled bands or
@@ -79,9 +79,10 @@ _ap.add_argument("--smooth-dev", type=float, default=3.0, metavar="M",
 _ap.add_argument("--wayclass", metavar="JAR",
                  help="format 2: router classes per way from tools/routing/wayclass (build.sh makes the jar)")
 _ap.add_argument("--profiles", metavar="DIR", help="--wayclass: lookups.dat + the .brf profiles the app routes with")
-_ap.add_argument("--all-routes", action="store_true", default=os.environ.get("ONPATH_ALL_ROUTES") == "1",
-                 help="--tiles: also write the layer routelines - every signed route relation whole (default: env "
-                      "ONPATH_ALL_ROUTES=1; off in the normal build until the owner says all cells)")
+_ap.add_argument("--all-routes", action=argparse.BooleanOptionalAction, default=True,
+                 help="--tiles: also write the layer routelines - every signed route relation whole (default on, "
+                      "cell schema 8; --no-all-routes only for before / after comparisons and tests: a cell built "
+                      "without it lacks a layer its schema promises)")
 _ap.add_argument("--java", default=os.environ.get("JAVA", "java"), help="--wayclass: java command (default $JAVA or java)")
 ARGS = _ap.parse_args()
 if ARGS.wayclass and not (ARGS.tiles and ARGS.profiles):
