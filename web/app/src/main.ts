@@ -19,7 +19,7 @@ import { FlyOver } from './flyover';
 import { STEEP_COLOURS } from './profile';
 import { PACKED, usePacked, packedGlyphs } from './packed';
 import { Cells } from './cells';
-import { setupSearch, type PinRows, type PlaceCard, type PlaceRole } from './search';
+import { PIN_CHIP_HALF_W, setupSearch, type PinRows, type PlaceCard, type PlaceRole } from './search';
 import { emphasised } from './pinmenu';
 import { NO_PADDING, roomFor } from './cardanchor';
 import { icon, activityIcon, needle, logo, type IconName } from './icons';
@@ -1850,12 +1850,17 @@ placeCard = setupSearch({
     const info = JSON.parse(await engine.call('poiMenu', h.kind, h.name ?? '', '', h.lat, h.lon)) as { sub: string; color: string } | null;
     return placeRows(h, { title: h.title, sub: info?.sub ?? h.subtitle, color: info?.color ?? h.color }, true);
   },
-  // the free map between the top bar and the plan sheet (phone) or the big profile / the map's bottom (wide)
-  menuRoom: () => {
+  // the free map between the top bar and the plan sheet (phone) or the big profile / the map's bottom (wide), above the
+  // footer (scale + credits): the found place's pin and its name chip never go under it (the app's PinMenuOverlay
+  // bottomPx = the bottom panel with its footer)
+  // – where the footer lies under the place [x] (map pixels; on a wide screen it stands in the corner beside the sheet)
+  menuRoom: (x) => {
     const st = $('stage').getBoundingClientRect(), bar = $('topbar').getBoundingClientRect(), bp = $('bigProfile');
     const top = bar.height > 0 ? bar.bottom - st.top : 0;
     const under = phoneWidth() ? $('sheet').getBoundingClientRect().top : bp.hidden ? st.bottom : bp.getBoundingClientRect().top;
-    return { top, bottom: Math.max(top, Math.min(st.bottom, under) - st.top) };
+    const foot = $('footer').getBoundingClientRect(), px = st.left + x;
+    const footTop = foot.height > 0 && px >= foot.left - PIN_CHIP_HALF_W && px <= foot.right + PIN_CHIP_HALF_W ? foot.top - 4 : st.bottom;
+    return { top, bottom: Math.max(top, Math.min(st.bottom, under, footTop) - st.top) };
   },
   cardShown: (open) => document.body.classList.toggle('card-open', open),
   placeShown: (lat, lon) => areas?.wantPoint(lat, lon, 'searched'), // T2
