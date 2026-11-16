@@ -1236,10 +1236,17 @@ e72fb540 / c543cd5a, 21c0eac1, 725b68e9 / 6ba34792, 21dcc5f5 / de1afd21, 870bff0
 - **Rules shared**: `search/SavedPlaces.kt` is in `app/web-shared-files.txt` (pure, imports only Geo); the engine's
   `WebKept.kt` runs it (`keptState`, `keptApply`, `keptStart`, `recentAdd`) and mirrors SearchStore's line format and
   addRecent (parity.json). A place travels and is stored as ONE line = the app's SearchStore line (`Hit.code`).
-- **Store** (`keptplaces.ts`): browser-local for now (localStorage `onpath.keptPlaces` {v, home, favourites} and
-  `onpath.searchRecent`), behind `KeptStore` (list / keep / unkeep / setHome / clearHome / state / onChange; another tab's
-  change arrives as an event) – the phone ⇄ browser sync (format: donald, not defined yet) goes behind it without
-  touching the UI. A blocked / broken store: nothing kept is shown, a change lasts for the page; both to diag.
+- **Store** (`keptplaces.ts`): localStorage `onpath.keptPlaces` {v, home, favourites, restore?} and
+  `onpath.searchRecent` (never synced), behind `KeptStore` (list / keep / unkeep / setHome / clearHome / state /
+  onChange; another tab's change arrives as an event). A blocked / broken store: nothing kept is shown, a change lasts
+  for the page; both to diag.
+- **Sync with the phone** (2026-11-17, web-sync.md §5.4 „Planner (built)“): paired, Zuhause and Favoriten travel with
+  every sync round (not only with Save; a change here starts a round 1.5 s later) – `sync.ts` exports through
+  `KeptSync.forExport` before the round and merges the round's changes in after it (`KeptSync.merge`, in turn with the
+  user's taps). **Never exported from a store that could not be read** (its "nothing kept" would delete the phone's
+  places): `forExport` → null; an unreadable store (or one written over it, flag `restore`) first takes the folder's
+  places back. Not paired: this browser only; pairing joins them to the phone's folder, unpairing keeps them here.
+  Tests: `WebSyncPlacesTest`, sync-smoke 18.
 - Tests: `WebKeptTest` (engine), pinmenu-check, `test/kept-smoke.mjs` (rows + line, Gemerkt gold and the menu open,
   Favoriten / Zuhause / Zuletzt without repeats, five + „All favourites ›“, reload, unkeep / remove home, a map POI, a
   blocked store, German words, screenshots desktop + Pixel 7), search-smoke (the rows' order).

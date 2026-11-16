@@ -958,6 +958,7 @@ const keptRules: KeptRules = {
   addRecent: async (recent, code) => (await engine.call('recentAdd', recent.join('\n'), code)).split('\n').filter((l) => l),
 };
 const kept = keptStore(keptRules);
+sync.keptPlaces(kept); // synced with the paired phone (web-sync.md §5.4); not paired: this browser only
 const recentSearch = searchRecent(keptRules);
 /** The app's OnPathColors.Favourite (My routes' star). */
 const FAVOURITE = '#B07D00';

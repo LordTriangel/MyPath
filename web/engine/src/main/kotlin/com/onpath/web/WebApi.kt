@@ -821,6 +821,14 @@ external fun planProgress(text: String)
     WebSync.saveTrack(ledger, id, track, title, now, device)
 @JSExport fun syncTrackFit(segments: String, marks: String, activity: String, sac: Int): String = WebSync.trackFit(segments, marks, activity, sac)
 @JSExport fun syncTrackGpx(track: String, title: String): String = WebSync.trackGpx(track, title)
+// kept places ⇄ the sync (web-sync.md §5.4: kind 5, the shared PlaceSync with WebKept's line codec)
+@JSExport fun syncPlacesExport(ledger: String, home: String, favourites: String, now: Double, device: String, waiting: String): String =
+    WebSync.placesExport(ledger, home, favourites, now, device, waiting)
+@JSExport fun syncPlacesImport(ledger: String, ids: String, home: String, favourites: String, seenHome: String, seenFavourites: String,
+    seenKnown: Int): String = WebSync.placesImport(ledger, ids, home, favourites, seenHome, seenFavourites, seenKnown != 0)
+@JSExport fun syncPlacesChanged(before: String, after: String): String = WebSync.placesChanged(before, after)
+@JSExport fun syncPlaceItems(ledger: String): String = WebSync.placeItems(ledger)
+@JSExport fun syncPlacesForget(ledger: String): String = WebSync.placesForget(ledger)
 
 // ---- web UI rules (WebUi.kt): route name proposal, POI kind filters ----
 @JSExport fun routeName(line: String, names: String): String = WebUi.routeName(line, names)

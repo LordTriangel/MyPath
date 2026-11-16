@@ -141,7 +141,24 @@ class Phone {
     const [id, blob] = (await call('syncJoinBlob', code, this.device, this.pair, Date.now(), rnd(12))).split(' ');
     return (await box('PUT', k.mailbox, k.token, { path: '/' + id, body: Buffer.from(blob, 'base64url'), base: 0 })).status;
   }
+  /**
+   * One pass. A phone with kept places ([kept] = {home, favourites}, the app's SearchStore lines) does what the app's
+   * PlanSyncPass does (web-sync.md §5.4): export before the round, import what the round changed after it.
+   */
   async round() {
+    if (!this.kept) return this.roundOnly();
+    const seen = { home: this.kept.home, favourites: [...this.kept.favourites] };
+    this.ledger = await call('syncPlacesExport', this.ledger, seen.home ?? '', seen.favourites.join('\n'), Date.now(), this.device, '');
+    const before = this.ledger;
+    const status = await this.roundOnly();
+    const ids = await call('syncPlacesChanged', before, this.ledger);
+    if (ids) this.kept = JSON.parse(await call('syncPlacesImport', this.ledger, ids, this.kept.home ?? '', this.kept.favourites.join('\n'),
+      seen.home ?? '', seen.favourites.join('\n'), 1));
+    return status;
+  }
+  /** The phone's ledger items of kind 5 (what the phone holds of the kept places): [{id, home, deleted, place}]. */
+  async placeItems() { return JSON.parse(await call('syncPlaceItems', this.ledger)); }
+  async roundOnly() {
     const k = await this.keys();
     for (let pass = 0; pass < 4; pass++) {
       const since = JSON.parse(await call('syncState', this.ledger)).since;
@@ -893,6 +910,75 @@ await until(O, async () => (await window.__sync.list()).some((p) => p.title === 
 await O.waitForFunction(() => window.__sync.status.tours === 250, null, { timeout: 10_000 }).catch(() => {}); // the count follows the save a moment later
 check((await status(O)).tours === 250, 'the 250th tour may be saved');
 await ctxO.close();
+
+// ---- 18. kept places (owner 2026-11-15 „Ja, mit Abgleich“, web-sync.md §5.4): a place kept in the browser before the
+// pairing joins the phone, the phone's Zuhause comes here; ★ here → the phone with the next round (no Save); unkeep both
+// ways; two homes at once (the first stays Zuhause, the other a favourite everywhere); an unreadable store here never
+// deletes the phone's places – they come back. The page's kept store is reached through the sync (window.__sync.places).
+const HUT = 'n:4711\tLeiter Alm\talpine_hut\t\t46.689000\t11.140000\t1522\t\tPOI\t\t\t';
+const PEAK = 'n:12\tMutspitze\tpeak\t\t46.720300\t11.125100\t2295\t\tPOI\t\t\t';
+const CAFE = 'n:77\tWaldcafé\tcafe\t\t46.700000\t11.150000\t\t\tPOI\t\t\t';
+const HOME1 = 'addr:1\tHauptstraße 3\taddress\t\t46.671200\t11.150000\t\t\tPOI\t\tAlgund\t';
+const HOME2 = 'addr:2\tBahnhofstraße 1\taddress\t\t46.665000\t11.159000\t\t\tPOI\t\t\t';
+const nameOf = (l) => (l ? l.split('\t')[1] : null);
+const placesPhone = await new Phone('Places phone').init();
+placesPhone.kept = { home: HOME1, favourites: [] };
+const ctxK = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+let K = await open(ctxK);
+const keptK = () => K.evaluate(() => window.__sync.places.list());
+const keptDo = (op, line) => K.evaluate(([o, l]) => window.__sync.places[o](l), [op, line]);
+const kNames = async () => { const k = await keptK(); return { home: nameOf(k.home), favs: k.favourites.map(nameOf) }; };
+const pNames = () => ({ home: nameOf(placesPhone.kept.home), favs: placesPhone.kept.favourites.map(nameOf) });
+/** The phone's passes until [pred] holds (the browser's round runs by itself a moment after a change). */
+const phoneUntil = async (pred) => { for (let end = Date.now() + 30_000; Date.now() < end;) { await placesPhone.round(); if (pred()) return true; await new Promise((r) => setTimeout(r, 300)); } return false; };
+const browserUntil = async (pred) => { for (let end = Date.now() + 30_000; Date.now() < end;) { await pull(K); if (pred(await kNames())) return true; await new Promise((r) => setTimeout(r, 300)); } return false; };
+await K.evaluate(() => { window.__sync.placesDelayMs = 200; });
+await keptDo('keep', HUT);
+check(JSON.stringify(await kNames()) === '{"home":null,"favs":["Leiter Alm"]}', 'not paired: ★ Leiter Alm kept in this browser only');
+const pk = await showCode(K);
+await placesPhone.pairDirect(pk.code);
+await K.waitForFunction(() => window.__sync.status.paired && window.__sync.status.lastSync, null, { timeout: 30_000 }).catch(() => {});
+await K.click('#closePair').catch(() => {});
+check(await phoneUntil(() => pNames().favs.includes('Leiter Alm')), `pairing: the place kept in the browser before joins the phone (${JSON.stringify(pNames())})`);
+const hutItem = (await placesPhone.placeItems()).find((i) => i.place === HUT);
+check(hutItem && !hutItem.deleted && hutItem.id === 'COgvE3Dj8pbgW9pnl8DPxw', `the phone reads the item: kind 5, the app's line, the app's id (${JSON.stringify(hutItem)})`);
+check(await browserUntil((k) => k.home === 'Hauptstraße 3'), `the phone's Zuhause arrives here (${JSON.stringify(await kNames())})`);
+// ★ here after the pairing: with the next round, no Save
+const saveState = await K.evaluate(() => document.getElementById('menuSavePlan')?.dataset.state);
+await keptDo('keep', PEAK);
+check(await phoneUntil(() => pNames().favs.includes('Mutspitze')), `★ Mutspitze here → on the phone with the next round, no Save (${JSON.stringify(pNames())})`);
+check(await K.evaluate(() => document.getElementById('menuSavePlan')?.dataset.state) === saveState, 'a kept place is no route: Save stays as it was');
+// unkeep both ways
+placesPhone.kept.favourites = placesPhone.kept.favourites.filter((l) => l !== HUT);
+await placesPhone.round();
+check(await browserUntil((k) => !k.favs.includes('Leiter Alm')), `☆ Leiter Alm off on the phone → gone here (${JSON.stringify(await kNames())})`);
+await keptDo('unkeep', PEAK);
+check(await phoneUntil(() => !pNames().favs.includes('Mutspitze')), `☆ Mutspitze off here → gone on the phone (${JSON.stringify(pNames())})`);
+check((await placesPhone.placeItems()).some((i) => i.deleted && i.place === PEAK), 'the phone reads its tombstone, carrying the line');
+// two homes at once: the phone's reaches the mailbox first and stays Zuhause; the browser's stays a favourite everywhere
+await K.evaluate(() => { window.__sync.placesDelayMs = 600_000; });
+await keptDo('setHome', CAFE);
+placesPhone.kept.home = HOME2;
+await placesPhone.round();
+await K.evaluate(() => { window.__sync.placesDelayMs = 200; });
+check(await browserUntil((k) => k.home === 'Bahnhofstraße 1' && k.favs.includes('Waldcafé')),
+  `two homes at once: here the phone's Bahnhofstraße 1 is Zuhause, Waldcafé stays a favourite (${JSON.stringify(await kNames())})`);
+check(await phoneUntil(() => pNames().home === 'Bahnhofstraße 1' && pNames().favs.includes('Waldcafé')),
+  `… and on the phone the same (${JSON.stringify(pNames())})`);
+// an unreadable store here: nothing is sent as a delete; the phone's places come back into it
+const phoneBefore = JSON.stringify(pNames());
+const tombsBefore = (await placesPhone.placeItems()).filter((i) => i.deleted).length;
+await K.evaluate(() => localStorage.setItem('onpath.keptPlaces', '{"v":1,"home":'));
+await K.reload();
+await K.waitForFunction(() => document.getElementById('syncBadge')?.dataset.ready === '1', null, { timeout: 60_000 });
+check(await browserUntil((k) => k.home === 'Bahnhofstraße 1' && k.favs.includes('Waldcafé')),
+  `an unreadable store: the phone's places come back here (${JSON.stringify(await kNames())})`);
+await placesPhone.round();
+check(JSON.stringify(pNames()) === phoneBefore && (await placesPhone.placeItems()).filter((i) => i.deleted).length === tombsBefore,
+  `an unreadable store: nothing deleted on the phone (${JSON.stringify(pNames())})`);
+const stored = await K.evaluate(() => { try { return JSON.parse(localStorage.getItem('onpath.keptPlaces')); } catch { return null; } });
+check(stored && !stored.restore && stored.home === HOME2, `the store is written again, restored (${JSON.stringify(stored)})`);
+await ctxK.close();
 
 await browser.close(); server.close();
 const real = errors.filter((e) => !/status of (404|409|410|429|507)/.test(e) && !/ERR_INTERNET_DISCONNECTED|Failed to fetch/.test(e) && !/^\[Problems\] (INFO|WARN|TRACE) /.test(e));

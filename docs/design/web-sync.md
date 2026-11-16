@@ -267,7 +267,23 @@ lost its history (`restart`) – the rule above makes the newer devices keep and
 `n:4711⇥Leiter Alm⇥alpine_hut⇥⇥46.689000⇥11.140000⇥1522⇥⇥POI⇥⇥⇥` (⇥ = tab) is item `COgvE3Dj8pbgW9pnl8DPxw`;
 kept by device `AQEBAQEBAQE` at updatedAt 1000 its item bytes are `01 05 <id 16> <device 8> e807 00 0b 3e <the 62 line bytes>`.
 
-#### For the laptop (planner side) – what to build on this
+**Planner (built, laptop 2026-11-17):** engine `WebSync.placesExport / placesImport / placesChanged / placeItems /
+placesForget` over the shared `PlaceSync(WebKept::encode, WebKept::decode)` (WebApi `syncPlaces…`, `syncPlaceItems`);
+the page (`sync.ts`, `keptplaces.ts KeptSync`): per round of a paired folder export → pull / push → import. A pull's
+changed place ids are stored first (`fach:<folder>:places`, IndexedDB) and stay until the import is written to the
+browser's store; a leftover is imported **before** the next export. **Guard:** an unreadable or blocked store
+(`keptStore` fell back to "nothing kept") is never exported (`forExport` → null, once to diag); an unreadable store
+first takes every place item of the folder back (`needsRestore` – also when the user wrote over it, a `restore` flag in
+the store survives a reload), then exports again. Places go with the next round (hello + dirty place ids, not only
+with Save; a change here starts a round 1.5 s later; pacing: they count in the ≤ 30 writes, not sent in an early
+round). Opening a folder (pairing, the same phone again) drops the folder's place items and reads its mailbox from 0
+(`placesForget`): the browser's places are exported into it, the phone's come in – the same line is one item, no old
+tombstone of a closed folder deletes a place kept here. Unpair / another phone: the places stay in the browser (one
+list per browser). A place keeps the line it came with (a newer app's fields stay); lines the planner cannot read are
+neither exported nor dropped. Tests: `WebSyncPlacesTest`, sync-smoke 18 (browser ★ before pairing → phone, phone's
+Zuhause → here, ★ without Save, unkeep both ways, two homes, an unreadable store deletes nothing and is restored).
+
+#### For the laptop (planner side) – what to build on this (done, see „Planner (built)“ above)
 - **Engine** (`WebSync.kt`, yours): two calls over the shared `PlaceSync(WebKept::encode, WebKept::decode)` –
   `syncPlacesExport(ledger, home, favourites, now, device, waiting)` → `PlaceSync.export` on
   `SavedPlaces(decode(home), favourites.map(decode))`, returns the ledger; and `syncPlacesImport(ledger, ids, home,

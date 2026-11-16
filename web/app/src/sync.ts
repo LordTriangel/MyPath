@@ -14,6 +14,7 @@ import type { EngineClient } from './engine/client';
 import { t, locale } from './i18n';
 import { BIN_DAYS } from './recent';
 import { problem } from './diag';
+import type { KeptPlaces, KeptSync } from './keptplaces';
 
 export interface SavedPlan {
   id: string; kind: 'plan' | 'track'; title: string | null; plan: string; track: string; updatedAt: number; device: string; mine: boolean;
@@ -500,7 +501,7 @@ export class PlanSync {
   async removeFolder(key: string) {
     if (key === NONE || key === this.dir.open) return;
     await this.locked(async () => {
-      for (const s of ['ledger', 'marks', 'draft']) await this.store.set(`fach:${key}:${s}`, null);
+      for (const s of ['ledger', 'marks', 'draft', 'places']) await this.store.set(`fach:${key}:${s}`, null);
       this.dir.list = this.dir.list.filter((f) => f.key !== key);
       await this.writeDir();
     });
@@ -532,7 +533,7 @@ export class PlanSync {
         // pacing: a batch went up less than [pace.batchMs] ago – this round reads and sends only the hello; the timer
         // ([later]) brings the next batch
         const early = Date.now() < this.batchAt;
-        const full = await this.round(pair, (all || afterPair) && !early);
+        const full = await this.round(pair, (all || afterPair) && !early, !early);
         if (full) { this.batchAt = Date.now() + this.pace.batchMs; this.later(this.pace.batchMs, all || afterPair); }
         else if (early && (all || afterPair)) this.later(this.batchAt - Date.now(), true);
         this.busyCount = 0;
@@ -579,24 +580,135 @@ export class PlanSync {
   }
 
   /**
-   * One round with the open folder's mailbox: hello, pull + merge, push (only the hello unless [all] – Save). At most
-   * [Pace.writes] PUTs (the hello first); true = that batch was used up, more may wait (the next round [later]).
+   * One round with the open folder's mailbox: hello, the kept places exported, pull + merge, push (only the hello and
+   * the kept places unless [all] – Save; the places only when [places] – not in an early round of the pacing), the
+   * round's place changes imported. At most [Pace.writes] PUTs (the hello first); true = that batch was used up, more
+   * may wait (the next round [later]).
    */
-  private async round(pair: string, all: boolean): Promise<boolean> {
+  private async round(pair: string, all: boolean, places = true): Promise<boolean> {
     const k = await this.keys(pair);
     const device = await this.device();
     await this.setLedger(await this.call('syncHelloAs', await this.ledger(), device, deviceName(), Date.now(), ROLE_BROWSER));
     const hello = await this.call('syncHelloId', device);
-    let budget = this.pace.writes;
+    const seen = await this.exportPlaces();
+    let budget = this.pace.writes, full = false;
     for (let attempt = 0; attempt < 4; attempt++) {
       await this.pull(k, pair);
       if (this.dir.open === NONE) return false; // the folder was closed meanwhile (cannot happen inside the lock – safety)
-      const { conflict, sent } = await this.push(k, pair, all ? '' : hello, budget);
+      // kept places are no route (web-sync.md §5.4): they go with the next round, not only with Save
+      const only = all ? '' : [hello, ...(places ? await this.placeIds(true) : [])].join(',');
+      const { conflict, sent } = await this.push(k, pair, only, budget);
       budget -= sent;
-      if (budget <= 0) return JSON.parse(await this.call('syncState', await this.ledger())).pending > 0;
-      if (!conflict) return false;
+      if (budget <= 0) { full = JSON.parse(await this.call('syncState', await this.ledger())).pending > 0; break; }
+      if (!conflict) break;
     }
-    return false;
+    await this.importPlaces(seen);
+    return full;
+  }
+
+  // ---- kept places (Zuhause + Favoriten) ⇄ the open folder's ledger (owner 2026-11-15, web-sync.md §5.4) ----
+
+  private places: KeptSync | null = null;
+  /** The sync's own import is being stored: its change event starts no round. */
+  private placesMerging = false;
+  private placesTimer = 0;
+  private placesSkipSaid = false;
+  /** ms from a kept place changed here to the round that sends it (public for the browser tests). */
+  placesDelayMs = 1500;
+
+  /**
+   * The browser's kept places (keptplaces.ts) take part in the sync from now on: exported before each round of a paired
+   * folder, the round's changes merged in after it; a change here starts a round soon (no Save – they are no route).
+   * Not paired: they stay in this browser only.
+   */
+  keptPlaces(k: KeptSync & { onChange(fn: () => void): () => void }) {
+    this.places = k;
+    k.onChange(() => {
+      if (this.placesMerging || this.dir.open === NONE) return;
+      clearTimeout(this.placesTimer);
+      this.placesTimer = window.setTimeout(() => { void this.syncNow(); }, this.placesDelayMs);
+    });
+  }
+
+  /** The open folder's place items whose change from the phone is not in this browser's places yet (kept over a reload). */
+  private async waitingPlaces(folder = this.dir.open): Promise<string[]> {
+    try { const v = JSON.parse((await this.store.get(`fach:${folder}:places`)) ?? '[]'); return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []; }
+    catch (e) { problem('sync', 'kept places: the waiting list was unreadable – started again', e); return []; }
+  }
+  private setWaitingPlaces(ids: string[], folder = this.dir.open) {
+    return this.store.set(`fach:${folder}:places`, ids.length ? JSON.stringify([...new Set(ids)]) : null);
+  }
+
+  /** The place items of the open folder's ledger ([dirty]: only those still to send). */
+  private async placeIds(dirty = false): Promise<string[]> {
+    const items = JSON.parse(await this.call('syncPlaceItems', await this.ledger())) as { id: string; dirty: boolean }[];
+    return items.filter((i) => !dirty || i.dirty).map((i) => i.id);
+  }
+
+  /** A pull changed the ledger from [before] to [after]: its changed place items wait for the import (stored first). */
+  private async notePlaces(before: string, after: string) {
+    const ids = (await this.call('syncPlacesChanged', before, after)).split(',').filter(Boolean);
+    if (ids.length) await this.setWaitingPlaces([...(await this.waitingPlaces()), ...ids]);
+  }
+
+  /**
+   * Before the round: this browser's kept places → the ledger. A leftover from an earlier round comes in first (else the
+   * export would take the missing place for a delete), a store to restore takes the folder's places back first. **Never
+   * from a store that could not be read** – its "nothing kept" would delete every place on the phone: the places stay
+   * out of the round. Returns what was kept at the export (null = left out).
+   */
+  private async exportPlaces(): Promise<KeptPlaces | null> {
+    const k = this.places;
+    if (!k) return null;
+    if ((await this.waitingPlaces()).length) {
+      await this.importPlaces(null);
+      if ((await this.waitingPlaces()).length) return null;
+    }
+    if (k.needsRestore()) {
+      await this.restorePlaces();
+      if (k.needsRestore()) return null;
+    }
+    const kept = k.forExport();
+    if (!kept) {
+      if (!this.placesSkipSaid) problem('sync', 'kept places: this browser\'s store could not be read – not sent to the phone (nothing deleted there)');
+      this.placesSkipSaid = true;
+      return null;
+    }
+    const ledger = await this.ledger();
+    const next = await this.call('syncPlacesExport', ledger, kept.home ?? '', kept.favourites.join('\n'), Date.now(), await this.device(), '');
+    if (next !== ledger) { await this.setLedger(next); console.info('[Problems] TRACE sync: kept places changed here – they go to the phone'); }
+    return kept;
+  }
+
+  /** The place items [ids] into the kept places; [seen] = what was kept at the export (null = not known). True = stored. */
+  private async mergePlaces(ids: string[], seen: KeptPlaces | null, restored = false): Promise<boolean> {
+    const k = this.places;
+    if (!k) return false;
+    const ledger = await this.ledger();
+    this.placesMerging = true;
+    try {
+      return await k.merge(async (cur) => JSON.parse(await this.call('syncPlacesImport', ledger, ids.join(','), cur.home ?? '',
+        cur.favourites.join('\n'), seen?.home ?? '', seen?.favourites.join('\n') ?? '', seen ? 1 : 0)) as KeptPlaces, restored);
+    } catch (e) {
+      problem('sync', 'kept places from the phone could not be stored – tried again next round', e, 'error');
+      return false;
+    } finally { this.placesMerging = false; }
+  }
+
+  /** After the round: the waiting place items into the kept places; done only once stored. */
+  private async importPlaces(seen: KeptPlaces | null) {
+    const ids = await this.waitingPlaces();
+    if (!ids.length || !this.places) return;
+    if (await this.mergePlaces(ids, seen)) {
+      await this.setWaitingPlaces((await this.waitingPlaces()).filter((x) => !ids.includes(x)));
+      console.info(`[Problems] TRACE sync: ${ids.length} kept place change(s) from the phone`);
+    }
+  }
+
+  /** The store had to start again (unreadable): every place of the open folder comes back from the ledger first. */
+  private async restorePlaces() {
+    const ids = await this.placeIds();
+    if (await this.mergePlaces(ids, null, true)) problem('sync', `kept places: restored from the phone's folder (${ids.length} item(s))`);
   }
 
   /** A round by itself in [ms] (the next batch, the end of a back-off); [all] = it sends everything waiting. */
@@ -630,8 +742,10 @@ export class PlanSync {
       const peek = JSON.parse(await this.call('syncPeek', pair, lines)) as { hellos: Hello[] };
       await this.namePhone(peek.hellos);
       const was = before > 0 ? new Map((await this.list()).map((p) => [p.id, p.updatedAt])) : null;
-      const out = await this.call('syncApply', await this.ledger(), pair, lines, body.rev);
+      const pre = await this.ledger();
+      const out = await this.call('syncApply', pre, pair, lines, body.rev);
       const cut = out.lastIndexOf('#bad ');
+      await this.notePlaces(pre, out.slice(0, cut)); // first: a stop in between never leaves a place unimported
       await this.setLedger(out.slice(0, cut));
       const bad = Number(out.slice(cut + 5));
       if (bad > 0) this.say(t('web_sync_unreadable', bad), 'warning');
@@ -713,14 +827,18 @@ export class PlanSync {
   private async openFolder(key: string, pair: string, mailbox: string, name: string | null, ledger: string | null) {
     const from = this.dir.open;
     const f = this.dir.list.find((x) => x.key === key);
+    // kept places (web-sync.md §5.4): one list per browser, not per folder – the folder forgets its place items and reads
+    // the mailbox from the start; the first round exports this browser's places and takes the phone's (same lines meet
+    // as one item, no old tombstone of a closed folder deletes what is kept here)
     if (f) {
-      await this.setLedgerOf(key, await this.call('syncRebase', await this.ledgerOf(key), f.mailbox === mailbox ? 1 : 0));
+      await this.setLedgerOf(key, await this.call('syncPlacesForget', await this.call('syncRebase', await this.ledgerOf(key), f.mailbox === mailbox ? 1 : 0)));
       f.mailbox = mailbox; f.pairedAt = Date.now();
       if (name) f.name = name;
     } else {
       this.dir.list.push({ key, name, mailbox, pairedAt: Date.now(), seen: null });
-      await this.setLedgerOf(key, ledger ?? '');
+      await this.setLedgerOf(key, ledger ? await this.call('syncPlacesForget', await this.call('syncRebase', ledger, 1)) : '');
     }
+    await this.setWaitingPlaces([], key);
     this.dir.open = key;
     await this.store.set('pair', pair);
     await this.writeDir();

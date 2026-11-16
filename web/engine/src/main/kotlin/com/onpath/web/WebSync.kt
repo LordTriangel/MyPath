@@ -1,12 +1,16 @@
 package com.onpath.web
 
+import com.onpath.app.search.Place
+import com.onpath.app.search.SavedPlaces
 import com.onpath.app.sync.PairCode
+import com.onpath.app.sync.PlaceSync
 import com.onpath.app.sync.SyncFormat
 import com.onpath.app.sync.SyncItem
 import com.onpath.app.sync.SyncKeys
 import com.onpath.app.sync.SyncJoin
 import com.onpath.app.sync.SyncLedger
 import com.onpath.app.sync.SyncLimits
+import com.onpath.app.sync.SyncPlaces
 import com.onpath.app.sync.SyncRound
 import com.onpath.app.sync.SyncTrack
 import com.onpath.app.sync.TrackCode
@@ -330,6 +334,87 @@ object WebSync {
     fun acked(ledger: String, sent: String, rev: Double): String {
         val item: SyncItem = SyncFormat.fromText(sent)?.let(SyncFormat::decode) ?: return ledger
         return SyncLedger.read(ledger).also { it.acked(item, rev.toLong()) }.write()
+    }
+
+    // ---- kept places (Zuhause + favourites) ⇄ the open folder's ledger (web-sync.md §5.4, web-planner.md §32) ----
+    // The shared sync/PlaceSync with the planner's line codec (WebKept = the app's SearchStore line). Home = one line or "",
+    // favourites = lines joined with "\n", ids = comma-separated item ids.
+
+    private val placeSync = PlaceSync(WebKept::encode, WebKept::decode)
+
+    private fun ids(s: String) = s.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+
+    private fun lines(s: String) = s.split('\n').filter { it.isNotBlank() }
+
+    /** The page's lines as [SavedPlaces]; lines the planner cannot read are left out (never exported, never deleted). */
+    private fun saved(home: String, favourites: String) = SavedPlaces(
+        home = home.takeIf { it.isNotBlank() }?.let(WebKept::decode),
+        favourites = lines(favourites).mapNotNull(WebKept::decode))
+
+    /**
+     * Before the round: what this browser keeps ([home], [favourites]) into [ledger] – the shared [PlaceSync.export]
+     * (a favourite without a live item of the same place → kept, a live item no longer kept → its tombstone, Zuhause →
+     * the home item). Items in [waiting] (comma-separated: their change from the phone is not in the browser's places
+     * yet) and lines this browser cannot read are left alone. Returns the new ledger text. The page never calls this
+     * with a store it could not read (keptplaces.ts forExport): "nothing kept" would delete every place on the phone.
+     */
+    fun placesExport(ledger: String, home: String, favourites: String, now: Double, device: String, waiting: String): String {
+        val l = SyncLedger.read(ledger)
+        val n = placeSync.export(l, saved(home, favourites), now.toLong(), device, ids(waiting).toSet())
+        return if (n > 0) l.write() else ledger
+    }
+
+    /**
+     * After the round: the place items [ids] (those the round changed, and any still waiting) into what this browser
+     * keeps now ([home], [favourites]) – the shared [PlaceSync.import]. [seenKnown] false = what was kept at the export
+     * is not known (a leftover from an earlier round, a restore), else [seenHome] / [seenFavourites]. JSON {home,
+     * favourites} as [WebKept.apply]. A place keeps the line it came with (a newer app's further fields stay); lines the
+     * planner cannot read stay as they are.
+     */
+    fun placesImport(ledger: String, ids: String, home: String, favourites: String,
+                     seenHome: String, seenFavourites: String, seenKnown: Boolean): String {
+        val l = SyncLedger.read(ledger)
+        val out = placeSync.import(l, ids(ids), saved(home, favourites), if (seenKnown) saved(seenHome, seenFavourites) else null)
+        // each place's own line: the browser's as it was, else the item's (encoded afresh only when neither is known)
+        val lineOf = HashMap<Place, String>()
+        for (e in l.entries.values) e.item.place?.let { line -> WebKept.decode(line)?.let { p -> lineOf.getOrPut(p) { line } } }
+        for (line in listOfNotNull(home.takeIf { it.isNotBlank() }) + lines(favourites)) WebKept.decode(line)?.let { lineOf[it] = line }
+        val enc = { p: Place -> lineOf[p] ?: WebKept.encode(p) }
+        val unreadable = lines(favourites).filter { WebKept.decode(it) == null }
+        val h = out.home?.let(enc) ?: home.takeIf { it.isNotBlank() && WebKept.decode(it) == null }
+        return "{\"home\":" + (h?.let(::str) ?: "null") + ",\"favourites\":" +
+            (out.favourites.map(enc) + unreadable).joinToString(",", "[", "]") { str(it) } + "}"
+    }
+
+    /** The kept-place items [after] changed against [before] (both ledger texts): comma-separated ids ([PlaceSync.changed]). */
+    fun placesChanged(before: String, after: String): String =
+        PlaceSync.changed(SyncLedger.read(before).entries.mapValues { it.value.item }, SyncLedger.read(after)).joinToString(",")
+
+    /** The kept-place items of [ledger]: [{id, home, deleted, dirty, device, place}] (place = the line, null = none). */
+    fun placeItems(ledger: String): String = SyncLedger.read(ledger).entries.values.filter { it.item.kind == SyncItem.PLACE }
+        .joinToString(",", "[", "]") { e ->
+            "{\"id\":" + str(e.item.id) + ",\"home\":" + (e.item.id == SyncPlaces.HOME_ID) + ",\"deleted\":" + e.item.deleted +
+                ",\"dirty\":" + e.dirty + ",\"device\":" + str(e.item.device) + ",\"place\":" + (e.item.place?.let(::str) ?: "null") + "}"
+        }
+
+    /**
+     * [ledger] without its kept-place items, read again from the start (since = 0): a folder that opens (a pairing) takes
+     * the phone's places fresh from its mailbox and exports this browser's again – the same line meets as one item, no
+     * old tombstone of a closed folder deletes what this browser keeps (web-sync.md §5.4 „Pairing“, like the phone's
+     * forget). Every other line stays as it is.
+     */
+    fun placesForget(ledger: String): String {
+        val all = lines(ledger)
+        val head = all.firstOrNull()?.split(' ') ?: return ledger
+        if (head.size < 3 || head[0] != SyncLedger.HEADER || head[1].toIntOrNull() != SyncLedger.VERSION) return ledger
+        return buildString {
+            append(head[0]).append(' ').append(head[1]).append(" 0\n")
+            for (line in all.drop(1)) {
+                val item = line.split(' ').getOrNull(2)?.let(SyncFormat::fromText)?.let(SyncFormat::decode)
+                if (item?.kind == SyncItem.PLACE) continue
+                append(line).append('\n')
+            }
+        }
     }
 
     private fun str(s: String): String = buildString {
