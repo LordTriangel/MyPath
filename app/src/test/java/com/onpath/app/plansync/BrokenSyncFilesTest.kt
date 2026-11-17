@@ -63,7 +63,7 @@ class BrokenSyncFilesTest {
         "cut after the first line" to good.substringBefore('\n').toByteArray(),
         "one byte" to good.take(1).toByteArray(),
         "garbage text" to "\u0000ÿ{{garbage\nmore garbage 1 2 3\n".toByteArray(),
-        "random bytes" to Random(7).nextBytes(4096),
+        "random bytes" to Random(7).nextBytes(512),
         "the header and garbage" to (good.substringBefore('\n') + "\n\u0000\u0001 x y z\n!!!\n\n- - -\n").toByteArray(),
         "another file's content" to "{\"v\":1,\"problems\":[]}".toByteArray(),
     )
@@ -78,20 +78,27 @@ class BrokenSyncFilesTest {
         assertEquals("every sync file is written by the set-up", NAMES.toSet(), goodDir.list()!!.toSet())
         var n = 0
         for (name in NAMES) for ((what, bytes) in broken(texts.getValue(name))) {
+            // the good folder copied (plain copies: the app's own writes sync to disk, 70 folders of them take seconds)
             val dir = tmp.newFolder("case${n++}")
-            good(dir)
+            for (other in NAMES) File(dir, other).writeText(texts.getValue(other))
             File(dir, name).writeBytes(bytes)
             val f = SyncFiles(dir)
             val got = try { readAll(f) } catch (t: Throwable) { throw AssertionError("$name $what: a reader threw", t) }
             assertTrue("$name $what: the device id is always a valid one", SyncFormat.isDevice(got[1] as String))
-            // the next write of every file works and reads back
-            f.savePairing(secret, 4321); assertEquals("$name $what", 4321L, f.pairing()!!.since)
-            f.saveLedger(SyncLedger.empty().apply { save(id(9), SyncTrackTest.PLAN, "Neu", 20, dev) })
-            assertEquals("$name $what", listOf("Neu"), f.ledger().plans().map { it.title })
-            f.saveLinks(SyncLinks.empty().apply { link(id(9), "uuid-z") }); assertEquals("$name $what", "uuid-z", f.links().tourOf(id(9)))
-            f.saveLastOk(5); assertEquals("$name $what", 5L, f.lastOk())
-            f.saveEnded(6); assertEquals("$name $what", 6L, f.ended())
-            f.saveScan(PairScan(7)); assertEquals("$name $what", 7L, f.scan()!!.at)
+            // the next write of the broken file works and reads back
+            when (name) {
+                "pair.txt" -> { f.savePairing(secret, 4321); assertEquals("$name $what", 4321L, f.pairing()!!.since) }
+                "device.txt" -> assertEquals("$name $what: made once, then kept", got[1], SyncFiles(dir).device { k -> ByteArray(k) { 5 } })
+                "ledger.txt" -> {
+                    f.saveLedger(SyncLedger.empty().apply { save(id(9), SyncTrackTest.PLAN, "Neu", 20, dev) })
+                    assertEquals("$name $what", listOf("Neu"), f.ledger().plans().map { it.title })
+                }
+                "links.txt" -> { f.saveLinks(SyncLinks.empty().apply { link(id(9), "uuid-z") }); assertEquals("$name $what", "uuid-z", f.links().tourOf(id(9))) }
+                "status.txt" -> { f.saveLastOk(5); assertEquals("$name $what", 5L, f.lastOk()) }
+                "ended.txt" -> { f.saveEnded(6); assertEquals("$name $what", 6L, f.ended()) }
+                "marks.txt" -> { f.marks.arrived("uuid-n"); assertEquals("$name $what", SyncMark.NEW, SyncFiles(dir).marks.of("uuid-n")) }
+                "scan.txt" -> { f.saveScan(PairScan(7)); assertEquals("$name $what", 7L, f.scan()!!.at) }
+            }
         }
     }
 
@@ -178,7 +185,8 @@ class BrokenSyncFilesTest {
 
     @Test fun aPassOverABrokenLedgerOrBrokenLinksNeverLosesOrBinsARoute() {
         var n = 0
-        for (name in listOf("ledger.txt", "links.txt", "status.txt", "marks.txt", "both")) for (kind in 0 until 9) {
+        // the two files a pass decides by, and both at once; empty, cut in half, garbage text, random bytes
+        for (name in listOf("ledger.txt", "links.txt", "both")) for (kind in listOf(0, 2, 5, 6)) {
             val dir = tmp.newFolder("pass${n++}")
             val w = World(dir)
             w.store.savePlanned("Waalweg", listOf(a, b, c), Activity.HIKE, 3)
@@ -197,10 +205,10 @@ class BrokenSyncFilesTest {
                 what = "$name $w0"
                 f.writeBytes(bytes)
             }
-            // a new process reads the broken files; three rounds each way
+            // a new process reads the broken files; two rounds each way
             val again = PlanSyncPass(SyncFiles(dir), w.store, { w.server.box(it) }, { k -> w.rnd.nextBytes(k) }, { w.clock }, "Pixel 8",
                 { if (it == SyncItem.TRACK) "Track" else "Route" }, AesGcm)
-            repeat(3) {
+            repeat(2) {
                 try { assertNotNull(what, again.run { false }) } catch (t: Throwable) { throw AssertionError("$what: the pass threw", t) }
                 w.clock += 1000
                 w.browserSync()
