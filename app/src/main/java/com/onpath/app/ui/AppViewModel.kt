@@ -1919,16 +1919,36 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * The add entries of a held place's menu ([PlaceAddMenu], owner 2026-11-07 / 2026-11-15): with 2+ points „Einfügen“ and
-     * „Neues Ziel“, the likelier first by how clear the case is – measured on the route still to go (during a tour from my
-     * position).
+     * The add entries of a held place's menu ([PlaceAddMenu], owner 2026-11-07 / 2026-11-15 / 2026-11-17): on a tour or a
+     * round trip with 2+ points „Einfügen“ and „Neues Ziel“, the likelier first by how clear the case is – measured on the
+     * route still to go (during a tour from my position). While planning (owner 2026-11-17: „wenn ich da nicht einfügen
+     * muss, dann braucht das auch im Menü nicht angezeigt zu werden“) only the matching row in a clear case, both in
+     * between – the rows [openPoiMenu] decided on the paths ([PlaceMenuMeasure]); for a plan changed since (or a menu not
+     * opened by it) the same rule on straight lines.
      */
     fun placeMenu(poi: com.onpath.app.poi.Poi): PlaceAddMenu.Menu {
         val p = GeoPoint(poi.lat, poi.lon)
         val touring = recState.value != null
-        // while planning the same decision as a plain hold (the shorter detour first – one rule everywhere, owner 2026-11-15)
-        if (!touring && !isRoundTrip()) PlaceAddMenu.detours(waypoints.toList(), p)?.let { return PlaceAddMenu.planningMenu(it) }
+        if (!touring && !isRoundTrip() && waypoints.size >= 2) {
+            poiMenuRows?.takeIf { it.poi == poi && it.points == waypoints.toList() }?.let { return it.menu }
+            val d = PlaceAddMenu.detours(waypoints.toList(), p)!!
+            return PlaceAddMenu.planningPlaceMenu(lineDpOf(p, poiMenuRows?.lineSnapM ?: 30.0), d)
+        }
         return PlaceAddMenu.menu(waypoints.size, touring, zoneFor(p))
+    }
+
+    /** The add rows decided for an open place menu while planning ([openPoiMenu]): for [poi] beside the plan [points]. */
+    private class PoiRows(val poi: com.onpath.app.poi.Poi, val points: List<GeoPoint>, val menu: PlaceAddMenu.Menu, val lineSnapM: Double)
+    private var poiMenuRows: PoiRows? = null
+
+    /**
+     * How far [p] is from the drawn line on screen, dp ([lineSnapM] = metres in [PlaceAddMenu.LINE_SNAP_DP] there): the
+     * shown route, while a reroute runs (its line belongs to older points) the straight legs.
+     */
+    private fun lineDpOf(p: GeoPoint, lineSnapM: Double): Double {
+        val mPerDp = lineSnapM / PlaceAddMenu.LINE_SNAP_DP
+        val line = (if (routing) null else route?.points)?.takeIf { it.size >= 2 } ?: waypoints.toList()
+        return Geo.distanceToLine(p, line) / mPerDp
     }
 
     /**
@@ -1976,9 +1996,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * A hold on the empty map in Plan ([MapGestures.Action.AddPoint], core feature C1), owner 2026-11-15 / 11-17. While
-     * planning [PlaceAddMenu.planningHold] decides: on the line → the smart insertion, clearly beside an earlier part → a
-     * stop, straight on behind the goal → the new goal, else the shorter detour by half, similar → the small menu
-     * „Einfügen“ / „Neues Ziel“, the cheaper first;
+     * planning [PlaceAddMenu.planningHold] decides (owner 2026-11-17 21:40: „die kürzere gewinnt; nur fast gleich →
+     * fragen“): on the line → the smart insertion, else the shorter of appending / inserting at once, within 20 % of each
+     * other → the small menu „Einfügen“ / „Neues Ziel“, the cheaper first;
      * on a tour or a round trip the zone does ([PlaceAddMenu.asksOnHold]). Back / a tap elsewhere adds nothing.
      * Not on the line, the detours are measured on the real paths first ([measureHold], owner 2026-11-17).
      */
@@ -2002,11 +2022,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             Problems.trace("plan", "Hold on the map in doubt (zone $zone, $n points)")
             PlaceAddMenu.menu(n, touring, zone)
         } else {
-            // planning: „anhängen, außer es liegt erkennbar an der Route“ – on the line at once, else on the real paths
-            val mPerDp = lineSnapM / PlaceAddMenu.LINE_SNAP_DP
-            val line = (if (routing) null else route?.points)?.takeIf { it.size >= 2 } ?: waypoints.toList()
-            val lineDp = Geo.distanceToLine(p, line) / mPerDp
-            val d = PlaceAddMenu.detours(waypoints.toList(), p, if (routing) null else route?.points)!!
+            // planning: „die kürzere gewinnt; nur fast gleich → fragen“ – on the line at once, else on the real paths
+            val lineDp = lineDpOf(p, lineSnapM)
+            val d = PlaceAddMenu.detours(waypoints.toList(), p)!!
             if (PlaceAddMenu.planningHold(lineDp, d) == PlaceAddMenu.HoldAction.ON_LINE) {
                 Problems.trace("plan", "New point by a hold: on the line, set at once (line ${lineDp.toInt()} dp, $n points)")
                 addPoint(p, lineSnapM); return
@@ -2049,16 +2067,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val why = "line ${lineDp.toInt()} dp, ${o.describe()}" +
                 (if (o.onPaths) "; straight +${straight.insertM.toInt()} / ${straight.appendM.toInt()} m" else
                     ", insert +${d.insertM.toInt()} m" + (d.earlyInsertM?.let { " (earlier legs +${it.toInt()} m)" } ?: "") +
-                        ", append ${d.appendM.toInt()} m") +
-                (d.aheadDeg?.let { ", ${it.toInt()}° off the arrival" } ?: "") + ", ${pts.size} points"
+                        ", append ${d.appendM.toInt()} m") + ", ${pts.size} points"
             when (PlaceAddMenu.planningHold(lineDp, d)) {
                 PlaceAddMenu.HoldAction.ON_LINE -> addPoint(p, lineSnapM) // not reached: on the line is set before measuring
                 PlaceAddMenu.HoldAction.NEW_GOAL -> {
-                    Problems.trace("plan", "New point by a hold: straight on behind the goal or appending much shorter, the new goal at once ($why)")
+                    Problems.trace("plan", "New point by a hold: appending clearly shorter, the new goal at once ($why)")
                     asNewDestination(p)
                 }
                 PlaceAddMenu.HoldAction.STOP -> {
-                    Problems.trace("plan", "New point by a hold: inserting is much shorter, a stop at once ($why)")
+                    Problems.trace("plan", "New point by a hold: inserting clearly shorter, a stop at once ($why)")
                     insertAsStop(p, lineSnapM)
                 }
                 PlaceAddMenu.HoldAction.ASK -> {
@@ -2170,7 +2187,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (poiMenu != null) Problems.trace("plan", "POI menu closed: $why")
         if (holdAddMenu != null) Problems.trace("plan", "Hold menu closed: $why (nothing added)")
         cancelHoldMeasure(why)
-        poiMenu = null; firstPointMenu = null; holdAddMenu = null; if (planPoi != null) closePlaceCard()
+        poiMenu = null; poiMenuRows = null; firstPointMenu = null; holdAddMenu = null; if (planPoi != null) closePlaceCard()
     }
 
     /** Closes the point menu (if open) and logs by what (core feature C1 diagnostics). */
@@ -2194,7 +2211,33 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val loc = tracker.location.value ?: return // the menu only offers this with a position
         if (waypoints.isEmpty()) change { add(GeoPoint(loc.latitude, loc.longitude)); add(p) } else addPoint(p)
     }
-    fun openPoiMenu(poi: com.onpath.app.poi.Poi) { closeMapOverlays("POI menu opened"); poiMenu = poi }
+    /**
+     * Opens a held place's menu (a POI on the map, the found pin – a hold, its chip or a search pick; core feature C19).
+     * While planning with 2+ points (no tour, no round trip) its add rows are decided first, exactly as a hold on the empty
+     * map (owner 2026-11-17, [PlaceMenuMeasure]): on the line at once, else measured on the paths with the ring on the
+     * place ([holdMeasuring], same time limit, fallback and cancel as [measureHold]) – the menu opens with its rows, nothing
+     * jumps. [lineSnapM] = metres in [PlaceAddMenu.LINE_SNAP_DP] on screen (30 m when the caller has no map at hand).
+     */
+    fun openPoiMenu(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) {
+        closeMapOverlays("POI menu opened")
+        val p = GeoPoint(poi.lat, poi.lon)
+        val pts = waypoints.toList()
+        if (pts.size < 2 || recState.value != null || isRoundTrip() || mode != AppMode.PLAN) { poiMenu = poi; return }
+        val act = activity; val level = sac
+        val name = poi.name ?: poi.kind
+        val measuring = PlaceMenuMeasure.start(holdPaths, pts, p, lineDpOf(p, lineSnapM), PlaceAddMenu.detours(pts, p)!!,
+            { a, b, cancel -> routedLength(a, b, act, level, cancel) }) { r ->
+            holdMeasuring = null
+            if (waypoints.toList() != pts || mode != AppMode.PLAN || recState.value != null || activity != act || sac != level) {
+                Problems.trace("plan", "Place menu: measured for a plan no longer shown – not opened (${r.how})")
+                return@start
+            }
+            Problems.trace("plan", "Place menu of a ${poi.kind}: ${r.action} → ${r.menu.main.joinToString(" / ")} (${r.how}, ${pts.size} points)")
+            poiMenuRows = PoiRows(poi, pts, r.menu, lineSnapM)
+            poiMenu = poi
+        }
+        if (measuring) holdMeasuring = p
+    }
 
     /** The pin's name chip tapped (owner 2026-11-02): the same menu a hold on the pin opens. */
     fun openPinMenu() {

@@ -33,8 +33,9 @@ class GermanScreenshotTest {
     private val shots get() = borrow(ScreenshotTest())
 
     @Test fun plan() = shots.plan()
-    // the held place's add menu (owner 2026-11-15): „Einfügen“ · „Neues Ziel“, one line each
+    // the held place's add menu (owner 2026-11-15 / 2026-11-17): „Einfügen“ · „Neues Ziel“ in doubt, else only the one
     @Test fun poiMenu() = shots.poiMenu()
+    @Test fun poiMenuClearStop() = shots.poiMenuClearStop()
     @Test fun routesOverviewSwipe() = shots.routesOverviewSwipe()
     @Test fun poiMenuClearGoal() = shots.poiMenuClearGoal()
     // a hold on the empty map in doubt (owner 2026-11-15): the same two rows, no title

@@ -9,12 +9,13 @@ import com.onpath.app.routing.GeoPoint
  *
  * - No point yet: "Hier starten" · "Hierhin" – during a tour only "Hierhin" (the tour already runs from here).
  * - One point (or no route ahead): today's wording, "Als Ziel setzen" (one entry).
- * - Two or more: always both, „Einfügen“ (the best place on the route ahead, the goal stays) and „Neues Ziel“ (the route
- *   goes on there, the old goal stays as the last stop while planning; during a tour it replaces the old goal – owner
- *   2026-11-14 [keepsOldGoal]; Undo brings the plan before back). The owner's words (2026-11-15), never reworded.
- *   The likelier one ([zone]) comes first and is emphasised; nothing hides under „⋯ Mehr“ any more (owner 2026-11-15
- *   after a hike: "man weiß sonst nicht, was das System tut"). One line each, only the label – where it goes shows on the
- *   map (owner 2026-11-15: „nur einzeilig … das sehe ich ja auf der Karte“); no stop numbers ("Stopp 2" confused the owner).
+ * - Two or more: „Einfügen“ (the best place on the route ahead, the goal stays) and „Neues Ziel“ (the route goes on there,
+ *   the old goal stays as the last stop while planning; during a tour it replaces the old goal – owner 2026-11-14
+ *   [keepsOldGoal]; Undo brings the plan before back). The owner's words (2026-11-15), never reworded. On a tour or a
+ *   round trip both, the likelier one ([zone]) first and emphasised. While PLANNING (owner 2026-11-17, replacing „both
+ *   always“ of 2026-11-15): only the matching row in a clear case, both in between – the rule of a hold on the empty map
+ *   ([planningRows]). One line each, only the label – where it goes shows on the map (owner 2026-11-15: „nur einzeilig …
+ *   das sehe ich ja auf der Karte“); no stop numbers ("Stopp 2" confused the owner).
  */
 object PlaceAddMenu {
 
@@ -78,23 +79,11 @@ object PlaceAddMenu {
     const val LINE_SNAP_DP = 24.0
 
     /**
-     * The ask band, the same both ways (owner 2026-11-16, field case Hilden Süd: appending 32 m, inserting 62 m – „ich
-     * wurde nicht gefragt, ob es ein Zwischenpunkt sein soll“): one is taken at once only when its detour is at most
-     * 1/[ASK_BAND] of the other's; between, both are similar – the app asks.
+     * „Fast gleich“ (owner 2026-11-17 21:40, replacing the band of 2026-11-16 and way 3's cone of the same day: „die echte
+     * Routendifferenz … die kürzere gewinnt; nur fast gleich → fragen“): the longer of appending and inserting at most this
+     * many times the shorter → the app asks; else the shorter is taken at once.
      */
-    const val ASK_BAND = 2.0
-
-    /**
-     * „Straight on behind the goal“ (owner 2026-11-17, way 3 of the step-back page: „anhängen, außer es liegt erkennbar an
-     * der Route“): a spot at most this many degrees off the direction the route arrives at the goal continues the way –
-     * the new goal at once. The owner's field cases: St.-Konrad-Allee 19:51 and four holds 2026-11-16 23:42 (0–40°, he
-     * wanted the new goal), Hilden Süd 23:27 (~75°, „hätte ein Zwischenpunkt sein können“) and the Färberweg junction
-     * (~70°) ask.
-     */
-    const val AHEAD_DEG = 60.0
-
-    /** The arrival direction is read over the route's last this many metres before the goal. */
-    const val ARRIVAL_M = 40.0
+    const val SIMILAR = 1.2
 
     /** The costs of a new point while planning, metres – straight lines ([detours]) or on the paths ([pathDetours]). */
     data class Detours(
@@ -102,24 +91,18 @@ object PlaceAddMenu {
         val insertM: Double,
         /** What appending costs: d(goal, s). */
         val appendM: Double,
-        /** The cheapest insertion detour over the legs before the last one; null with one leg. */
+        /**
+         * The cheapest insertion detour over the legs before the last one; null with one leg. For the trace only – since
+         * 2026-11-17 21:40 it decides nothing ([planningHold]).
+         */
         val earlyInsertM: Double? = null,
-        /** Degrees between the direction the route arrives at the goal and goal → spot; null when not known. */
-        val aheadDeg: Double? = null,
     )
 
-    /**
-     * [Detours] of a spot [s] for a plan of 2+ [points]; null with fewer. [line] = the drawn route (its last [ARRIVAL_M]
-     * give the arrival direction); without it the last leg's straight line does.
-     */
-    fun detours(points: List<GeoPoint>, s: GeoPoint, line: List<GeoPoint>? = null): Detours? {
+    /** [Detours] of a spot [s] for a plan of 2+ [points] on straight lines; null with fewer. */
+    fun detours(points: List<GeoPoint>, s: GeoPoint): Detours? {
         if (points.size < 2) return null
         val legs = points.zipWithNext().map { (a, b) -> Geo.distance(a, s) + Geo.distance(s, b) - Geo.distance(a, b) }
-        val goal = points.last()
-        val from = arrivalFrom(line, goal) ?: points[points.size - 2]
-        val ahead = if (Geo.distance(from, goal) < 1.0 || Geo.distance(goal, s) < 1.0) null
-            else kotlin.math.abs(Geo.angleDiff(Geo.bearing(from, goal), Geo.bearing(goal, s)))
-        return Detours(legs.min(), Geo.distance(goal, s), legs.dropLast(1).minOrNull(), ahead)
+        return Detours(legs.min(), Geo.distance(points.last(), s), legs.dropLast(1).minOrNull())
     }
 
     /**
@@ -149,8 +132,7 @@ object PlaceAddMenu {
      * metres for the plan's activity; it throws when there is no route (the caller then keeps the straight lines,
      * [detours]). Appending = length(goal, s); inserting into a candidate leg a → b ([pathCandidates]) = length(a, s) +
      * length(s, b) − length(a, b), never below 0; [Detours.earlyInsertM] = the smallest among the candidates before the last
-     * leg (null when none is measured). [Detours.aheadDeg] stays the drawn route's ([straight]): straight on behind the goal
-     * the paths alone would ask (there and back is about twice the way on).
+     * leg (null when none is measured). [straight] = the straight-line numbers (kept for the callers; the paths replace them).
      */
     fun pathDetours(points: List<GeoPoint>, s: GeoPoint, straight: Detours, length: (GeoPoint, GeoPoint) -> Double): Detours {
         require(points.size >= 2) { "a plan needs two points, got ${points.size}" }
@@ -165,46 +147,51 @@ object PlaceAddMenu {
             insert = minOf(insert, d)
             if (i < last) early = minOf(early ?: d, d)
         }
-        return Detours(insert, append, early, straight.aheadDeg)
-    }
-
-    /** The point [ARRIVAL_M] before the end of [line] (walking back from its last point); null without a usable line. */
-    private fun arrivalFrom(line: List<GeoPoint>?, goal: GeoPoint): GeoPoint? {
-        if (line == null || line.size < 2 || Geo.distance(line.last(), goal) > 2 * ARRIVAL_M) return null
-        var walked = 0.0
-        for (i in line.size - 1 downTo 1) {
-            walked += Geo.distance(line[i], line[i - 1])
-            if (walked >= ARRIVAL_M) return line[i - 1]
-        }
-        return line.first()
+        return Detours(insert, append, early)
     }
 
     /**
      * A hold on the empty map with 2+ points while PLANNING – no tour, no round trip (those keep [asksOnHold] on the zone).
-     * The owner's rule (2026-11-17, way 3 after comparing Komoot, Strava, OsmAnd …: „anhängen, außer es liegt erkennbar
-     * an der Route“), in order: on the line ([lineDp] ≤ [snapDp]) → [HoldAction.ON_LINE]; beside an earlier part of the
-     * route, inserting there at most 1/[ASK_BAND] of appending → [HoldAction.STOP]; straight on behind the goal (≤
-     * [AHEAD_DEG] off the arrival) → [HoldAction.NEW_GOAL]; else the band the same both ways (2026-11-16): appending at most
-     * 1/[ASK_BAND] of inserting → [HoldAction.NEW_GOAL], inserting at most 1/[ASK_BAND] of appending → [HoldAction.STOP],
-     * else [HoldAction.ASK]. [lineDp] null = no line yet. Since 2026-11-17 („Always real paths“) the app gives [d] on the
-     * paths ([pathDetours]) when its router measured them in time, else the straight lines ([detours]) – the rule is the same.
+     * The owner's rule (2026-11-17 21:40, replacing way 3 and the band of the same day: „die echte Routendifferenz … die
+     * kürzere gewinnt; nur fast gleich → fragen“): on the line ([lineDp] ≤ [snapDp]) → [HoldAction.ON_LINE]; else the
+     * longer of appending and inserting at most [SIMILAR] × the shorter → [HoldAction.ASK]; else the shorter at once:
+     * appending → [HoldAction.NEW_GOAL], inserting → [HoldAction.STOP]. [lineDp] null = no line yet. The app gives [d] on
+     * the paths ([pathDetours]) when its router measured them in time, else the straight lines ([detours]) – the rule is
+     * the same.
      */
-    fun planningHold(lineDp: Double?, d: Detours, snapDp: Double = LINE_SNAP_DP): HoldAction = when {
-        lineDp != null && lineDp <= snapDp -> HoldAction.ON_LINE
-        d.earlyInsertM != null && d.earlyInsertM * ASK_BAND <= d.appendM -> HoldAction.STOP
-        d.aheadDeg != null && d.aheadDeg <= AHEAD_DEG -> HoldAction.NEW_GOAL
-        d.appendM * ASK_BAND <= d.insertM -> HoldAction.NEW_GOAL
-        d.insertM * ASK_BAND <= d.appendM -> HoldAction.STOP
-        else -> HoldAction.ASK
+    fun planningHold(lineDp: Double?, d: Detours, snapDp: Double = LINE_SNAP_DP): HoldAction {
+        if (lineDp != null && lineDp <= snapDp) return HoldAction.ON_LINE
+        val lo = minOf(d.insertM, d.appendM); val hi = maxOf(d.insertM, d.appendM)
+        return when {
+            hi <= lo * SIMILAR -> HoldAction.ASK
+            d.appendM < d.insertM -> HoldAction.NEW_GOAL
+            else -> HoldAction.STOP
+        }
     }
 
     /**
-     * The add rows while planning (a held place, or a hold that asks): both, the cheaper first and tinted – the same
-     * decision a plain hold takes ([planningHold]), one rule everywhere. A held place orders its rows on straight lines (its
-     * menu opens at once); a hold that asks orders them on the numbers it decided with (the paths when measured).
+     * Both add rows while planning, the cheaper first and tinted (a hold that asks, a held place in doubt – [planningRows]),
+     * ordered on the numbers the decision took (the paths when measured).
      */
     fun planningMenu(d: Detours): Menu =
         Menu(if (d.insertM < d.appendM) listOf(Item.ADD_STOP, Item.NEW_DESTINATION) else listOf(Item.NEW_DESTINATION, Item.ADD_STOP))
+
+    /**
+     * The add rows of a held PLACE's menu (POI, found pin) while planning – owner 2026-11-17, replacing „both rows always“
+     * of 2026-11-15: „wenn ich da nicht einfügen muss, dann braucht das auch im Menü nicht angezeigt zu werden.“ Decided by
+     * the same [planningHold] (and the same numbers) a hold on the empty map takes: [HoldAction.ON_LINE] / [HoldAction.STOP]
+     * → only „Einfügen“, [HoldAction.NEW_GOAL] → only „Neues Ziel“, [HoldAction.ASK] → both, the cheaper first and tinted
+     * ([planningMenu]). One row alone is not tinted ([Menu.emphasised]: nothing to choose between).
+     */
+    fun planningRows(action: HoldAction, d: Detours): Menu = when (action) {
+        HoldAction.ON_LINE, HoldAction.STOP -> Menu(listOf(Item.ADD_STOP))
+        HoldAction.NEW_GOAL -> Menu(listOf(Item.NEW_DESTINATION))
+        HoldAction.ASK -> planningMenu(d)
+    }
+
+    /** [planningRows] for a place [lineDp] from the drawn line (a place on the line → „Einfügen“ only) with the numbers [d]. */
+    fun planningPlaceMenu(lineDp: Double?, d: Detours, snapDp: Double = LINE_SNAP_DP): Menu =
+        planningRows(planningHold(lineDp, d, snapDp), d)
 
     fun menu(points: Int, touring: Boolean, zone: Zone?): Menu = when {
         points <= 0 -> Menu(if (touring) listOf(Item.GO_HERE) else listOf(Item.START_HERE, Item.GO_HERE))

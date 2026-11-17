@@ -1097,25 +1097,26 @@ class ScreenshotTest {
     }
 
     /**
-     * Hold on a POI in Plan (owner 2026-11-15, variant A): always „Insert“ and „New destination“, one line each, the likelier
-     * first and tinted. [stopFirst] = the place beside the route (Insert first), else past the goal.
+     * Hold on a POI in Plan (owner 2026-11-15, variant A; 2026-11-17): in doubt „Insert“ and „New destination“, one line
+     * each, the cheaper first and tinted; in a clear case only the matching row ([PlaceAddMenu.planningRows]).
      */
-    fun placeAddMenu(stopFirst: Boolean = true) = paparazzi.snapshot {
+    fun placeAddMenu(vararg items: PlaceAddMenu.Item) = paparazzi.snapshot {
         OnPathTheme {
-            val items = if (stopFirst) listOf(PlaceAddMenu.Item.ADD_STOP, PlaceAddMenu.Item.NEW_DESTINATION)
-                else listOf(PlaceAddMenu.Item.NEW_DESTINATION, PlaceAddMenu.Item.ADD_STOP)
             OverlayFrame(OnPathColors.Rec, androidx.compose.ui.unit.DpOffset(110.dp, 400.dp)) {
                 PoiMenu(com.onpath.app.poi.Poi("n1", "cafe", "Waldcafé", 46.68, 11.25), onAdd = {}, onGoogle = {},
-                    menu = PlaceAddMenu.Menu(items))
+                    menu = PlaceAddMenu.Menu(items.toList()))
             }
         }
     }
 
-    /** Beside the route: „Insert“ first and tinted, „New destination“ plain under it. */
-    @Test fun poiMenu() = placeAddMenu()
+    /** In doubt (both about equal), inserting the cheaper: „Insert“ first and tinted, „New destination“ plain under it. */
+    @Test fun poiMenu() = placeAddMenu(PlaceAddMenu.Item.ADD_STOP, PlaceAddMenu.Item.NEW_DESTINATION)
 
-    /** Past the goal: „New destination“ first, „Insert“ still there (no „More“ any more, owner 2026-11-15). */
-    @Test fun poiMenuClearGoal() = placeAddMenu(stopFirst = false)
+    /** Past the goal, appending clearly shorter (owner 2026-11-17): only „New destination“. */
+    @Test fun poiMenuClearGoal() = placeAddMenu(PlaceAddMenu.Item.NEW_DESTINATION)
+
+    /** Beside the route or on it, inserting clearly shorter (owner 2026-11-17): only „Insert“. */
+    @Test fun poiMenuClearStop() = placeAddMenu(PlaceAddMenu.Item.ADD_STOP)
 
     /** A hold on the empty map in doubt (owner 2026-11-15): only the two rows, the likelier first and tinted, no title. */
     fun holdAddMenuShot(stopFirst: Boolean = true) = paparazzi.snapshot {

@@ -12,8 +12,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The place menu's add entries (owner 2026-11-07 11:20 / 11:25 / 11:30; 2026-11-15): always „Einfügen“ and „Neues Ziel“,
- * the likelier one first (by the zone) and emphasised; one line each, only the label.
+ * The place menu's add entries (owner 2026-11-07 11:20 / 11:25 / 11:30; 2026-11-15; 2026-11-17): on a tour / a round trip
+ * both „Einfügen“ and „Neues Ziel“, the likelier one first (by the zone) and emphasised; while planning only the matching
+ * row in a clear case, both in between (the hold rule [PlaceAddMenu.planningHold]); one line each, only the label.
  */
 class PlaceAddMenuTest {
 
@@ -181,47 +182,59 @@ class PlaceAddMenuTest {
         org.junit.Assert.assertFalse(PlaceAddMenu.asksOnHold(null)) // fewer than 2 points / no route ahead
     }
 
-    // ---- while planning: the shorter detour (owner 2026-11-15: „Die App nimmt, was den kürzeren Umweg macht; sind beide
-    // ähnlich, fragt sie.“) ----
+    // ---- while planning: „die echte Routendifferenz … die kürzere gewinnt; nur fast gleich → fragen“ (owner 2026-11-17
+    // 21:40 – replaces the band of 2026-11-16 (ASK_BAND 2) and way 3 of 2026-11-17 (the 60° cone behind the goal, an
+    // earlier leg at most half of appending); their tests are rewritten below with the owner's newer expectations) ----
 
     private fun planning(points: List<GeoPoint>, s: GeoPoint, lineDp: Double? = 100.0) =
         PlaceAddMenu.planningHold(lineDp, PlaceAddMenu.detours(points, s)!!)
 
-    /**
-     * The field case (23:03, Hilden, a 4.3 km plan): the junction just beside the goal – appending costs about 90 m,
-     * inserting about 100 m. On 2026-11-15 the owner wanted plain „Neues Ziel“ there; on 2026-11-16 he chose the band the
-     * same both ways and agreed that this junction asks again (both about equal) – „Neues Ziel“ first and tinted.
-     */
-    @Test fun theJunctionBesideTheGoalAsksNewGoalFirst() {
-        val goal = at(here, 0.0, -2400.0)
-        val plan = listOf(here, at(here, 0.0, -2125.0), goal)
-        val junction = at(goal, 85.0, -30.0)
-        val d = PlaceAddMenu.detours(plan, junction)!!
-        assertTrue("appending ${d.appendM} ≤ inserting ${d.insertM}", d.appendM <= d.insertM)
-        assertEquals(PlaceAddMenu.HoldAction.ASK, planning(plan, junction))
-        assertEquals(Item.NEW_DESTINATION, PlaceAddMenu.planningMenu(d).emphasised)
+    private fun hold(insertM: Double, appendM: Double) = PlaceAddMenu.planningHold(100.0, PlaceAddMenu.Detours(insertM, appendM))
+
+    /** The owner's field cases with the numbers the app measured (2026-11-17 21:40 expectations). */
+    @Test fun theOwnersFieldCasesTheShorterWins() {
+        // his hold 2026-11-17 21:33:42, on the paths
+        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, hold(205.0, 104.0))
+        // Feldstraße (Hilden), on the paths
+        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, hold(120.0, 60.0))
+        // St.-Konrad-Allee 19:51
+        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, hold(172.0, 95.0))
+        // Hilden Süd 2026-11-16 23:27, straight lines: on 2026-11-16 it asked („ich wurde nicht gefragt, ob es ein
+        // Zwischenpunkt sein soll“) – the owner's newer word (2026-11-17 21:40) wins: appending is clearly shorter
+        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, hold(62.0, 32.0))
+        // the 22:57 case from the phone: inserting clearly shorter
+        assertEquals(PlaceAddMenu.HoldAction.STOP, hold(177.0, 225.0))
+        // the Färberweg junction beside the goal: about equal → it asks
+        assertEquals(PlaceAddMenu.HoldAction.ASK, hold(100.0, 90.0))
+        // near equal the other way round
+        assertEquals(PlaceAddMenu.HoldAction.ASK, hold(100.0, 110.0))
     }
 
-    /**
-     * The owner's field case 2026-11-16 23:27 (Hilden Süd, 16 points): appending 32 m, inserting into the last leg 62 m –
-     * it set the new goal silently, he could have meant a stop („ich wurde nicht gefragt“). Appending is not at most half
-     * of inserting → it asks, „Neues Ziel“ first.
-     */
-    @Test fun appendingCheaperButNotByHalfAsks() {
-        val d = PlaceAddMenu.Detours(insertM = 62.0, appendM = 32.0)
-        assertEquals(PlaceAddMenu.HoldAction.ASK, PlaceAddMenu.planningHold(93.0, d))
-        assertEquals(Item.NEW_DESTINATION, PlaceAddMenu.planningMenu(d).emphasised)
+    /** „Fast gleich“ = the longer at most [PlaceAddMenu.SIMILAR] (20 %) × the shorter, the same both ways. */
+    @Test fun theSimilarBandIsNamed() {
+        assertEquals(1.2, PlaceAddMenu.SIMILAR, 0.0)
+        assertEquals(PlaceAddMenu.HoldAction.ASK, hold(100.0, 120.0))
+        assertEquals(PlaceAddMenu.HoldAction.STOP, hold(100.0, 121.0))
+        assertEquals(PlaceAddMenu.HoldAction.ASK, hold(120.0, 100.0))
+        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, hold(121.0, 100.0))
+        assertEquals(PlaceAddMenu.HoldAction.ASK, hold(0.0, 0.0)) // both nothing: nothing to tell apart
+        assertEquals(PlaceAddMenu.HoldAction.STOP, hold(0.0, 50.0)) // on the straight leg, off the drawn line
     }
 
-    /** The 22:57 case from the phone: inserting ≈ 177 m, appending ≈ 225 m – similar, it asks, „Einfügen“ first. */
-    @Test fun theTwoLegCaseFromThePhoneAsksInsertFirst() {
+    /** In doubt the menu has both, the cheaper first and tinted (as the hold menu). */
+    @Test fun inDoubtTheCheaperFirst() {
+        assertEquals(listOf(Item.NEW_DESTINATION, Item.ADD_STOP), PlaceAddMenu.planningMenu(PlaceAddMenu.Detours(100.0, 90.0)).main)
+        assertEquals(Item.ADD_STOP, PlaceAddMenu.planningMenu(PlaceAddMenu.Detours(100.0, 110.0)).emphasised)
+    }
+
+    /** The 22:57 case from the phone as drawn: inserting ≈ 177 m, appending ≈ 225 m – inserting clearly shorter, a stop. */
+    @Test fun theTwoLegCaseFromThePhoneIsAStop() {
         val plan = listOf(GeoPoint(51.169278, 6.925382), GeoPoint(51.172954, 6.933397), GeoPoint(51.17107966, 6.93123043))
         val spot = GeoPoint(51.171181, 6.934443)
         val d = PlaceAddMenu.detours(plan, spot)!!
         assertEquals(177.0, d.insertM, 10.0)
         assertEquals(225.0, d.appendM, 10.0)
-        assertEquals(PlaceAddMenu.HoldAction.ASK, planning(plan, spot))
-        assertEquals(listOf(Item.ADD_STOP, Item.NEW_DESTINATION), PlaceAddMenu.planningMenu(d).main)
+        assertEquals(PlaceAddMenu.HoldAction.STOP, planning(plan, spot))
     }
 
     /** Beside the middle of a long last leg: a short detour in, far to append – inserted at once (never appended). */
@@ -240,39 +253,14 @@ class PlaceAddMenuTest {
         assertEquals(PlaceAddMenu.HoldAction.ON_LINE, planning(plan, at(here, 5.0, -1000.0), lineDp = 10.0))
     }
 
-    // ---- 2026-11-17: „anhängen, außer es liegt erkennbar an der Route“ (way 3 after comparing Komoot, Strava, OsmAnd …) ----
-
     /**
-     * The owner's field case 2026-11-17 19:51 (St.-Konrad-Allee, Hilden): a hold ~95 m straight on behind the goal, the
-     * way the route arrives – inserting ≈ 172 m, appending ≈ 95 m. The symmetric band asked; „I want to continue my way“
-     * → the new goal at once. Same shape: a long last leg from the north, the spot ~95 m on and a little aside.
+     * St.-Konrad-Allee as drawn (2026-11-17 19:51): a hold ~95 m straight on behind the goal – inserting ≈ 185 m, appending
+     * ≈ 95 m: appending clearly shorter, the new goal at once (no cone needed any more).
      */
     @Test fun straightOnBehindTheGoalIsTheNewGoalAtOnce() {
         val goal = at(here, 0.0, -2000.0)
-        val plan = listOf(here, goal)
         val spot = at(goal, -30.0, -90.0)
-        val d = PlaceAddMenu.detours(plan, spot)!!
-        assertTrue("the band alone would ask: append ${d.appendM}, insert ${d.insertM}", d.appendM * PlaceAddMenu.ASK_BAND > d.insertM)
-        assertTrue("ahead ${d.aheadDeg}", d.aheadDeg!! <= PlaceAddMenu.AHEAD_DEG)
-        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, planning(plan, spot))
-    }
-
-    /** Hilden Süd 2026-11-16 23:27: appending 32 m, inserting 62 m, ~75° aside – „hätte ein Zwischenpunkt sein können“: asks. */
-    @Test fun asideOfTheGoalStillAsks() {
-        assertEquals(PlaceAddMenu.HoldAction.ASK,
-            PlaceAddMenu.planningHold(93.0, PlaceAddMenu.Detours(insertM = 62.0, appendM = 32.0, aheadDeg = 75.0)))
-    }
-
-    /** The arrival is read on the drawn route: it comes in from the east although the last leg's straight line is from the north. */
-    @Test fun theArrivalIsTheDrawnRoutesLastMetres() {
-        val goal = at(here, 0.0, -1000.0)
-        val plan = listOf(here, goal)
-        val line = listOf(here, at(here, 300.0, -500.0), at(goal, 200.0, 0.0), goal) // last 200 m arrive going west
-        val west = at(goal, -100.0, 10.0)
-        val south = at(goal, 10.0, -100.0)
-        assertTrue(PlaceAddMenu.detours(plan, west, line)!!.aheadDeg!! <= PlaceAddMenu.AHEAD_DEG)
-        assertTrue(PlaceAddMenu.detours(plan, south, line)!!.aheadDeg!! > PlaceAddMenu.AHEAD_DEG)
-        assertTrue(PlaceAddMenu.detours(plan, south)!!.aheadDeg!! <= PlaceAddMenu.AHEAD_DEG) // straight line: from the north
+        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, planning(listOf(here, goal), spot))
     }
 
     /** Beside an earlier part of the route (an out-and-back), inserting there is far shorter than appending: a stop at once. */
@@ -280,17 +268,34 @@ class PlaceAddMenuTest {
         val plan = listOf(here, at(here, 0.0, 1000.0), at(here, 200.0, 0.0))
         val spot = at(here, -30.0, 500.0)
         val d = PlaceAddMenu.detours(plan, spot)!!
-        assertTrue("early ${d.earlyInsertM}, append ${d.appendM}", d.earlyInsertM!! * PlaceAddMenu.ASK_BAND <= d.appendM)
+        assertEquals("the earlier leg is the cheapest insertion", d.earlyInsertM!!, d.insertM, 0.01)
         assertEquals(PlaceAddMenu.HoldAction.STOP, planning(plan, spot))
     }
 
-    @Test fun theAskBandIsNamed() {
-        val d = { i: Double, g: Double -> PlaceAddMenu.Detours(i, g) }
-        assertEquals(PlaceAddMenu.HoldAction.STOP, PlaceAddMenu.planningHold(null, d(100.0, 100.0 * PlaceAddMenu.ASK_BAND)))
-        assertEquals(PlaceAddMenu.HoldAction.ASK, PlaceAddMenu.planningHold(null, d(101.0, 200.0)))
-        assertEquals(PlaceAddMenu.HoldAction.ASK, PlaceAddMenu.planningHold(null, d(200.0, 200.0)))
-        assertEquals(PlaceAddMenu.HoldAction.ASK, PlaceAddMenu.planningHold(null, d(199.0, 100.0)))
-        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, PlaceAddMenu.planningHold(null, d(100.0 * PlaceAddMenu.ASK_BAND, 100.0)))
+    // ---- 2026-11-17: a held place's menu while planning shows only the matching row in a clear case ----
+
+    /** „wenn ich da nicht einfügen muss, dann braucht das auch im Menü nicht angezeigt zu werden“ (owner 2026-11-17). */
+    @Test fun aHeldPlaceShowsOnlyTheMatchingRowInAClearCase() {
+        val d = PlaceAddMenu.Detours(insertM = 100.0, appendM = 90.0)
+        assertEquals(listOf(Item.ADD_STOP), PlaceAddMenu.planningRows(PlaceAddMenu.HoldAction.ON_LINE, d).main)
+        assertEquals(listOf(Item.ADD_STOP), PlaceAddMenu.planningRows(PlaceAddMenu.HoldAction.STOP, d).main)
+        assertEquals(listOf(Item.NEW_DESTINATION), PlaceAddMenu.planningRows(PlaceAddMenu.HoldAction.NEW_GOAL, d).main)
+        assertEquals(listOf(Item.NEW_DESTINATION, Item.ADD_STOP), PlaceAddMenu.planningRows(PlaceAddMenu.HoldAction.ASK, d).main)
+        // one row alone is not tinted (nothing to choose between); in doubt the cheaper is
+        assertEquals(null, PlaceAddMenu.planningRows(PlaceAddMenu.HoldAction.STOP, d).emphasised)
+        assertEquals(null, PlaceAddMenu.planningRows(PlaceAddMenu.HoldAction.NEW_GOAL, d).emphasised)
+        assertEquals(Item.NEW_DESTINATION, PlaceAddMenu.planningRows(PlaceAddMenu.HoldAction.ASK, d).emphasised)
+    }
+
+    /** The rows by the place's distance to the line and its numbers – the same rule as a hold on the empty map. */
+    @Test fun aHeldPlaceUsesTheHoldRule() {
+        val plan = listOf(here, at(here, 0.0, -2000.0))
+        fun rows(s: GeoPoint, lineDp: Double) = PlaceAddMenu.planningPlaceMenu(lineDp, PlaceAddMenu.detours(plan, s)!!).main
+        assertEquals("a POI on the line", listOf(Item.ADD_STOP), rows(at(here, 5.0, -1000.0), 10.0))
+        assertEquals("beside the middle", listOf(Item.ADD_STOP), rows(at(here, 150.0, -1000.0), 100.0))
+        assertEquals("past the goal", listOf(Item.NEW_DESTINATION), rows(at(here, 0.0, -2300.0), 100.0))
+        assertEquals("about equal: both", setOf(Item.ADD_STOP, Item.NEW_DESTINATION),
+            PlaceAddMenu.planningPlaceMenu(100.0, PlaceAddMenu.Detours(100.0, 95.0)).main.toSet())
     }
 
     /** A round trip is never dropped by one hold: a spot far off its loop asks („Neues Ziel“ first, never silently). */
@@ -329,7 +334,6 @@ class PlaceAddMenuTest {
         val d = PlaceAddMenu.detours(Feldstrasse.plan, Feldstrasse.spot)!!
         assertEquals(68.0, d.insertM, 2.0)
         assertEquals(63.0, d.appendM, 2.0)
-        assertTrue("aside of the arrival: ${d.aheadDeg}", d.aheadDeg!! > PlaceAddMenu.AHEAD_DEG)
         assertEquals(PlaceAddMenu.HoldAction.ASK, PlaceAddMenu.planningHold(100.0, d))
     }
 
@@ -338,7 +342,6 @@ class PlaceAddMenuTest {
         val d = PlaceAddMenu.pathDetours(Feldstrasse.plan, Feldstrasse.spot, straight, Feldstrasse::length)
         assertEquals(120.0, d.insertM, 1.0)
         assertEquals(60.0, d.appendM, 0.1)
-        assertEquals(straight.aheadDeg, d.aheadDeg)
         assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, PlaceAddMenu.planningHold(100.0, d))
     }
 
@@ -362,7 +365,7 @@ class PlaceAddMenuTest {
         val spot = at(here, -30.0, 500.0)
         val straight = PlaceAddMenu.detours(plan, spot)!!
         val d = PlaceAddMenu.pathDetours(plan, spot, straight) { a, b -> 1.2 * Geo.distance(a, b) }
-        assertTrue("early ${d.earlyInsertM}", d.earlyInsertM != null && d.earlyInsertM!! * PlaceAddMenu.ASK_BAND <= d.appendM)
+        assertTrue("early ${d.earlyInsertM}", d.earlyInsertM != null && d.earlyInsertM!! < d.appendM / PlaceAddMenu.SIMILAR)
         assertEquals(PlaceAddMenu.HoldAction.STOP, PlaceAddMenu.planningHold(100.0, d))
     }
 }
