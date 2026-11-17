@@ -711,6 +711,45 @@ class CoreFieldE2ETest : E2EBase() {
     }
 
     /**
+     * Owner 2026-11-17 „Always real paths“ (F-PLAN-15): a hold beside the plan while planning is measured on the router's
+     * paths off the main thread – the hold returns at once, the main thread answers meanwhile, and a decision (a new point
+     * or the small menu) comes within the time limit; with real routing data it was decided on the paths.
+     */
+    @Test fun aHoldBesideThePlanIsDecidedOnThePathsWithoutBlocking() {
+        startPlanWithTwoPoints()
+        routeSettled()
+        var plan: List<GeoPoint> = emptyList()
+        scenario.onActivity { plan = vm(it).waypoints.toList() }
+        assertEquals("a plan of two points", 2, plan.size)
+        // ~170 m beside the middle of the route: not on the line, so it is measured
+        val spot = GeoPoint((plan[0].lat + plan[1].lat) / 2 + 0.0015, (plan[0].lon + plan[1].lon) / 2)
+        com.onpath.app.debug.Problems.clear()
+        var callMs = 0L
+        scenario.onActivity {
+            val t0 = android.os.SystemClock.elapsedRealtime()
+            vm(it).holdOnMap(spot, 30.0)
+            callMs = android.os.SystemClock.elapsedRealtime() - t0
+        }
+        assertTrue("the hold returns at once: $callMs ms", callMs < 300)
+        // the main thread answers while the paths are measured (no ANR)
+        val t1 = android.os.SystemClock.elapsedRealtime()
+        scenario.onActivity { }
+        val answerMs = android.os.SystemClock.elapsedRealtime() - t1
+        assertTrue("the main thread answers during the measure: $answerMs ms", answerMs < 500)
+        val measuredMs = waitHoldMeasured()
+        var menuOpen = false
+        scenario.onActivity { menuOpen = vm(it).holdAddMenu != null }
+        val trace = com.onpath.app.debug.Problems.events().map { it.message }
+        val line = trace.firstOrNull { it.contains("paths: ") || it.contains("paths failed") }
+        android.util.Log.i("OnPathE2E", "hold beside the plan: call $callMs ms, main answered $answerMs ms, decided after " +
+            "$measuredMs ms, realRouting $realRouting: $line")
+        assertTrue("decided within the time limit: $measuredMs ms – $trace", measuredMs < 3_500)
+        assertTrue("a decision: a new point or the menu – $trace", waypointCount() == 3 || menuOpen)
+        assertTrue("the decision says how it measured – $trace", line != null)
+        if (realRouting) assertTrue("measured on the paths with real routing data: $line", line!!.contains("paths: insert"))
+    }
+
+    /**
      * Owner 2026-11-07 11:20: during a tour, a place past the goal → its menu says "Als neues Ziel" first; tapped, the plan
      * ends there (the old goal is dropped), one Undo brings the old goal back. The recording goes on throughout.
      */
