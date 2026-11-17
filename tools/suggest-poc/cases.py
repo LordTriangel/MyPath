@@ -90,6 +90,11 @@ CASES = [
      "„Höhenmeter-Filter war auf 350, scheint nicht zu zählen“ (nur „bis“ ausgefüllt, 2026-11-16)", [
          ("keine Karte über 350 m ohne Hinweis auf der Karte", lambda s: all(r["up"] <= 350 or any("mehr als gewünscht" in h for h in r["hints"]) for r in s)),
          ("geht es hier nicht so flach, sagt der Lauf es", lambda s: all(r["up"] <= 350 for r in s) or any("Höhenmetern" in n for n in NOTES))]),
+    ("nordkirchen-rad-kurz", {"start": [7.52518, 51.73802], "activity": "bike", "hours": [1.5, 2]},
+     "„nur noch ausgeschilderte Rundwege, obwohl sie bis zu 13 km entfernt sind … die Anfahrt einbeziehen“ (2026-11-17)", [
+         ("jede Karte fährt am Startpunkt los, die ganze Fahrt in der gewünschten Zeit (bis 10 % darüber, wie jede Runde)",
+          lambda s: all(r["from_m"] <= 300 and r["hours"] <= 1.1 * 2 for r in s)),
+         ("mindestens eine eigene Runde", lambda s: any(not r["official"] for r in s))]),
     ("meran-steil", {"start": [11.1597, 46.6713], "hours": [4, 5], "ascent": [500, 900], "t_level": 3},
      "500–900 Höhenmeter gewünscht: ein echter Anstieg", [
          ("erste Runde 500–900 m", lambda s: 500 <= s[0]["up"] <= 900)]),
@@ -101,6 +106,7 @@ EVERY = [("keine Runde kreuzt sich mehr als einmal", lambda s: all(r["cross"] <=
 
 def view(result):
     """The shown suggestions as small records, the same for this version and for older ones."""
+    from net import dist
     out = []
     for c in result["candidates"]:
         if not c.get("chosen"):
@@ -116,7 +122,8 @@ def view(result):
                     "cross": n.get("self_cross", 0), "doubled": n.get("doubled_pct", 0), "named": named,
                     "reserves": len(n.get("reserves") or []), "reserve_km": sum(r[1] for r in n.get("reserves") or []),
                     "dir": DIRS[int((b + 22.5) // 45) % 8] if isinstance(b, (int, float)) else str(b), "notes": result.get("notes", []),
-                    "hints": c.get("hints", [])})
+                    "hints": c.get("hints", []), "hours": n.get("hours", 0), "official": bool(c.get("official")),
+                    "from_m": dist(c["coords"][0], result["wish"]["start"]) if c.get("coords") else 0.0})
     return out
 
 

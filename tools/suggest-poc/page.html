@@ -140,7 +140,7 @@ function show(r) {
     d.innerHTML = `<span class="badge${o ? ' off' : ''}">${o ? 'Ausgeschildert · ' + esc(o.badge) : 'Vorschlag'}</span>
       <h3><span>${i + 1} · ${esc(c.name)}</span><b>${Math.round(c.score)} Punkte</b></h3>
       <div class="big">${km(n.km)} km · ${hm(n.hours)} h · ↑ ${n.ascent} m</div>
-      ${o ? `<div class="from">${o.start_km < 0.3 ? 'Start hier' : `Start ${km(o.start_km)} km entfernt`}${o.parking ? ' · am Parkplatz' : ''}</div>` : ''}
+      ${o ? `<div class="from">davon ${km(o.loop_km)} km auf dem Rundweg</div>` : ''}
       ${c.line ? `<div class="txt" title="${esc(c.line)}">${esc(c.line)}</div>` : ''}
       <div class="axes">${AXES.map(a => `<span>${a[1]}</span><i><u style="width:${Math.round(100 * c.axes[a[0]])}%"></u></i><span>${Math.round(100 * c.axes[a[0]])}</span>`).join('')}</div>
       <div class="more"><div class="why">${c.reasons.join(' · ')}</div>
@@ -182,12 +182,6 @@ function draw(fit) {
       for (let k = 1; k <= c.cls.length; k++) if (k === c.cls.length || c.cls[k] !== c.cls[from]) {
         L.polyline(pts.slice(from, k + 1), {color: CLS[c.cls[from]], weight: 5}).addTo(layer); from = k; }
     } else L.polyline(pts, {color: '#1f5fbf', weight: 5, opacity: 0.95}).addTo(layer);
-    if (c.official) {  // a fine line from the wished start to the official loop's start (the parking place)
-      const p = [c.official.p[1], c.official.p[0]];
-      L.polyline([[result.wish.start[1], result.wish.start[0]], p], {color: '#333', weight: 1.2, opacity: 0.7, dashArray: '3 5'}).addTo(layer);
-      L.circleMarker(p, {radius: 6, color: '#fff', weight: 2, fillColor: '#1f5fbf', fillOpacity: 1}).bindTooltip(c.official.parking ? 'Parkplatz · Start' : 'Start').addTo(layer);
-      bounds.push(p);
-    }
   }
   $('legend').style.display = $('byclass').checked ? '' : 'none';
   if (fit && bounds.length) map.fitBounds(bounds, {padding: [30, 30]});

@@ -4,12 +4,12 @@ import kotlin.math.cos
 
 /**
  * The signed circular routes near a start (the POC's `official.py` near / lay_on / covered): from the suggest files'
- * LOOP sections, of the wish's kind, wholly inside the loaded network, laid onto the network from their own start
- * (the parking place) – candidates beside ours, judged on the same yardstick, chosen in the same selection.
+ * LOOP sections, of the wish's kind, wholly inside the loaded network – each as a ride FROM the wished start (owner
+ * 2026-11-17): the cheapest way to the loop's best joining point, once round in its own order, home – candidates beside
+ * ours, judged on the same yardstick as a whole ride, chosen in the same selection.
  */
 object Official {
     private const val NEAR = 25.0
-    private const val PARKING = 250.0
     private val KM = mapOf("hike" to (4.0 to 20.0), "bicycle" to (15.0 to 60.0), "mtb" to (15.0 to 60.0))
     /** jogging and fitness circuits are signed loops too, but no tour to suggest */
     private val NOT_A_TOUR = Regex("laufstrecke|lauftreff|nordic[- ]?walking|trimm|finnenbahn|walking[- ]?strecke", RegexOption.IGNORE_CASE)
@@ -35,12 +35,19 @@ object Official {
         return out
     }
 
-    /** official.py `near` → the loops laid onto the network, measured, marked to be shown. */
+    /**
+     * official.py `near` → each loop as a ride from the start: [Generate.assemble] with the loop's turning points from
+     * its best joining point (the one cheapest to reach by the search cost) round in its order – either direction, the
+     * shorter kept, a ride meeting its own way more than allowed dropped as ours are – the loop's parts on the laid-on
+     * cost, the way there and home as for our own loops.
+     */
     fun near(P: Place, S: SuggestSettings, files: SuggestFiles): List<Candidate> {
         val w = P.ch.wish
         val kinds = KINDS[w.activity] ?: listOf("hike")
         val reach = 0.95 * P.ch.radius(S)
         val net = P.net
+        val gen = Generate(P, S)
+        val maxCross = S["form"]["max_cross"].d
         val out = ArrayList<Candidate>()
         for (lp in inReach(files, w.lon, w.lat, reach)) {
             if (lp.kind !in kinds) continue
@@ -50,21 +57,36 @@ object Official {
             var k = 0
             while (k < n) { if (SuggestGeo.dist(w.lon, w.lat, lp.line[2 * k], lp.line[2 * k + 1]) > reach) { inside = false; break }; k += 5 }
             if (!inside) continue
-            var first = 0
-            var fd = Double.MAX_VALUE
-            for (v in 0 until net.nodeCount) {
-                val d = SuggestGeo.dist(net.lon(v), net.lat(v), lp.line[0], lp.line[1])
-                if (d < fd) { fd = d; first = v }
+            val t = trail(P, lp.line)
+            val seq = thin(t.index, -1).filter { P.d0[it] < NetSearch.INF }
+            if (seq.size < 3) continue
+            var j = 0
+            for (i in seq.indices) if (P.d0[seq[i]] < P.d0[seq[j]]) j = i
+            val join = seq[j]
+            val kept = follow(P, t.cost, join, seq.subList(j + 1, seq.size) + seq.subList(0, j))?.second ?: continue
+            if (kept.size < 2) continue
+            var best: Candidate? = null
+            for (dir in listOf(kept, kept.reversed())) {  // round in the loop's order, either direction
+                val points = IntArray(dir.size + 2)
+                points[0] = join
+                for (i in dir.indices) points[i + 1] = dir[i]
+                points[dir.size + 1] = join
+                val costs = HashMap<Int, DoubleArray>()
+                for (i in 1 until points.size) costs[i] = t.cost
+                val edges = gen.assemble(points, costs) ?: continue
+                val m = Generate.measure(P, edges, P.start) ?: continue
+                // like our own loops: a ride that meets its own way more often than allowed is not offered
+                if (m.cross <= maxCross && (best == null || m.m < best.m)) best = m
             }
-            val edges = layOn(P, lp.line, first) ?: continue
-            if (edges.isEmpty()) continue
-            val c = Generate.measure(P, edges, first) ?: continue
-            if (covered(dense(lp.line), lineOf(net, edges, first)) < 0.8) continue
+            val c = best ?: continue
+            val edges = c.edges
+            if (covered(dense(lp.line), lineOf(net, edges, P.start)) < 0.8) continue
+            var onM = 0.0
+            for (e in edges) if (e in t.on) onM += P.F.ln[e]
             c.origin = "offiziell"
             c.aim = listOf(lp.name)
             c.show = true
-            c.official = Candidate.Official(lp.name, badge(lp), lp.parkingM != null && lp.parkingM < PARKING, lp.line[0], lp.line[1], lp.id,
-                SuggestGeo.pyRound(SuggestGeo.dist(w.lon, w.lat, lp.line[0], lp.line[1]) / 1000.0, 1))
+            c.official = Candidate.Official(lp.name, badge(lp), lp.id, SuggestGeo.pyRound(onM / 1000.0, 1))
             out.add(c)
         }
         return out
@@ -130,11 +152,11 @@ object Official {
         return out.toArray()
     }
 
-    /**
-     * official.py `lay_on`: the loop on our network – links along it cheap, others 25 × dearer; from [start] through a
-     * point every ~200 m of it (in its order) and home; a piece our network lacks is skipped. → links, or null.
-     */
-    fun layOn(P: Place, coords: DoubleArray, start: Int): IntArray? {
+    /** official.py `trail`: the laid-on cost (links along the loop cheap, others 25 × dearer), the links along it, and
+     * the nodes of those links with their index along the loop. */
+    class Trail(val cost: DoubleArray, val on: PyIntSet, val index: LinkedHashMap<Int, Int>)
+
+    fun trail(P: Place, coords: DoubleArray): Trail {
         val net = P.net; val F = P.F
         val pts = dense(coords)
         val okEdges = (0 until net.linkCount).filter { F.ok[it] }
@@ -155,24 +177,48 @@ object Official {
                 if (best >= 0 && bd <= NEAR) index[v] = best
             }
         }
+        return Trail(cost, on, index)
+    }
+
+    /** official.py `thin`: one turning point per ~200 m of the loop, in its order (not [start]; -1 = none). */
+    fun thin(index: LinkedHashMap<Int, Int>, start: Int): List<Int> {
         val aims = ArrayList<Int>()
         var last = -99
         for (v in index.keys.sortedBy { index.getValue(it) }) {
             if (index.getValue(v) - last >= 20 && v != start) { aims.add(v); last = index.getValue(v) }
         }
-        aims.add(start)
+        return aims
+    }
+
+    /**
+     * official.py `follow`: from [start] through [aims] and home on [cost]; a point reached only by a long detour (a
+     * piece our network lacks) is skipped. → (links, the points kept), or null.
+     */
+    fun follow(P: Place, cost: DoubleArray, start: Int, aims: List<Int>): Pair<IntArray, List<Int>>? {
+        val net = P.net
         val edges = ArrayList<Int>()
+        val kept = ArrayList<Int>()
         var cur = start
         val s = P.search
-        for (w in aims) {
+        for (w in aims + start) {
             s.toStop(cur, w, cost)
             if (!s.reached(w)) return null
             if (w != start && s.metres[w] > 4.0 * SuggestGeo.dist(net.lon(cur), net.lat(cur), net.lon(w), net.lat(w)) + 1000.0) continue
             for (e in s.path(w)) edges.add(e)
+            if (w != start) kept.add(w)
             cur = w
         }
         val out = ArrayList<Int>()
         for (e in edges) if (out.isNotEmpty() && out[out.size - 1] == e) out.removeAt(out.size - 1) else out.add(e)
-        return out.toIntArray()
+        return out.toIntArray() to kept
+    }
+
+    /**
+     * official.py `lay_on`: the loop on our network – links along it cheap, others 25 × dearer; from [start] through a
+     * point every ~200 m of it (in its order) and home; a piece our network lacks is skipped. → links, or null.
+     */
+    fun layOn(P: Place, coords: DoubleArray, start: Int): IntArray? {
+        val t = trail(P, coords)
+        return follow(P, t.cost, start, thin(t.index, start))?.first
     }
 }

@@ -44,3 +44,19 @@ deterministic (same wish, same data → the same file byte for byte).
 - `facts`: the road factors, `calm`, `beside`, `big_water`, the rim heights.
 
 Known weak spots stay as listed in the README ("Weak spots"); they are for the Kotlin core now.
+
+## Changes after the freeze (made in Python and Kotlin alike, reference and parity renewed)
+
+- **2026-11-17, official loops as a ride from the start** (owner's finding: "Bei Nordkirchen, Rad 1,5 bis 2 h …
+  ausgeschilderte Rundwege, obwohl sie bis zu 13 km entfernt sind … die Anfahrt einbeziehen"). Before, an official loop
+  was laid on from its own start (the parking place) and judged on the loop alone ("Start x km entfernt"). Now
+  `official.near` / `Official.near` build it as a ride from the wished start: `assemble` with the loop's turning points
+  (one per ~200 m, `trail` / `thin`), from its best joining point (the turning point cheapest by the search cost),
+  round in its order (either direction, the shorter kept; pieces our map lacks skipped as in `lay_on`, `follow`), the
+  loop's parts on the laid-on cost, the way there and home as for our own loops; a ride meeting its own way more than
+  `max_cross` is dropped like ours. Time, km, ascent and the axes are those of the whole ride (the way there is the
+  stem / way out as for every loop); in time as our loops. The card says "davon x km auf dem Rundweg"
+  (`official.loop_km`) instead of the start distance; no parking line on the map. `lay_on` (the comparison) is
+  unchanged, so the six comparison sets above are unchanged (measured again 2026-11-17, label `acc`: the same medians).
+  `cases.py`: 69 of 69 with the new case `nordkirchen-rad-kurz` (bike 1.5–2 h: every card starts at the start and the
+  whole ride stays in the wished time; at least one own loop).

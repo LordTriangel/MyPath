@@ -43,8 +43,8 @@ class Candidate(
     var line = ""
     var why = ""
 
-    class Official(val name: String, val badge: String, val parking: Boolean, val lon: Double, val lat: Double, val osm: Long,
-                   val startKm: Double)
+    /** [loopKm] = how much of the whole ride (from the wished start) is on the signed loop */
+    class Official(val name: String, val badge: String, val osm: Long, val loopKm: Double)
 
     /** The plain facts of a loop for the card (score.py `numbers`), absolute. */
     class Numbers(
