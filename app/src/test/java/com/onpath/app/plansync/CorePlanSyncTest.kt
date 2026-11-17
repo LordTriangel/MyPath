@@ -731,6 +731,40 @@ class CorePlanSyncTest {
         assertEquals(1, browser.plans().size)
     }
 
+    /**
+     * A multi-day tour from the browser (owner 2026-11-17, docs/design/multi-day-tours.md): the phone saves it as a
+     * normal route (its store keeps the days from stage 4 on) and never sends it back without its days – passes on both
+     * sides leave the browser's N, limits, night marks and description as they were; the days reach [PlanContent].
+     */
+    @Test fun aMultiDayTourFromTheBrowserKeepsItsDays() {
+        val d = GeoPoint(46.70020, 11.17110)
+        val tour = SharedPlan(listOf(a, b, c, d), Activity.BIKE_TOURING, 2, names = mapOf(2 to "Gasthof Post"), days = 3,
+            limits = com.onpath.app.routing.DayLimits(300, 1000),
+            nights = mapOf(1 to com.onpath.app.routing.NightMark.OVERNIGHT,
+                2 to com.onpath.app.routing.NightMark(com.onpath.app.routing.Hotel("Gasthof Post", link = "https://b.example/p"))),
+            description = "Drei Tage")
+        val code = PlanCode.encode(tour)
+        browser.save(id(3), code, "Drei Tage", clock, web)
+        browserSync()
+        phoneSync()
+        val t = store.byName("Drei Tage")
+        assertEquals(listOf(a, b, c, d), t.waypoints.map { GeoPoint(it.lat, it.lon) })
+        assertEquals("Gasthof Post", t.waypoints[2].name)
+        repeat(2) { phoneSync(); browserSync() }
+        assertEquals(0, (phoneSync().outcome as SyncRound.Outcome.Done).pushed)
+        assertEquals(code, browserPlan("Drei Tage").plan)
+        val content = RouteItems.planContent(browserPlan("Drei Tage"))!!
+        assertEquals(3, content.days); assertEquals(tour.nights, content.nights); assertEquals("Drei Tage", content.description)
+        // two items compare with their days; the phone's route with an item without them while it cannot keep them
+        val noDays = PlanCode.encode(tour.copy(days = null, nights = emptyMap()))
+        assertFalse(RouteItems.samePlan(code, noDays))
+        assertTrue(RouteItems.samePlan(code, noDays, days = false))
+        // a point moved in the browser still changes the phone's route
+        browser.save(id(3), PlanCode.encode(tour.copy(points = listOf(a, c, c, d))), "Drei Tage", clock, web); browserSync()
+        phoneSync()
+        assertEquals(listOf(a, c, c, d), store.byName("Drei Tage").waypoints.map { GeoPoint(it.lat, it.lon) })
+    }
+
     /** [l] as an older page keeps it: every item without field 9 (it skips the tag). */
     private fun olderPage(l: SyncLedger): SyncLedger {
         val lines = l.write().split('\n').filter { it.isNotBlank() }
