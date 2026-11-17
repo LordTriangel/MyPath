@@ -75,7 +75,46 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
         assertTrue("the point is where the finger was, not on the POI ($p)", dist(p.lat, p.lon, POI_LAT, POI_LON) > 30.0)
     }
 
+    /**
+     * d) From z 17 the style draws the POI with its name in one symbol (layer "poi-tier1-named", owner 2026-11-17): a tap
+     * on the symbol shows the details; a hold on the drawn NAME beside it is a plain map hold – a name is never a target.
+     */
+    @Test fun fromZoom17TheSymbolIsHitTheNameBesideItIsNot() {
+        val s = drawnPoiSymbol(POI_ID, POI_LAT, POI_LON, NAMED_LAYER, zoom = 17.5)
+        val dp = android.content.res.Resources.getSystem().displayMetrics.density
+        // the name right of the symbol (first variable anchor "left"), beyond the finger box + icon (23 dp)
+        val onName = (s.first + 55 * dp) to s.second
+        assertTrue("the name is drawn at ${at(onName)} beside the symbol at ${at(s)}", drawnAround(onName, NAMED_LAYER))
+        shot("named")
+        hold(onName.first, onName.second)
+        waitFor("the plain hold's first-point menu on the name at ${at(onName)}") { read { it.firstPointMenu } != null }
+        assertNull("no POI menu on the name", read { it.poiMenu })
+        device.pressBack()
+        waitFor("the menu closed") { read { it.firstPointMenu } == null }
+        press(s.first, s.second, 60)
+        waitFor("the POI details after a tap on its symbol at ${at(s)} (z 17.5)") { read { it.selectedPoi?.id } == POI_ID }
+    }
+
     // ------------------------------------------------------------------------------------------------ helpers
+
+    /** Whether MapLibre drew a feature of [layer] within 4 dp of the screen point [p] (device pixels). */
+    private fun drawnAround(p: Pair<Float, Float>, layer: String): Boolean {
+        val dp = android.content.res.Resources.getSystem().displayMetrics.density
+        var hit = false
+        val done = java.util.concurrent.CountDownLatch(1)
+        scenario.onActivity { a ->
+            val mv = mapView(a)!!
+            val loc = IntArray(2).also { mv.getLocationOnScreen(it) }
+            mv.getMapAsync { m ->
+                val x = p.first - loc[0]; val y = p.second - loc[1]
+                hit = m.queryRenderedFeatures(android.graphics.RectF(x - 4 * dp, y - 4 * dp, x + 4 * dp, y + 4 * dp), layer)
+                    .any { it.getStringProperty("id") == POI_ID }
+                done.countDown()
+            }
+        }
+        done.await(5, java.util.concurrent.TimeUnit.SECONDS)
+        return hit
+    }
 
     /** The POI data of [format]: `pois.geojson`; format 2 adds the cells' overlays file and POI tiles. */
     private fun writePois(dir: java.io.File) {
@@ -118,6 +157,8 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
         const val POI_LON = 11.1655
         /** The style's symbol layer that draws restaurants (tools/make_style.py pois(): tier 1, from z 12). */
         const val ICON_LAYER = "poi-tier1"
+        /** From z 17: the restaurant's symbol with its name in one symbol (owner 2026-11-17). */
+        const val NAMED_LAYER = "poi-tier1-named"
         val POIS = """{"type":"FeatureCollection","features":[
             {"type":"Feature","geometry":{"type":"Point","coordinates":[$POI_LON,$POI_LAT]},"properties":{"kind":"restaurant","name":"$POI_NAME","id":"$POI_ID"}}
         ]}"""

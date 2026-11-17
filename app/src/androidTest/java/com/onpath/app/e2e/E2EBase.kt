@@ -393,13 +393,13 @@ abstract class E2EBase {
 
     /**
      * Brings the POI [id] at [lat], [lon] into the open map (upper middle, clear of the search pill and the sheet) at
-     * z 16, waits until MapLibre DRAWS its symbol – asked of the map itself (queryRenderedFeatures on the style's icon
+     * [zoom] (16 unless a test asks; from z 17 the style draws the name with it), waits until MapLibre DRAWS its symbol – asked of the map itself (queryRenderedFeatures on the style's icon
      * [layer]), not of the app's own list – and then for the app's read of the shown POIs (first map idle after the
      * camera stopped). Returns the symbol's screen position (device pixels).
      */
-    protected fun drawnPoiSymbol(id: String, lat: Double, lon: Double, layer: String): Pair<Float, Float> {
+    protected fun drawnPoiSymbol(id: String, lat: Double, lon: Double, layer: String, zoom: Double = 16.0): Pair<Float, Float> {
         scenario.onActivity { vm(it).followMe = false }
-        onMap { m -> m.moveCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(LatLng(lat, lon), 16.0)) }
+        onMap { m -> m.moveCamera(org.maplibre.android.camera.CameraUpdateFactory.newLatLngZoom(LatLng(lat, lon), zoom)) }
         Thread.sleep(800)
         val (w, h) = mapSize()
         onMap { m -> m.projection.toScreenLocation(LatLng(lat, lon)).let { s -> m.scrollBy(w * 0.40f - s.x, h * 0.32f - s.y) } }
