@@ -21,6 +21,7 @@ a sketch of the exact picture and his yes (owner rule).
 | 11 | The way in must **guide** the user: where do I start, what do I do next (load a GPX track, open or plan a route → set the days). | "das Menü, wie ich in diese Mehrtagesplanung reinkomme" |
 | 12 | Words: **GPX-Track** (glossary: "Track" only for GPX), **Übernachtung**, **Hotel**. | "Spur war nicht vereinbart" |
 | 13 | Little effort, robust, extendable later. | |
+| 14 | **Editing stays as always:** add, move, delete points and re-route in a multi-day tour exactly like in any plan – in the planner and on the phone (also "Planen" while riding a day; the change goes back into the whole tour). Night marks travel with their point; greys re-spread (R6). | 2026-11-17: „Ich kann ja immer noch genauso neue Routenpunkte hinzufügen und umrouten, korrekt?“ – yes |
 
 Left out of the first version (owner 2026-11-17: „Beide draußen“): rest days / several nights at one place, and day
 trips from one base.
@@ -114,6 +115,7 @@ Every row is solved with R1–R7; none needs another tool.
 | M | A day ends at a grey proposal and I want it 10 km later | drag the grey moon | it becomes blue there (R7). |
 | N | A point of the route that is an Übernachtung is deleted | ✕ on that point | = Übernachtung entfernen; with a hotel it asks first. |
 | O | On the way: not reached the day's end, or rode on | phone: pick the day or "Tag 3–4" | followed from where I am. |
+| O2 | On the way: change the route of today (another path, a detour) | phone: „Planen“ as always | the change goes back into the whole tour; greys re-spread (#14). |
 | P | On the way: new hotel | later stage: share to OnPath | as E. |
 | Q | Older app / phone not updated | – | sees a normal long route; hotels are named points. |
 | R | Rest day, two nights in one hotel | – | not in version 1 (later: "Nächte: 2" on a hotel). |

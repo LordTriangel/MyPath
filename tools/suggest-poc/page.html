@@ -167,7 +167,9 @@ function draw(fit) {
   // the map stays calm: one line style; the chosen loop clear in blue, the others only a breath
   shown.forEach(c => {
     c.card.classList.toggle('sel', c.id === selected);
-    if (P.get('only') && c.id !== selected) return;
+    // only the chosen card's loop on the map – one looks at the cards one after the other (owner 2026-11-17);
+    // ?vs keeps the others for comparison pictures
+    if (!P.get('vs') && c.id !== selected) return;
     const pts = ll(c); bounds.push(...pts);
     if (c.id !== selected) L.polyline(pts, P.get('vs') ? {color: '#d81b60', weight: 3.5, opacity: 0.9, dashArray: '7 6'}  // comparison pictures
                                                        : {color: '#1f5fbf', weight: 2.5, opacity: 0.22}).addTo(layer);
