@@ -1236,6 +1236,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * runs one search at a time; a new tap or closing the sheet terminates the check's search.
      */
     private val checkRouting = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    /**
+     * A hold beside the plan measured on the paths ([HoldPaths], owner 2026-11-17 „Always real paths“): its own thread, so
+     * the measure never queues behind a plan run or background work (BRouter's LOCK still runs one search at a time – a
+     * running plan run makes the measure wait, at most its time limit, then the straight lines decide).
+     */
+    private val holdRouting = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
     @Volatile private var engine: RoutingEngine? = null
 
     /** The router (on [routingDispatcher]); only a real one is kept, so a failed start is retried next time. */
@@ -1678,6 +1684,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * (PlanHaptics, owner), never after an edit.
      */
     private fun change(block: MutableList<GeoPoint>.() -> Unit) {
+        cancelHoldMeasure("plan changed")
         pinTaken = null // a newer edit: only the add itself can bring its pin back (the add sets it after this)
         // editing on a map that keeps turning is confusing: stop following, the map stays at its angle (owner)
         if (mode == AppMode.PLAN && headingUp && followMe) followMe = false
@@ -1971,6 +1978,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * stop, straight on behind the goal → the new goal, else the shorter detour by half, similar → the small menu
      * „Einfügen“ / „Neues Ziel“, the cheaper first;
      * on a tour or a round trip the zone does ([PlaceAddMenu.asksOnHold]). Back / a tap elsewhere adds nothing.
+     * Not on the line, the detours are measured on the real paths first ([measureHold], owner 2026-11-17).
      */
     fun holdOnMap(p: GeoPoint, lineSnapM: Double) {
         closeMapOverlays("hold on the map (new point)")
@@ -1992,33 +2000,87 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             Problems.trace("plan", "Hold on the map in doubt (zone $zone, $n points)")
             PlaceAddMenu.menu(n, touring, zone)
         } else {
-            // planning: „Die App nimmt, was den kürzeren Umweg macht; sind beide ähnlich, fragt sie.“
+            // planning: „anhängen, außer es liegt erkennbar an der Route“ – on the line at once, else on the real paths
             val mPerDp = lineSnapM / PlaceAddMenu.LINE_SNAP_DP
             val line = (if (routing) null else route?.points)?.takeIf { it.size >= 2 } ?: waypoints.toList()
             val lineDp = Geo.distanceToLine(p, line) / mPerDp
             val d = PlaceAddMenu.detours(waypoints.toList(), p, if (routing) null else route?.points)!!
-            val why = "line ${lineDp.toInt()} dp, insert +${d.insertM.toInt()} m" +
-                (d.earlyInsertM?.let { " (earlier legs +${it.toInt()} m)" } ?: "") + ", append ${d.appendM.toInt()} m" +
-                (d.aheadDeg?.let { ", ${it.toInt()}° off the arrival" } ?: "") + ", $n points"
-            when (PlaceAddMenu.planningHold(lineDp, d)) {
-                PlaceAddMenu.HoldAction.ON_LINE -> {
-                    Problems.trace("plan", "New point by a hold: on the line, set at once ($why)")
-                    addPoint(p, lineSnapM); return
-                }
-                PlaceAddMenu.HoldAction.NEW_GOAL -> {
-                    Problems.trace("plan", "New point by a hold: straight on behind the goal or appending much shorter, the new goal at once ($why)")
-                    asNewDestination(p); return
-                }
-                PlaceAddMenu.HoldAction.STOP -> {
-                    Problems.trace("plan", "New point by a hold: inserting is much shorter, a stop at once ($why)")
-                    insertAsStop(p, lineSnapM); return
-                }
-                PlaceAddMenu.HoldAction.ASK -> Problems.trace("plan", "Hold on the map in doubt ($why)")
+            if (PlaceAddMenu.planningHold(lineDp, d) == PlaceAddMenu.HoldAction.ON_LINE) {
+                Problems.trace("plan", "New point by a hold: on the line, set at once (line ${lineDp.toInt()} dp, $n points)")
+                addPoint(p, lineSnapM); return
             }
-            PlaceAddMenu.planningMenu(d)
+            measureHold(p, lineSnapM, lineDp, d)
+            return
         }
         holdAddMenu = HoldAdd(p, menu, lineSnapM)
         Problems.trace("plan", "Hold on the map: asks ${menu.main.joinToString(" / ")}")
+    }
+
+    private val holdPaths by lazy { HoldPaths(viewModelScope, holdRouting) }
+
+    /** A hold beside the plan being measured on the paths ([measureHold]): the spot, a ring turns on it; null = none. */
+    var holdMeasuring by mutableStateOf<GeoPoint?>(null)
+        private set
+
+    /** Stops a running measure of a hold ([measureHold]): its result is never applied. */
+    private fun cancelHoldMeasure(why: String) {
+        if (holdPaths.cancel()) Problems.trace("plan", "Hold beside the plan: measure on the paths stopped ($why)")
+        holdMeasuring = null
+    }
+
+    /**
+     * A hold beside the plan while planning, not on the line (owner 2026-11-17 „Always real paths“, F-PLAN-15): appending
+     * and inserting are measured on the router's paths off the main thread ([HoldPaths], the legs from [legCache] and into
+     * it – the plan run after the decision finds them); a ring turns on the spot meanwhile. Then [PlaceAddMenu.planningHold]
+     * decides on those numbers. A timeout or a failure keeps the straight lines [straight]; a newer hold, Undo, a plan
+     * change or leaving Plan stops it, and a result for a plan no longer shown is never applied.
+     */
+    private fun measureHold(p: GeoPoint, lineSnapM: Double, lineDp: Double, straight: PlaceAddMenu.Detours) {
+        val pts = waypoints.toList()
+        val act = activity; val level = sac
+        holdMeasuring = p
+        holdPaths.start(pts, p, straight, { a, b, cancel -> routedLength(a, b, act, level, cancel) }) { o ->
+            holdMeasuring = null
+            if (waypoints.toList() != pts || mode != AppMode.PLAN || recState.value != null || activity != act || sac != level) {
+                Problems.trace("plan", "Hold beside the plan: measured for a plan no longer shown – nothing added (${o.describe()})")
+                return@start
+            }
+            val d = o.detours
+            val why = "line ${lineDp.toInt()} dp, ${o.describe()}" +
+                (if (o.onPaths) "; straight +${straight.insertM.toInt()} / ${straight.appendM.toInt()} m" else
+                    ", insert +${d.insertM.toInt()} m" + (d.earlyInsertM?.let { " (earlier legs +${it.toInt()} m)" } ?: "") +
+                        ", append ${d.appendM.toInt()} m") +
+                (d.aheadDeg?.let { ", ${it.toInt()}° off the arrival" } ?: "") + ", ${pts.size} points"
+            when (PlaceAddMenu.planningHold(lineDp, d)) {
+                PlaceAddMenu.HoldAction.ON_LINE -> addPoint(p, lineSnapM) // not reached: on the line is set before measuring
+                PlaceAddMenu.HoldAction.NEW_GOAL -> {
+                    Problems.trace("plan", "New point by a hold: straight on behind the goal or appending much shorter, the new goal at once ($why)")
+                    asNewDestination(p)
+                }
+                PlaceAddMenu.HoldAction.STOP -> {
+                    Problems.trace("plan", "New point by a hold: inserting is much shorter, a stop at once ($why)")
+                    insertAsStop(p, lineSnapM)
+                }
+                PlaceAddMenu.HoldAction.ASK -> {
+                    Problems.trace("plan", "Hold on the map in doubt ($why)")
+                    val menu = PlaceAddMenu.planningMenu(d)
+                    holdAddMenu = HoldAdd(p, menu, lineSnapM)
+                    Problems.trace("plan", "Hold on the map: asks ${menu.main.joinToString(" / ")}")
+                }
+            }
+        }
+    }
+
+    /**
+     * The routed length [a] → [b] for [act] / [level] in metres (on the hold's thread): from [legCache], else one leg by
+     * the [Planner] (as a plan run routes it – then in the cache for the run after the decision). Throws when the leg has
+     * no route (a straight leg: no routing data, no way near the spot, an island) or [cancel] fired.
+     */
+    private fun routedLength(a: GeoPoint, b: GeoPoint, act: Activity, level: Int, cancel: com.onpath.app.routing.RouteCancel): Double {
+        legCache.lookup(a, b, act, level)?.let { return it.leg.distanceM }
+        val r = Planner(routingEngine(), cancel, legs = legCache).plan(listOf(a, b), act, level)
+        if (r.legs.any { it.straight }) throw com.onpath.app.routing.RoutingException(r.error ?: "no route for the leg")
+        return r.distanceM
     }
 
     /** The hold menu's „Einfügen“. */
@@ -2107,6 +2169,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (firstPointMenu != null) Problems.trace("plan", "First-point menu closed: $why")
         if (poiMenu != null) Problems.trace("plan", "POI menu closed: $why")
         if (holdAddMenu != null) Problems.trace("plan", "Hold menu closed: $why (nothing added)")
+        cancelHoldMeasure(why)
         poiMenu = null; firstPointMenu = null; holdAddMenu = null; if (planPoi != null) closePlaceCard()
     }
 
@@ -2532,7 +2595,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // as passed, so the split says NothingAhead – GitHub run 2026-11-07, as for edits in change())
         routeBackAsk = split == TourSplit.Outcome.NothingAhead && !plan.leftIsHere(myPosition())
         oneLeftGoesFromHere(before)
-        closePointMenu("undo / redo"); firstPointMenu = null; holdAddMenu = null
+        closePointMenu("undo / redo"); firstPointMenu = null; holdAddMenu = null; cancelHoldMeasure(what)
         prefs.planWaypoints = waypoints.toList()
         planEditPending = true
         planChanged()
@@ -3866,7 +3929,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // the start zoom of Navigate, once per start (owner); the map takes it when it follows
         if (m == AppMode.NAVIGATE && was != AppMode.NAVIGATE) navStartZoom = AppMode.navStartZoom(activity)
         else if (m != AppMode.NAVIGATE) navStartZoom = null
-        if (m == AppMode.NAVIGATE) { planPoi = null; poiMenu = null; closePointMenu("mode change to Navigate"); firstPointMenu = null; holdAddMenu = null; highlight = null; followMe = true }
+        if (m == AppMode.NAVIGATE) { planPoi = null; poiMenu = null; closePointMenu("mode change to Navigate"); firstPointMenu = null; holdAddMenu = null; cancelHoldMeasure("mode change to Navigate"); highlight = null; followMe = true }
         // Plan keeps the compass choice: walking direction up stays turned and following (until you edit or move the
         // map); north up stops following
         else followMe = headingUp && followMe && tracker.location.value != null
@@ -5831,9 +5894,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     override fun onCleared() {
         mapData.stop()
         sync.stop()
+        holdPaths.cancel()
         routingDispatcher.close()
         backgroundRouting.close()
         checkRouting.close()
+        holdRouting.close()
         super.onCleared()
     }
 }

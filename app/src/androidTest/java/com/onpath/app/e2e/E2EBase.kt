@@ -317,6 +317,9 @@ abstract class E2EBase {
         dismissSystemDialogs()
         device.swipe(x.toInt(), y.toInt(), x.toInt(), y.toInt(), ms / 5) // one step ≈ 5 ms
         Thread.sleep(400)
+        // a hold beside a plan is measured on the paths first (owner 2026-11-17, HoldPaths – at most its time limit): wait
+        // for its decision
+        if (launched) waitHoldMeasured()
         // a hold on the empty map in doubt asks „Einfügen“ / „Neues Ziel“ (owner 2026-11-15): the tests that set points by
         // a hold take the likelier row, as a user following the suggestion does
         if (takeAddMenu && launched) scenario.onActivity { a ->
@@ -324,6 +327,18 @@ abstract class E2EBase {
             val m = v.holdAddMenu ?: return@onActivity
             if (m.menu.emphasised == com.onpath.app.ui.PlaceAddMenu.Item.NEW_DESTINATION) v.holdAsNewDestination() else v.holdAsStop()
         }
+    }
+
+    /** Waits (≤ [ms]) until no hold is measured on the paths any more ([com.onpath.app.ui.AppViewModel.holdMeasuring]); its ms. */
+    protected fun waitHoldMeasured(ms: Long = 4_000): Long {
+        val t0 = android.os.SystemClock.elapsedRealtime()
+        while (android.os.SystemClock.elapsedRealtime() - t0 < ms) {
+            var busy = false
+            scenario.onActivity { a -> busy = vm(a).holdMeasuring != null }
+            if (!busy) break
+            Thread.sleep(50)
+        }
+        return android.os.SystemClock.elapsedRealtime() - t0
     }
 
     /**

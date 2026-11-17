@@ -109,6 +109,16 @@ fun MapOverlayHost(
             c.toScreen(p)?.let { s -> RoutingRing(Offset(s.x, s.y)) }
         }
     }
+    // a hold beside the plan measured on the paths (owner 2026-11-17, HoldPaths): the same ring on the held spot, no menu
+    // yet – after the same short delay (a quick measure shows nothing)
+    vm.holdMeasuring?.let { p ->
+        var late by remember(p) { mutableStateOf(false) }
+        LaunchedEffect(p) { kotlinx.coroutines.delay(RoutingSpot.DELAY_MS); late = true }
+        if (late) {
+            cameraTick() // re-read the projection on every camera move
+            c.toScreen(p)?.let { s -> RoutingRing(Offset(s.x, s.y)) }
+        }
+    }
     vm.firstPointMenu?.let { p ->
         Anchored(c, p, cameraTick, topPx, bottomPx, onGone = { com.onpath.app.debug.Problems.trace("plan", "First-point menu closed: held spot left the visible map (onGone)"); vm.firstPointMenu = null }) {
             FirstPointMenu(MapGestures.fromMeBlocked(gps, vm.tracker.location.value != null),
