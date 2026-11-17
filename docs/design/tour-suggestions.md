@@ -411,6 +411,13 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   **Owner 2026-11-17: the controls Natur, Ruhe, Bekannte Wege and „am Wasser entlang“ go** – nature, quiet and paths are
   always built in, as on a Traumpfad; the wish is activity · time from–to · ascent from–to · **Ziel** (optional, several:
   Gipfel · Wasser · Aussicht · Einkehr · Kultur; none = the finest in reach).
+- **Owner 2026-11-17 evening: the planner build starts (stage 3).** The suggest file goes into the cells as a normal
+  layer (owner: „Normale Kartenschicht“ – one reload wave of all phones accepted). Steps: (a) port the batch since the
+  freeze (access from the start, aims + Ziel, quality measures, removed controls, sort slack) to Kotlin with parity;
+  (b) wire `TourSuggester` into the planner's engine (worker; measure time in the browser); (c) UI: „Rundtour von hier“,
+  the wish sheet (sketch first – the wish changed since sketch 4), the cards per sketch 4, the calm map, behind a switch
+  that is off; hint / reason texts into the strings module (DE/EN); (d) the owner tests (NRW, Fränkische Schweiz),
+  deploy on his word. The app (stage 4) after his acceptance of the planner.
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
