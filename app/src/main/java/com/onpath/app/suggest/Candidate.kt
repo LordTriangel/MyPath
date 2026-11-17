@@ -42,9 +42,15 @@ class Candidate(
     /** one generated line on what the loop passes (never an operator's text) */
     var line = ""
     var why = ""
+    /** the aims it really reaches, in walking order (aims.py `reached`) */
+    var reached: List<Aims.Reached> = emptyList()
+    /** landscape changes per km along the judged part (score.py `variety`) */
+    var variety = 0.0
+    /** Wasser is a Ziel and a fifth of the way is at water */
+    var waterGoal = false
 
-    class Official(val name: String, val badge: String, val parking: Boolean, val lon: Double, val lat: Double, val osm: Long,
-                   val startKm: Double)
+    /** [loopKm] = how much of the whole ride (from the wished start) is on the signed loop */
+    class Official(val name: String, val badge: String, val osm: Long, val loopKm: Double)
 
     /** The plain facts of a loop for the card (score.py `numbers`), absolute. */
     class Numbers(
@@ -59,6 +65,10 @@ class Candidate(
         val rimKm: Double,
         /** (what, name) */
         val sights: List<Pair<String, String>>,
+        /** share on a narrow path (Facts.width 0) */
+        val pathPct: Int = 0,
+        val variety: Double = 0.0,
+        val aims: List<Aims.Reached> = emptyList(),
     )
 
     /** The loop's line as lon / lat pairs (start, every shape point, every node). */

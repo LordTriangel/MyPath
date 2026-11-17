@@ -3,8 +3,10 @@ package com.onpath.app.suggest
 
 /**
  * The wish of a tour suggestion (docs/design/tour-suggestions.md §2), complete: start, activity (+ T level for hikes),
- * the two ranges (hours, metres up – [ascentHi] null = "what is usual"), the few controls. Build with [of], which
- * fills and clamps like the POC's `character.wish`.
+ * the two ranges (hours, metres up – [ascentHi] null = "what is usual") and the Ziel – what the loop should lead to
+ * (gipfel · wasser · aussicht · einkehr · kultur, several, none = the finest in reach; owner 2026-11-17: the controls
+ * Natur, Ruhe, Bekannte Wege and "am Wasser entlang" are gone, nature, quiet and good paths are always built in). Build
+ * with [of], which fills and clamps like the POC's `character.wish`.
  */
 class Wish(
     val lon: Double,
@@ -17,28 +19,23 @@ class Wish(
     val ascent: DoubleArray?,
     /** the upper end of [ascent]; null = not given ("ab 300") */
     val ascentHi: Double?,
-    val natur: String,
-    val ruhe: String,
-    val bekannt: String,
-    val wasser: Boolean,
+    /** the chosen Ziel kinds in the order of settings aims.kinds */
+    val ziel: List<String>,
     /** official signed loops near the start join the list (the page's default) */
     val official: Boolean = true,
 ) {
     companion object {
         /**
          * character.py `wish`: [activity] hike / bike / gravel / mtb (else hike); [hours] one number (widened by the
-         * family's band) or [from, to]; [ascent] null or [from, to] with either end null; levels niedrig / mittel /
-         * hoch (else mittel).
+         * family's band) or [from, to]; [ascent] null or [from, to] with either end null; [ziel] any of the kinds of
+         * settings aims.kinds (others ignored, kept in that order).
          */
         fun of(S: SuggestSettings, lon: Double, lat: Double, activity: String? = null, tLevel: Int? = null,
                hours: DoubleArray = doubleArrayOf(2.0), pace: Double? = null, ascent: Array<Double?>? = null,
-               natur: String? = null, ruhe: String? = null, bekannt: String? = null, wasser: Boolean = false,
-               official: Boolean = true): Wish {
+               ziel: Collection<String> = emptyList(), official: Boolean = true): Wish {
             val act = if (activity != null && activity != "_about" && S["activities"].has(activity)) activity else "hike"
             val A = S["activities"][act]
             val p = pace ?: A["pace"].d
-            val levels = S["controls"]["level"]
-            fun word(v: String?) = if (v != null && levels.has(v)) v else "mittel"
             val h = if (hours.size >= 2) {
                 val a = hours[0].coerceIn(0.25, 10.0); val b = hours[1].coerceIn(0.25, 10.0)
                 doubleArrayOf(minOf(a, b), maxOf(a, b))
@@ -53,16 +50,17 @@ class Wish(
                 val hi = ascent[1]?.let { maxOf(0.0, it) }
                 if (hi != null) { up = doubleArrayOf(minOf(lo, hi), maxOf(lo, hi)); upHi = maxOf(lo, hi) } else up = doubleArrayOf(lo, lo)
             }
-            return Wish(lon, lat, act, (tLevel ?: 2).coerceIn(1, 5), h, p, up, upHi, word(natur), word(ruhe), word(bekannt),
-                wasser, official)
+            val kinds = S["aims"]["kinds"].keys.filter { it != "_about" && it in ziel }
+            return Wish(lon, lat, act, (tLevel ?: 2).coerceIn(1, 5), h, p, up, upHi, kinds, official)
         }
     }
 }
 
 /**
  * Level 3 – what this person wants (character.py): one scale gemütlich … wild from the activity and the T level; the
- * five axis weights, how much of Natur is depth, the worth of a signed route, the welcome of each ground kind, the
- * two ranges in time and metres up, BRouter's profile and parameters for the network.
+ * five axis weights (Besonderes weighs more with a Ziel), how much of Natur is depth, the worth of a signed route, on
+ * foot the share of Weg that is the way's width ([path]), the welcome of each ground kind, the two ranges in time and
+ * metres up, the Ziel, BRouter's profile and parameters for the network.
  */
 class Character(val wish: Wish, S: SuggestSettings) {
     val A = S["activities"][wish.activity]
@@ -76,9 +74,14 @@ class Character(val wish: Wish, S: SuggestSettings) {
     val axes = LinkedHashMap<String, Double>()
     val depth: Double
     val signed: Double
+    /** on foot the share of Weg that is the width of the way (a narrow path over a wide track); 0 on wheels */
+    val path: Double
     /** welcome of ground 0 paved · 1 firm · 2 natural · 3 rough */
     val ground: DoubleArray
-    val water = wish.wasser
+    /** the chosen Ziel kinds (gipfel, wasser, aussicht, einkehr, kultur) */
+    val ziel: List<String> = wish.ziel
+    /** Wasser is a Ziel: banks and brooks are the lines worth following, water what counts as special */
+    val water = "wasser" in ziel
     val hours: DoubleArray = wish.hours
     val minM = hours[0] * pace * 1000.0
     val maxM = hours[1] * pace * 1000.0
@@ -95,17 +98,17 @@ class Character(val wish: Wish, S: SuggestSettings) {
 
     init {
         val C = S["character"]
-        val K = S["controls"]
         val g = C["gemütlich"]; val w = C["wild"]
         for (k in g["axes"].keys) axes[k] = mix(g["axes"][k].d, w["axes"][k].d)
-        axes["natur"] = axes.getValue("natur") * K["level"][wish.natur].d
-        axes["ruhe"] = axes.getValue("ruhe") * K["level"][wish.ruhe].d
-        if (water) axes["besonderes"] = axes.getValue("besonderes") * K["water"].d
+        // the Ziel: its aims are always among the candidates and count more (Generate, Score); what it leads to
+        // weighs more in the points
+        if (ziel.isNotEmpty()) axes["besonderes"] = axes.getValue("besonderes") * S["aims"]["weight"].d
         var total = 0.0
         for (v in axes.values) total += v
         for (k in axes.keys.toList()) axes[k] = axes.getValue(k) / total
         depth = mix(g["depth"].d, w["depth"].d)
-        signed = minOf(1.0, mix(g["signed"].d, w["signed"].d) * K["level"][wish.bekannt].d)
+        signed = minOf(1.0, mix(g["signed"].d, w["signed"].d))
+        path = if (bike) 0.0 else mix(g["path"].d, w["path"].d)
         val gr = family["ground"]
         ground = DoubleArray(4) { mix(gr["gemütlich"][it].d, gr["wild"][it].d) }
         val upH = family["up_m_per_h"]

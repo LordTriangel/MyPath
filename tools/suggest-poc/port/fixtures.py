@@ -5,7 +5,7 @@
 
   tiny-suggest.bin   suggest_file.pack of a small cell (the format's self-test dict) – SuggestFileTest
   pyset-order.txt    CPython's iteration order of int sets after adds / removes / unions – PyIntSetTest
-  character.txt      character.py for a few wishes – CharacterTest
+  character.txt      character.py for a few wishes (with a Ziel since the batch of 2026-11-17) – CharacterTest
 Fixed seeds: run again only when the format, Python's set or character.py change.
 """
 import json
@@ -30,6 +30,8 @@ def tiny():
                     "routes": [{"kind": "mtb", "label": "X30 · Neandertalweg", "net": 2, "trail": True,
                                 "lines": [[[6.9, 51.1], [6.900001, 51.099999], [-0.5, -70.25]]]}],
                     "lakes": [{"name": "Elbsee", "lines": []}], "sights": [{"kind": "ruins", "name": "", "p": [6.99385, 51.11678]}],
+                    "aims": [{"kind": "peak", "name": "Hoher Kranzberg", "p": [11.233, 47.4561], "ele": 1391},
+                             {"kind": "cafe", "name": "Café", "p": [6.9, 51.1], "ele": 0}],
                     "loops": [{"id": 12290089, "kind": "bicycle", "t": 3, "parking_m": None, "m": 17641.237, "ascent": 0.0,
                                "name": "Rund um Haßloch", "ref": "RH", "network": "lcn",
                                "coords": [[6.9, 51.1], [6.91, 51.1], [6.9, 51.1]]},
@@ -72,13 +74,13 @@ def pysets():
 def characters():
     S = json.load(open(os.path.join(HERE, "..", "settings.json"), encoding="utf-8"))
     out = []
-    for body in ({"start": [6.9, 51.1], "hours": 2}, {"start": [6.9, 51.1], "activity": "bike", "hours": [2.5, 3.25], "natur": "hoch"},
-                 {"start": [6.9, 51.1], "hours": [4, 5], "ascent": [500, 900], "t_level": 3, "wasser": True, "bekannt": "hoch"},
-                 {"start": [6.9, 51.1], "activity": "mtb", "hours": 3, "ascent": [None, 350], "ruhe": "niedrig"},
+    for body in ({"start": [6.9, 51.1], "hours": 2}, {"start": [6.9, 51.1], "activity": "bike", "hours": [2.5, 3.25], "ziel": ["kultur"]},
+                 {"start": [6.9, 51.1], "hours": [4, 5], "ascent": [500, 900], "t_level": 3, "ziel": ["wasser", "gipfel"]},
+                 {"start": [6.9, 51.1], "activity": "mtb", "hours": 3, "ascent": [None, 350], "ziel": ["einkehr", "nichts"]},
                  {"start": [6.9, 51.1], "activity": "gravel", "hours": 1, "ascent": [300, None]}):
         ch = Character(make_wish(body, S), S)
         out.append("WISH " + json.dumps(body))
-        out.append("R %r %r %r %r %r %r %r %r %r %r" % (ch.wild, ch.depth, ch.signed, ch.min_m, ch.max_m, ch.usual_up, ch.up[0], ch.up[1],
+        out.append("R %r %r %r %r %r %r %r %r %r %r %r" % (ch.wild, ch.depth, ch.signed, ch.path, ch.min_m, ch.max_m, ch.usual_up, ch.up[0], ch.up[1],
                                                        ch.hours[0], ch.hours[1]))
         out.append("AXES " + " ".join("%s=%r" % kv for kv in ch.axes.items()))
         out.append("GROUND " + " ".join(repr(g) for g in ch.ground))

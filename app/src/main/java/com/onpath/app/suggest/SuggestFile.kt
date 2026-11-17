@@ -6,8 +6,8 @@ import java.util.zip.Inflater
 /**
  * The suggest file of a map cell (`suggest.bin`, docs/design/tour-suggestions.md §4a): what the tour suggestions read
  * instead of map tiles and terrain – the ~45 m land grid, protected-area names, heights, place names, signed routes,
- * lakes, sights and the signed loops in walking order. The format is defined in `tools/suggest_file.py` (writer +
- * Python reader); this is its Kotlin reader. Needs an inflater and a byte buffer, nothing else (shared with the web
+ * lakes, sights, the aims a loop can lead to (content 2) and the signed loops in walking order. The format is defined
+ * in `tools/suggest_file.py` (writer + Python reader); this is its Kotlin reader. Needs an inflater and a byte buffer, nothing else (shared with the web
  * planner: TeaVM's classlib has java.util.zip.Inflater).
  *
  * Lines are kept as DoubleArray lon, lat pairs (degrees = file integers / 10⁶, as the Python reader divides).
@@ -36,6 +36,8 @@ class SuggestFile(
     val routes: List<Route>,
     val lakes: List<Lake>,
     val sights: List<Sight>,
+    /** the aims beyond the sights (named peaks, huts, cafés …); null = an older file (content 1) without them */
+    val aims: List<Aim>?,
     /** null = the file was built without the OSM cut (no loops known), empty = none in this cell. */
     val loops: List<Loop>?,
 ) {
@@ -43,6 +45,8 @@ class SuggestFile(
     class Route(val kind: String, val net: Int, val trail: Boolean, val label: String, val lines: List<DoubleArray>)
     class Lake(val name: String, val lines: List<DoubleArray>)
     class Sight(val kind: String, val name: String, val lon: Double, val lat: Double)
+    /** [ele] = height in metres, 0 = unknown */
+    class Aim(val kind: String, val name: String, val lon: Double, val lat: Double, val ele: Int)
     class Loop(
         val id: Long, val kind: String, val t: Int,
         /** metres from the loop's first point to the nearest parking place, null = none within 300 m */
@@ -59,7 +63,7 @@ class SuggestFile(
 
     companion object {
         const val FORMAT_VERSION = 1
-        const val CONTENT = 1
+        const val CONTENT = 2
         const val NO_HEIGHT: Short = Short.MIN_VALUE
         const val NATURE = 1
         const val PROTECTED = 2
@@ -72,6 +76,7 @@ class SuggestFile(
         const val NAME = "suggest.bin"
         val PLACE_CLASSES = listOf("city", "town", "village", "suburb", "hamlet", "quarter", "neighbourhood")
         val SIGHT_KINDS = listOf("viewpoint", "castle", "ruins", "chapel", "cave", "waterfall")
+        val AIM_KINDS = listOf("peak", "hut", "restaurant", "cafe", "spring", "museum")
         val ROUTE_KINDS = listOf("hike", "bike", "mtb")
         val LOOP_KINDS = listOf("hike", "bicycle", "mtb")
 
@@ -125,6 +130,7 @@ class SuggestFile(
             val lakes = ArrayList<Lake>()
             val sights = ArrayList<Sight>()
             var loops: ArrayList<Loop>? = null
+            var aims: ArrayList<Aim>? = null
             var x = 0; var y = 0; var w = 0; var h = 0; var content = 0; var flags = 0
             var west = 0.0; var north = 0.0; var dlon = 0.0; var dlat = 0.0; var osmDate = ""
             var i = 0
@@ -171,6 +177,16 @@ class SuggestFile(
                         val lon = r.zz(); val lat = r.zz()
                         sights.add(Sight(kind, nm, lon / E6, lat / E6))
                     }
+                    "AIMS" -> {
+                        val out = ArrayList<Aim>()
+                        repeat(r.uv().toInt()) {
+                            val kind = AIM_KINDS[r.u8()]
+                            val nm = r.text()
+                            val lon = r.zz(); val lat = r.zz()
+                            out.add(Aim(kind, nm, lon / E6, lat / E6, r.zz().toInt()))
+                        }
+                        aims = out
+                    }
                     "LOOP" -> {
                         val out = ArrayList<Loop>()
                         repeat(r.uv().toInt()) {
@@ -192,7 +208,7 @@ class SuggestFile(
             if (grid.size != w * h) throw NotASuggestFile("grid size")
             val heights = if (heightsAt >= 0 && heightsLen >= 2 * w * h) heights(body, heightsAt, w, h) else null
             return SuggestFile(version, content, flags, x, y, w, h, west, north, dlon, dlat, osmDate, grid, area, labels,
-                heights, places, routes, lakes, sights, loops)
+                heights, places, routes, lakes, sights, aims, loops)
         }
 
         /** HGHT coding 1: per square the difference to left + above − above-left, 16-bit, zig-zag; low then high bytes. */

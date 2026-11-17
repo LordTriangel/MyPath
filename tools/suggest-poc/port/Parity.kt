@@ -4,6 +4,7 @@
 //   tools/suggest-poc/port/parity.sh [graph|reader] [name words…]   (PARITY_REPEAT=3: times of the 3rd run)
 // graph  = the network from the POC's route service (/graph, the same text the reference runs had) – the method alone
 // reader = the network read by the app's NetReader from the rd5 files (same nodes and links, another order)
+import com.onpath.app.suggest.Aims
 import com.onpath.app.suggest.Candidate
 import com.onpath.app.suggest.Character
 import com.onpath.app.suggest.NetReader
@@ -110,7 +111,7 @@ private fun f(x: Double) = String.format(Locale.ROOT, "%.1f", x)
 /** cases.py `view`: the shown suggestions as small records. */
 class View(val name: String, val km: Double, val up: Int, val forest: Int, val town: Int, val road: Int, val cross: Int,
            val doubled: Int, val named: Map<String, Double>, val reserves: Int, val dir: String, val hints: List<String>,
-           val hours: Double, val official: Boolean, val fromM: Double)
+           val hours: Double, val official: Boolean, val fromM: Double, val aims: List<Aims.Reached>, val waterGoal: Boolean)
 
 private val DIRS = listOf("N", "NO", "O", "SO", "S", "SW", "W", "NW")
 private val WORD_DIR = mapOf("Norden" to "N", "Nordosten" to "NO", "Osten" to "O", "Südosten" to "SO", "Süden" to "S",
@@ -122,7 +123,7 @@ fun view(r: SuggestResult): List<View> = r.shown.map { c ->
     for (row in n.reserves + n.lakes + n.known) named[row.first] = (named[row.first] ?: 0.0) + row.second
     View(c.name, n.km, n.ascent, n.forestPct, n.townPct, n.roadLongestM, n.selfCross, n.doubledPct, named, n.reserves.size,
         c.bearing, c.hints, n.hours, c.official != null,
-        SuggestGeo.dist(r.net.lon(c.nodes[0]), r.net.lat(c.nodes[0]), r.ch.wish.lon, r.ch.wish.lat))
+        SuggestGeo.dist(r.net.lon(c.nodes[0]), r.net.lat(c.nodes[0]), r.ch.wish.lon, r.ch.wish.lat), n.aims, c.waterGoal)
 }
 
 fun km(v: View, vararg words: String) = v.named.entries.filter { (k, _) -> words.any { k.lowercase().contains(it.lowercase()) } }.sumOf { it.value }
@@ -174,6 +175,16 @@ val CASES: Map<String, List<Pair<String, (List<View>, List<String>) -> Boolean>>
         "jede Karte fährt am Startpunkt los, die ganze Fahrt in der gewünschten Zeit" to { s, _ -> s.all { it.fromM <= 300 && it.hours <= 1.1 * 2 } },
         "mindestens eine eigene Runde" to { s, _ -> s.any { !it.official } }),
     "meran-steil" to listOf("erste Runde 500–900 m" to { s, _ -> s[0].up in 500..900 }),
+    "mittenwald-wandern-3h" to listOf(
+        "eine Karte mit Lautersee und Ferchensee" to { s, _ -> s.any { km(it, "Lautersee") >= 0.4 && km(it, "Ferchensee") >= 0.4 } }),
+    "mittenwald-wasser" to listOf(
+        "eine Karte geht um einen See (oder an beiden Ufern entlang)" to { s, _ -> s.any { r -> r.aims.any { it.what == "lake" && it.round >= 0.7 } } },
+        "die erste Karte führt zum Wasser" to { s, _ -> s[0].aims.any { it.ziel == "wasser" && it.goal } || s[0].waterGoal }),
+    "garmisch-gipfel" to listOf(
+        "die erste Karte erreicht einen Gipfel" to { s, _ -> s[0].aims.any { it.what == "peak" } },
+        "eine Karte erreicht den Eckbauer" to { s, _ -> s.any { r -> r.aims.any { it.name == "Eckbauer" } } }),
+    "mittenwald-einkehr" to listOf(
+        "die erste Karte kehrt zwischen 25 und 75 % der Runde ein" to { s, _ -> s[0].aims.any { it.ziel == "einkehr" && it.at >= 0.25 && it.at <= 0.75 } }),
 )
 val EVERY: List<Pair<String, (List<View>, List<String>) -> Boolean>> = listOf(
     "keine Runde kreuzt sich mehr als einmal" to { s, _ -> s.all { it.cross <= 1 } },
@@ -182,8 +193,8 @@ val EVERY: List<Pair<String, (List<View>, List<String>) -> Boolean>> = listOf(
 fun wishOf(S: SuggestSettings, w: SuggestSettings.J): Wish {
     val asc = w["ascent"]
     return Wish.of(S, w["start"][0].d, w["start"][1].d, w["activity"].s, w["t_level"].i, w["hours"].doubles(), w["pace"].d,
-        if (asc.isNull) null else arrayOf(asc[0].v as Double?, asc[1].v as Double?), w["natur"].s, w["ruhe"].s, w["bekannt"].s,
-        w["wasser"].v == true, w["official"].v != false)
+        if (asc.isNull) null else arrayOf(asc[0].v as Double?, asc[1].v as Double?), w["ziel"].list.map { it.s },
+        w["official"].v != false)
 }
 
 fun main(args: Array<String>) {
@@ -191,7 +202,7 @@ fun main(args: Array<String>) {
     val mode = args.getOrNull(0) ?: "graph"
     val words = args.drop(1)
     val S = SuggestSettings.parse(File(root, "tools/suggest-poc/settings.json").readText())
-    val files = DirFiles(File(env("SUGGEST_FILES", "$HOME/onpath-suggest-poc/suggest-file/cells")))
+    val files = DirFiles(File(env("SUGGEST_FILES", "$HOME/onpath-suggest-poc/suggest-file/cells-c2")))
     val refDir = File(env("SUGGEST_REFERENCE", "$HOME/onpath-suggest-poc/reference"))
     val source: NetSource = if (mode == "reader") {
         val reader = NetReader(File(env("ONPATH_SEGMENTS", "$HOME/onpath-routing/segments")))
@@ -206,9 +217,16 @@ fun main(args: Array<String>) {
         val ref = gz(rf)
         val wish = wishOf(S, ref["wish"])
         repeat((System.getenv("PARITY_REPEAT") ?: "1").toInt() - 1) { TourSuggester.suggest(wish, source, files, S) }  // warm (JIT)
+        val pools = java.lang.management.ManagementFactory.getMemoryPoolMXBeans().filter { it.type == java.lang.management.MemoryType.HEAP }
+        System.gc()
+        pools.forEach { it.resetPeakUsage() }
         val t0 = System.nanoTime()
         val r = TourSuggester.suggest(wish, source, files, S)
         val secs = (System.nanoTime() - t0) / 1e9
+        if (System.getenv("PARITY_HEAP") != null) {  // the heap's peak during this run (sum of the pools' peaks: an upper bound)
+            println(String.format(Locale.ROOT, "    heap peak %.0f MB, %.2f s, times %s", pools.sumOf { it.peakUsage.used } / 1048576.0, secs,
+                r.times.mapValues { f(it.value) }))
+        }
         val kt = r.candidates.associateBy { key(it.coords(r.net)) }
         val refC = ref["candidates"].list
         var same = 0; var scoreDiff = 0.0; var choiceDiff = 0

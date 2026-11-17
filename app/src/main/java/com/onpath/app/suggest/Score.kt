@@ -2,13 +2,20 @@ package com.onpath.app.suggest
 
 
 /**
- * Judging loops (the POC's `score.py`, frozen 2026-11-16): five axes – Natur, Ruhe, Weg, Besonderes read on the place's
- * yardstick, Form absolute –, a few hard rules, one selection over our loops and the official ones, and the words that
- * say why (title, reason line, hints, the generated line on what the loop passes – never an operator's text).
+ * Judging loops (the POC's `score.py`, batch of 2026-11-17 ported): five axes – Natur, Ruhe, Weg, Besonderes read on
+ * the place's yardstick, Form absolute –, a few hard rules, one selection over our loops and the official ones, and the
+ * words that say why (title, reason line, hints, the generated line on what the loop passes – never an operator's text;
+ * the words themselves in [SuggestText]). Since the batch: aims really reached count on Besonderes (more when the wish
+ * names their Ziel), Natur counts the landscape's variety, the selection shows per chosen Ziel the best loop that leads
+ * to it and the finest aims in reach, the order puts loops a few minutes outside the wished time with the ones inside.
  */
 object Score {
     val AXES = arrayOf("natur", "ruhe", "weg", "besonderes", "form")
-    private val WORDS = mapOf("natur" to "Natur", "ruhe" to "Ruhe", "weg" to "Weg", "besonderes" to "Besonderes", "form" to "Form")
+    /** the Form parts' names (Candidate.formParts keys; shown through SuggestText) */
+    const val ZEIT = "Zeit"
+    const val HOEHE = "Höhenmeter"
+    const val DOPPELT = "doppelt"
+    const val KREUZT = "kreuzt sich"
 
     class Sight(val name: String, val what: String, val lon: Double, val lat: Double)
 
@@ -16,6 +23,9 @@ object Score {
     fun judge(P: Place, S: SuggestSettings, cands: List<Candidate>, sights: List<Sight>) {
         val F = P.F; val net = P.net; val K = S["form"]
         val sightBonus = K["sight"].d; val ringBonus = K["ring"].d; val ringRoad = K["ring_road_m"].d
+        val most = S["aims"]["most"].i
+        val V = S["quality"]["variety"]
+        val vShare = V["share"].d; val vPerKm = V["per_km"].d
         for (c in cands) {
             var core = c.edges.filter { P.core(it) }.toIntArray()
             if (core.isEmpty()) core = c.edges
@@ -38,10 +48,51 @@ object Score {
                 if (near) byName[s.name] = s
             }
             val seen = byName.values.toList()
+            // going round a signed loop is what the place's makers laid out – but along a road is always bad
             val ring = (c.origin == "Rundweg" || c.origin == "offiziell") && roadRun(F, c.edges) <= ringRoad
             c.raw[3] += sightBonus * minOf(3, seen.size) + ringBonus * (if (ring) 1 else 0)
-            finish(P, S, c, DoubleArray(4) { P.judge(it, c.raw[it]) }, seen)
+            // aims really reached (a summit, a lake gone round or along, a hut in the middle …) count more than
+            // passing by; the more when the wish names their Ziel (Aims)
+            c.reached = Aims.reached(P, S, c.edges, P.ch.ziel)
+            var gain = 0.0
+            for (w in c.reached.map { it.gain }.sortedDescending().take(most)) gain += w
+            c.raw[3] += gain
+            c.variety = variety(P, S, core)
+            val ax = DoubleArray(4) { P.judge(it, c.raw[it]) }
+            // quality trails: the landscape changes along the way, not one uniform forest
+            ax[0] *= 1.0 - vShare + vShare * minOf(1.0, c.variety / vPerKm)
+            finish(P, S, c, ax, seen)
         }
+    }
+
+    /**
+     * score.py `variety`: landscape changes per km along the walk (Deutscher Wanderverband: 'Abwechslung /
+     * Landschaftswechsel') – every `step_m` stretch gets its dominant kind (village, water, forest, open land) and
+     * each change of it counts.
+     */
+    fun variety(P: Place, S: SuggestSettings, edges: IntArray): Double {
+        val F = P.F
+        val step = S["quality"]["variety"]["step_m"].d
+        fun kind(e: Int) = if (F.built[e]) 0 else if (F.water[e] > 0) 1 else if (F.green[e] >= 0.5) 2 else 3
+        val kinds = ArrayList<Int>()
+        var acc = 0.0
+        var cur = DoubleArray(4)
+        for (e in edges) {
+            cur[kind(e)] += F.ln[e]
+            acc += F.ln[e]
+            if (acc >= step) {
+                var best = 0
+                for (k in 1 until 4) if (cur[k] > cur[best]) best = k
+                kinds.add(best)
+                acc = 0.0
+                cur = DoubleArray(4)
+            }
+        }
+        var total = 0.0
+        for (e in edges) total += F.ln[e]
+        var changes = 0
+        for (i in 1 until kinds.size) if (kinds[i] != kinds[i - 1]) changes++
+        return SuggestGeo.pyRound(changes / maxOf(1.0, total / 1000.0), 2)
     }
 
     private fun finish(P: Place, S: SuggestSettings, c: Candidate, ax4: DoubleArray, seen: List<Sight>) {
@@ -49,13 +100,13 @@ object Score {
         fun clamp(x: Double) = x.coerceIn(0.0, 1.0)
         val h = c.hours
         val parts = LinkedHashMap<String, Double>()
-        parts["Zeit"] = 1.0 - clamp(maxOf((ch.hours[0] - h) / (K["short_zero"].d * ch.hours[0]), (h - ch.hours[1]) / (K["long_zero"].d * ch.hours[1])))
-        parts["Höhenmeter"] = 1.0 - 0.7 * clamp((ch.up[0] - c.up) / maxOf(ch.up[0], 1.0))
-        parts["doppelt"] = 1.0 - clamp(c.doubledM / c.m / K["doubled_zero"].d)
-        parts["kreuzt sich"] = Math.pow(K["cross"].d, c.cross.toDouble())
+        parts[ZEIT] = 1.0 - clamp(maxOf((ch.hours[0] - h) / (K["short_zero"].d * ch.hours[0]), (h - ch.hours[1]) / (K["long_zero"].d * ch.hours[1])))
+        parts[HOEHE] = 1.0 - 0.7 * clamp((ch.up[0] - c.up) / maxOf(ch.up[0], 1.0))
+        parts[DOPPELT] = 1.0 - clamp(c.doubledM / c.m / K["doubled_zero"].d)
+        parts[KREUZT] = Math.pow(K["cross"].d, c.cross.toDouble())
         val ax = DoubleArray(5)
         for (a in 0 until 4) ax[a] = ax4[a]
-        ax[4] = parts.getValue("Zeit") * parts.getValue("Höhenmeter") * parts.getValue("doppelt") * parts.getValue("kreuzt sich")
+        ax[4] = parts.getValue(ZEIT) * parts.getValue(HOEHE) * parts.getValue(DOPPELT) * parts.getValue(KREUZT)
         for (a in 0 until 5) c.axes[a] = SuggestGeo.pyRound(ax[a], 3)
         var s = 0.0
         for (a in 0 until 5) s += ch.axis(AXES[a]) * ax[a]
@@ -63,8 +114,9 @@ object Score {
         c.formParts = LinkedHashMap()
         for ((k, v) in parts) if (v < 0.995) c.formParts[k] = SuggestGeo.pyRound(v, 2)
         c.numbers = numbers(P, c, seen)
+        c.waterGoal = ch.water && c.numbers.waterPct >= 20
         val roadMax = ch.family["road_walk_max_m"].d
-        c.out = if (0 < roadMax && roadMax < c.numbers.roadLongestM) "langes Stück an einer Straße mit Autos" else null
+        c.out = if (0 < roadMax && roadMax < c.numbers.roadLongestM) SuggestText.outRoad() else null
     }
 
     /** score.py `numbers`: the plain facts of a loop for the card – absolute, not relative to the place. */
@@ -104,6 +156,7 @@ object Score {
             stemM = c.stemM.toInt(), reserves = top("reserves", 0.8), known = top("known", 0.8), lakes = top("lakes", 0.4),
             rimKm = SuggestGeo.pyRound(sum { F.rim[it] >= 0.5 } / 1000.0, 1),
             sights = sights.map { it.what to it.name }.take(6),
+            pathPct = pct { F.width[it] == 0 }, variety = c.variety, aims = c.reached,
         )
     }
 
@@ -144,37 +197,11 @@ object Score {
         return s.ifEmpty { name }
     }
 
-    /** 'am Elbsee', 'an der Dhrontalsperre'. */
-    fun am(name: String): String {
-        val l = name.lowercase()
-        return (if (listOf("sperre", "bucht", "aue", "lache").any { l.endsWith(it) }) "an der " else "am ") + name
-    }
+    /** 'am Elbsee', 'an der Dhrontalsperre' ([SuggestText.am]). */
+    fun am(name: String): String = SuggestText.am(name)
 
-    private fun both(xs: List<String>) = if (xs.size < 3) xs.joinToString(" und ") else xs.dropLast(1).joinToString(", ") + " und " + xs.last()
-
-    private val OWN_WORD = listOf("burg", "schloss", "ruine", "kapelle", "höhle", "wasserfall", "turm", "blick", "kirche", "aussicht", "fels")
-
-    /** score.py `line`: one line on what the loop really passes – from the card's numbers, nothing invented. */
-    fun line(n: Candidate.Numbers, known: List<Pair<String, Double>> = n.known): String {
-        fun kind(nm: String) = if ("schutzgebiet" in nm.lowercase() || nm.startsWith("Nationalpark") || nm.startsWith("Naturpark")) nm else "das Schutzgebiet $nm"
-        fun say(what: String, nm: String) = if (nm != what && OWN_WORD.any { it in nm.lowercase() }) nm else if (nm == what) what else "$what $nm"
-        val named = n.sights.filter { it.first != "Aussichtspunkt" && it.second != it.first }
-        val namedWhat = named.map { it.first }.toSet()
-        val things = named.map { say(it.first, it.second) } +
-            n.sights.filter { it.second == it.first && it.first != "Aussichtspunkt" && it.first !in namedWhat }.map { it.first }
-        val views = n.sights.filter { it.first == "Aussichtspunkt" }.map { it.second }
-        val bits = ArrayList<String>()
-        if (n.reserves.isNotEmpty()) bits.add("durch " + both(n.reserves.take(2).map { kind(short(it.first)) }))
-        if (n.lakes.isNotEmpty()) bits.add(am(n.lakes[0].first))
-        if (things.isNotEmpty()) bits.add("vorbei an " + both(things.distinct().take(3)))
-        if (n.rimKm >= 0.5) bits.add("${SuggestGeo.comma(n.rimKm)} km an Kanten mit Weitblick")
-        if (views.isNotEmpty()) bits.add("Aussicht " + (if (views[0] != "Aussichtspunkt") views[0] else "unterwegs"))
-        for ((nm, k) in known.take(1)) if (k >= 0.25 * n.km) bits.add("${SuggestGeo.comma(k)} km auf ${shortRoute(nm)}")
-        if (n.waterKm >= 1 && n.lakes.isEmpty()) bits.add("${SuggestGeo.comma(n.waterKm)} km am Wasser")
-        if (n.railKm >= 1) bits.add("${SuggestGeo.comma(n.railKm)} km Bahntrasse")
-        val text = if (bits.isNotEmpty()) bits.joinToString(", ") else "${n.forestPct} % am Wald, ${n.groundPct[2] + n.groundPct[3]} % auf Naturwegen"
-        return text.take(1).uppercase() + text.drop(1)
-    }
+    /** score.py `line` ([SuggestText.line]). */
+    fun line(n: Candidate.Numbers, known: List<Pair<String, Double>> = n.known): String = SuggestText.line(n, known)
 
     /** score.py `explain`: title, the reason line, the hints and the five-word verdict of a loop. */
     fun explain(P: Place, c: Candidate) {
@@ -183,48 +210,51 @@ object Score {
         var far = c.nodes[0]
         var fd = -1.0
         for (x in c.nodes) { val d = SuggestGeo.dist(sLon, sLat, net.lon(x), net.lat(x)); if (d > fd) { fd = d; far = x } }
-        val where = "Richtung " + SuggestGeo.direction(sLon, sLat, net.lon(far), net.lat(far))
-        val main = (n.reserves.take(2).map { short(it.first) } + n.lakes.take(1).map { it.first } +
+        val where = SuggestText.toward(SuggestText.direction(sLon, sLat, net.lon(far), net.lat(far)))
+        // what the loop leads to names it first: the wished Ziel's aims, then the finest reached (a summit, a lake …)
+        // (one per kind of Ziel: a place to eat the one nearest the middle; a lake when gone along a good part)
+        fun worthy(a: Aims.Reached) = (a.goal || a.worth >= 0.7) && (a.what != "lake" || a.round >= 0.5) && a.name != "Aussichtspunkt"
+        val perKind = LinkedHashMap<String, Aims.Reached>()
+        for (a in n.aims.filter { worthy(it) }.sortedWith(compareBy<Aims.Reached>({ !it.goal }, {
+            if (it.ziel == "einkehr") Math.abs(it.at - 0.5) else -it.worth * (1 + it.round) - it.ele / 10000.0  // of two summits the higher
+        }))) if (!perKind.containsKey(a.ziel)) perKind[a.ziel] = a
+        var lead = perKind.values.sortedWith(compareBy<Aims.Reached>({ !it.goal }, { -it.worth })).map { it.name }
+        lead = lead.filterIndexed { i, x -> lead.take(i).none { y -> y in x || x in y } }  // "Eckbauer", not "Gasthof Eckbauer"
+        val main = (lead.take(2) + n.reserves.take(2).map { short(it.first) } + n.lakes.take(1).map { it.first } +
             n.known.take(1).filter { it.second >= 0.25 * n.km }.map { shortRoute(it.first) } +
-            (if (n.railKm >= 0.25 * n.km) listOf("Bahntrasse") else emptyList())).distinct().take(2)
+            (if (n.railKm >= 0.25 * n.km) listOf(SuggestText.rail()) else emptyList())).distinct().take(2)
         val title = main.joinToString(" – ")
         c.name = if (main.isNotEmpty()) (if (title.length <= 45) title else main[0])
-        else c.aim.firstOrNull { " bei " in it || " im " in it } ?: where
+        else c.aim.firstOrNull { " bei " in it || " im " in it || it in P.spotNames } ?: where
         c.bearing = where
-        fun km(rows: List<Pair<String, Double>>, pre: String) = rows.map { "${SuggestGeo.comma(it.second)} km $pre${it.first}" }
-        fun kind(nm: String) = if ("schutzgebiet" in nm.lowercase() || nm.startsWith("Nationalpark") || nm.startsWith("Naturpark")) nm else "Schutzgebiet $nm"
-        c.reasons = (km(n.reserves.map { kind(it.first) to it.second }, "im ") + n.lakes.map { "${SuggestGeo.comma(it.second)} km ${am(it.first)}" } +
-            km(n.known, "auf ") + (if (n.waterKm >= 1 && n.lakes.isEmpty()) listOf("${SuggestGeo.comma(n.waterKm)} km am Wasser") else emptyList()) +
-            (if (n.railKm >= 1) listOf("${SuggestGeo.comma(n.railKm)} km Bahntrasse") else emptyList()) +
-            n.sights.take(1).map { (w, nm) -> if (nm != w) "$w $nm" else w } + (if (n.ferryM > 0) listOf("mit Fähre") else emptyList())).take(5)
-        val ch = P.ch; val h = c.hours
-        fun edge(v: Double, lo: Double, hi: Double): Double = if (hi > lo) (v - lo) / (hi - lo) else 0.0
-        val hints = ArrayList<String>()
-        if (c.up > ch.up[1]) hints.add("↑ ${c.up.toInt()} m – mehr als gewünscht (${ch.up[1].toInt()} m)")
-        if (h < ch.hours[0]) hints.add("etwas kürzer als gewünscht")
-        else if (h > ch.hours[1]) hints.add("etwas länger als gewünscht")
-        else if (edge(h, ch.hours[0], ch.hours[1]) > 0.9) hints.add("am oberen Rand der gewünschten Zeit")
-        if (c.up < ch.up[0]) hints.add("weniger Höhenmeter als gewünscht")
-        else { val e = edge(c.up, ch.up[0], ch.up[1]); if (0.9 < e && e <= 1.0) hints.add("am oberen Rand der Höhenmeter") }
-        if (n.roadLongestM >= 200) hints.add("${n.roadLongestM} m an einer Straße am Stück")
-        if (n.doubledPct >= 8) hints.add("${n.doubledPct} % doppelt")
-        if (n.selfCross != 0) hints.add("kreuzt sich einmal")
-        if (n.townPct >= 30) hints.add("${n.townPct} % durch Häuser")
-        c.hints = hints
+        c.reasons = SuggestText.reasons(n)
+        c.hints = SuggestText.hints(c, P.ch)
         c.line = line(n)
-        val ranked = (0 until 5).sortedBy { -c.axes[it] }
-        val weak = ranked.reversed().filter { c.axes[it] < 0.5 }.take(2)
-        c.why = "stark bei " + ranked.take(2).joinToString(" und ") { WORDS.getValue(AXES[it]) } +
-            (if (weak.isNotEmpty()) " · schwächer bei " + weak.joinToString(" und ") { a ->
-                WORDS.getValue(AXES[a]) + (if (a == 4 && c.formParts.isNotEmpty()) " (" + c.formParts.keys.joinToString(", ") + ")" else "")
-            } else "")
+        c.why = SuggestText.why(c)
     }
 
+    /** the wished time is the wish: loops inside it come before loops near it (the selection) */
     private fun fits(P: Place, c: Candidate) = P.ch.hours[0] <= c.hours && c.hours <= P.ch.hours[1]
 
-    /** score.py `order`: with "am Wasser entlang" a loop really at the water first, then inside the wished time, by points. */
+    /** score.py `goals`: the wished Ziel kinds a loop leads to (a reached aim of that kind; Wasser also: a fifth of the
+     * way at water). */
+    fun goals(c: Candidate): Set<String> {
+        val out = LinkedHashSet<String>()
+        for (a in c.reached) if (a.goal) out.add(a.ziel)
+        if (c.waterGoal) out.add("wasser")
+        return out
+    }
+
+    /**
+     * score.py `order`: with a Ziel the loops that lead to it first, then loops about inside the wished time, each by
+     * points. "About": a few minutes short or long count as inside (owner 2026-11-17: „wenn nur ganz knapp drüber,
+     * drunter – dann auch oben lassen“) – 10 % of the range's end, at least 10 minutes.
+     */
     val order: (Place) -> Comparator<Candidate> = { P ->
-        compareBy<Candidate>({ !(P.ch.water && it.numbers.waterPct >= 20) }, { !fits(P, it) }, { -it.score })
+        val lo = P.ch.hours[0]; val hi = P.ch.hours[1]
+        fun slack(h: Double) = maxOf(0.1 * h, 1.0 / 6.0)
+        compareBy<Candidate>({ !(P.ch.ziel.isNotEmpty() && goals(it).isNotEmpty()) },
+            { !(lo - slack(lo) <= it.hours && it.hours <= hi + slack(hi)) }, { -it.score })
     }
 
     /** score.py `choose`: one selection over all cards – ours and the official loops that fit the wish alike. */
@@ -254,18 +284,30 @@ object Score {
         fun uses(c: Candidate, t: Place.Spot) =
             length(inter(core.getValue(c), t.edges)) >= (if (t.kind != "area") 0.25 * P.target else minOf(2500.0, 0.3 * t.m))
         val top = pts(ranked[0])
-        fun atWater(c: Candidate) = P.ch.water && c.numbers.waterPct >= 20
+        // what the wish names is always shown: per chosen Ziel the best loop that leads to it (and first); for the
+        // gemütlich end the best loop along the first known route here
         val route = if (P.ch.signed >= 1.0) P.lines.firstOrNull { it.kind == "route" && it.rank >= 0.9 } else null
         val shown = arrayListOf(ranked[0])
-        if (!atWater(ranked[0])) ranked.firstOrNull { atWater(it) }?.let { shown.add(it) }
-        if (route != null) {
+        for (z in P.ch.ziel) {
+            if (shown.none { z in goals(it) }) ranked.firstOrNull { z in goals(it) }?.let { shown.add(it) }
+        }
+        if (route != null) {  // the clean loop that stays on the route longest
             val onIt = ranked.filter { uses(it, route) && it.axes[4] >= 0.5 }
             onIt.sortedBy { -length(inter(core.getValue(it), route.edges)) }.take(1).forEach { if (it !in shown) shown.add(it) }
         }
         val max = K["max"].i
         val cover = K["cover_behind"].d
+        // what stands out here is shown if its best loop is good enough: an official loop inside the wished time (what
+        // the place's makers laid out), the finest aims, the top lines, then the areas
         for (c in ranked) {
             if (c.official != null && fits(P, c) && c !in shown && shown.size < max && pts(c) >= top - cover && fresh(c, shown)) shown.add(c)
+        }
+        val finest = LinkedHashMap<String, Candidate>()
+        for (c in ranked) for (a in c.reached) {
+            if (a.worth >= 0.9 && (a.what != "lake" || a.round >= 0.5) && !finest.containsKey(a.name)) finest[a.name] = c
+        }
+        for (c in finest.values.take(2)) {
+            if (c !in shown && shown.size < max && pts(c) >= top - cover && fresh(c, shown)) shown.add(c)
         }
         for (t in P.lines.filter { it.rank >= 0.9 }.take(2) + P.areas) {
             val best = ranked.firstOrNull { uses(it, t) }

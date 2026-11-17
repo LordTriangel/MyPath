@@ -8,8 +8,11 @@ import kotlin.math.cos
  * given to [LoopAssembly]: start → point → … → start by the cheapest ways, ways already in the loop dearer. The
  * generators differ only in how they choose the points: turning points per direction (alone, in pairs, high enough for
  * a wished climb), chains through the stand-out areas, a signed route whose ways close into a ring (walked round
- * exactly), lines followed and left. Not ported (build plan, review 2026-11-16): the guessed order of a signed route
- * with gaps ("Rundweg" by 24 directions) – the suggest files' signed loops ([Official]) replace it.
+ * exactly), lines followed and left, aims ([Aims]: a summit, a lake, a viewpoint, a hut … alone, with a turning point a
+ * quarter turn away, two in a chain; a wished Ziel's aims always). When the pool stays small (mountains: few ways, most
+ * points too high for the time) the turning points are tried again in twice as many directions across the whole
+ * wished range. Not ported (build plan, review 2026-11-16): the guessed order of a signed route with gaps ("Rundweg"
+ * by 24 directions) – the suggest files' signed loops ([Official]) replace it.
  */
 class Generate(private val P: Place, private val S: SuggestSettings) {
     private val net = P.net
@@ -20,11 +23,12 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
     private val form = S["form"]
     private val asm = LoopAssembly(P.search, P.start, P.cost, P.tree, ch.freeStemM, Q["used"].d, Q["beside_used"].d)
 
-    /** generate.py `assemble`: the loop's links in walking order, or null. */
-    fun assemble(points: IntArray, costs: Map<Int, DoubleArray>? = null): IntArray? = asm.assemble(points, costs)
+    /** generate.py `assemble`: the loop's links in walking order, or null; [keep] = aims whose way out and back stays. */
+    fun assemble(points: IntArray, costs: Map<Int, DoubleArray>? = null, keep: Set<Int> = emptySet()): IntArray? =
+        asm.assemble(points, costs, keep)
 
     /** generate.py `measure`: the plain measures of a loop from [start] (default the wish's start); null if not closed. */
-    fun measure(edges: IntArray, start: Int = P.start): Candidate? = measure(P, edges, start)
+    fun measure(edges: IntArray, start: Int = P.start, keep: Set<Int> = emptySet()): Candidate? = measure(P, edges, start, keep)
 
     /** generate.py `pool`: all loops worth judging; loops that fit but climb more than wished go to [Place.steep]. */
     fun pool(): List<Candidate> {
@@ -34,23 +38,30 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
         val out = ArrayList<Candidate>()
         val seen = HashSet<List<Int>>()
         P.steep.clear()
-        val roadMax = fam["road_walk_max_m"].d
+        // a loop longer than this along a road with cars is built once more without it (wheels since 2026-11-17 too)
+        val roadMax = fam["road_repair_m"].d
         val repair = Q["road_repair"].d
         fun roadside(e: Int) = F.traffic[e] >= 0.45 && !F.built[e]
         fun calm(cost: DoubleArray) = DoubleArray(cost.size) { if (roadside(it)) cost[it] * repair else cost[it] }
         val calmCost = if (roadMax != 0.0) calm(P.cost) else null
         val shortZero = form["short_zero"].d; val longZero = form["long_zero"].d; val maxCross = form["max_cross"].d
 
-        fun add(points: IntArray, origin: String, aim: List<String> = emptyList(), costs: Map<Int, DoubleArray>? = null): Candidate? {
-            var edges = assemble(points, costs)
+        fun add(points: IntArray, origin: String, aim: List<String> = emptyList(), costs: Map<Int, DoubleArray>? = null,
+                keep: Set<Int> = emptySet()): Candidate? {
+            var edges = assemble(points, costs, keep)
             if (edges != null && calmCost != null && Score.roadRun(F, edges) > roadMax) {
                 val c = HashMap<Int, DoubleArray>()
                 for (i in 0..points.size) c[i] = calmCost
-                if (costs != null) for ((i, cost) in costs) c[i] = calm(cost)
-                edges = assemble(points, c) ?: edges
+                if (costs != null) {
+                    val made = ArrayList<Pair<DoubleArray, DoubleArray>>()  // one calm copy per cost list, not per part
+                    for ((i, cost) in costs) {
+                        c[i] = made.firstOrNull { it.first === cost }?.second ?: calm(cost).also { made.add(cost to it) }
+                    }
+                }
+                edges = assemble(points, c, keep) ?: edges
             }
             val key = edges?.let { e -> e.distinct().sorted() }
-            val m = if (edges != null && key !in seen) measure(edges) else null
+            val m = if (edges != null && key !in seen) measure(edges, keep = keep) else null
             if (m != null) {
                 seen.add(key!!)
                 if (m.cross <= maxCross && (1 - shortZero) * hLo <= m.hours && m.hours <= (1 + longZero) * hHi) {
@@ -67,9 +78,11 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
         fun rise(v: Int): Double { val e = Place.height(net, v); return if (minOf(e, sEle) > -1000) abs(e - sEle) else 0.0 }
         fun hours(metres: Double, vararg via: Int): Double { var r = rise(via[0]); for (v in via) r = maxOf(r, rise(v)); return ch.time(metres, r) }
         fun thereAndBack(v: Int) = hours(2.2 * P.len0[v], v)
-        val sectors = fam["sectors"].d
+        fun pairHours(a: Int, b: Int) =
+            hours(P.len0[a] + 1.3 * SuggestGeo.dist(net.lon(a), net.lat(a), net.lon(b), net.lat(b)) + P.len0[b], a, b)
 
-        fun anchors(fits: (Int) -> Boolean): IntArray {
+        /** Per direction the node that fits and is reached most pleasantly. */
+        fun anchors(sectors: Double, fits: (Int) -> Boolean): IntArray {
             val best = LinkedHashMap<Int, Pair<Double, Int>>()
             for (v in reached) {
                 if (!fits(v)) continue
@@ -81,32 +94,36 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             return best.values.map { it.second }.toIntArray()
         }
 
-        // --- turning points: one per direction (at the short and the long end), then pairs a quarter turn apart
-        for (h in if (hHi < 1.25 * hLo) doubleArrayOf(hMid) else doubleArrayOf(hLo, hHi)) {
-            for (v in anchors { val t = thereAndBack(it); 0.9 * h <= t && t <= 1.1 * h }) add(intArrayOf(v), "Wendepunkt")
-        }
-        if (ch.up[0] >= 100.0) {
-            for (v in anchors {
-                val dz = Place.height(net, it) - sEle
-                val t = thereAndBack(it)
-                0.8 * ch.up[0] <= dz && dz <= ch.up[1] && hLo <= t && t <= hHi
-            }) add(intArrayOf(v), "Anstieg")
-        }
-        val A = anchors { val t = thereAndBack(it); 0.6 * hLo <= t && t <= 0.8 * hHi }
-        class Pr(val fit: Double, val a: Int, val b: Int)
-        val pairs = ArrayList<Pr>()
-        for (a in A) {
-            fun est(b: Int) = hours(P.len0[a] + 1.3 * SuggestGeo.dist(net.lon(a), net.lat(a), net.lon(b), net.lat(b)) + P.len0[b], a, b)
-            fun fit(b: Int): Double { val e = est(b); return maxOf(0.0, hLo - e, e - hHi) }
-            val side = A.filter { val d = SuggestGeo.pyMod(bear.getValue(it) - bear.getValue(a), 360.0); 40.0 <= d && d <= 110.0 }
-            if (side.isNotEmpty()) {
-                var bb = side[0]
-                for (b in side) if (fit(b) < fit(bb)) bb = b
-                pairs.add(Pr(fit(bb), a, bb))
+        /** Turning points: one per direction (at the given times), then pairs a quarter turn apart. */
+        fun turning(sectors: Double, times: DoubleArray, nPairs: Int) {
+            for (h in times) {
+                for (v in anchors(sectors) { val t = thereAndBack(it); 0.9 * h <= t && t <= 1.1 * h }) add(intArrayOf(v), "Wendepunkt")
             }
+            if (ch.up[0] >= 100.0) {  // a climb is wished: turning points high enough
+                for (v in anchors(sectors) {
+                    val dz = Place.height(net, it) - sEle
+                    val t = thereAndBack(it)
+                    0.8 * ch.up[0] <= dz && dz <= ch.up[1] && hLo <= t && t <= hHi
+                }) add(intArrayOf(v), "Anstieg")
+            }
+            val A = anchors(sectors) { val t = thereAndBack(it); 0.6 * hLo <= t && t <= 0.8 * hHi }
+            class Pr(val fit: Double, val a: Int, val b: Int)
+            val pairs = ArrayList<Pr>()
+            for (a in A) {
+                fun fit(b: Int): Double { val e = pairHours(a, b); return maxOf(0.0, hLo - e, e - hHi) }
+                val side = A.filter { val d = SuggestGeo.pyMod(bear.getValue(it) - bear.getValue(a), 360.0); 40.0 <= d && d <= 110.0 }
+                if (side.isNotEmpty()) {
+                    var bb = side[0]
+                    for (b in side) if (fit(b) < fit(bb)) bb = b
+                    pairs.add(Pr(fit(bb), a, bb))
+                }
+            }
+            pairs.sortWith(compareBy<Pr>({ it.fit }, { it.a }, { it.b }))
+            for (p in pairs.take(nPairs)) add(intArrayOf(p.a, p.b), "Wendepunkte")
         }
-        pairs.sortWith(compareBy<Pr>({ it.fit }, { it.a }, { it.b }))
-        for (p in pairs.take(fam["pairs"].i)) add(intArrayOf(p.a, p.b), "Wendepunkte")
+
+        val sectors = fam["sectors"].d
+        turning(sectors, if (hHi < 1.25 * hLo) doubleArrayOf(hMid) else doubleArrayOf(hLo, hHi), fam["pairs"].i)
 
         // --- chains through the stand-out areas, in order around the start, each through its heart
         val areas = P.areas.sortedBy { SuggestGeo.bearing(sLon, sLat, it.lon, it.lat) }
@@ -209,6 +226,76 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
                 }
             }
         }
+
+        // --- aims (Aims): a summit, a lake, a viewpoint, a hut, a castle … as the turning point – alone when the time
+        //     fits, else with a turning point a quarter turn away on either side; two aims in a chain. A wished Ziel's
+        //     aims always; the others by worth and nearness. A lake's shore is cheap while the loop aims at it.
+        val Z = S["aims"]
+        val ziel = ch.ziel
+        fun notChosen(a: Aims.Aim) = if (a.ziel in ziel) 0 else 1
+        fun rankWorth(a: Aims.Aim) = -a.worth / (1.0 + P.len0[a.node] / ch.targetM)
+        val beyond = maxOf(P.access, 0.1 * ch.targetM)  // an aim in the town one starts from is no turning point
+        var pick = P.aims.filter { bear.containsKey(it.node) && P.len0[it.node] >= beyond && thereAndBack(it.node) <= 1.2 * hHi }
+            .sortedWith(compareBy<Aims.Aim>({ notChosen(it) }, { rankWorth(it) }))
+        val nCand = Z["candidates"][if (ch.bike) "wheel" else "foot"].i
+        pick = pick.take(maxOf(nCand, minOf(Z["chosen_candidates"].i, pick.count { it.ziel in ziel })))
+        val shoreF = Z["shore"].d
+        // (made when needed, not kept: on wheels each is a few MB, the POC's cache of them would hold dozens)
+        fun costsFor(vararg aims: Aims.Aim): DoubleArray? {
+            val es = ArrayList<Int>()
+            for (a in aims) if (a.what == "lake") for (e in a.edges.toIntArray()) es.add(e)
+            if (es.isEmpty()) return null
+            val cost = P.cost.copyOf()
+            for (e in es) cost[e] *= shoreF
+            return cost
+        }
+        fun parts(cost: DoubleArray?, n: Int): Map<Int, DoubleArray>? = cost?.let { c -> (0 until n).associateWith { c } }
+        val B = anchors(2 * sectors) { val t = thereAndBack(it); 0.25 * hLo <= t && t <= 0.8 * hHi }
+        for (a in pick) {
+            val v = a.node
+            val cost = costsFor(a)
+            val keep = setOf(v)
+            val tb = thereAndBack(v)
+            if (0.7 * hLo <= tb && tb <= 1.2 * hHi) add(intArrayOf(v), "Ziel", listOf(a.name), parts(cost, 3), keep)
+            if (tb < 0.7 * hLo) {  // near: the loop goes on beyond it, to one side and to the other
+                for (left in booleanArrayOf(true, false)) {
+                    val lo = if (left) 40.0 else 250.0
+                    val hi = if (left) 110.0 else 320.0
+                    val side = B.filter { val d = SuggestGeo.pyMod(bear.getValue(it) - bear.getValue(v), 360.0); lo <= d && d <= hi }
+                    if (side.isEmpty()) continue
+                    fun fit(b: Int): Double { val e = pairHours(v, b); return maxOf(0.0, hLo - e, e - hHi) }
+                    var b = side[0]
+                    for (x in side) if (fit(x) < fit(b)) b = x
+                    val ph = pairHours(v, b)
+                    if (0.7 * hLo <= ph && ph <= 1.25 * hHi) {
+                        add(if (left) intArrayOf(v, b) else intArrayOf(b, v), "Ziel", listOf(a.name), parts(cost, 4), keep)
+                    }
+                }
+            }
+        }
+        class Two(val chosen: Int, val worth: Double, val a: Aims.Aim, val b: Aims.Aim)
+        val two = ArrayList<Two>()
+        for (i in pick.indices) {
+            for (j in i + 1 until pick.size) {
+                val a = pick[i]
+                val b = pick[j]
+                if (a.node == b.node) continue
+                val ph = pairHours(a.node, b.node)
+                if (!(0.7 * hLo <= ph && ph <= 1.2 * hHi)) continue
+                var p = if (bear.getValue(b.node) < bear.getValue(a.node)) b to a else a to b
+                // around the start the short way
+                if (SuggestGeo.pyMod(bear.getValue(p.second.node) - bear.getValue(p.first.node), 360.0) > 180.0) p = p.second to p.first
+                two.add(Two(notChosen(a) + notChosen(b), -(a.worth + b.worth), p.first, p.second))
+            }
+        }
+        for (t in two.sortedWith(compareBy<Two>({ it.chosen }, { it.worth })).take(fam["chains"].i)) {
+            add(intArrayOf(t.a.node, t.b.node), "Ziele", listOf(t.a.name, t.b.name), parts(costsFor(t.a, t.b), 3), setOf(t.a.node, t.b.node))
+        }
+
+        // --- few loops (mountains: few ways, most points too high for the time): more turning points, generally
+        if (out.size + P.steep.size < fam["few"].i) {  // (too steep for the wish is not "few": the flatter re-build is for that)
+            turning(2 * sectors, doubleArrayOf(hLo, hMid, hHi), 2 * fam["pairs"].i)
+        }
         return out
     }
 
@@ -216,7 +303,7 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
     fun runsAlong(pts: DoubleArray, edges: List<Int>, near: Double = 25.0): PyIntSet = runsAlong(net, pts, edges, near)
 
     companion object {
-        fun measure(P: Place, edges: IntArray, start: Int): Candidate? {
+        fun measure(P: Place, edges: IntArray, start: Int, keep: Set<Int> = emptySet()): Candidate? {
             val net = P.net; val F = P.F; val ch = P.ch
             val nodes = IntArray(edges.size + 1)
             val at = DoubleArray(edges.size + 1)
@@ -235,11 +322,22 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             for (e in edges) count[e] = (count[e] ?: 0) + 1
             var doubled = 0.0
             for ((e, c) in count) if (c > 1) doubled += F.ln[e] * (c - 1)
+            // out to an aim and back the same way: part of the loop, not walked twice, no meeting
+            var tip = 0.0
+            val onTip = HashSet<Int>()
+            if (keep.isNotEmpty()) for (i in 1 until edges.size) {
+                if (nodes[i] !in keep) continue
+                var j = 0
+                while (i - 1 - j >= 0 && i + j < edges.size && edges[i - 1 - j] == edges[i + j]) { tip += F.ln[edges[i + j]]; j++ }
+                for (x in i - j..i + j) onTip.add(x)
+            }
+            doubled -= tip
             val seen = HashMap<Int, Int>()
             var cross = 0
             var inRun = false
             var last = -1e9
             for (i in stem until nodes.size - 1 - stem) {
+                if (i in onTip) { seen[nodes[i]] = i; continue }
                 val j = seen[nodes[i]]
                 if (j != null && i - j > 1 && !(at[j] <= free && total - at[i] <= free)) {
                     if (!inRun && at[i] - last > 150.0) cross++
