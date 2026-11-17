@@ -408,7 +408,14 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   83 of 83. Desktop JVM, app's NetReader, warm, smallest −Xmx that runs (`port/measure.sh`): hike 2 h Hilden 0.34 s /
   48 MB; hike 3 h Mittenwald, Ziel Gipfel 0.14 s / 48 MB; bike 3 h Zons 3.8 s / 256 MB (the stage-2 code needed the same
   256 MB and 2.9 s; 160 MB failed in its Facts); bike 3 h Nordkirchen 2.3 s / 160 MB. Bike 3 h needs the phone check
-  (memory) before stage 4.
+  (memory) before stage 4. **Memory pass (IR 2026-11-18, branch `wip/ir-2026-11-18-core-memory`, results unchanged:
+  parity graph and reader identical to before)**: facts with few distinct values as 2-byte codes (`CodedDoubles`,
+  `SmallInts`), the axis values per way worked out when asked, the land grid read grid by grid (one grid's summed-area
+  tables in memory), primitive maps instead of boxed ones (road grid in blocks, named index, bearings, aims grid), no
+  copies of cost or search arrays per loop (calm rebuild scales on the way), a 4-ary search heap, one BRouter text per
+  way kind. Smallest −Xmx (measure.sh's 3 runs, G1) before → after: hike 2 h Hilden 40 → 24 MB, Mittenwald Gipfel
+  32 → 24 MB, bike 3 h Zons 256 → 128 MB, Nordkirchen 160 → 64 MB (one run with SerialGC ≈ live peak: Zons 224 → 96 MB);
+  CPU time warm: Zons 2.8 → 2.0 s, Nordkirchen 1.9 → 1.1 s, Hilden 0.31 → 0.21 s.
 - **Review 2026-11-16 (owner asked for a step back) – the build plan.** Kept: facts → place → character → candidates →
   five axes → selection; measuring against official loops; the compact network core. Changed:
   **a small suggest file per map cell, built by the map pipeline** (owner 2026-11-16: „Ja, Vorschlags-Datei“): the ~45 m
