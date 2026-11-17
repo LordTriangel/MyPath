@@ -48,10 +48,21 @@ Known weak spots stay as listed in the README ("Weak spots"); they are for the K
 ## Python is the lab again (owner 2026-11-17)
 
 Python is the lab again; changes are collected and ported to Kotlin in one batch once the owner accepts them on the
-page. Until then parity with the Kotlin core is off for these changes on purpose (`port/parity.sh` against the renewed
-reference: the official loops differ; everything else is identical).
+page. Until then parity with the Kotlin core is off for these changes on purpose.
 
-### The batch to port (in this order)
+**The batch below is ported (IR 2026-11-17, stage 3a, branch `wip/ir-2026-11-17-port-batch`): parity restored.**
+How the reference is made now: the suggest files rebuilt with content 2 (AIMS) for every POC cell
+(`~/onpath-suggest-poc/suggest-file/cells-c2/`, `build_c2_par.sh` there), the POC run on them alone, as phone and planner
+work: `SUGGEST_FILE=1 SUGGEST_FILES=~/onpath-suggest-poc/suggest-file/cells-c2 SUGGEST_REQUEST_CELLS=0 python3
+reference.py ~/onpath-suggest-poc/reference --all` (30 wishes: the 22 case starts, three more with a Ziel –
+mittenwald-gipfel, hilden-kultur, heide-einkehr –, the five official loops' wishes; the reference of the stage-2 port is
+kept as `reference-2026-11-17-before-batch/`). In git 17 of them, 1.7 MB. `cases.py` in that mode: 83 of 83.
+`port/parity.sh graph`: every candidate both build identical (score difference 0.0) in all 30 wishes; the choice the same
+in 27 – the three others (nrw-rad-naafbachtal, rhein-rad, rlp-rad-altenkirchen) show a gapped "Rundweg" the port does
+not build (its guessed order is not ported; the files' signed loops replace it); `cases.py` in Kotlin 83 of 83. Ported
+in the order of the list; the next batch starts below the line at the end.
+
+### The batch to port (in this order) – ported 2026-11-17
 
 1. **2026-11-17, official loops as a ride from the start** (owner's finding: "Bei Nordkirchen, Rad 1,5 bis 2 h …
    ausgeschilderte Rundwege, obwohl sie bis zu 13 km entfernt sind … die Anfahrt einbeziehen"). Before, an official
@@ -90,3 +101,7 @@ reference: the official loops differ; everything else is identical).
    - The port's fixtures (`port/fixtures.py`) still send the old fields – rebuild them with the batch.
    - Not for the batch: `cells.ensure` asks again for a missing cell after 10 minutes (POC edge only).
 - (batch, owner 2026-11-17) card order: loops a few minutes outside the wished time (10 % of the range end, at least 10 min) sort with the ones inside (`score.order`).
+
+### The next batch (not ported yet)
+
+(nothing yet – a method change in the Python lab goes here with what to change in Kotlin)

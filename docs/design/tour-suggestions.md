@@ -385,6 +385,30 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   0.23 s, bike 3 h Zons 1.9 s / Nordkirchen 1.4 s (Python: 1.5 s / 14 s). Unit tests: `SuggestCoreTest` (file reader
   against `suggest_file.py`, Python's set order, the character, the settings; fixtures by
   `tools/suggest-poc/port/fixtures.py`).
+  **Stage 3a, the batch since the freeze (IR 2026-11-17, branch `wip/ir-2026-11-17-port-batch`; still invisible):**
+  official loops as a ride from the wished start (`Official.near`); the wish without Natur / Ruhe / Bekannte Wege /
+  am Wasser, with the **Ziel** (`Wish.ziel`: gipfel · wasser · aussicht · einkehr · kultur; Besonderes × `aims.weight`
+  with a Ziel; `Character.path` on foot); **aims** (`Aims.kt`: from the suggest files' AIMS section, content 2 – peaks
+  with height, huts, restaurants, cafés, springs, museums – plus named sights and lakes: a turning point each; reached
+  = passed within reach (a peak not too far below its top), a lake along `lake_min` of its shore; worth on raw
+  Besonderes, more for a chosen Ziel, Einkehr full in the middle only); `Generate`: aims alone / a quarter turn either
+  side / two in a chain, the lake shore cheap while aimed at, the way up to a summit kept (`keep` in assemble,
+  cut_spurs, measure), the "few" retry (twice the sectors at three times), road repair from `road_repair_m` (wheels
+  too); `Facts.width` and Weg from the way's width on foot, Natur with `water_natur` and the landscape **variety**;
+  `Score.choose`: one card per chosen Ziel and for the two finest aims; the order's sort slack (10 % of the range end,
+  at least 10 min); title, reasons and line name the aims („Gipfel Eckbauer (1237 m)“, „rund um den Lautersee“,
+  „Einkehr …“). `TourSuggester` notes „Die Karte wird hier gerade aktualisiert …“ (and `SuggestResult.mapUpdating`)
+  when a cell in reach has no suggest file **or one older than content 2**. **The card words are in the strings
+  module** (`strings_suggest.xml`, DE = the POC's words, EN new; `SuggestText.kt` reads them through `Txt` as the
+  planner's other shared files do, numbers with the language's decimal mark; the parity tool compiles a German
+  stand-in, `port/strings_stub.py`). Parity against the renewed reference (POC on the content-2 files alone,
+  `SUGGEST_FILE=1`, 30 wishes – FROZEN.md): `graph` every candidate both build identical (0.0), the choice the same in
+  27 of 30 (the 3 others: a chosen gapped "Rundweg", not ported), `cases.py` 83 of 83 (Python too); `reader` 77–100 %
+  of the loops both build the same (mean 92 %), points within 0–2 (one 5.6), choice the same in 21 of 30, `cases.py`
+  83 of 83. Desktop JVM, app's NetReader, warm, smallest −Xmx that runs (`port/measure.sh`): hike 2 h Hilden 0.34 s /
+  48 MB; hike 3 h Mittenwald, Ziel Gipfel 0.14 s / 48 MB; bike 3 h Zons 3.8 s / 256 MB (the stage-2 code needed the same
+  256 MB and 2.9 s; 160 MB failed in its Facts); bike 3 h Nordkirchen 2.3 s / 160 MB. Bike 3 h needs the phone check
+  (memory) before stage 4.
 - **Review 2026-11-16 (owner asked for a step back) – the build plan.** Kept: facts → place → character → candidates →
   five axes → selection; measuring against official loops; the compact network core. Changed:
   **a small suggest file per map cell, built by the map pipeline** (owner 2026-11-16: „Ja, Vorschlags-Datei“): the ~45 m
