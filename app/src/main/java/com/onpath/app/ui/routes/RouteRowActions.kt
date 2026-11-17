@@ -1,4 +1,4 @@
-package com.onpath.app.domain.routes
+package com.onpath.app.ui.routes
 
 import com.onpath.app.data.TourKind
 

@@ -1,8 +1,8 @@
-package com.onpath.app.domain.routes
+package com.onpath.app.ui.routes
 
 import com.onpath.app.data.TourKind
-import com.onpath.app.domain.routes.RouteRowActions.Action
-import com.onpath.app.domain.routes.RouteRowActions.Section
+import com.onpath.app.ui.routes.RouteRowActions.Action
+import com.onpath.app.ui.routes.RouteRowActions.Section
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

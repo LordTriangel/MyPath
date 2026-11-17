@@ -2,7 +2,7 @@ package com.onpath.app.ui
 
 import com.onpath.app.domain.RouteShape
 import com.onpath.app.domain.RoutesTab
-import com.onpath.app.domain.routes.RouteRowActions
+import com.onpath.app.ui.routes.RouteRowActions
 import com.onpath.app.domain.routes.RouteSort
 import com.onpath.app.ui.routes.RouteSortChips
 import kotlinx.coroutines.launch
