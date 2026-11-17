@@ -30,6 +30,9 @@ class ViewModelInitOrderTest {
         }.toSet()
         val declaredLate = assigned.mapNotNull { n -> declLine(n).takeIf { it > initAt }?.let { "$n (line ${it + 1})" } }
         assertEquals("declared after the init block at line ${initAt + 1}", emptyList<String>(), declaredLate)
+        // the route run's state is written through routeEvent() (no plain assignment in recalc for the check above)
+        assertTrue("recalc() sends the route run its event", (start..end).any { lines[it].contains("routeEvent(RouteRun.Event.Recalc(") })
+        assertTrue("routeRun declared above the init block", declLine("routeRun") in 0 until initAt)
     }
 
     /** Index of the line closing the block opened on line [open] (string literals and // comments ignored). */
