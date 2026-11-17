@@ -102,4 +102,35 @@
     <string name="suggest_form_ascent">climbing</string>
     <string name="suggest_form_doubled">same way twice</string>
     <string name="suggest_form_crosses">crosses itself</string>
+    <!-- the planner's round-trip panel (web/app/src/suggest.ts, docs/design/tour-suggestions.md §7 stage 3) -->
+    <string name="suggest_ui_from_here">Round trip from here</string>
+    <string name="suggest_ui_activity">Activity</string>
+    <string name="suggest_ui_time">Time</string>
+    <string name="suggest_ui_ascent">Ascent</string>
+    <string name="suggest_ui_ziel">Aim</string>
+    <string name="suggest_ziel_gipfel">Summit</string>
+    <string name="suggest_ziel_wasser">Water</string>
+    <string name="suggest_ziel_aussicht">View</string>
+    <string name="suggest_ziel_einkehr">Food stop</string>
+    <string name="suggest_ziel_kultur">Culture</string>
+    <string name="suggest_ui_hours">%1$s–%2$s h</string>
+    <string name="suggest_ui_ascent_upto">up to %1$s m</string>
+    <string name="suggest_ui_ascent_range">%1$s–%2$s m</string>
+    <string name="suggest_ui_ascent_from">from %1$s m</string>
+    <string name="suggest_ui_ascent_any">any</string>
+    <string name="suggest_ui_wait">Looking for round trips …</string>
+    <string name="suggest_ui_loading">Loading map data … %1$s %</string>
+    <string name="suggest_ui_change">Change wish</string>
+    <string name="suggest_ui_take">Use this</string>
+    <string name="suggest_ui_badge_signed">Signposted · %1$s</string>
+    <string name="suggest_ui_badge_own">Suggestion</string>
+    <string name="suggest_ui_on_loop">%1$s km of it on the signed loop</string>
+    <string name="suggest_ui_failed">No suggestions right now – please try again.</string>
+    <string name="suggest_ui_taking">Making the plan …</string>
+    <string name="suggest_ui_test_on">Tour suggestions (test): on</string>
+    <string name="suggest_ui_test_off">Tour suggestions (test): off</string>
+    <plurals name="suggest_ui_count">
+        <item quantity="one">one round trip</item>
+        <item quantity="other">%1$s round trips</item>
+    </plurals>
 </resources>

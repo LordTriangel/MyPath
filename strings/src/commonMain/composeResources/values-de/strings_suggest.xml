@@ -100,4 +100,35 @@
     <string name="suggest_form_ascent">Höhenmeter</string>
     <string name="suggest_form_doubled">doppelt</string>
     <string name="suggest_form_crosses">kreuzt sich</string>
+    <!-- the planner's round-trip panel (web/app/src/suggest.ts, docs/design/tour-suggestions.md §7 stage 3) -->
+    <string name="suggest_ui_from_here">Rundtour von hier</string>
+    <string name="suggest_ui_activity">Aktivität</string>
+    <string name="suggest_ui_time">Zeit</string>
+    <string name="suggest_ui_ascent">Höhenmeter</string>
+    <string name="suggest_ui_ziel">Ziel</string>
+    <string name="suggest_ziel_gipfel">Gipfel</string>
+    <string name="suggest_ziel_wasser">Wasser</string>
+    <string name="suggest_ziel_aussicht">Aussicht</string>
+    <string name="suggest_ziel_einkehr">Einkehr</string>
+    <string name="suggest_ziel_kultur">Kultur</string>
+    <string name="suggest_ui_hours">%1$s–%2$s h</string>
+    <string name="suggest_ui_ascent_upto">bis %1$s m</string>
+    <string name="suggest_ui_ascent_range">%1$s–%2$s m</string>
+    <string name="suggest_ui_ascent_from">ab %1$s m</string>
+    <string name="suggest_ui_ascent_any">egal</string>
+    <string name="suggest_ui_wait">Runden werden gesucht …</string>
+    <string name="suggest_ui_loading">Kartendaten werden geladen … %1$s %</string>
+    <string name="suggest_ui_change">Wunsch ändern</string>
+    <string name="suggest_ui_take">Übernehmen</string>
+    <string name="suggest_ui_badge_signed">Ausgeschildert · %1$s</string>
+    <string name="suggest_ui_badge_own">Vorschlag</string>
+    <string name="suggest_ui_on_loop">davon %1$s km auf dem Rundweg</string>
+    <string name="suggest_ui_failed">Gerade keine Vorschläge möglich – bitte noch einmal versuchen.</string>
+    <string name="suggest_ui_taking">Plan wird erstellt …</string>
+    <string name="suggest_ui_test_on">Tourvorschläge (Test): an</string>
+    <string name="suggest_ui_test_off">Tourvorschläge (Test): aus</string>
+    <plurals name="suggest_ui_count">
+        <item quantity="one">eine Rundtour</item>
+        <item quantity="other">%1$s Rundtouren</item>
+    </plurals>
 </resources>
