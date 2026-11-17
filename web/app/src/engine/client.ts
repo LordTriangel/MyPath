@@ -211,6 +211,14 @@ export class EngineClient {
     return r.text;
   }
 
+  /** Round-trip suggestions for [wish] (WebSuggest.kt): the cards JSON, or {error}; the routing data and the cells'
+   *  suggest files within reach are fetched first ([onProgress]: the download, then 'route' while it computes). */
+  async suggest(wish: object, cells: string, onProgress?: (p: Progress) => void): Promise<string> {
+    const r = await this.ask({ type: 'suggest', wish: JSON.stringify(wish), cells }, onProgress);
+    if (!r.ok || r.text == null) throw new Error(r.error ?? 'no suggestions');
+    return r.text;
+  }
+
   /** Index where a clicked point goes (the app's WaypointInsertion rule). */
   async insertIndex(points: [number, number][], lat: number, lon: number, lineSnapM: number): Promise<number> {
     const r = await this.ask({ type: 'insert', points: enc(points), lat, lon, lineSnapM });

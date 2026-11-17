@@ -57,6 +57,7 @@ interface WasmEngine {
   planTime(points: string, activity: string, sac: number): string;
   rangeStats(points: string, activity: string, sac: number, fromM: number, toM: number): string;
   mapTexts(): string;
+  suggest(op: string, json: string): string;
 }
 
 /** Small synchronous calls the page may make by name (the app's pure UI rules – see client.ts). */
@@ -241,9 +242,11 @@ function layout(e: WasmEngine, tile: string): Promise<number[] | null> {
  * Fetches the parts [points] need that the engine does not have yet (each part once, also when a prefetch and a plan
  * ask at the same time). Returns bytes downloaded by this call.
  */
-async function ensureParts(e: WasmEngine, points: string, activity: string, onNeed?: (bytes: number, done: number) => void): Promise<number> {
-  // the phone's corridor for the activity (OfflineCorridor: 10 km on foot, 20 km by bike; '' = not known → the largest)
-  const need: [string, number][] = JSON.parse(e.partsNeeded(points, activity));
+async function ensureParts(e: WasmEngine, points: string, activity: string, onNeed?: (bytes: number, done: number) => void,
+  given?: [string, number][]): Promise<number> {
+  // the phone's corridor for the activity (OfflineCorridor: 10 km on foot, 20 km by bike; '' = not known → the largest);
+  // [given] = the parts a caller worked out itself (round-trip suggestions: all within reach of the start)
+  const need: [string, number][] = given ?? JSON.parse(e.partsNeeded(points, activity));
   let stop = () => {};
   if (onNeed) {
     // what is still to download (the layouts are small and fetched first), so the page can say how far it is (the load
@@ -398,6 +401,7 @@ self.onmessage = async (ev: MessageEvent<EngineRequest>) => {
       reply({ id: req.id, ok: true, text: e.gpxRead(new Int8Array(req.data.buffer, req.data.byteOffset, req.data.length), req.fileName, req.activity, req.sac) });
       return;
     }
+    if (req.type === 'suggest') { await suggest(e, req); return; }
     const t0 = performance.now();
     const fetched = await ensureParts(e, req.points, req.activity ?? '', (bytes, done) => reply({ id: req.id, ok: true, progress: { phase: 'download', bytes, done } }));
     if (dropped.delete(req.id)) { reply({ id: req.id, ok: false, error: 'dropped', cancelled: true }); return; } // superseded while downloading
@@ -429,5 +433,64 @@ self.onmessage = async (ev: MessageEvent<EngineRequest>) => {
     reply({ id: req.id, ok: false, error: String(err) });
   }
 };
+
+// ---- round-trip suggestions (WebSuggest.kt, docs/design/tour-suggestions.md §7 stage 3) ----
+const suggestFiles = new Map<string, Promise<void>>();
+let suggestSettings: Promise<void> | null = null;
+
+/** The method's numbers (tools/suggest-poc/settings.json, copied at build time) – once per engine. */
+function settingsFor(e: WasmEngine): Promise<void> {
+  if (!suggestSettings) {
+    const p = (async () => {
+      const r = await fetchRetry(new URL('suggest/settings.json?v=' + BUILD, base).href);
+      if (!r.ok) throw new Error(`suggest settings: HTTP ${r.status}`);
+      e.putFile('assets/suggest/settings.json', new Int8Array(await r.arrayBuffer()));
+    })();
+    p.catch(() => { if (suggestSettings === p) suggestSettings = null; });
+    suggestSettings = p;
+  }
+  return suggestSettings;
+}
+
+/**
+ * One map cell's suggest file ([root]cells/f2/10/x/y/<version>/suggest.bin, the cell's current version) into the
+ * engine; a cell without one (not built, or built before the suggest layer) stays without – the engine then says
+ * „Die Karte wird hier gerade aktualisiert“. Each cell once per page (a failed read is tried again next time).
+ */
+function suggestCell(e: WasmEngine, root: string, x: number, y: number): Promise<void> {
+  const key = `${x}/${y}`;
+  let p = suggestFiles.get(key);
+  if (!p) {
+    p = (async () => {
+      const dir = new URL(`cells/f2/10/${x}/${y}/`, root).href;
+      const cur = await fetchRetry(dir + 'current.json', { cache: 'no-cache' });
+      if (cur.status === 404) return; // no map here
+      if (!cur.ok) throw new Transient(`cell ${key}: current.json HTTP ${cur.status}`);
+      const version = ((await cur.json()) as { version?: string }).version;
+      if (!version) return;
+      const b = await fileBytes(`${dir}${version}/suggest.bin`);
+      if (b) e.putFile(`suggest/10-${x}-${y}/suggest.bin`, new Int8Array(b.buffer, b.byteOffset, b.length));
+    })();
+    keep(suggestFiles, key, p);
+  }
+  return p.catch((err) => console.warn(`[Problems] WARN suggest: suggest file of cell ${key} not read`, err));
+}
+
+async function suggest(e: WasmEngine, req: Extract<EngineRequest, { type: 'suggest' }>) {
+  const t0 = performance.now();
+  await settingsFor(e);
+  const need: { parts: [string, number][]; cells: [number, number][]; error?: string } = JSON.parse(e.suggest('need', req.wish));
+  if (need.error) { reply({ id: req.id, ok: true, text: JSON.stringify({ error: need.error }) }); return; }
+  const progress = (bytes: number, done: number) => reply({ id: req.id, ok: true, progress: { phase: 'download', bytes, done } });
+  const [fetched] = await Promise.all([ensureParts(e, '', '', progress, need.parts),
+    ...need.cells.map(([x, y]) => suggestCell(e, req.cells, x, y))]);
+  if (dropped.delete(req.id)) { reply({ id: req.id, ok: false, error: 'dropped', cancelled: true }); return; }
+  reply({ id: req.id, ok: true, progress: { phase: 'route' } });
+  const t1 = performance.now();
+  const text = e.suggest('run', req.wish);
+  const t2 = performance.now();
+  reply({ id: req.id, ok: true, text, stats: { engineLoadMs: loadMs.engine, fetchMs: t1 - t0, routeMs: t2 - t1, bytesFetched: fetched },
+    problems: JSON.parse(e.problems()) });
+}
 
 function reply(r: EngineReply) { (self as unknown as DedicatedWorkerGlobalScope).postMessage(r); }
