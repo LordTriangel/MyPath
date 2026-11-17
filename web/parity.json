@@ -726,7 +726,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/routing/PlanEdits.kt": {
-      "blob": "19d389b3b011ab0c2bc128e4e9563d3c11da3ada",
+      "blob": "1c033499f4298198bb4306633264c82401f18e4e",
       "perf": [
         "var bestCost = Double.MAX_VALUE"
       ]
@@ -763,7 +763,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/data/Geo.kt": {
-      "blob": "7c6d06a651f334fa025981c201f7c6a3fc674000",
+      "blob": "6afc436075050d24280bb36c08740ba900f4920f",
       "perf": [
         "var best = line[0]; var bestD = Double.MAX_VALUE",
         "if (line.isEmpty()) return Double.MAX_VALUE",
@@ -800,22 +800,55 @@
       "perf": []
     },
     "app/src/main/java/com/onpath/app/routing/PlanCode.kt": {
-      "blob": "a96931dabbf8ca2400e732fa172afe8c63c973c4",
+      "blob": "4d11652b07aa053a1a2e6c5930d2df5807d15b4f",
       "perf": [
+        "/** Limits per day of a multi-day tour (owner 2026-11-17: \"Natürlich bleiben die Grenzen pro Tag\"); null = no limit. */",
         "const val MAX_POINTS = 500",
         "const val MAX_NAME = 100",
+        "const val MAX_DAYS = 99",
+        "const val MAX_ADDRESS = 200",
+        "const val MAX_LINK = 500",
+        "const val MAX_DESCRIPTION = 2_000",
+        "private const val MAX_LIMIT_MIN = 24 * 60",
+        "private const val MAX_LIMIT_ASCENT = 20_000",
         "private const val MAX_TEXT = 16_000",
         "/** The code for [plan] (without \"p=\"). Points beyond [MAX_POINTS] and over-long names are cut. */",
         "val pts = plan.points.take(MAX_POINTS)",
+        "plan.days?.let { out.field(TAG_DAYS, Bytes().apply { varint(it.coerceIn(1, MAX_DAYS).toLong()) }.toArray()) }",
+        "varint(limit(plan.limits.maxTimeMin, MAX_LIMIT_MIN).toLong()); varint(limit(plan.limits.maxAscentM, MAX_LIMIT_ASCENT).toLong())",
+        "clean(h.address, MAX_ADDRESS)?.let { b.field(HOTEL_ADDRESS, it.encodeToByteArray()) }",
+        "clean(h.link, MAX_LINK)?.let { b.field(HOTEL_LINK, it.encodeToByteArray()) }",
         "if (t.isEmpty() || t.length > MAX_TEXT) return null",
         "if (n < 0 || n > MAX_POINTS) return null",
-        "s.filter { it >= ' ' }.trim().take(MAX_NAME).trim().takeIf { it.isNotEmpty() }"
+        "TAG_DAYS -> days = f.varint().takeIf { it in 1..MAX_DAYS }?.toInt()",
+        "TAG_LIMITS -> limits = DayLimits(limitOf(f.varint(), MAX_LIMIT_MIN), if (f.more()) limitOf(f.varint(), MAX_LIMIT_ASCENT) else null)",
+        "HOTEL_ADDRESS -> address = clean(text, MAX_ADDRESS)",
+        "HOTEL_LINK -> link = clean(text, MAX_LINK)",
+        "private fun limit(v: Int?, max: Int): Int = v?.takeIf { it in 1..max } ?: 0",
+        "private fun clean(s: String?, max: Int = MAX_NAME): String? =",
+        "?.take(MAX_DESCRIPTION)?.trim()?.takeIf { it.isNotEmpty() }"
       ]
     },
     "app/src/main/java/com/onpath/app/routing/PlanPoints.kt": {
       "blob": "7301c5f0ca06814840aa55f5d45fd83bdf5bcc94",
       "perf": [
         "var best = Double.MAX_VALUE"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/routing/PlanDays.kt": {
+      "blob": "94fa7638cf8ade64a86a2e91a46268df9e99398b",
+      "perf": [
+        "/** A limit per day a day is above (R8: its row turns orange with that value). */",
+        "* a limit where that is possible, otherwise about equal by time (owner 2026-11-17). A day above a limit is flagged",
+        "/** How far a day [a]..[b] fills the limits (1 = at a limit); without limits its time. */",
+        "* step above a limit is a day of its own (it cannot be split). 1 without limits.",
+        "* [count] proposals on the stretch [s]..[e]: equal by time; when that puts a day above a limit although",
+        "* (1 … [PlanCode.MAX_DAYS], at least one more than night marks); its night marks stay.",
+        "return plan.copy(days = minOf(maxOf(days, nights.size + 1), PlanCode.MAX_DAYS), nights = nights)",
+        "return DayEdit(plan.copy(days = days.coerceAtMost(PlanCode.MAX_DAYS), nights = plan.nights + (index to mark)),",
+        "var best = -1; var bestD = Double.MAX_VALUE",
+        "* (\"Erst eine Übernachtung entfernen\"), below 1 or above [PlanCode.MAX_DAYS].",
+        "if (days < nights.size + 1 || days < 1 || days > PlanCode.MAX_DAYS) return null"
       ]
     },
     "app/src/main/java/com/onpath/app/search/Place.kt": {
@@ -1252,7 +1285,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/NetSearch.kt": {
-      "blob": "181b4a8f7ca4522c8748cb0a548c36c5d5db6730",
+      "blob": "debedd2ca64ed3c39c2295cf51e92054809473df",
       "perf": [
         "* expanded. Ties are broken by node number, as Python's heap of (cost, node) does."
       ]
@@ -1268,7 +1301,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/SuggestFile.kt": {
-      "blob": "63fcd83b7dc7fab6aac3723af4669f05a99c3a03",
+      "blob": "4e384d9fc5114fa6447f02aed79c47e6aba6dbf1",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/suggest/SuggestSettings.kt": {
@@ -1284,7 +1317,7 @@
       "perf": []
     },
     "app/src/main/java/com/onpath/app/suggest/Character.kt": {
-      "blob": "a1791b470b366c0290dcf5e28136845f5df4642f",
+      "blob": "6715e0d08981ffb1f153c4578da5963a927e26f8",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/suggest/Land.kt": {
@@ -1292,56 +1325,67 @@
       "perf": []
     },
     "app/src/main/java/com/onpath/app/suggest/Named.kt": {
-      "blob": "ede0c52c142f5cf5e4e6c434dcd38d808ce719c4",
+      "blob": "676ffe18590c7a35f64196e9372a8bc5f6dacc4e",
       "perf": [
         "class DoubleList(capacity: Int = 64) {",
         "private var a = DoubleArray(capacity)"
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/Facts.kt": {
-      "blob": "c8186c481f00d47afc803c39ba09731a0b8603b0",
+      "blob": "fdb13e9482a7530be44421d5ed71df37185423ee",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/suggest/Place.kt": {
-      "blob": "b44535df40b84059b0ee2fe11385d82f8bdf88e0",
+      "blob": "4437096ca864cc66baf97f3e17b5edab9dcefd95",
       "perf": [
         "/** loops that fit but climb more than wished (generate.pool) */"
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/Candidate.kt": {
-      "blob": "d4c95f0a7e45631588289809f3c1afd94f828205",
+      "blob": "02d3008eb8f796fcf566887cdf927c505cfe7f6d",
       "perf": [
         "* One loop of the pool – ours or an official signed loop laid onto the network – with everything the judging, the"
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/Generate.kt": {
-      "blob": "6dde65ab19d7b1d8b573dd112bdbe133946885cf",
+      "blob": "f46625210fcec91507b94230ee13ab949efae64e",
       "perf": [
         "* Building loops – one pool, one assembly routine (the POC's `generate.py`). Every loop is a list of turning points",
+        "* quarter turn away, two in a chain; a wished Ziel's aims always). When the pool stays small (mountains: few ways, most",
         "/** generate.py `pool`: all loops worth judging; loops that fit but climb more than wished go to [Place.steep]. */",
         "fun pool(): List<Candidate> {",
+        "// (made when needed, not kept: on wheels each is a few MB, the POC's cache of them would hold dozens)",
         "var w = Double.MAX_VALUE; var s = Double.MAX_VALUE; var e = -Double.MAX_VALUE; var n = -Double.MAX_VALUE"
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/Official.kt": {
-      "blob": "db0e44ca5ed30d8d32e5fa013dee465ea1673a68",
-      "perf": [
-        "var fd = Double.MAX_VALUE"
-      ]
+      "blob": "aacc1ba22ad4c82dc956e83d3a9a8b3e329c27ba",
+      "perf": []
     },
     "app/src/main/java/com/onpath/app/suggest/Score.kt": {
-      "blob": "59d53e11a7ff6f821a133aa4f46662455ebe4d11",
+      "blob": "511bc8ac889a7464471de2586fe276426038ebdb",
       "perf": [
         "if (s.length > 40 && \" · \" in s) s = s.split(\" · \", limit = 2)[1]"
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/TourSuggester.kt": {
-      "blob": "20b00f952a57f75cc1f6e15f1d5a006315197963",
+      "blob": "cad1981e20657a8b7b29a0483faf5ebc41042fcb",
       "perf": [
         "/** What one wish gave: the shown suggestions first (in list order), then the rest of the pool by points. */",
         "var cands = Generate(P, S).pool()",
         "cands = Generate(P, S).pool()"
       ]
+    },
+    "app/src/main/java/com/onpath/app/suggest/Aims.kt": {
+      "blob": "5f7872d0f1a892c278453258a1428995b5127fd8",
+      "perf": [
+        "var d = Double.MAX_VALUE",
+        "var hit = Double.MAX_VALUE"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/suggest/SuggestText.kt": {
+      "blob": "3c5c29f8144ef1a821a8605edb70ef0aa4f47bcf",
+      "perf": []
     },
     "app/src/test/java/com/onpath/app/routing/OfflineCorridorTest.kt": {
       "blob": "d106d511aeffa606325dace25a9e3d9c84fac957",
@@ -1355,6 +1399,29 @@
         "assertEquals(PlanCode.MAX_POINTS, back.points.size)",
         "assertEquals(PlanCode.MAX_NAME, back.names[0]!!.length)"
       ]
+    },
+    "app/src/test/java/com/onpath/app/routing/PlanCodeDaysTest.kt": {
+      "blob": "1b3701df2ff2d1505f13d717b0793616036fbd2e",
+      "perf": [
+        "assertEquals(PlanCode.MAX_DAYS, back.days)",
+        "assertEquals(PlanCode.MAX_NAME, h.name!!.length)",
+        "assertEquals(PlanCode.MAX_ADDRESS, h.address!!.length)",
+        "assertEquals(PlanCode.MAX_LINK, h.link!!.length)",
+        "assertEquals(PlanCode.MAX_DESCRIPTION, back.description!!.length)"
+      ]
+    },
+    "app/src/test/java/com/onpath/app/routing/PlanDaysTest.kt": {
+      "blob": "d92a88331de33b3fd17f079d0ad7ac2fb5626398",
+      "perf": [
+        "assertNull(PlanDays.setDays(blue, PlanCode.MAX_DAYS + 1))",
+        "// and otherwise as equal by time as the limit lets them be: day 1 climbs 1000 m, the rest share 350 km",
+        "// without the limit: equal by time",
+        "assertEquals(PlanCode.MAX_DAYS, PlanDays.start(tour, 1000).days)"
+      ]
+    },
+    "app/src/test/java/com/onpath/app/routing/PlanMarksFollowTest.kt": {
+      "blob": "13ccd938f2b655255ab60abd32825cf294ba5eda",
+      "perf": []
     },
     "app/src/test/java/com/onpath/app/ui/PlanStateTest.kt": {
       "blob": "470956145d4d7023eb94ea46c11ec9324045d03c",
@@ -1577,6 +1644,10 @@
       "blob": "f037d6dca9ee7c1ba1fa036269e8195017199a17",
       "perf": []
     },
+    "strings/src/commonMain/composeResources/values/strings_suggest.xml": {
+      "blob": "8fe2ab55792a5ddc2e6bf902555699629c16d5e2",
+      "perf": []
+    },
     "strings/src/commonMain/composeResources/values/strings_sync.xml": {
       "blob": "640c550148c226533552e2c95eba6f0255cff4c6",
       "perf": []
@@ -1631,6 +1702,10 @@
     },
     "strings/src/commonMain/composeResources/values-de/strings_setup.xml": {
       "blob": "2956e9c6c6e7d4bf2ef810bc955c7108317086ee",
+      "perf": []
+    },
+    "strings/src/commonMain/composeResources/values-de/strings_suggest.xml": {
+      "blob": "4266c51e38b46120e83c111340fe709bfb8b9200",
       "perf": []
     },
     "strings/src/commonMain/composeResources/values-de/strings_sync.xml": {
