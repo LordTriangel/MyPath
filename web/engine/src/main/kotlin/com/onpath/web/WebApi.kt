@@ -552,14 +552,68 @@ object Engine {
     fun placeMenu(points: String, lat: Double, lon: Double, roundTrip: Boolean): String {
         val w = parsePoints(points)
         val p = GeoPoint(lat, lon)
-        val zone = if (w.size < 2) null else com.onpath.app.ui.PlaceAddMenu.zone(w, p, loop = roundTrip)
-        val m = com.onpath.app.ui.PlaceAddMenu.menu(w.size, touring = false, zone = zone)
+        // while planning the same decision as a plain hold (the shorter detour first – one rule everywhere, the app's
+        // AppViewModel.placeMenu, owner 2026-11-15); a round trip keeps the zone
+        val d = if (roundTrip) null else com.onpath.app.ui.PlaceAddMenu.detours(w, p)
+        val m = if (d != null) com.onpath.app.ui.PlaceAddMenu.planningMenu(d)
+        else com.onpath.app.ui.PlaceAddMenu.menu(w.size, touring = false,
+            zone = if (w.size < 2) null else com.onpath.app.ui.PlaceAddMenu.zone(w, p, loop = roundTrip))
         val stop = if (w.size < 2) w.size else WaypointInsertion.decide(w, p, lastPlanFor(w)?.points, 30.0, stopOnly = true).index
         fun list(items: List<com.onpath.app.ui.PlaceAddMenu.Item>) = items.joinToString(",", "[", "]") { str(it.name) }
         val keepOld = com.onpath.app.ui.PlaceAddMenu.keepsOldGoal(touring = false)
         // "more" stays empty (owner 2026-11-15: both entries always in "main", the likelier first) – kept for the planner's reader
         return "{\"main\":" + list(m.main) + ",\"more\":[],\"stop\":" + stop + ",\"keepOld\":" + keepOld + "}"
     }
+
+    /**
+     * A click (the app's hold) on the empty map in Plan – the app's AppViewModel.holdOnMap (F-PLAN-15, owner 2026-11-15 /
+     * 2026-11-16). `{"action":"ADD","index":i}` = the point goes in at [i] at once; `{"action":"ASK","main":[…],"stop":i}` =
+     * the small menu „Einfügen“ / „Neues Ziel“ ([main] in the app's order, the cheaper first; [stop] = where „Einfügen“ puts
+     * it, never behind the goal). Fewer than 2 points: the smart insertion; a round trip: the zone decides
+     * ([PlaceAddMenu.asksOnHold]); planning: [PlaceAddMenu.planningHold] – on the line ([lineSnapM] = 24 dp on screen in
+     * metres) the smart insertion, appending much cheaper the new goal (appended), inserting much cheaper a stop, similar
+     * ones ask. [why] goes to the diagnostics.
+     */
+    fun holdOnMap(points: String, lat: Double, lon: Double, roundTrip: Boolean, lineSnapM: Double): String {
+        val pam = com.onpath.app.ui.PlaceAddMenu
+        val w = parsePoints(points)
+        val p = GeoPoint(lat, lon)
+        val n = w.size
+        val route = lastPlanFor(w)?.points
+        fun add(i: Int, why: String) = "{\"action\":\"ADD\",\"index\":" + i + ",\"why\":" + str(why) + "}"
+        fun smart() = WaypointInsertion.decide(w, p, route, lineSnapM).index
+        fun ask(m: com.onpath.app.ui.PlaceAddMenu.Menu, why: String) = "{\"action\":\"ASK\",\"main\":" +
+            m.main.joinToString(",", "[", "]") { str(it.name) } + ",\"stop\":" +
+            WaypointInsertion.decide(w, p, route, lineSnapM, stopOnly = true).index + ",\"why\":" + str(why) + "}"
+        if (n < 2) return add(smart(), "plan $n → ${n + 1}")
+        if (roundTrip) {
+            // a round trip: the zone on the plan decides (a loop is never dropped by one hold)
+            val zone = pam.zone(w, p, loop = true)
+            return if (!pam.asksOnHold(zone)) add(smart(), "clear case $zone: set at once")
+            else ask(pam.menu(n, touring = false, zone = zone), "in doubt (zone $zone, $n points)")
+        }
+        // planning: „Die App nimmt, was den kürzeren Umweg macht; sind beide ähnlich, fragt sie.“
+        val mPerDp = lineSnapM / pam.LINE_SNAP_DP
+        val line = route?.takeIf { it.size >= 2 } ?: w
+        val lineDp = Geo.distanceToLine(p, line) / mPerDp
+        val d = pam.detours(w, p)!!
+        val why = "line ${lineDp.toInt()} dp, insert +${d.insertM.toInt()} m, append ${d.appendM.toInt()} m, $n points"
+        return when (pam.planningHold(lineDp, d)) {
+            com.onpath.app.ui.PlaceAddMenu.HoldAction.ON_LINE -> add(smart(), "on the line, set at once ($why)")
+            com.onpath.app.ui.PlaceAddMenu.HoldAction.NEW_GOAL -> add(n, "appending is much shorter, the new goal at once ($why)")
+            com.onpath.app.ui.PlaceAddMenu.HoldAction.STOP ->
+                add(WaypointInsertion.decide(w, p, route, lineSnapM, stopOnly = true).index.coerceIn(0, n),
+                    "inserting is much shorter, a stop at once ($why)")
+            com.onpath.app.ui.PlaceAddMenu.HoldAction.ASK -> ask(pam.planningMenu(d), "in doubt ($why)")
+        }
+    }
+
+    /**
+     * Where the hold menu goes beside the held spot (the app's MapGestures.placeBeside, owner 2026-11-15): "x,y" of its
+     * top-left corner – never over the spot, clear of the right control column when it fits.
+     */
+    fun placeBeside(ax: Double, ay: Double, w: Int, h: Int, left: Int, top: Int, right: Int, bottom: Int, gap: Int, column: Int): String =
+        MapGestures.placeBeside(ax.toFloat(), ay.toFloat(), w, h, left, top, right, bottom, gap, column).let { (x, y) -> "$x,$y" }
 
     /**
      * The locate button's distance while my position is off the visible map (the app's LocateDistance, owner 2026-11-07):
@@ -699,6 +753,10 @@ external fun planProgress(text: String)
 
 @JSExport fun placePreview(points: String, lat: Double, lon: Double): String = Engine.placePreview(points, lat, lon)
 @JSExport fun placeMenu(points: String, lat: Double, lon: Double, roundTrip: Boolean): String = Engine.placeMenu(points, lat, lon, roundTrip)
+@JSExport fun holdOnMap(points: String, lat: Double, lon: Double, roundTrip: Boolean, lineSnapM: Double): String =
+    Engine.holdOnMap(points, lat, lon, roundTrip, lineSnapM)
+@JSExport fun placeBeside(ax: Double, ay: Double, w: Int, h: Int, left: Int, top: Int, right: Int, bottom: Int, gap: Int, column: Int): String =
+    Engine.placeBeside(ax, ay, w, h, left, top, right, bottom, gap, column)
 @JSExport fun locateLabel(located: Boolean, lat: Double, lon: Double, south: Double, west: Double, north: Double, east: Double): String = Engine.locateLabel(located, lat, lon, south, west, north, east)
 
 @JSExport fun searchAddArea(key: String, dir: String): Int = WebSearch.addArea(key, dir)

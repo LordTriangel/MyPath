@@ -1243,3 +1243,26 @@ e72fb540 / c543cd5a, 21c0eac1, 725b68e9 / 6ba34792, 21dcc5f5 / de1afd21, 870bff0
 - Tests: `WebKeptTest` (engine), pinmenu-check, `test/kept-smoke.mjs` (rows + line, Gemerkt gold and the menu open,
   Favoriten / Zuhause / Zuletzt without repeats, five + „All favourites ›“, reload, unkeep / remove home, a map POI, a
   blocked store, German words, screenshots desktop + Pixel 7), search-smoke (the rows' order).
+
+## 33. The hold rule while planning and „a bare name is no POI“ (laptop, 2026-11-17 – app 3fe33c41 / 597fd2d2 / b286efae / f12e8d83, 2797bb7f / 43091d6b, F-PLAN-15, C19)
+
+- **A click on the empty map with 2+ points** (the planner's click = the app's hold; owner: „Die App nimmt, was den
+  kürzeren Umweg macht; sind beide ähnlich, fragt sie.“): the engine's `WebApi.holdOnMap` runs the app's rule
+  (`PlaceAddMenu.detours` / `planningHold` / `planningMenu`, the same code as AppViewModel.holdOnMap): within 24 px of the
+  drawn line (the last route for these points, else the straight legs) → into that leg at once; appending at most half
+  of inserting → the new goal, appended; inserting at most half of appending → a stop at once (never behind the goal);
+  else the small menu „Einfügen“ / „Neues Ziel“ (EN Insert / New destination), the cheaper first and tinted, no title,
+  beside a ring at the spot (`main.ts holdAddMenu` = HoldAddOverlay + HoldAddMenu; where it goes: the app's
+  `MapGestures.placeBeside` through the engine – right of the spot, else left, never over it; the room = `menuRoom`, the
+  zoom buttons as the right column). A click elsewhere / Escape adds nothing; the menu closes when the spot leaves the
+  map. A round trip: the zone decides (`asksOnHold`). Fewer than 2 points: as before. A held place's menu (POI, found
+  pin) orders its two rows by the same detours while planning (`WebApi.placeMenu` → `planningMenu`).
+  Note: „appending at most half of inserting“ holds only straight on past the goal (the triangle inequality: inserting
+  into the last leg is never more than twice appending) – every other spot past the goal asks, „Neues Ziel“ first.
+- **A POI only through its symbol** (C19, the app's PoiHit): `main.ts poiAt` asks only the symbol layers by id (every
+  `poi-` layer except the text-only `-name` ones – `poiSymbolLayers`) and takes a POI only when its point is within the
+  click box + the icon's half (10 + 11 px), the nearest wins; a name drawn without its symbol is a plain map click. The
+  pointing hand follows the same lookup.
+- Tests: `WebPlaceMenuTest` (each band, the place menu's order, placeBeside), parity-smoke 11 (on the line, straight on
+  past the goal, beside the leg, the menu both ways with the ring, a click elsewhere, Insert / New destination; red on
+  the old page), poipin-smoke (d) (a bare name → „New plan“, not the POI's menu; red on the old page).

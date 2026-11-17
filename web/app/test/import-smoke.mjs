@@ -89,6 +89,9 @@ check(await pins() === 2, 'short plan from a link: 2 points, routed, no question
 await page.evaluate(() => window.__map.jumpTo({ center: [11.16, 51.2], zoom: 5.5, bearing: 0, pitch: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 } }));
 await page.waitForFunction(() => !window.__map.isMoving(), null, { timeout: 10_000 }).catch(() => {});
 await clickAt(11.16, 52.05);
+// far past the goal, nearly straight on: the hold menu may ask (the app's hold rule, F-PLAN-15) – „New destination“
+await page.waitForSelector('dialog.longroute, .holdaddpopup button', { timeout: 30_000 });
+if (await page.locator('.holdaddpopup').count()) await page.click('.holdaddpopup button:first-of-type');
 await page.waitForSelector('dialog.longroute', { timeout: 30_000 });
 await page.click('#lrCancel');
 await page.waitForFunction(() => document.querySelectorAll('.pin').length === 2, null, { timeout: 60_000 }).catch(() => {});

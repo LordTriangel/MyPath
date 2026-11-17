@@ -35,6 +35,9 @@ await page.waitForSelector('.pointmenu'); // first click: New route – Start he
 await page.click('.pointmenu button:first-of-type'); await page.waitForTimeout(300);
 await clickAt(11.1350, 46.6840); await page.waitForTimeout(300);
 await clickAt(11.1500, 46.6950);
+// both detours similar there: the hold menu asks (the app's hold rule, F-PLAN-15) – its first row, „New destination“
+await page.waitForSelector('.holdaddpopup button', { timeout: 15_000 });
+await page.click('.holdaddpopup button:first-of-type');
 await planned('');
 const hike = await summary();
 console.log('hike:', hike);

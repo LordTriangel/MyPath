@@ -267,6 +267,13 @@ dialog.share #exportGpx { margin-top: 8px; }
 .pointmenu button.strong { margin: 2px 6px; padding: 10px 10px; border-radius: var(--r-small); background: var(--plan-light); color: var(--plan-ink); font-weight: 600; }
 .pointmenu button.strong:hover { background: var(--plan-light); filter: brightness(.97); }
 .pointmenu button.strong .ic { fill: var(--plan); }
+/* the hold menu at a held spot (the app's HoldAddMenu, owner 2026-11-15): no title, beside the spot, no tail – a ring
+   marks the spot (HoldAddOverlay: white 5 px under ActionEdit 2.5 px, a 3 px dot) */
+.holdaddpopup .maplibregl-popup-tip { display: none; }
+.pointmenu.holdadd { min-width: 0; padding-top: 4px; }
+.pointmenu.holdadd .menuhead { display: none; }
+.holdring { box-sizing: border-box; border-radius: 50%; border: 2.5px solid var(--plan); box-shadow: 0 0 0 1.25px #fff, inset 0 0 0 1.25px #fff;
+  background: radial-gradient(circle, var(--plan) 0 3px, transparent 3.5px); pointer-events: none; }
 /* a row's label wraps to two lines, never cut (app 6714ad6f: "Als Zwischenstopp" / "In Google Maps öffnen") */
 .pointmenu button .txt > span:first-child { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 
