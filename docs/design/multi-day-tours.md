@@ -199,10 +199,10 @@ Conclusions:
 
 ## 7. Maps on the phone – when (owner 2026-11-17: ask at the first opening)
 
-Not silently on arrival: a 7-day tour can be gigabytes, possibly on mobile data.
+Not silently on arrival: the whole tour is about 0.3–0.5 GB (stage 0: München–Venedig ≈ 340 MB with a 10 km corridor, ≈ 520 MB with 20 km), possibly on mobile data. Multi-day tours use the **10 km corridor** and load **all** its cells (not capped at `CORRIDOR_MAX_CELLS` 30).
 
 - The tour arrives → its row in My routes says "Maps missing" (no dialog out of nowhere).
-- Opening the tour the first time asks **once**, with the size: "Load the maps for the whole tour (≈ 1.4 GB)?" –
+- Opening the tour the first time asks **once**, with the size: "Load the maps for the whole tour (≈ 340 MB)?" –
   *Whole tour* / *Only day n* / *Later*. On mobile data the default is to wait for Wi-Fi.
 - Picking a day always checks that day's maps and says so before the start if something is missing – the robust
   net under everything else.
