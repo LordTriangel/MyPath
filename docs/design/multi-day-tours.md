@@ -58,6 +58,20 @@ Rules (each is one undo step, then saved):
 | R8 A day above a limit | Its row turns orange with the value that is too high; nothing moves by itself. Fix: + a day, or move / add an Übernachtung. |
 | R7 A grey proposal dragged (owner 2026-11-17: „Wird dort blau“) | It becomes a blue Übernachtung where it is dropped – R1 at that place. |
 
+Built in stage 1 (2026-11-17, `routing/PlanDays.kt`, `PlanCode` tags 3–6, `PlanEdits.follow`) – details the concept
+did not say, decided while building:
+- Marks follow their point **by value** (as pins and names already do in app and planner), one step after any edit.
+- R2 on a hotel deletes the hotel point (the detour goes); on an Übernachtung only the mark goes.
+- R3: the hotel point takes the hotel's name and is not pinned; R4 puts the Übernachtung where the route turns off to
+  the hotel (no out-and-back detour → it stays where it is).
+- A dragged Übernachtung keeps its night; a dragged hotel point becomes an Übernachtung.
+- No mark on the start or the last point. R1: a tap within 25 m of a plan point marks that point, else a new point.
+- With limits: days stay within them and the longest day is as short as possible; a limit that cannot be met → days
+  equal by time and flagged orange.
+- Text limits: link 500, address 200, description 2000 characters; at most 99 days.
+- Until the phone stores days (stage 4, `RouteItems.PHONE_KEEPS_DAYS`), sync compares plans without them, so the phone
+  never wipes the browser's nights.
+
 ## 3. The flows
 
 ### Browser planner (where the tour is made)
