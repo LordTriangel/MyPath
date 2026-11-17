@@ -55,6 +55,6 @@
 /* ?debug: the test switch at the map's right edge, half way up */
 .suggestswitch { position: fixed; z-index: 5; right: 12px; top: 42%; padding: 6px 10px; border-radius: 10px; border: 1px solid #888; background: #fff; color: #222; font: 12px sans-serif; }
 @media (max-width: 700px) {
-  #sheet.suggest { max-height: 75%; }
+  #sheet.suggest { max-height: 58%; } /* the chosen loop stays visible above it */
   #suggestPanel .sglbl { width: 100%; }
 }

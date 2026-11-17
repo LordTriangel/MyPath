@@ -122,7 +122,8 @@ export function setupSuggest(host: SuggestHost) {
     const p = document.createElement('div');
     p.id = 'suggestPanel';
     p.innerHTML = html;
-    sheet.prepend(p);
+    const handle = document.getElementById('handle');
+    if (handle?.parentElement === sheet) handle.after(p); else sheet.prepend(p); // under the sheet's grab handle
     sheet.classList.add('suggest');
     panel = p;
     return p;
