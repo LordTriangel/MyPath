@@ -9,7 +9,9 @@ from the repo – never from another session's chat.
 | **laptop** (planner + map cells, `[cloud-plan]` lines) | laptop (32 GB, map data), Remote Control host | `onpath-plan` (`main`) | [start.md](start.md) + [cloud-plan.md](cloud-plan.md) |
 | **cloud-web** | cloud only | `onpath.earth`, `onpath.private` | [cloud-web.md](cloud-web.md) |
 | **captain** | cloud only | all, mostly read-only | [captain.md](captain.md) |
+| **IR** (tour suggestions, „Routenfinder“, since 2026-11-15) | donald, own worktree of `onpath-app` (`main`) | `tools/suggest-poc/`, `tools/*suggest*`, `app/…/suggest/`, `docs/design/tour-suggestions.md` | [start.md](start.md) + its latest `docs/history/handoff-ir-*.md` |
+| **mehrtage** (multi-day tours, since 2026-11-16) | donald, own worktree of `onpath-app` (`main`) | `routing/PlanDays.kt`, `PlanCode.kt`, `PlanEdits.kt`, `docs/design/multi-day-tours.md`; planner (`web/`) and phone parts by agreement | [start.md](start.md) + `docs/design/multi-day-tours.md` |
 
 Rules: one session per computer folder; two sessions never share a checkout (helpers use their own worktrees).
-Backlog tags = session names (`[donald]`, `[laptop]` / `[cloud-plan]`, `[cloud-web]`, `[captain]`; the old `[cloud-app]` = donald).
+Backlog tags = session names (`[donald]`, `[IR]`, `[mehrtage]`, `[laptop]` / `[cloud-plan]`, `[cloud-web]`, `[captain]`; the old `[cloud-app]` = donald).
 Why it is set up this way, what was tested and what went wrong: [multi-agent-lernen.md](multi-agent-lernen.md).
