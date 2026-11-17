@@ -1142,6 +1142,39 @@ class ScreenshotTest {
         }
     }
 
+    /** A POI kind's map symbol cut from the bundled sprite, as PoiSprite.badge does on the phone. */
+    private fun mapSymbol(kind: String): androidx.compose.ui.graphics.ImageBitmap {
+        val json = java.io.File("src/main/assets/${com.onpath.app.poi.PoiSprite.JSON}").readText()
+        val r = com.onpath.app.poi.PoiSprite.rect(json, kind)!!
+        val png = java.io.File("src/main/assets/${com.onpath.app.poi.PoiSprite.PNG}").readBytes()
+        val sheet = android.graphics.BitmapFactory.decodeByteArray(png, 0, png.size)
+        return android.graphics.Bitmap.createBitmap(sheet, r.x, r.y, r.w, r.h).asImageBitmap()
+    }
+
+    /**
+     * The POI details (owner 2026-11-17): the header shows the symbol the map draws (the sprite's burger for a snack bar,
+     * not the glyph ♨); the glyph only when the sprite cannot be read.
+     */
+    @Test fun poiDetailsMapSymbol() = paparazzi.snapshot {
+        OnPathTheme {
+            Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+                com.onpath.app.poi.PoiDetails(
+                    com.onpath.app.poi.Poi("n1", "fast_food", "Curry 73", 51.16, 6.94, openingHours = "Mo-Sa 11:00-21:00"),
+                    onClose = {}, symbol = com.onpath.app.poi.PoiSymbol(mapSymbol("fast_food"), true))
+            }
+        }
+    }
+
+    @Test fun poiDetailsGlyphWhenTheSpriteIsMissing() = paparazzi.snapshot {
+        OnPathTheme {
+            Box(Modifier.fillMaxSize().background(androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+                com.onpath.app.poi.PoiDetails(
+                    com.onpath.app.poi.Poi("n1", "fast_food", "Curry 73", 51.16, 6.94, openingHours = "Mo-Sa 11:00-21:00"),
+                    onClose = {}, symbol = com.onpath.app.poi.PoiSymbol(null, true))
+            }
+        }
+    }
+
     /** A place shared from Google Maps: once the map is there its ring's menu opens by itself (SharedPlaceMenu). */
     private val shared = com.onpath.app.search.Place("shared:46.6712,11.1598", "Gelateria Costantin", "other", 46.6712, 11.1598)
     private val sharedAddress = "Freiheitsstraße 10, 39012 Meran"
