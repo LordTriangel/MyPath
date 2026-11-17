@@ -154,6 +154,9 @@ const findPoi = () => page.waitForFunction(() => {
   const fs = map.queryRenderedFeatures([[w * 0.35, h * 0.1], [w * 0.95, h * 0.9]], { layers }).filter((f) => {
     if (f.geometry.type !== 'Point' || !f.properties?.kind || f.properties.kind === 'bus' || !f.properties.name) return false;
     const p = map.project(f.geometry.coordinates), x = cr.x + p.x, y = cr.y + p.y;
+    // its point in the box too: on a slow machine the rendered features can still hold the last placement's symbols, whose
+    // point is far off this view (throttled: „Meran“ at -1282,1286 – the click went beside the page)
+    if (p.x < w * 0.35 || p.x > w * 0.95 || p.y < h * 0.1 || p.y > h * 0.9) return false;
     return pins.every((r) => Math.hypot(x - (r.x + r.width / 2), y - (r.y + r.height / 2)) > 70)
       && menus.every((r) => x < r.left - 30 || x > r.right + 30 || y < r.top - 30 || y > r.bottom + 30);
   });
