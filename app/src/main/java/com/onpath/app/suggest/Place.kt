@@ -41,6 +41,8 @@ class Place(
     val aims: List<Aims.Aim>
     /** the names made up for unnamed areas and lines ("Wald bei Hilden") – a card may be called after one */
     val spotNames = HashSet<String>()
+    /** union-find over nodes for [groups]: −1 = not in the current call (reset after each) */
+    private val parent = IntArray(net.nodeCount) { -1 }
 
     /** An area or a line as the generators and the cards need it (place.py `_thing`). */
     class Spot(val kind: String, val name: String, val rank: Double, val edges: PyIntSet, val nodes: IntArray,
@@ -48,7 +50,7 @@ class Place(
 
     init {
         val P = S["place"]; val Q = S["search"]
-        val ok = (0 until n).filter { F.ok[it] }.toIntArray()
+        val ok = Generate.linksWhere(n) { F.ok[it] }
         val (wWater, wOther) = if (ch.water) 1.0 to 0.4 else 0.6 to 1.0
         val things = F.things
         val rimNatur = P["rim_natur"].d; val pRim = P["rim"].d; val pSight = P["sight"].d; val waterNatur = P["water_natur"].d
@@ -88,7 +90,7 @@ class Place(
         tree = search.tree()
         d0 = tree.dist
         len0 = tree.metres
-        val reach = ok.filter { d0[net.linkA[it]] < NetSearch.INF }.toIntArray()
+        val reach = ok.filterTo(d0)
         // --- what stands out here: areas and lines
         val bar = quantile(reach, good, 1.0 - P["standout"].d)
         val besideFrom = S["facts"]["beside_from"].d
@@ -133,25 +135,33 @@ class Place(
     private fun sumLn(es: IntArray): Double { var s = 0.0; for (e in es) s += F.ln[e]; return s }
 
     /** place.py `groups`: connected groups of [edges], each in the order of [edges], groups by their first edge. */
-    fun groups(edges: List<Int>): List<IntArray> {
-        val parent = HashMap<Int, Int>()
+    fun groups(edges: List<Int>): List<IntArray> = groups(edges.toIntArray())
+
+    fun groups(edges: IntArray): List<IntArray> {
         fun find(x0: Int): Int {
             var x = x0
             while (true) {
-                val p = parent.getOrPut(x) { x }
+                var p = parent[x]
+                if (p < 0) { parent[x] = x; p = x }
                 if (p == x) return x
-                val pp = parent.getOrPut(p) { p }
+                var pp = parent[p]
+                if (pp < 0) { parent[p] = p; pp = p }
                 parent[x] = pp
                 x = pp
             }
         }
-        for (e in edges) {
-            val ra = find(net.linkA[e])
-            parent[ra] = find(net.linkB[e])
+        try {
+            for (e in edges) {
+                val ra = find(net.linkA[e])
+                parent[ra] = find(net.linkB[e])
+            }
+            // groups in the order of their first edge (the root's number does not matter, only who is together)
+            val groupOf = LinkedHashMap<Int, IntList>()
+            for (e in edges) groupOf.getOrPut(find(net.linkA[e])) { IntList() }.add(e)
+            return groupOf.values.map { it.toArray() }
+        } finally {
+            for (e in edges) { parent[net.linkA[e]] = -1; parent[net.linkB[e]] = -1 }
         }
-        val out = LinkedHashMap<Int, ArrayList<Int>>()
-        for (e in edges) out.getOrPut(find(net.linkA[e])) { ArrayList() }.add(e)
-        return out.values.map { it.toIntArray() }
     }
 
     /** place.py `_thing`. */
@@ -255,6 +265,15 @@ class Place(
             }
             return values[idx.last()]
         }
+    }
+
+    private fun IntArray.filterTo(d: DoubleArray): IntArray {
+        var k = 0
+        for (e in this) if (d[net.linkA[e]] < NetSearch.INF) k++
+        val out = IntArray(k)
+        k = 0
+        for (e in this) if (d[net.linkA[e]] < NetSearch.INF) out[k++] = e
+        return out
     }
 
     private fun quantile(edges: IntArray, value: DoubleArray, q: Double): Double =

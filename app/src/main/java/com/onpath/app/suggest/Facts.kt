@@ -14,7 +14,7 @@ package com.onpath.app.suggest
  * Lengths and heights as the POC sees them (0.1 m; its route service rounds them so) and cost factors as their
  * shortest decimal text – the port computes on the very same numbers.
  */
-class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike: Boolean, land: Land) {
+class Facts(val net: WayNet, index: Named.Index, K: SuggestSettings.J, bike: Boolean, land: Land) {
     val n = net.linkCount
     val ln = DoubleArray(n) { Math.round(net.linkLen[it] * 10.0) / 10.0 }
     val ok = BooleanArray(n) { net.allowed(it) }
@@ -57,7 +57,42 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
         val rimK = K["rim"]
         val rimFrom = rimK[0].d; val rimFull = rimK[1].d; val rimReach = rimK[2].d
         val bigWater = K["big_water"].d
+        // the land grids, grid by grid: per link the grid it is read in (Land.gridAt in link order, as the POC moves
+        // from grid to grid), then each grid's links together – only one grid's tables are in memory at a time
+        val gridNo = IntArray(n) { -1 }
+        val grids = ArrayList<Land.Grid>()
+        val gridIds = java.util.IdentityHashMap<Land.Grid, Int>()
+        for (e in 0 until n) {
+            if (!ok[e]) continue
+            val mid = mid(e)
+            val g = land.gridAt(mid[0], mid[1]) ?: continue
+            gridNo[e] = gridIds.getOrPut(g) { grids.add(g); grids.size - 1 }
+        }
+        val wet = ByteArray(n)  // bit 0: water within 90 m > 4 %, bit 1: within 300 m ≥ big_water
+        val areaName = arrayOfNulls<String>(n)
+        val byGrid = IntArray(grids.size + 1)
+        for (e in 0 until n) if (gridNo[e] >= 0) byGrid[gridNo[e] + 1]++
+        for (i in 0 until grids.size) byGrid[i + 1] += byGrid[i]
+        val order = IntArray(byGrid[grids.size])
+        val fill = byGrid.copyOf(grids.size)
+        for (e in 0 until n) if (gridNo[e] >= 0) order[fill[gridNo[e]]++] = e
+        for (i in 0 until grids.size) {
+            val g = grids[i]
+            for (k in byGrid[i] until byGrid[i + 1]) {
+                val e = order[k]
+                val mid = mid(e)
+                val around = land.around(g, mid[0], mid[1])
+                built[e] = around.built >= 0.5
+                green[e] = around.n100
+                depth[e] = 0.5 * (around.n300 + around.n900)
+                rim[e] = land.rim(g, mid[0], mid[1], rimFrom, rimFull, rimReach)
+                wet[e] = ((if (around.w90 > 0.04) 1 else 0) or (if (around.w300 >= bigWater) 2 else 0)).toByte()
+                if (around.area.isNotEmpty()) areaName[e] = around.area
+            }
+            g.release()
+        }
         val areaIndex = HashMap<String, Int>()
+        var lastHits = EMPTY
         for (e in 0 until n) {
             val a = net.linkA[e]; val b = net.linkB[e]
             costfactor[e] = minOf(cf(net.costFactor(e, a)), cf(net.costFactor(e, b)), 5.0)
@@ -67,26 +102,24 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
             var road = t.road
             var signedE = t.signed
             val mid = mid(e)
-            if (road == 0.0 && ln[e] >= 25.0 && roads.cells.isNotEmpty()) road = beside * roads.beside(geom(e))
+            if (road == 0.0 && ln[e] >= 25.0 && roads.isNotEmpty()) road = beside * roads.beside(geom(e))
             traffic[e] = road
-            val around = land.around(mid[0], mid[1])
-            built[e] = around.built >= 0.5
-            green[e] = around.n100
-            depth[e] = 0.5 * (around.n300 + around.n900)
-            rim[e] = land.rim(mid[0], mid[1], rimFrom, rimFull, rimReach)
-            var bank = around.w90 > 0.04
-            val hits = index.at(mid[0], mid[1], 1)
+            val w = wet[e].toInt()
+            var bank = w and 1 != 0
+            var hits = index.at(mid[0], mid[1], 1)
             for (i in hits) {
                 val th = things[i]
                 if (th.kind == "route" && (road < besideFrom || signedE != 0.0)) signedE = maxOf(signedE, th.rank)
                 bank = bank || th.kind == "lake"
                 sight[e] = sight[e] || th.kind == "sight"
             }
-            water[e] = if (bank && around.w300 >= bigWater) 1.0 else if (bank || (t.river >= 4 && around.n100 >= 0.2)) 0.5 else 0.0
+            water[e] = if (bank && w and 2 != 0) 1.0 else if (bank || (t.river >= 4 && green[e] >= 0.2)) 0.5 else 0.0
             signed[e] = signedE
+            // one array for the many links with the same things as the link before (most have none)
+            if (hits.isEmpty()) hits = EMPTY else if (hits.contentEquals(lastHits)) hits = lastHits else lastHits = hits
             named[e] = hits
-            val nm = around.area
-            if (nm.isNotEmpty()) {
+            val nm = areaName[e]
+            if (nm != null) {
                 area[e] = areaIndex.getOrPut(nm) { areas.add(nm); areas.size - 1 }
             }
         }
@@ -108,7 +141,10 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
 
     /** Where roads with real car traffic run (squares of ~12 m), to find a separate way *beside* one by geometry. */
     class RoadGrid {
-        val cells = HashMap<Long, Double>()
+        /** square → the heaviest road's weight in it (no object per square: a bike network has a few hundred thousand) */
+        private val cells = LongDoubleMap(1 shl 12)
+
+        fun isNotEmpty() = cells.size > 0
 
         private fun key(x: Int, y: Int) = (x.toLong() shl 32) or (y.toLong() and 0xffffffffL)
 
@@ -118,7 +154,7 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
                 val n = maxOf(1, (SuggestGeo.dist(a0, a1, b0, b1) / 10.0).toInt())
                 for (k in 0..n) {
                     val kk = key(((a0 + (b0 - a0) * k / n) / CX).toInt(), ((a1 + (b1 - a1) * k / n) / CY).toInt())
-                    if ((cells[kk] ?: 0.0) < w) cells[kk] = w
+                    if (cells[kk] < w) cells.put(kk, w)
                 }
             }
         }
@@ -139,7 +175,7 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
                         val u = (want - acc) / d
                         val cx = ((a0 + (b0 - a0) * u) / CX).toInt(); val cy = ((a1 + (b1 - a1) * u) / CY).toInt()
                         var best = 0.0
-                        for (i in -1..1) for (jj in -1..1) best = maxOf(best, cells[key(cx + i, cy + jj)] ?: 0.0)
+                        for (i in -1..1) for (jj in -1..1) best = maxOf(best, cells[key(cx + i, cy + jj)])
                         hits.add(best)
                         break
                     }

@@ -72,9 +72,18 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             return m
         }
 
-        val reached = (0 until net.nodeCount).filter { P.len0[it] > 0 && P.len0[it] < ch.maxM && P.d0[it] < NetSearch.INF }
-        val bear = HashMap<Int, Double>(reached.size * 2)
-        for (v in reached) bear[v] = SuggestGeo.bearing(sLon, sLat, net.lon(v), net.lat(v))
+        // the nodes in reach in node order, their bearing from the start (plain arrays: a bike network has 200 000)
+        var nReached = 0
+        for (v in 0 until net.nodeCount) if (P.len0[v] > 0 && P.len0[v] < ch.maxM && P.d0[v] < NetSearch.INF) nReached++
+        val reached = IntArray(nReached)
+        val inReach = BooleanArray(net.nodeCount)
+        val bear = DoubleArray(net.nodeCount)
+        nReached = 0
+        for (v in 0 until net.nodeCount) {
+            if (P.len0[v] > 0 && P.len0[v] < ch.maxM && P.d0[v] < NetSearch.INF) {
+                reached[nReached++] = v; inReach[v] = true; bear[v] = SuggestGeo.bearing(sLon, sLat, net.lon(v), net.lat(v))
+            }
+        }
         fun rise(v: Int): Double { val e = Place.height(net, v); return if (minOf(e, sEle) > -1000) abs(e - sEle) else 0.0 }
         fun hours(metres: Double, vararg via: Int): Double { var r = rise(via[0]); for (v in via) r = maxOf(r, rise(v)); return ch.time(metres, r) }
         fun thereAndBack(v: Int) = hours(2.2 * P.len0[v], v)
@@ -86,7 +95,7 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             val best = LinkedHashMap<Int, Pair<Double, Int>>()
             for (v in reached) {
                 if (!fits(v)) continue
-                val k = (bear.getValue(v) * sectors / 360.0).toInt()
+                val k = (bear[v] * sectors / 360.0).toInt()
                 val r = P.d0[v] / P.len0[v]
                 val b = best[k]
                 if (b == null || r < b.first) best[k] = r to v
@@ -111,7 +120,7 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             val pairs = ArrayList<Pr>()
             for (a in A) {
                 fun fit(b: Int): Double { val e = pairHours(a, b); return maxOf(0.0, hLo - e, e - hHi) }
-                val side = A.filter { val d = SuggestGeo.pyMod(bear.getValue(it) - bear.getValue(a), 360.0); 40.0 <= d && d <= 110.0 }
+                val side = A.filter { val d = SuggestGeo.pyMod(bear[it] - bear[a], 360.0); 40.0 <= d && d <= 110.0 }
                 if (side.isNotEmpty()) {
                     var bb = side[0]
                     for (b in side) if (fit(b) < fit(bb)) bb = b
@@ -164,7 +173,7 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             val bins = HashSet<Int>()
             for (k in 0 until th.points) bins.add((SuggestGeo.bearing(mx, my, th.dense[2 * k], th.dense[2 * k + 1]) / 15.0).toInt())
             if (bins.size < 18) continue
-            val mine = (0 until net.linkCount).filter { e -> P.d0[net.linkA[e]] < NetSearch.INF && F.named[e].contains(i) }
+            val mine = linksWhere(net.linkCount) { e -> P.d0[net.linkA[e]] < NetSearch.INF && F.named[e].contains(i) }
             val on = runsAlong(th.dense, mine)
             var whole = 0.0
             for (e in on.toIntArray()) whole += F.ln[e]
@@ -210,7 +219,7 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             P.search.bounded(entry, 0.75 * ch.maxM, along)
             val d = P.search.dist.copyOf()
             val alongM = P.search.metres.copyOf()
-            val on = ln.nodes.filter { d[it] < NetSearch.INF && it != entry && bear.containsKey(it) }
+            val on = ln.nodes.filter { d[it] < NetSearch.INF && it != entry && inReach[it] }
             if (on.isEmpty()) continue
             val eLon = net.lon(entry); val eLat = net.lat(entry)
             fun turn(u: Int, w: Int) = abs(SuggestGeo.pyMod(SuggestGeo.bearing(eLon, eLat, net.lon(u), net.lat(u)) - SuggestGeo.bearing(eLon, eLat, net.lon(w), net.lat(w)) + 180.0, 360.0) - 180.0)
@@ -235,7 +244,7 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
         fun notChosen(a: Aims.Aim) = if (a.ziel in ziel) 0 else 1
         fun rankWorth(a: Aims.Aim) = -a.worth / (1.0 + P.len0[a.node] / ch.targetM)
         val beyond = maxOf(P.access, 0.1 * ch.targetM)  // an aim in the town one starts from is no turning point
-        var pick = P.aims.filter { bear.containsKey(it.node) && P.len0[it.node] >= beyond && thereAndBack(it.node) <= 1.2 * hHi }
+        var pick = P.aims.filter { inReach[it.node] && P.len0[it.node] >= beyond && thereAndBack(it.node) <= 1.2 * hHi }
             .sortedWith(compareBy<Aims.Aim>({ notChosen(it) }, { rankWorth(it) }))
         val nCand = Z["candidates"][if (ch.bike) "wheel" else "foot"].i
         pick = pick.take(maxOf(nCand, minOf(Z["chosen_candidates"].i, pick.count { it.ziel in ziel })))
@@ -261,7 +270,7 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
                 for (left in booleanArrayOf(true, false)) {
                     val lo = if (left) 40.0 else 250.0
                     val hi = if (left) 110.0 else 320.0
-                    val side = B.filter { val d = SuggestGeo.pyMod(bear.getValue(it) - bear.getValue(v), 360.0); lo <= d && d <= hi }
+                    val side = B.filter { val d = SuggestGeo.pyMod(bear[it] - bear[v], 360.0); lo <= d && d <= hi }
                     if (side.isEmpty()) continue
                     fun fit(b: Int): Double { val e = pairHours(v, b); return maxOf(0.0, hLo - e, e - hHi) }
                     var b = side[0]
@@ -282,9 +291,9 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
                 if (a.node == b.node) continue
                 val ph = pairHours(a.node, b.node)
                 if (!(0.7 * hLo <= ph && ph <= 1.2 * hHi)) continue
-                var p = if (bear.getValue(b.node) < bear.getValue(a.node)) b to a else a to b
+                var p = if (bear[b.node] < bear[a.node]) b to a else a to b
                 // around the start the short way
-                if (SuggestGeo.pyMod(bear.getValue(p.second.node) - bear.getValue(p.first.node), 360.0) > 180.0) p = p.second to p.first
+                if (SuggestGeo.pyMod(bear[p.second.node] - bear[p.first.node], 360.0) > 180.0) p = p.second to p.first
                 two.add(Two(notChosen(a) + notChosen(b), -(a.worth + b.worth), p.first, p.second))
             }
         }
@@ -300,7 +309,7 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
     }
 
     /** net.py `runs_along`: the links that run along a line given as dense points (most of the link within [near] m). */
-    fun runsAlong(pts: DoubleArray, edges: List<Int>, near: Double = 25.0): PyIntSet = runsAlong(net, pts, edges, near)
+    fun runsAlong(pts: DoubleArray, edges: IntArray, near: Double = 25.0): PyIntSet = runsAlong(net, pts, edges, near)
 
     companion object {
         fun measure(P: Place, edges: IntArray, start: Int, keep: Set<Int> = emptySet()): Candidate? {
@@ -349,6 +358,17 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             return Candidate(edges, nodes, total, up, ch.time(total, up), at[stem], maxOf(0.0, doubled - minOf(at[stem], free)), cross)
         }
 
+        /** Could link [e] reach into the box (BRouter positions, a micro-degree of slack each side)? false = surely not. */
+        private fun boxMayMeet(net: WayNet, e: Int, w: Long, east: Long, s: Long, north: Long): Boolean {
+            var gw = minOf(net.nodeLon[net.linkA[e]], net.nodeLon[net.linkB[e]]).toLong(); var ge = maxOf(net.nodeLon[net.linkA[e]], net.nodeLon[net.linkB[e]]).toLong()
+            var gs = minOf(net.nodeLat[net.linkA[e]], net.nodeLat[net.linkB[e]]).toLong(); var gn = maxOf(net.nodeLat[net.linkA[e]], net.nodeLat[net.linkB[e]]).toLong()
+            for (p in net.geoOff[e] until net.geoOff[e + 1]) {
+                val x = net.geo[2 * p].toLong(); val y = net.geo[2 * p + 1].toLong()
+                if (x < gw) gw = x; if (x > ge) ge = x; if (y < gs) gs = y; if (y > gn) gn = y
+            }
+            return !(ge < w || gw > east || gn < s || gs > north)
+        }
+
         /** net.py `climb` on the POC's heights (0.1 m): metres up along a walk of nodes (rises under 6 m are noise). */
         fun climb(net: WayNet, nodes: IntArray): Double {
             var up = 0.0
@@ -362,7 +382,17 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             return up
         }
 
-        fun runsAlong(net: WayNet, pts: DoubleArray, edges: List<Int>, near: Double = 25.0): PyIntSet {
+        /** The links 0 until [n] that pass [test], in order (no boxed list). */
+        inline fun linksWhere(n: Int, test: (Int) -> Boolean): IntArray {
+            var k = 0
+            for (e in 0 until n) if (test(e)) k++
+            val out = IntArray(k)
+            k = 0
+            for (e in 0 until n) if (test(e)) out[k++] = e
+            return out
+        }
+
+        fun runsAlong(net: WayNet, pts: DoubleArray, edges: IntArray, near: Double = 25.0): PyIntSet {
             val out = PyIntSet()
             if (pts.isEmpty()) return out
             val ky = near / 111320.0
@@ -385,7 +415,11 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
                 }
                 return false
             }
+            // the box test on the integer positions first (no shape copy for the many links far from the line)
+            val iw = Math.floor(w * 1e6).toLong() + 180_000_000L - 1; val ie = Math.ceil(e * 1e6).toLong() + 180_000_000L + 1
+            val isouth = Math.floor(s * 1e6).toLong() + 90_000_000L - 1; val inorth = Math.ceil(n * 1e6).toLong() + 90_000_000L + 1
             for (ei in edges) {
+                if (!boxMayMeet(net, ei, iw, ie, isouth, inorth)) continue
                 val g = Facts.geomOf(net, ei)
                 var gw = g[0]; var ge = g[0]; var gs = g[1]; var gn = g[1]
                 for (k in 1 until g.size / 2) {

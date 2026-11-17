@@ -21,10 +21,27 @@ class Land(private val files: SuggestFiles) {
         val h = f.h
         val east = f.west + w * f.dlon
         val south = f.north - h * f.dlat
-        val sat = sat(NATURE_OR_PROTECTED)
-        val satBuilt = sat(SuggestFile.BUILT)
-        val satWater = sat(SuggestFile.WATER)
-        val rimCache = HashMap<Int, Double>()
+        // the summed-area tables (3 × 4 bytes per square, a few MB per cell) are made when first needed and given back
+        // with [release] – Facts goes through the links grid by grid, so only one grid's tables live at a time
+        private var tables: Array<IntArray>? = null
+        val sat: IntArray get() = tables()[0]
+        val satBuilt: IntArray get() = tables()[1]
+        val satWater: IntArray get() = tables()[2]
+        /** rim per square, NaN = not yet computed */
+        private var rims: DoubleArray? = null
+
+        private fun tables(): Array<IntArray> =
+            tables ?: arrayOf(sat(NATURE_OR_PROTECTED), sat(SuggestFile.BUILT), sat(SuggestFile.WATER)).also { tables = it }
+
+        fun rimCached(key: Int): Double = rims?.get(key) ?: Double.NaN
+
+        fun rimPut(key: Int, value: Double) {
+            val r = rims ?: DoubleArray(w * h).also { it.fill(Double.NaN); rims = it }
+            r[key] = value
+        }
+
+        /** Gives the tables and the rim cache back (made again when needed, the same values). */
+        fun release() { tables = null; rims = null }
 
         private fun sat(mask: Int): IntArray {
             val w1 = w + 1
@@ -56,7 +73,8 @@ class Land(private val files: SuggestFiles) {
         return g
     }
 
-    private fun gridAt(lon: Double, lat: Double): Grid? {
+    /** The grid [around] and [rim] read for this point – the same choice, and it moves [last] the same way. */
+    fun gridAt(lon: Double, lat: Double): Grid? {
         val m = last
         if (m != null && m.contains(lon, lat)) return m
         val c = cellOf(lon, lat)
@@ -69,8 +87,11 @@ class Land(private val files: SuggestFiles) {
     class Around(val n100: Double, val n300: Double, val n900: Double, val built: Double, val w90: Double,
                  val w300: Double, val area: String)
 
-    fun around(lon: Double, lat: Double): Around {
-        val m = gridAt(lon, lat) ?: return NOTHING
+    fun around(lon: Double, lat: Double): Around = around(gridAt(lon, lat), lon, lat)
+
+    /** [around] in the given grid (from [gridAt]). */
+    fun around(m: Grid?, lon: Double, lat: Double): Around {
+        if (m == null) return NOTHING
         val w = m.w; val h = m.h
         val c = minOf(w - 1, ((lon - m.f.west) / m.f.dlon).toInt())
         val r = minOf(h - 1, ((m.f.north - lat) / m.f.dlat).toInt())
@@ -90,14 +111,18 @@ class Land(private val files: SuggestFiles) {
      * how much lower it lies on average (nothing below [dropFrom] metres, full from [dropFull]) × how open it is (share
      * not under trees); the best direction.
      */
-    fun rim(lon: Double, lat: Double, dropFrom: Double, dropFull: Double, reachM: Double): Double {
-        val m = gridAt(lon, lat) ?: return 0.0
+    fun rim(lon: Double, lat: Double, dropFrom: Double, dropFull: Double, reachM: Double): Double =
+        rim(gridAt(lon, lat), lon, lat, dropFrom, dropFull, reachM)
+
+    /** [rim] in the given grid (from [gridAt]). */
+    fun rim(m: Grid?, lon: Double, lat: Double, dropFrom: Double, dropFull: Double, reachM: Double): Double {
+        if (m == null) return 0.0
         val H = m.f.heights ?: return 0.0
         val w = m.w; val h = m.h
         val c = minOf(w - 1, ((lon - m.f.west) / m.f.dlon).toInt())
         val r = minOf(h - 1, ((m.f.north - lat) / m.f.dlat).toInt())
         val key = r * w + c
-        m.rimCache[key]?.let { return it }
+        m.rimCached(key).let { if (!it.isNaN()) return it }
         val h0 = H[key]
         var best = 0.0
         val steps = ArrayList<Double>()
@@ -123,7 +148,7 @@ class Land(private val files: SuggestFiles) {
                 }
             }
         }
-        m.rimCache[key] = best
+        m.rimPut(key, best)
         return best
     }
 

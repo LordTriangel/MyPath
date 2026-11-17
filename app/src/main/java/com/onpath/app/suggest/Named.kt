@@ -99,7 +99,11 @@ object Named {
      * lakes reach two cells further (a shore path often runs 50–100 m from the water).
      */
     class Index(val things: List<Thing>) {
-        private val cells = HashMap<Long, PyIntSet>()
+        // cell → its set of things (a map without an object per key: a bike wish has ~50 000 cells)
+        private val cellOf = LongIntMap(1 shl 12)
+        private val sets = ArrayList<PyIntSet>()
+
+        private fun cell(key: Long): PyIntSet? = cellOf[key].let { if (it < 0) null else sets[it] }
 
         init {
             for ((i, a) in things.withIndex()) {
@@ -107,7 +111,7 @@ object Named {
                 val pad = if (a.kind == "lake") 2 else 0
                 for (k in 0 until a.points) {
                     val cx = (a.dense[2 * k] / CX).toInt(); val cy = (a.dense[2 * k + 1] / CY).toInt()
-                    for (dx in -pad..pad) for (dy in -pad..pad) cells.getOrPut(key(cx + dx, cy + dy)) { PyIntSet() }.add(i)
+                    for (dx in -pad..pad) for (dy in -pad..pad) (cell(key(cx + dx, cy + dy)) ?: PyIntSet().also { cellOf.put(key(cx + dx, cy + dy), sets.size); sets.add(it) }).add(i)
                 }
             }
         }
@@ -116,7 +120,7 @@ object Named {
         fun at(lon: Double, lat: Double, reach: Int = 1): IntArray {
             val cx = (lon / CX).toInt(); val cy = (lat / CY).toInt()
             val hit = PyIntSet()
-            for (dx in -reach..reach) for (dy in -reach..reach) cells[key(cx + dx, cy + dy)]?.let { hit.addAll(it) }
+            for (dx in -reach..reach) for (dy in -reach..reach) cell(key(cx + dx, cy + dy))?.let { hit.addAll(it) }
             return hit.toIntArray()
         }
 
@@ -137,4 +141,13 @@ class DoubleList(capacity: Int = 64) {
     fun add(x: Double, y: Double) { add(x); add(y) }
     operator fun get(i: Int) = a[i]
     fun toArray(): DoubleArray = a.copyOf(size)
+}
+
+/** A growing list of ints. */
+class IntList(capacity: Int = 16) {
+    private var a = IntArray(capacity)
+    var size = 0; private set
+    fun add(x: Int) { if (size == a.size) a = a.copyOf(a.size * 2 + 2); a[size++] = x }
+    operator fun get(i: Int) = a[i]
+    fun toArray(): IntArray = a.copyOf(size)
 }
