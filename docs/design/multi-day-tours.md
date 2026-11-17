@@ -166,6 +166,37 @@ What stays untouched: recording, the route line, the mailbox server, the map fil
   needed.
 - An imported track as a sync item is thinned to 16 KB – fine for looking, another reason the tour travels as a plan.
 
+**Measured (donald, 2026-11-17)** – the official GPX of the cycle route, `Muenchen-Venezia_west.gpx` from
+muenchen-venezia.info (17 391 points, 563.7 km: Bad Tölz – Achensee – Innsbruck – Brenner – Pustertal – Cortina –
+Belluno – Treviso – Venezia), Bike (`touring.brf`), E10_N45.rd5, desktop JVM `-Xmx192m` (phone-like; nothing ran out of
+memory). Harness: `tools/routing/jvm-test/MultiDayTourTest.kt` (its header says how to run it).
+
+| What | Result |
+| --- | --- |
+| `TrackToPlan`, today (`MAX_CALLS` 60) | **stops at 60 calls**: 36 route points, follows the track **9 %**, 44.5 s. It splits depth-first, so the first ~100 km get points every ~0.8 km and the rest stays legs of up to 157 km – the plan lies a median **6.5 km** off the route (max 65 km) |
+| `TrackToPlan`, no call limit | **189 route points, 351 calls**, follows 99.8 %, 62 s (phone ×5–8: **5–8 min**). Most of the time goes into the first huge legs (start → goal 564 km, then the halves): 60 calls 44.5 s, the other 291 only 17 s |
+| Plan of those 189 points vs the track | 99.9 % of the track within 40 m, max 46 m. Plan 594 km (track 564 km): ~20 km of the plan leaves the track by > 150 m (short detours where the profile avoids the track's way or the GPX has straight gaps) |
+| Plan code, 189 points | **1 015 chars**; + title + 6 hotel names 1 282; the whole 7-day tour (N, limits, 6 hotels with name, address, link, a 263-char description) **2 563 chars**. ~5.5 chars per point → 500 points ≈ 2 900 chars |
+| Limits | points 189 / **500**; text 2 563 / 16 000 (sync plan 16 000, blob 24 000) – all fit with room |
+| First routing of the 189-point plan, cold | **3.5 s**, 188 legs, longest leg 0.2 s (phone ×5–8: **~20–30 s**) |
+| The same plan again, same `LegCache` | 1.8 s – only **64 of 188 legs** from the cache (`LegCache.CAPACITY` 64): every run routes ~120 legs again |
+| Hand plan, 10 points (Marienplatz … Piazzale Roma) | 3.8 s cold, longest leg 1.7 s, 527 km; follows the official route only 54 % (34 % > 1 km off) – BRouter's own way, a different tour |
+| Map cells along the track (`CellId.alongLine`) | 20 km: **44 cells**, 5 region packages, 7 routing parts 61 MB · 10 km: **27 cells**, 4 packages, 6 parts 53 MB · 5 km: 26 · 1 km: 23 cells, 5 parts 43 MB. `alongLine`'s cap of 200 is far; `CORRIDOR_MAX_CELLS` 30 cuts the 20 km corridor |
+| Download estimate (cells 10 MB each: Innsbruck 11.9, Trentino 7–9, Ljubljana 13.6; packages 3.3 MB) | 20 km ≈ **520 MB**, 10 km ≈ **340 MB**, 1 km ≈ 290 MB (range ±30 %) |
+
+Conclusions:
+- **The plan fits** – 189 points, 2.6 k characters; no plan-code or sync limit needs to change. What must change is
+  `TrackToPlan`: `MAX_CALLS` 60 → scaled with the track (≈ 1 call per 1.5 km, at least 60; 400 for this tour), and
+  seed it with a point every ~25 km on the track first so no call routes hundreds of km (on the phone 5–8 min as is;
+  better: run it in the browser only, stage 3, with a progress bar).
+- `LegCache.CAPACITY` 64 → **500** (= `PlanCode.MAX_POINTS`), else every edit of a multi-day plan routes ~120 legs again.
+- The first routing (3.5 s desktop, ~20–30 s phone) is acceptable with the wait bar; on the phone a day is routed
+  alone anyway (stage 4).
+- Maps: the whole tour is ~0.5 GB with today's 20 km bike corridor, not gigabytes. **Recommendation: 10 km for a
+  multi-day tour** (−40 %, ≈ 340 MB; 1 km would save only 50 MB more), and the §7 question loads all cells, not only
+  `CORRIDOR_MAX_CELLS` 30. The browser could not be measured here (no browser run in this measurement; the planner runs the
+  same `Planner` and `TrackToPlan` compiled to Wasm, so expect the desktop times or slower).
+
 ## 7. Maps on the phone – when (owner 2026-11-17: ask at the first opening)
 
 Not silently on arrival: a 7-day tour can be gigabytes, possibly on mobile data.
