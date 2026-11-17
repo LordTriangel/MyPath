@@ -251,7 +251,7 @@ fun MapHost(
                 val p = GeoPoint(ll.latitude, ll.longitude)
                 return when (val a = MapGestures.decide(edit, press, vm.mapOverlayOpen, marker, poi != null, vm.waypoints.isEmpty())) {
                     is MapGestures.Action.PointMenu -> { vm.openPointMenu(a.index, dpOf(a.index)); true }
-                    MapGestures.Action.PoiMenu -> { poi?.let(vm::openPoiMenu); true }
+                    MapGestures.Action.PoiMenu -> { poi?.let { vm.openPoiMenu(it, snap) }; true }
                     MapGestures.Action.FirstPointMenu -> { vm.openFirstPointMenu(p); true }
                     // set at once in a clear case, the small „Einfügen“ / „Neues Ziel“ menu in doubt (owner 2026-11-15)
                     MapGestures.Action.AddPoint -> { vm.holdOnMap(p, snap); true }

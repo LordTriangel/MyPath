@@ -9,7 +9,7 @@ import org.junit.Test
 import java.util.Locale
 
 /**
- * The held place's add menu („Einfügen“ · „Neues Ziel“, owner 2026-11-15) in German at a larger (1.3) and the phone's
+ * The held place's add menu („Einfügen“ · „Neues Ziel“ in doubt, else only the one – owner 2026-11-15 / 2026-11-17) in German at a larger (1.3) and the phone's
  * largest font (2.0): one line each, a label wraps rather than being cut. Same pictures as the
  * [ScreenshotTest] tests of the same name, drawn with this class's Paparazzi.
  */
@@ -27,6 +27,7 @@ class PlaceAddMenuLargeFontGermanTest {
 
     @Test fun poiMenu() = shots.poiMenu()
     @Test fun poiMenuClearGoal() = shots.poiMenuClearGoal()
+    @Test fun poiMenuClearStop() = shots.poiMenuClearStop()
     @Test fun holdAddMenu() = shots.holdAddMenu()
 }
 
@@ -45,5 +46,6 @@ class PlaceAddMenuMidFontGermanTest {
 
     @Test fun poiMenu() = shots.poiMenu()
     @Test fun poiMenuClearGoal() = shots.poiMenuClearGoal()
+    @Test fun poiMenuClearStop() = shots.poiMenuClearStop()
     @Test fun holdAddMenu() = shots.holdAddMenu()
 }
