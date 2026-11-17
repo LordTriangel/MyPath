@@ -425,8 +425,10 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   map; no faint other loops – one looks at the cards one after the other, that is faster.
 - **The five values on a card (owner 2026-11-17, sketch 6 https://claude.ai/artifact/K1TGQdADQCYNREbbafoYWR variant B,
   refined):** no bars; only the biggest standouts within the shown list as pills – strengths light green, weaknesses
-  light yellow, three intensities by how far it stands out; at most a few per card. Exact picture: sketch 7 (pending
-  his yes).
+  light yellow, three intensities by how far it stands out; at most a few per card. Exact picture: **sketch 7
+  https://claude.ai/artifact/DAWvWBJqNkyhxUhnkmNRoV – accepted by the owner 2026-11-17**: at most 2 green + 2 yellow pills
+  per card; the card's hints are yellow pills too, ordered by weight (missed wish – ascent, time – first, then road,
+  through a town, crossing, last soft weaknesses); no pill when the list is alike on that value; no separate hint lines.
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
