@@ -429,6 +429,8 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   https://claude.ai/artifact/DAWvWBJqNkyhxUhnkmNRoV – accepted by the owner 2026-11-17**: at most 2 green + 2 yellow pills
   per card; the card's hints are yellow pills too, ordered by weight (missed wish – ascent, time – first, then road,
   through a town, crossing, last soft weaknesses); no pill when the list is alike on that value; no separate hint lines.
+  The POC page (`tools/suggest-poc/page.html`) shows the cards this way since 2026-11-17 – computed in its JS from the
+  shown cards' `axes` and `hints`, the Python method unchanged.
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one

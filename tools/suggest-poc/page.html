@@ -7,37 +7,44 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  :root { --ink:#22302a; --muted:#66756d; --line:#d9ded9; --bg:#f6f5f0; --accent:#2f6b4f; }
-  * { box-sizing:border-box; }
+  :root { --ink:#22302a; --muted:#66756d; --line:#d9ded9; --bg:#f6f5f0; --accent:#2f6b4f; --card:#fff; --chip:#eef1ee; --plan:#1f4f8f; --planbg:#e3ecf8;
+    --notebg:#fff7df; --noteline:#ead9a0; --why:#1d5a3c;
+    /* the standout pills of sketch 7 (owner 2026-11-17): green = leads the shown list, yellow = trails it or a hint; 1–3 = how far */
+    --g1:#DCEDD4; --g2:#CDE6C3; --g3:#A9D49A; --gt:#1C3F1F; --y1:#F7E8B8; --y2:#F6E4A6; --y3:#EED073; --yt:#4A3A00; color-scheme:light; }
+  @media (prefers-color-scheme: dark) { :root { --ink:#E6E8E2; --muted:#A3A8A1; --line:#3A4042; --bg:#1A1E1F; --accent:#4f9a74; --card:#23282A; --chip:#2C3A4A;
+    --plan:#CFE0F3; --planbg:#2C3A4A; --notebg:#38321F; --noteline:#6B5A22; --why:#A9D49A;
+    --g1:#24352A; --g2:#2F4D35; --g3:#3F6A46; --gt:#DDF0DA; --y1:#38321F; --y2:#504421; --y3:#6B5A22; --yt:#FBEFC9; color-scheme:dark; } }
+  * { box-sizing:border-box; } a { color:var(--plan); }
   body { margin:0; font:14px/1.4 system-ui, sans-serif; color:var(--ink); background:var(--bg); display:flex; height:100vh; }
   #side { width:400px; min-width:400px; overflow-y:auto; padding:14px 14px 40px; border-right:1px solid var(--line); }
   #map { flex:1; background:#e9ebe6; }
   h1 { font-size:18px; margin:0 0 2px; } .sub { color:var(--muted); margin:0 0 10px; font-size:12px; }
   label { display:block; font-size:12px; color:var(--muted); margin:8px 0 2px; }
-  input[type=text], input[type=number], select { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font:inherit; background:#fff; }
+  input[type=text], input[type=number], select { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; font:inherit; background:var(--card); color:var(--ink); }
   .row { display:flex; gap:8px; } .row > div { flex:1; }
-  button { font:inherit; padding:8px 12px; border-radius:6px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+  button { font:inherit; padding:8px 12px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer; }
   button.pri { background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600; }
   .btns { display:flex; gap:8px; margin:12px 0 6px; }
   .lv { display:flex; align-items:center; gap:6px; margin:4px 0; }
   .lv button { flex:1; padding:5px 4px; } .lv button.on { background:var(--accent); color:#fff; border-color:var(--accent); }
   .opts { font-size:12px; color:var(--muted); display:flex; gap:12px; flex-wrap:wrap; margin:6px 0; }
   #status { font-size:12px; color:var(--muted); min-height:18px; }
-  #notes div { font-size:12.5px; background:#fff7df; border:1px solid #ead9a0; border-radius:8px; padding:6px 9px; margin:6px 0; }
-  .card { background:#fff; border:1px solid var(--line); border-left:6px solid #c9d2cc; border-radius:8px; padding:9px 10px; margin:8px 0; cursor:pointer; }
+  #notes div { font-size:12.5px; background:var(--notebg); border:1px solid var(--noteline); border-radius:8px; padding:6px 9px; margin:6px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-left:6px solid #c9d2cc; border-radius:8px; padding:9px 10px; margin:8px 0; cursor:pointer; }
   .card.sel { border-left-color:#1f5fbf; box-shadow:0 0 0 2px #1f5fbf; }
-  .badge { display:inline-block; font-size:11px; border-radius:9px; padding:0 7px; margin-bottom:3px; background:#eef1ee; color:var(--muted); }
-  .badge.off { background:#e3ecf8; color:#1f4f8f; font-weight:600; }
+  .badge { display:inline-block; font-size:11px; border-radius:9px; padding:0 7px; margin-bottom:3px; background:var(--chip); color:var(--muted); }
+  .badge.off { background:var(--planbg); color:var(--plan); font-weight:600; }
   .txt { font-size:12.5px; color:var(--ink); margin:2px 0 4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .card.sel .txt { white-space:normal; }
   .more { display:none; } .card.sel .more { display:block; }
-  .from { font-size:12px; color:#1f4f8f; margin:0 0 3px; }
+  .from { font-size:12px; color:var(--plan); margin:0 0 3px; }
   .card h3 { margin:0; font-size:14px; display:flex; justify-content:space-between; gap:8px; } .card h3 b { white-space:nowrap; }
   .big { font-variant-numeric:tabular-nums; margin:2px 0 3px; }
-  .why { font-size:12.5px; color:#1d5a3c; font-weight:500; margin:0 0 4px; }
-  .chips { display:flex; flex-wrap:wrap; gap:4px; font-size:11.5px; } .chips span { background:#f6dfd8; border-radius:10px; padding:1px 7px; }
-  .axes { display:grid; grid-template-columns:78px 1fr 26px; gap:2px 6px; font-size:11.5px; color:var(--muted); margin-top:6px; align-items:center; }
-  .axes i { display:block; height:6px; background:#e7ebe5; border-radius:3px; overflow:hidden; } .axes i u { display:block; height:100%; background:var(--accent); }
+  .why { font-size:12.5px; color:var(--why); font-weight:500; margin:0 0 4px; }
+  .pills { display:flex; flex-wrap:wrap; gap:6px; margin:5px 0 2px; }
+  .pill { font-size:12.5px; font-weight:600; border-radius:999px; padding:3px 10px; white-space:nowrap; }
+  .g1 { background:var(--g1); color:var(--gt); } .g2 { background:var(--g2); color:var(--gt); } .g3 { background:var(--g3); color:var(--gt); }
+  .y1 { background:var(--y1); color:var(--yt); } .y2 { background:var(--y2); color:var(--yt); } .y3 { background:var(--y3); color:var(--yt); }
   .verdict { font-size:11.5px; color:var(--muted); margin-top:4px; }
   .fb { display:none; gap:6px; margin-top:7px; } .card.sel .fb { display:flex; } .fb input { flex:1; min-width:0; }
   .legend { font-size:11.5px; color:var(--muted); } .legend i { display:inline-block; width:14px; height:4px; vertical-align:middle; margin:0 3px 0 8px; }
@@ -76,7 +83,47 @@
 const BASE = location.pathname.replace(/[^\/]*\.[^\/]*$/, '').replace(/\/?$/, '/');
 const $ = id => document.getElementById(id), P = new URLSearchParams(location.search);
 const CLS = {W:'#2e8b57', P:'#8a6d3b', S:'#e08a2c', G:'#c62828'};
-const AXES = [['natur','Natur'], ['ruhe','Ruhe'], ['weg','Weg'], ['besonderes','Besonderes'], ['form','Form']];
+// the five values and the hints as pills, exactly as sketch 7 (owner 2026-11-17, https://claude.ai/artifact/DAWvWBJqNkyhxUhnkmNRoV):
+// computed here from the shown cards – the Python method stays as it is (it is the reference for the Kotlin port)
+const AX = ['natur', 'ruhe', 'weg', 'besonderes', 'form'];
+const GOOD = {natur: 'am grünsten', ruhe: 'am ruhigsten', weg: 'schönste Wege', besonderes: 'am meisten Besonderes', form: 'sauberste Runde'};
+const BAD = {natur: 'weniger Grün', ruhe: 'lauter', weg: 'rauerer Weg', besonderes: 'wenig Besonderes', form: 'unrundere Form'};
+const GOOD_BIKE = {weg: 'glattester Belag'}, BAD_BIKE = {weg: 'rauerer Belag'};
+// the rule: spread of the list on a value ≥ 0.08; strength = position in the list ≥ 0.75, weakness ≤ 0.25;
+// intensity by the distance from the list's mean: < 0.08 light, < 0.15 clear, else strong; at most 2 green + 2 yellow
+function pills(c, cs, bike, wish) {
+  const g = [], y = [];
+  for (const a of AX) {
+    const v = cs.map(x => x.axes[a]), lo = Math.min(...v), hi = Math.max(...v);
+    if (hi - lo < 0.08) continue;
+    const q = (c.axes[a] - lo) / (hi - lo), mean = v.reduce((s, x) => s + x, 0) / v.length, d = Math.abs(c.axes[a] - mean);
+    const lvl = d < 0.08 ? 1 : d < 0.15 ? 2 : 3;
+    if (q >= 0.75 && c.axes[a] > mean) g.push({d, lvl, t: (bike && GOOD_BIKE[a]) || GOOD[a]});
+    else if (q <= 0.25 && c.axes[a] < mean) y.push({d, lvl, t: (bike && BAD_BIKE[a]) || BAD[a]});
+  }
+  g.sort((p, q) => q.d - p.d); y.sort((p, q) => q.d - p.d);
+  const yellow = hintPills(c, wish).map(([, lvl, t]) => ({lvl, t})).concat(y).slice(0, 2);
+  return g.slice(0, 2).map(p => `<span class="pill g${p.lvl}">${esc(p.t)}</span>`)
+    .concat(yellow.map(p => `<span class="pill y${p.lvl}">${esc(p.t)}</span>`)).join('');
+}
+// the card's hints as yellow pills, by weight: missed wish (ascent, time) – road – through a town – crossing – the rest
+// [priority (lower first), level, text]
+function hintPills(c, wish) {
+  const out = [], [lo, hi] = wish.hours, [upMin, upMax] = wish.ascent, up = c.numbers.ascent, h = c.numbers.hours;
+  if (up > upMax) { const x = up - upMax; out.push([0, x < 50 ? 1 : x < 150 ? 2 : 3, `↑ ${up} m – mehr als gewünscht`]); }
+  if (up < upMin) { const x = upMin - up; out.push([0, x < 50 ? 1 : x < 150 ? 2 : 3, `↑ ${up} m – weniger als gewünscht`]); }
+  if (h > hi + 1 / 120) { const m = Math.round((h - hi) * 60); out.push([1, m <= 10 ? 1 : m <= 30 ? 2 : 3, `${m} min länger als gewünscht`]); }
+  if (h < lo - 1 / 120) { const m = Math.round((lo - h) * 60); out.push([1, m <= 10 ? 1 : m <= 30 ? 2 : 3, `${m} min kürzer als gewünscht`]); }
+  for (const t of c.hints) {
+    let m;
+    if ((m = t.match(/^(\d+) m an einer Straße/))) { const v = +m[1]; out.push([2, v < 300 ? 1 : v < 700 ? 2 : 3, `${v} m an der Straße`]); }
+    else if ((m = t.match(/^(\d+) % durch Häuser/))) { const v = +m[1]; out.push([3, v < 15 ? 1 : v < 30 ? 2 : 3, `${v} % durch Ort`]); }
+    else if (/kreuzt sich/.test(t)) out.push([4, 1, 'kreuzt sich']);
+    else if (/doppelt/.test(t)) out.push([4, 1, 'Weg doppelt']);
+    else if (/Kartengebiet/.test(t)) out.push([4, 1, 'am Rand des Kartengebiets']);
+  }
+  return out.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+}
 const map = L.map('map').setView([51.168, 6.9395], 13);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '© OpenStreetMap'}).addTo(map);
 const layer = L.layerGroup().addTo(map), knownLayer = L.layerGroup().addTo(map);
@@ -132,7 +179,9 @@ function show(r) {
   $('status').textContent = `${shown.length - nOff} Vorschläge${nOff ? ` und ${nOff} offizielle${nOff > 1 ? ' Rundwege' : 'r Rundweg'}` : ''} aus ${r.candidates.length} Runden · ${km(r.seconds)} s · ${hm(r.hours[0])}–${hm(r.hours[1])} h (${km(r.target_km[0])}–${km(r.target_km[1])} km) · ↑ ${r.ascent[0]}–${r.ascent[1]} m · Charakter ${r.character.word} · Stand ${r.version}`;
   $('notes').innerHTML = r.notes.map(n => `<div>${n}</div>`).join('');
   $('cards').innerHTML = '';
+  const bike = r.wish.activity !== 'hike', wishRange = {hours: r.hours, ascent: r.ascent};
   shown.forEach((c, i) => {
+    const p = pills(c, shown, bike, wishRange);
     const n = c.numbers, d = document.createElement('div');
     const o = c.official;
     d.className = 'card';
@@ -141,9 +190,8 @@ function show(r) {
       <div class="big">${km(n.km)} km · ${hm(n.hours)} h · ↑ ${n.ascent} m</div>
       ${o ? `<div class="from">davon ${km(o.loop_km)} km auf dem Rundweg</div>` : ''}
       ${c.line ? `<div class="txt" title="${esc(c.line)}">${esc(c.line)}</div>` : ''}
-      <div class="axes">${AXES.map(a => `<span>${a[1]}</span><i><u style="width:${Math.round(100 * c.axes[a[0]])}%"></u></i><span>${Math.round(100 * c.axes[a[0]])}</span>`).join('')}</div>
+      ${p ? `<div class="pills">${p}</div>` : ''}
       <div class="more"><div class="why">${c.reasons.join(' · ')}</div>
-      <div class="chips">${c.hints.map(h => `<span>${h}</span>`).join('')}</div>
       <div class="verdict">${c.why} · am Wald ${n.forest_pct} % · durch Häuser ${n.town_pct} % · Belag fest ${n.ground_pct[0] + n.ground_pct[1]} % / Natur ${n.ground_pct[2] + n.ground_pct[3]} %${n.path_pct != null && r.wish.activity === 'hike' ? ` · Pfade ${n.path_pct} %` : ''}${n.variety != null ? ` · Landschaftswechsel ${km(n.variety)}/km` : ''}${o ? ` · <a href="https://www.openstreetmap.org/relation/${o.osm}" target="_blank">OSM</a>` : ''}</div></div>
       <div class="fb"><input type="text" placeholder="Kommentar zu dieser Runde"><button>Kommentar senden</button></div>`;
     d.onclick = () => { selected = c.id; draw(); };
