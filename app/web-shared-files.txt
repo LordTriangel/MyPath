@@ -134,6 +134,10 @@ suggest/Generate.kt
 suggest/Official.kt
 suggest/Score.kt
 suggest/TourSuggester.kt
+# the batch of 2026-11-17 (IR, stage 3a): aims as turning points and reached-aim scoring; the card words from the
+# shared strings (strings_suggest.xml, Txt – DE / EN)
+suggest/Aims.kt
+suggest/SuggestText.kt
 
 [tests]
 routing/OfflineCorridorTest.kt

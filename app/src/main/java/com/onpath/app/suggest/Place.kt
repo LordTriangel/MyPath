@@ -5,7 +5,9 @@ package com.onpath.app.suggest
  * Level 2 – what the place offers (the POC's `place.py`, frozen 2026-11-16): per way the absolute value on Natur, Ruhe,
  * Weg, Besonderes for this character; the place's yardstick (low / high quantile – the search's measure – and `top`,
  * what a loop's mean counts full at); "how good is this way here" and the search cost; one search from the start;
- * what stands out (areas, lines); the unavoidable way out ([access]).
+ * what stands out (areas, lines); the unavoidable way out ([access]); what a loop can lead to ([aims]). Since the batch
+ * of 2026-11-17: a natural shore counts as nature (`water_natur`), on foot a narrow path is worth more on Weg than a
+ * wide track of the same ground (quality trails).
  */
 class Place(
     val net: WayNet,
@@ -35,6 +37,10 @@ class Place(
     val access: Double
     /** loops that fit but climb more than wished (generate.pool) */
     val steep = ArrayList<Candidate>()
+    /** summits, lakes, viewpoints, huts, castles … in reach, each with its turning point (aims.py `find`) */
+    val aims: List<Aims.Aim>
+    /** the names made up for unnamed areas and lines ("Wald bei Hilden") – a card may be called after one */
+    val spotNames = HashSet<String>()
 
     /** An area or a line as the generators and the cards need it (place.py `_thing`). */
     class Spot(val kind: String, val name: String, val rank: Double, val edges: PyIntSet, val nodes: IntArray,
@@ -45,11 +51,16 @@ class Place(
         val ok = (0 until n).filter { F.ok[it] }.toIntArray()
         val (wWater, wOther) = if (ch.water) 1.0 to 0.4 else 0.6 to 1.0
         val things = F.things
-        val rimNatur = P["rim_natur"].d; val pRim = P["rim"].d; val pSight = P["sight"].d
+        val rimNatur = P["rim_natur"].d; val pRim = P["rim"].d; val pSight = P["sight"].d; val waterNatur = P["water_natur"].d
+        val W = S["quality"]["width"]
+        val width = doubleArrayOf(W["path"].d, W["track"].d, W["rough_track"].d, W["wide"].d)
         for (e in ok) {
-            v[NATUR][e] = maxOf((1 - ch.depth) * F.green[e] + ch.depth * F.depth[e], rimNatur * F.rim[e])
+            // an open edge with a view and a natural shore (quality trails: "Ränder – Waldrand, Ufer") are nature too
+            v[NATUR][e] = maxOf((1 - ch.depth) * F.green[e] + ch.depth * F.depth[e], rimNatur * F.rim[e],
+                waterNatur * F.water[e] * (if (F.built[e]) 0 else 1))
             v[RUHE][e] = 1.0 - maxOf(F.traffic[e], 0.6 * (if (F.built[e]) 1 else 0), 0.5 * F.noise[e])
-            v[WEG][e] = if (F.rail[e] && ch.bike) 1.0 else ch.ground[F.ground[e]]
+            // on foot a narrow path is worth more than a wide track of the same ground (quality trails)
+            v[WEG][e] = if (F.rail[e] && ch.bike) 1.0 else (1.0 - ch.path) * ch.ground[F.ground[e]] + ch.path * width[F.width[e]]
             var tip = tips[F.areas[F.area[e]]] ?: 0.0
             for (i in F.named[e]) tip = maxOf(tip, tips[things[i].name] ?: 0.0)
             val other = maxOf(maxOf(F.signed[e] * ch.signed, 0.9 * (if (F.rail[e] && ch.bike) 1 else 0), 0.6 * (if (F.area[e] > 0) 1 else 0)),
@@ -105,6 +116,9 @@ class Place(
         for (a in 0 until 4) {
             top[a] = maxOf(quantile(core, v[a], P["top"][AXES[a]].d) + (if (a == BESONDERES) ring else 0.0), low[a] + P["min_span"].d)
         }
+        // --- what a loop can lead to: summits, lakes, viewpoints, huts, castles … (Aims)
+        @Suppress("LeakingThis")
+        aims = Aims.find(this, S)
     }
 
     /** An absolute value on this place's yardstick: 0 = poor here, 1 = as good as it gets here. */
@@ -161,11 +175,11 @@ class Place(
             else {
                 fun share(test: (Int) -> Boolean): Double { var s = 0.0; for (e in es) if (test(e)) s += F.ln[e]; return s / m }
                 val what = word.ifEmpty {
-                    if (share { F.water[it] > 0 } >= 0.3) "Ufer" else if (share { F.green[it] >= 0.5 } >= 0.5) "Wald" else "Feldflur"
+                    if (share { F.water[it] > 0 } >= 0.3) SuggestText.shore() else if (share { F.green[it] >= 0.5 } >= 0.5) SuggestText.forest()
+                    else SuggestText.fields()
                 }
-                val town = land.placeNear(cx, cy)
-                name = if (town.isNotEmpty()) "$what bei $town"
-                else "$what im ${SuggestGeo.direction(net.lon(start), net.lat(start), cx, cy)}"
+                name = SuggestText.spot(what, land.placeNear(cx, cy), SuggestText.direction(net.lon(start), net.lat(start), cx, cy))
+                spotNames.add(name)
             }
         }
         var heart = nodes[0]
@@ -192,9 +206,9 @@ class Place(
         }
         val bike = if (ch.bike) 1.0 else 0.0
         val runs = listOf(
-            Triple("rail", reach.filter { F.rail[it] }, 0.9 * bike) to "Bahntrasse",
-            Triple("bank", reach.filter { F.water[it] == 1.0 && F.traffic[it] < 0.3 }, if (ch.water) 1.0 else 0.6) to "Ufer",
-            Triple("brook", reach.filter { F.water[it] == 0.5 && F.green[it] >= 0.2 && F.traffic[it] < 0.3 }, if (ch.water) 0.9 else 0.4) to "Bach",
+            Triple("rail", reach.filter { F.rail[it] }, 0.9 * bike) to SuggestText.rail(),
+            Triple("bank", reach.filter { F.water[it] == 1.0 && F.traffic[it] < 0.3 }, if (ch.water) 1.0 else 0.6) to SuggestText.shore(),
+            Triple("brook", reach.filter { F.water[it] == 0.5 && F.green[it] >= 0.2 && F.traffic[it] < 0.3 }, if (ch.water) 0.9 else 0.4) to SuggestText.brook(),
         )
         val lakeEdges = PyIntSet()
         for (ln in out) if (ln.kind == "lake") for (e in ln.edges.toIntArray()) lakeEdges.add(e)

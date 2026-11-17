@@ -6,8 +6,10 @@ package com.onpath.app.suggest
  * tags ([WayKinds]) and the suggest files' grids ([Land]) and named things ([Named]):
  * ok (the profile allows it), ground 0 paved · 1 firm · 2 natural · 3 rough, traffic 0..1 (a road with cars, or a
  * separate way right beside one – found by geometry), built (in settlement land), green (100 m) and depth (300 / 900 m),
- * water (1 big, 0.5 small), rim (edge with a view), sight nearby, signed rank, rail trail, ferry, noise, the named
- * protected area and the named things it lies on.
+ * water (1 big, 0.5 small), rim (edge with a view), sight nearby, signed rank, rail trail, ferry, noise, width (0 a
+ * narrow path – path / footway / steps / bridleway, not paved · 1 a track, grade 1 / 2 or none · 2 a rough track, grade
+ * 3–5 · 3 a road or a wide made way: what quality trails call the way's format), the named protected area and the named
+ * things it lies on.
  *
  * Lengths and heights as the POC sees them (0.1 m; its route service rounds them so) and cost factors as their
  * shortest decimal text – the port computes on the very same numbers.
@@ -29,15 +31,17 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
     val noise = DoubleArray(n)
     val rim = DoubleArray(n)
     val sight = BooleanArray(n)
+    /** 0 path · 1 track · 2 rough track · 3 road / wide (facts.py `of_tags`) */
+    val width = IntArray(n) { 3 }
     val area = IntArray(n)
     val named: Array<IntArray> = Array(n) { EMPTY }
     /** names of the protected areas; 0 = none */
     val areas = arrayListOf("")
     val things: List<Thing> = index.things
 
-    /** Per way kind: road weight, ground, signed rank, rail, ferry, noise, river class, tunnel. */
+    /** Per way kind: road weight, ground, signed rank, rail, ferry, noise, river class, tunnel, width. */
     private class Tags(val road: Double, val ground: Int, val signed: Double, val rail: Boolean, val ferry: Boolean,
-                       val noise: Double, val river: Int, val tunnel: Boolean)
+                       val noise: Double, val river: Int, val tunnel: Boolean, val width: Int)
 
     init {
         val kinds = net.kinds
@@ -59,7 +63,7 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
             costfactor[e] = minOf(cf(net.costFactor(e, a)), cf(net.costFactor(e, b)), 5.0)
             if (!ok[e]) continue
             val t = tagsOf(net.linkKind[e])
-            ground[e] = t.ground; rail[e] = t.rail; ferry[e] = t.ferry; noise[e] = t.noise
+            ground[e] = t.ground; rail[e] = t.rail; ferry[e] = t.ferry; noise[e] = t.noise; width[e] = t.width
             var road = t.road
             var signedE = t.signed
             val mid = mid(e)
@@ -158,6 +162,8 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
         private val PAVED = setOf("asphalt", "paved", "concrete", "concrete:plates", "concrete:lanes", "paving_stones")
         private val FIRM = setOf("compacted", "fine_gravel", "gravel", "pebblestone", "sett", "cobblestone", "unhewn_cobblestone", "metal", "wood", "grass_paver")
         private val ROUGH = setOf("rock", "roots", "stone", "scree", "mud")
+        private val PATHS = setOf("path", "footway", "steps", "bridleway")
+        private val ROUGH_TRACK = setOf("grade3", "grade4", "grade5")
 
         /** A cost factor as the POC got it: the float's shortest decimal text. */
         private fun cf(f: Float): Double = f.toString().toDouble()
@@ -215,8 +221,9 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
             val rail = tag(WayKinds.RAILWAY) == "abandoned" && hw in setOf("path", "cycleway", "track") &&
                 (kinds.tag(k, WayKinds.BICYCLE) ?: "yes") != "no"
             fun num(key: Int) = tag(key).toIntOrNull() ?: 0
+            val width = if (hw in PATHS && ground > 0) 0 else if (hw == "track") (if (tt in ROUGH_TRACK) 2 else 1) else 3
             return Tags(road, ground, signed, rail, tag(WayKinds.ROUTE) == "ferry", num(WayKinds.NOISE_CLASS) / 6.0,
-                num(WayKinds.RIVER_CLASS), tag(WayKinds.TUNNEL) == "yes")
+                num(WayKinds.RIVER_CLASS), tag(WayKinds.TUNNEL) == "yes", width)
         }
     }
 }

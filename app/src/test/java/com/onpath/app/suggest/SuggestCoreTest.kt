@@ -47,6 +47,10 @@ class SuggestCoreTest {
         assertEquals(17641.24, a.m, 1e-9)
         assertArrayEquals(doubleArrayOf(6.9, 51.1, 6.91, 51.1, 6.9, 51.1), a.line, 0.0)
         assertEquals(12, b.parkingM); assertNull(b.ascent); assertEquals(0, b.line.size)
+        val (peak, cafe) = f.aims!!
+        assertEquals(listOf("peak", "Hoher Kranzberg", "1391"), listOf(peak.kind, peak.name, peak.ele.toString()))
+        assertEquals(11.233, peak.lon, 0.0); assertEquals(47.4561, peak.lat, 0.0)
+        assertEquals(listOf("cafe", "Café", "0"), listOf(cafe.kind, cafe.name, cafe.ele.toString()))
     }
 
     @Test fun skipsUnknownSectionsAndRefusesNewerFormats() {
@@ -96,11 +100,10 @@ class SuggestCoreTest {
             val asc = body["ascent"]
             val w = Wish.of(settings, 6.9, 51.1, body["activity"].v as String?, (body["t_level"].v as Double?)?.toInt(),
                 if (body["hours"].isList) body["hours"].doubles() else doubleArrayOf(body["hours"].d), null,
-                if (asc.isNull) null else arrayOf(asc[0].v as Double?, asc[1].v as Double?),
-                body["natur"].v as String?, body["ruhe"].v as String?, body["bekannt"].v as String?, body["wasser"].v == true)
+                if (asc.isNull) null else arrayOf(asc[0].v as Double?, asc[1].v as Double?), body["ziel"].list.map { it.s })
             val ch = Character(w, settings)
             val r = lines[i + 1].removePrefix("R ").split(' ').map { it.toDouble() }
-            assertEquals(r, listOf(ch.wild, ch.depth, ch.signed, ch.minM, ch.maxM, ch.usualUp, ch.up[0], ch.up[1], ch.hours[0], ch.hours[1]))
+            assertEquals(r, listOf(ch.wild, ch.depth, ch.signed, ch.path, ch.minM, ch.maxM, ch.usualUp, ch.up[0], ch.up[1], ch.hours[0], ch.hours[1]))
             val axes = lines[i + 2].removePrefix("AXES ").split(' ').associate { it.substringBefore('=') to it.substringAfter('=').toDouble() }
             assertEquals(axes, ch.axes)
             assertEquals(lines[i + 3].removePrefix("GROUND ").split(' ').map { it.toDouble() }, ch.ground.toList())
@@ -123,8 +126,37 @@ class SuggestCoreTest {
         assertEquals("3.0", SuggestGeo.pyStr(3.0))
         assertEquals("Westen", SuggestGeo.direction(7.0, 51.0, 6.9, 51.0))
         assertEquals("Hirschpark", Score.short("Hirschpark (Nordkirchen) mit Umgebung"))
-        assertEquals("am Elbsee", Score.am("Elbsee"))
-        assertEquals("an der Dhünntalsperre", Score.am("Dhünntalsperre"))
         assertEquals("X30 Neandertalweg", Named.label("[Hilden] X30 Neandertalweg - Teilstrecke 2"))
+    }
+
+    /** The card words come from strings_suggest.xml: in German the POC's words, in English the app's. */
+    @Test fun cardWordsInBothLanguages() {
+        val before = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.GERMANY)
+            assertEquals("am Elbsee", Score.am("Elbsee"))
+            assertEquals("an der Dhünntalsperre", Score.am("Dhünntalsperre"))
+            assertEquals("rund um den Lautersee", SuggestText.um("Lautersee"))
+            assertEquals("rund um das Pulvermaar", SuggestText.um("Pulvermaar"))
+            assertEquals("1,5", SuggestText.num(1.5))
+            val peak = Aims.Reached("gipfel", "peak", "Eckbauer", 1237, 0.5, 0.0, 1.0, true, 0.1)
+            val hut = Aims.Reached("einkehr", "hut", "Gasthof Eckbauer", 0, 0.52, 0.0, 0.8, false, 0.05)
+            assertEquals(listOf("Gipfel Eckbauer (1237 m)", "Einkehr Gasthof Eckbauer"), SuggestText.aimBits(listOf(peak, hut)))
+            assertEquals("a, b und c", SuggestText.both(listOf("a", "b", "c")))
+            java.util.Locale.setDefault(java.util.Locale.US)
+            assertEquals("at Elbsee", Score.am("Elbsee"))
+            assertEquals("1.5", SuggestText.num(1.5))
+            assertEquals(listOf("summit Eckbauer (1237 m)", "stop at Gasthof Eckbauer"), SuggestText.aimBits(listOf(peak, hut)))
+        } finally {
+            java.util.Locale.setDefault(before)
+        }
+    }
+
+    @Test fun wishKeepsOnlyKnownZiele() {
+        val w = Wish.of(settings, 6.9, 51.1, ziel = listOf("kultur", "gipfel", "nichts"))
+        assertEquals(listOf("gipfel", "kultur"), w.ziel)
+        val ch = Character(w, settings)
+        assertTrue(!ch.water)
+        assertTrue(Character(Wish.of(settings, 6.9, 51.1, ziel = listOf("wasser")), settings).water)
     }
 }

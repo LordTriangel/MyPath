@@ -228,8 +228,11 @@ class LoopAssembly(
     private val pen = DoubleArray(net.linkCount)
     private val penSet = IntArray(net.linkCount)
 
-    /** → the loop's links in walking order, or null. [costs] = other costs for some parts (index into points + home). */
-    fun assemble(points: IntArray, costs: Map<Int, DoubleArray>? = null): IntArray? {
+    /**
+     * → the loop's links in walking order, or null. [costs] = other costs for some parts (index into points + home);
+     * [keep] = nodes (aims) whose way out and back stays in the loop (the last stretch up to a summit).
+     */
+    fun assemble(points: IntArray, costs: Map<Int, DoubleArray>? = null, keep: Set<Int> = emptySet()): IntArray? {
         var penN = 0
         try {
             val edges = ArrayList<Int>()
@@ -259,7 +262,7 @@ class LoopAssembly(
                 }
                 cur = w
             }
-            val cut = cutSpurs(net, start, edges.toIntArray(), search.lengths)
+            val cut = cutSpurs(net, start, edges.toIntArray(), search.lengths, keep)
             return if (cut.size >= 3) cut else null
         } finally {
             for (i in 0 until penN) pen[penSet[i]] = 0.0
@@ -267,24 +270,40 @@ class LoopAssembly(
     }
 
     companion object {
-        /** generate.py `cut_spurs`: cut a spur (out to a point and back the same way, also with a small loop at its tip). */
+        /**
+         * generate.py `cut_spurs`: cut a spur (out to a point and back the same way, also with a small loop at its tip) –
+         * not when its tip is an aim in [keep]: the way up to a summit and back down is the point of the loop.
+         */
         fun cutSpurs(net: WayNet, start: Int, input: IntArray,
-                     lengths: DoubleArray = DoubleArray(net.linkCount) { net.linkLen[it].toDouble() }): IntArray {
+                     lengths: DoubleArray = DoubleArray(net.linkCount) { net.linkLen[it].toDouble() }, keep: Set<Int> = emptySet()): IntArray {
             var edges = input
             while (true) {
                 val out = ArrayList<Int>(edges.size)
-                for (e in edges) if (out.isNotEmpty() && out[out.size - 1] == e) out.removeAt(out.size - 1) else out.add(e)
+                val at = ArrayList<Int>(edges.size + 1)
+                at.add(start)
+                for (e in edges) {
+                    if (out.isNotEmpty() && out[out.size - 1] == e && at[at.size - 1] !in keep) {
+                        out.removeAt(out.size - 1); at.removeAt(at.size - 1)
+                    } else {
+                        out.add(e); at.add(net.other(e, at[at.size - 1]))
+                    }
+                }
                 edges = out.toIntArray()
                 var node = start
+                val nodes = IntArray(edges.size + 1)
+                nodes[0] = start
                 val first = HashMap<Int, Int>()
                 first[start] = 0
                 var cutAt = -1
                 var cutEnd = -1
                 for (k in edges.indices) {
                     node = net.other(edges[k], node)
+                    nodes[k + 1] = node
                     val i = first.getOrPut(node) { k + 1 }
                     val pieceLen = k + 1 - i
-                    if (i in 1..k && pieceLen < 0.6 * edges.size) {
+                    var tipKept = false
+                    if (keep.isNotEmpty() && i in 1..k) for (j in i..k + 1) if (nodes[j] in keep) { tipKept = true; break }
+                    if (i in 1..k && pieceLen < 0.6 * edges.size && !tipKept) {
                         var walked = 0.0
                         for (j in i..k) walked += lengths[edges[j]]
                         var once = 0.0

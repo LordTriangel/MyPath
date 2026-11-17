@@ -3,10 +3,12 @@ package com.onpath.app.suggest
 
 /**
  * Named things around a start from the suggest files (the POC's `named.py`): known signed routes (by label, joined
- * across cells), lakes, sights – each with dense points every ~25 m within reach – and an [Index] that says which
- * things a point lies on.
+ * across cells), lakes, sights – each with dense points every ~25 m within reach –, the aims a loop can turn at (kind
+ * "aim": [what] = peak / hut / restaurant / cafe / spring / museum, [ele] its height or 0; content 2 of the files, an
+ * older file has none) and an [Index] that says which things a point lies on (aims are not in it: an aim is a turning
+ * point, [Aims], not a fact of the ways near it).
  */
-class Thing(val kind: String, val name: String, val rank: Double, val dense: DoubleArray, val what: String = "") {
+class Thing(val kind: String, val name: String, val rank: Double, val dense: DoubleArray, val what: String = "", val ele: Int = 0) {
     val points: Int get() = dense.size / 2
 }
 
@@ -44,6 +46,7 @@ object Named {
         val routes = LinkedHashMap<String, Group>()
         val lakes = LinkedHashMap<String, ArrayList<DoubleArray>>()
         val sights = ArrayList<SuggestFile.Sight>()
+        val aims = ArrayList<SuggestFile.Aim>()
         for (c in Land.cellsFor(lon, lat, reachM)) {
             val f = files.cell(c[0], c[1]) ?: continue
             for (r in f.routes) {
@@ -55,6 +58,7 @@ object Named {
             }
             for (lk in f.lakes) lakes.getOrPut(lk.name) { ArrayList() }.addAll(lk.lines)
             sights.addAll(f.sights)
+            f.aims?.let { aims.addAll(it) }
         }
         val real = routes.filter { !it.value.trail }.keys.map { it.lowercase() }
         for (k in routes.filter { it.value.trail }.keys.toList()) {
@@ -78,6 +82,9 @@ object Named {
                 out.add(Thing("sight", s.name.ifEmpty { what }, 1.0, doubleArrayOf(s.lon, s.lat), what))
             }
         }
+        for (a in aims) {
+            if (SuggestGeo.dist(lon, lat, a.lon, a.lat) <= reachM) out.add(Thing("aim", a.name, 1.0, doubleArrayOf(a.lon, a.lat), a.kind, a.ele))
+        }
         return out
     }
 
@@ -96,6 +103,7 @@ object Named {
 
         init {
             for ((i, a) in things.withIndex()) {
+                if (a.kind == "aim") continue  // an aim is a turning point (Aims), not a fact of the ways near it
                 val pad = if (a.kind == "lake") 2 else 0
                 for (k in 0 until a.points) {
                     val cx = (a.dense[2 * k] / CX).toInt(); val cy = (a.dense[2 * k + 1] / CY).toInt()
