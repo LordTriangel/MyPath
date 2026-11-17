@@ -33,7 +33,7 @@ object Score {
             for (e in core) m += F.ln[e]
             for (a in 0 until 4) {
                 var s = 0.0
-                for (e in core) s += P.v[a][e] * F.ln[e]
+                for (e in core) s += P.value(a, e) * F.ln[e]
                 c.raw[a] = s / m
             }
             val byName = LinkedHashMap<String, Sight>()

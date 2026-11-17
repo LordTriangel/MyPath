@@ -159,7 +159,7 @@ object Official {
     fun trail(P: Place, coords: DoubleArray): Trail {
         val net = P.net; val F = P.F
         val pts = dense(coords)
-        val okEdges = (0 until net.linkCount).filter { F.ok[it] }
+        val okEdges = Generate.linksWhere(net.linkCount) { F.ok[it] }
         val on = Generate.runsAlong(net, pts, okEdges, NEAR)
         val cost = DoubleArray(net.linkCount) { if (!F.ok[it]) -1.0 else if (it in on) F.ln[it] else 25.0 * F.ln[it] }
         val igrid = HashMap<Long, ArrayList<Int>>()
@@ -201,10 +201,11 @@ object Official {
         var cur = start
         val s = P.search
         for (w in aims + start) {
-            s.toStop(cur, w, cost)
+            s.toStop(cur, w, cost, withMetres = false)
             if (!s.reached(w)) return null
-            if (w != start && s.metres[w] > 4.0 * SuggestGeo.dist(net.lon(cur), net.lat(cur), net.lon(w), net.lat(w)) + 1000.0) continue
-            for (e in s.path(w)) edges.add(e)
+            val path = s.path(w)
+            if (w != start && s.pathMetres(path) > 4.0 * SuggestGeo.dist(net.lon(cur), net.lat(cur), net.lon(w), net.lat(w)) + 1000.0) continue
+            for (e in path) edges.add(e)
             if (w != start) kept.add(w)
             cur = w
         }

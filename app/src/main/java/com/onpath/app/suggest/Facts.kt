@@ -12,28 +12,29 @@ package com.onpath.app.suggest
  * things it lies on.
  *
  * Lengths and heights as the POC sees them (0.1 m; its route service rounds them so) and cost factors as their
- * shortest decimal text – the port computes on the very same numbers.
+ * shortest decimal text – the port computes on the very same numbers. The facts with few distinct values per network
+ * are kept as [CodedDoubles] (2 bytes per link instead of 8, the very same numbers).
  */
-class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike: Boolean, land: Land) {
+class Facts(val net: WayNet, index: Named.Index, K: SuggestSettings.J, bike: Boolean, land: Land) {
     val n = net.linkCount
     val ln = DoubleArray(n) { Math.round(net.linkLen[it] * 10.0) / 10.0 }
     val ok = BooleanArray(n) { net.allowed(it) }
-    val costfactor = DoubleArray(n)
-    val ground = IntArray(n)
-    val traffic = DoubleArray(n)
+    val costfactor = CodedDoubles(n)
+    val ground = SmallInts(n)
+    val traffic = CodedDoubles(n)
     val built = BooleanArray(n)
-    val green = DoubleArray(n)
-    val depth = DoubleArray(n)
-    val water = DoubleArray(n)
-    val signed = DoubleArray(n)
+    val green = CodedDoubles(n)
+    val depth = CodedDoubles(n)
+    val water = CodedDoubles(n)
+    val signed = CodedDoubles(n)
     val rail = BooleanArray(n)
     val ferry = BooleanArray(n)
-    val noise = DoubleArray(n)
-    val rim = DoubleArray(n)
+    val noise = CodedDoubles(n)
+    val rim = CodedDoubles(n)
     val sight = BooleanArray(n)
     /** 0 path · 1 track · 2 rough track · 3 road / wide (facts.py `of_tags`) */
-    val width = IntArray(n) { 3 }
-    val area = IntArray(n)
+    val width = SmallInts(n, 3)
+    val area = SmallInts(n)
     val named: Array<IntArray> = Array(n) { EMPTY }
     /** names of the protected areas; 0 = none */
     val areas = arrayListOf("")
@@ -46,7 +47,16 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
     init {
         val kinds = net.kinds
         val perKind = arrayOfNulls<Tags>(kinds.size)
-        fun tagsOf(k: Int): Tags = perKind[k] ?: ofTags(kinds, k, K, bike).also { perKind[k] = it }
+        // ofTags reads only these tags and the route flags: one Tags per combination (a bike network: 100 000 way kinds,
+        // a few hundred combinations)
+        val byTags = HashMap<String, Tags>()
+        val keyChars = CharArray(TAG_KEYS.size + 2)
+        fun tagsOf(k: Int): Tags = perKind[k] ?: run {
+            for (i in TAG_KEYS.indices) keyChars[i] = kinds.code(k, TAG_KEYS[i]).toChar()
+            val r = kinds.routes(k)
+            keyChars[TAG_KEYS.size] = (r ushr 16).toChar(); keyChars[TAG_KEYS.size + 1] = (r and 0xffff).toChar()
+            byTags.getOrPut(String(keyChars)) { ofTags(kinds, k, K, bike) }
+        }.also { perKind[k] = it }
         val besideFrom = K["beside_from"].d
         val roads = RoadGrid()
         for (e in 0 until n) {
@@ -57,7 +67,39 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
         val rimK = K["rim"]
         val rimFrom = rimK[0].d; val rimFull = rimK[1].d; val rimReach = rimK[2].d
         val bigWater = K["big_water"].d
+        // the land grids, grid by grid: per link the grid it is read in (Land.gridAt in link order, as the POC moves
+        // from grid to grid), then each grid's links together – only one grid's tables are in memory at a time
+        val gridNo = SmallInts(n)  // 0 = none, else the grid's number + 1
+        val grids = ArrayList<Land.Grid>()
+        val gridIds = java.util.IdentityHashMap<Land.Grid, Int>()
+        for (e in 0 until n) {
+            if (!ok[e]) continue
+            val mid = mid(e)
+            val g = land.gridAt(mid[0], mid[1]) ?: continue
+            gridNo[e] = gridIds.getOrPut(g) { grids.add(g); grids.size }
+        }
+        val wet = ByteArray(n)  // bit 0: water within 90 m > 4 %, bit 1: within 300 m ≥ big_water
+        // the protected area's name per link, numbered as met here (numbered again in link order below)
+        val areaOf = SmallInts(n)
+        val areaNames = arrayListOf("")
+        val areaSeen = HashMap<String, Int>()
+        for (i in 0 until grids.size) {
+            val g = grids[i]
+            for (e in 0 until n) {
+                if (gridNo[e] != i + 1) continue
+                val mid = mid(e)
+                val around = land.around(g, mid[0], mid[1])
+                built[e] = around.built >= 0.5
+                green[e] = around.n100
+                depth[e] = 0.5 * (around.n300 + around.n900)
+                rim[e] = land.rim(g, mid[0], mid[1], rimFrom, rimFull, rimReach)
+                wet[e] = ((if (around.w90 > 0.04) 1 else 0) or (if (around.w300 >= bigWater) 2 else 0)).toByte()
+                if (around.area.isNotEmpty()) areaOf[e] = areaSeen.getOrPut(around.area) { areaNames.add(around.area); areaNames.size - 1 }
+            }
+            g.release()
+        }
         val areaIndex = HashMap<String, Int>()
+        var lastHits = EMPTY
         for (e in 0 until n) {
             val a = net.linkA[e]; val b = net.linkB[e]
             costfactor[e] = minOf(cf(net.costFactor(e, a)), cf(net.costFactor(e, b)), 5.0)
@@ -67,26 +109,24 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
             var road = t.road
             var signedE = t.signed
             val mid = mid(e)
-            if (road == 0.0 && ln[e] >= 25.0 && roads.cells.isNotEmpty()) road = beside * roads.beside(geom(e))
+            if (road == 0.0 && ln[e] >= 25.0 && roads.isNotEmpty()) road = beside * roads.beside(geom(e))
             traffic[e] = road
-            val around = land.around(mid[0], mid[1])
-            built[e] = around.built >= 0.5
-            green[e] = around.n100
-            depth[e] = 0.5 * (around.n300 + around.n900)
-            rim[e] = land.rim(mid[0], mid[1], rimFrom, rimFull, rimReach)
-            var bank = around.w90 > 0.04
-            val hits = index.at(mid[0], mid[1], 1)
+            val w = wet[e].toInt()
+            var bank = w and 1 != 0
+            var hits = index.at(mid[0], mid[1], 1)
             for (i in hits) {
                 val th = things[i]
                 if (th.kind == "route" && (road < besideFrom || signedE != 0.0)) signedE = maxOf(signedE, th.rank)
                 bank = bank || th.kind == "lake"
                 sight[e] = sight[e] || th.kind == "sight"
             }
-            water[e] = if (bank && around.w300 >= bigWater) 1.0 else if (bank || (t.river >= 4 && around.n100 >= 0.2)) 0.5 else 0.0
+            water[e] = if (bank && w and 2 != 0) 1.0 else if (bank || (t.river >= 4 && green[e] >= 0.2)) 0.5 else 0.0
             signed[e] = signedE
+            // one array for the many links with the same things as the link before (most have none)
+            if (hits.isEmpty()) hits = EMPTY else if (hits.contentEquals(lastHits)) hits = lastHits else lastHits = hits
             named[e] = hits
-            val nm = around.area
-            if (nm.isNotEmpty()) {
+            if (areaOf[e] != 0) {
+                val nm = areaNames[areaOf[e]]
                 area[e] = areaIndex.getOrPut(nm) { areas.add(nm); areas.size - 1 }
             }
         }
@@ -108,17 +148,66 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
 
     /** Where roads with real car traffic run (squares of ~12 m), to find a separate way *beside* one by geometry. */
     class RoadGrid {
-        val cells = HashMap<Long, Double>()
+        // square → the heaviest road's weight in it: blocks of 16 × 16 squares, one byte per square (the weight's code in
+        // [weights], 0 = no road) – roads are lines, so a bike network's few hundred thousand squares fill a few
+        // thousand blocks; more than 255 distinct weights (never: a weight per road class) → a plain map
+        private val blockOf = LongIntMap(1 shl 10)
+        private var pool = ByteArray(256 * 64)
+        private var blocks = 0
+        private val weights = DoubleArray(256)
+        private var nWeights = 1
+        private var plain: LongDoubleMap? = null
+
+        fun isNotEmpty() = blocks > 0 || (plain?.size ?: 0) > 0
 
         private fun key(x: Int, y: Int) = (x.toLong() shl 32) or (y.toLong() and 0xffffffffL)
+
+        /** The weight of square x, y (0.0 = none). */
+        private fun get(x: Int, y: Int): Double {
+            plain?.let { return it[key(x, y)] }
+            val b = blockOf[key(x shr 4, y shr 4)]
+            return if (b < 0) 0.0 else weights[pool[b * 256 + ((x and 15) shl 4) + (y and 15)].toInt() and 0xff]
+        }
+
+        private fun set(x: Int, y: Int, w: Double) {
+            plain?.let { it.put(key(x, y), w); return }
+            var code = -1
+            for (c in 1 until nWeights) if (weights[c] == w && (w != 0.0 || 1.0 / weights[c] == 1.0 / w)) { code = c; break }
+            if (code < 0) {
+                if (nWeights == 256) { toPlain(); plain!!.put(key(x, y), w); return }
+                code = nWeights++
+                weights[code] = w
+            }
+            val bk = key(x shr 4, y shr 4)
+            var b = blockOf[bk]
+            if (b < 0) {
+                b = blocks++
+                if (blocks * 256 > pool.size) pool = pool.copyOf(pool.size * 2)
+                blockOf.put(bk, b)
+            }
+            pool[b * 256 + ((x and 15) shl 4) + (y and 15)] = code.toByte()
+        }
+
+        private fun toPlain() {
+            val m = LongDoubleMap(1 shl 12)
+            blockOf.forEach { bk, b ->
+                val bx = (bk shr 32).toInt(); val by = bk.toInt()
+                for (i in 0 until 256) {
+                    val c = pool[b * 256 + i].toInt() and 0xff
+                    if (c != 0) m.put(key((bx shl 4) + (i shr 4), (by shl 4) + (i and 15)), weights[c])
+                }
+            }
+            plain = m
+            pool = ByteArray(0)
+        }
 
         fun add(pts: DoubleArray, w: Double) {
             for (j in 0 until pts.size / 2 - 1) {
                 val a0 = pts[2 * j]; val a1 = pts[2 * j + 1]; val b0 = pts[2 * j + 2]; val b1 = pts[2 * j + 3]
                 val n = maxOf(1, (SuggestGeo.dist(a0, a1, b0, b1) / 10.0).toInt())
                 for (k in 0..n) {
-                    val kk = key(((a0 + (b0 - a0) * k / n) / CX).toInt(), ((a1 + (b1 - a1) * k / n) / CY).toInt())
-                    if ((cells[kk] ?: 0.0) < w) cells[kk] = w
+                    val x = ((a0 + (b0 - a0) * k / n) / CX).toInt(); val y = ((a1 + (b1 - a1) * k / n) / CY).toInt()
+                    if (get(x, y) < w) set(x, y, w)
                 }
             }
         }
@@ -139,7 +228,7 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
                         val u = (want - acc) / d
                         val cx = ((a0 + (b0 - a0) * u) / CX).toInt(); val cy = ((a1 + (b1 - a1) * u) / CY).toInt()
                         var best = 0.0
-                        for (i in -1..1) for (jj in -1..1) best = maxOf(best, cells[key(cx + i, cy + jj)] ?: 0.0)
+                        for (i in -1..1) for (jj in -1..1) best = maxOf(best, get(cx + i, cy + jj))
                         hits.add(best)
                         break
                     }
@@ -158,6 +247,10 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
 
     companion object {
         private val EMPTY = IntArray(0)
+        /** the tags [ofTags] reads */
+        private val TAG_KEYS = intArrayOf(WayKinds.HIGHWAY, WayKinds.MAXSPEED, WayKinds.SURFACE, WayKinds.TRACKTYPE,
+            WayKinds.SAC_SCALE, WayKinds.MTB_SCALE, WayKinds.SMOOTHNESS, WayKinds.RAILWAY, WayKinds.BICYCLE, WayKinds.ROUTE,
+            WayKinds.NOISE_CLASS, WayKinds.RIVER_CLASS, WayKinds.TUNNEL)
         private val ROADS = setOf("motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential", "living_street", "service")
         private val PAVED = setOf("asphalt", "paved", "concrete", "concrete:plates", "concrete:lanes", "paving_stones")
         private val FIRM = setOf("compacted", "fine_gravel", "gravel", "pebblestone", "sett", "cobblestone", "unhewn_cobblestone", "metal", "wood", "grass_paver")
@@ -225,5 +318,69 @@ class Facts(val net: WayNet, val index: Named.Index, K: SuggestSettings.J, bike:
             return Tags(road, ground, signed, rail, tag(WayKinds.ROUTE) == "ferry", num(WayKinds.NOISE_CLASS) / 6.0,
                 num(WayKinds.RIVER_CLASS), tag(WayKinds.TUNNEL) == "yes", width)
         }
+    }
+}
+
+/**
+ * A double per link where a network has few distinct values (a road weight, a share of a small square, a rank …):
+ * a 2-byte code per link and each distinct value once – [get] gives back exactly the value [set] was given. More than
+ * 65 535 distinct values: it turns into a plain array (still exact).
+ */
+class CodedDoubles(val size: Int) {
+    private var codes = ShortArray(size)
+    private var plain: DoubleArray? = null
+    private var values = DoubleArray(16)
+    private var count = 1  // code 0 = 0.0, the start value of every link
+    private val codeOf = LongIntMap(64)
+
+    init { codeOf.put(key(0.0), 0) }
+
+    operator fun get(e: Int): Double {
+        val p = plain
+        return if (p != null) p[e] else values[codes[e].toInt() and 0xffff]
+    }
+
+    operator fun set(e: Int, value: Double) {
+        val p = plain
+        if (p != null) { p[e] = value; return }
+        val k = key(value)
+        var c = if (k == Long.MIN_VALUE) -1 else codeOf[k]
+        if (c < 0) {
+            if (count > 0xffff || k == Long.MIN_VALUE) {  // too many values (or the one bit pattern the map cannot hold)
+                val all = DoubleArray(size) { values[codes[it].toInt() and 0xffff] }
+                all[e] = value
+                plain = all
+                codes = ShortArray(0)
+                return
+            }
+            c = count++
+            if (c == values.size) values = values.copyOf(c * 2)
+            values[c] = value
+            codeOf.put(k, c)
+        }
+        codes[e] = c.toShort()
+    }
+
+    /** the value's bits, shifted by one (LongIntMap cannot hold Long.MIN_VALUE, which is −0.0) */
+    private fun key(value: Double): Long = java.lang.Double.doubleToRawLongBits(value) + 1
+}
+
+/** A small int per link (a class 0..3, an area's number): one byte per link while every value fits 0..255, else a
+ * plain int array (exact either way). */
+class SmallInts(val size: Int, initial: Int = 0) {
+    private var bytes: ByteArray? = ByteArray(size).also { if (initial != 0) it.fill(initial.toByte()) }
+    private var ints: IntArray? = null
+
+    operator fun get(e: Int): Int {
+        val b = bytes
+        return if (b != null) b[e].toInt() and 0xff else ints!![e]
+    }
+
+    operator fun set(e: Int, value: Int) {
+        val b = bytes
+        if (b == null) { ints!![e] = value; return }
+        if (value in 0..255) { b[e] = value.toByte(); return }
+        ints = IntArray(size) { b[it].toInt() and 0xff }.also { it[e] = value }
+        bytes = null
     }
 }

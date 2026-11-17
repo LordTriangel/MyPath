@@ -48,26 +48,28 @@ object Aims {
         for (z in Z["kinds"].keys) if (z != "_about") for (w in Z["kinds"][z].list) of[w.s] = z
         fun reach(e: Int) = F.ok[e] && P.d0[net.linkA[e]] < NetSearch.INF
         // a grid (~90 m squares) of the reachable ways' points near the point aims, to find the ways near one
-        val hot = HashSet<Long>()
+        // (cell keys in maps without an object per key: the hot cells are numbered, the grid's sets listed by number)
+        val hot = LongIntMap(1 shl 10)
         for (th in F.things) {
             if (th.kind != "aim" && th.kind != "sight") continue
             val c = cellKey(th.dense[0], th.dense[1])
-            for (dx in -2..2) for (dy in -2..2) hot.add(shift(c, dx, dy))
+            for (dx in -2..2) for (dy in -2..2) { val k = shift(c, dx, dy); if (hot[k] < 0) hot.put(k, hot.size) }
         }
-        val grid = HashMap<Long, PyIntSet>()
+        val gridSets = arrayOfNulls<PyIntSet>(hot.size)
         val lakeEdges = LinkedHashMap<Int, ArrayList<Int>>()
         for (e in 0 until net.linkCount) {
             if (!reach(e)) continue
             for (i in F.named[e]) if (F.things[i].kind == "lake") lakeEdges.getOrPut(i) { ArrayList() }.add(e)
             val a = net.linkA[e]; val b = net.linkB[e]
-            if (F.ln[e] < 150.0 && cellKey(net.lon(a), net.lat(a)) !in hot && cellKey(net.lon(b), net.lat(b)) !in hot) continue
+            if (F.ln[e] < 150.0 && hot[cellKey(net.lon(a), net.lat(a))] < 0 && hot[cellKey(net.lon(b), net.lat(b))] < 0) continue
             val g = Facts.geomOf(net, e)
             for (j in 0 until g.size / 2 - 1) {
                 val p0 = g[2 * j]; val p1 = g[2 * j + 1]; val q0 = g[2 * j + 2]; val q1 = g[2 * j + 3]
                 val n = maxOf(1, (SuggestGeo.dist(p0, p1, q0, q1) / 50.0).toInt())
                 for (k in 0..n) {
                     val c = cellKey(p0 + (q0 - p0) * k / n, p1 + (q1 - p1) * k / n)
-                    if (c in hot) grid.getOrPut(c) { PyIntSet() }.add(e)
+                    val h = hot[c]
+                    if (h >= 0) (gridSets[h] ?: PyIntSet().also { gridSets[h] = it }).add(e)
                 }
             }
         }
@@ -76,7 +78,7 @@ object Aims {
         fun near(lon: Double, lat: Double, r: Double): LinkedHashMap<Int, Double> {
             val c = cellKey(lon, lat)
             val union = PyIntSet()
-            for (dx in -1..1) for (dy in -1..1) grid[shift(c, dx, dy)]?.forEach { union.add(it) }
+            for (dx in -1..1) for (dy in -1..1) { val h = hot[shift(c, dx, dy)]; if (h >= 0) gridSets[h]?.forEach { union.add(it) } }
             val out = LinkedHashMap<Int, Double>()
             for (e in union.toIntArray()) {
                 val g = Facts.geomOf(net, e)

@@ -22,8 +22,8 @@ class Place(
 ) {
     val target = ch.targetM
     val n = net.linkCount
-    /** natur, ruhe, weg, besonderes: absolute 0..1 per way */
-    val v = Array(4) { DoubleArray(n) }
+    /** extra Besonderes per area or thing name ([value]) */
+    private val tips = tips
     val low = DoubleArray(4)
     val high = DoubleArray(4)
     val top = DoubleArray(4)
@@ -41,35 +41,33 @@ class Place(
     val aims: List<Aims.Aim>
     /** the names made up for unnamed areas and lines ("Wald bei Hilden") – a card may be called after one */
     val spotNames = HashSet<String>()
+    /** union-find over nodes for [groups]: −1 = not in the current call (reset after each); given back after init */
+    private var parent: IntArray? = null
 
     /** An area or a line as the generators and the cards need it (place.py `_thing`). */
     class Spot(val kind: String, val name: String, val rank: Double, val edges: PyIntSet, val nodes: IntArray,
                val m: Double, val lon: Double, val lat: Double, val near: Int, val d: Double, val heart: Int, val good: Double)
 
+    // [value]'s numbers: natur, ruhe, weg, besonderes per way are worked out when asked, not kept (4 × 8 bytes per way)
+    private val wWater: Double
+    private val wOther: Double
+    private val rimNatur: Double
+    private val pRim: Double
+    private val pSight: Double
+    private val waterNatur: Double
+    private val width: DoubleArray
+
     init {
         val P = S["place"]; val Q = S["search"]
-        val ok = (0 until n).filter { F.ok[it] }.toIntArray()
-        val (wWater, wOther) = if (ch.water) 1.0 to 0.4 else 0.6 to 1.0
-        val things = F.things
-        val rimNatur = P["rim_natur"].d; val pRim = P["rim"].d; val pSight = P["sight"].d; val waterNatur = P["water_natur"].d
+        val ok = Generate.linksWhere(n) { F.ok[it] }
+        if (ch.water) { wWater = 1.0; wOther = 0.4 } else { wWater = 0.6; wOther = 1.0 }
+        rimNatur = P["rim_natur"].d; pRim = P["rim"].d; pSight = P["sight"].d; waterNatur = P["water_natur"].d
         val W = S["quality"]["width"]
-        val width = doubleArrayOf(W["path"].d, W["track"].d, W["rough_track"].d, W["wide"].d)
-        for (e in ok) {
-            // an open edge with a view and a natural shore (quality trails: "Ränder – Waldrand, Ufer") are nature too
-            v[NATUR][e] = maxOf((1 - ch.depth) * F.green[e] + ch.depth * F.depth[e], rimNatur * F.rim[e],
-                waterNatur * F.water[e] * (if (F.built[e]) 0 else 1))
-            v[RUHE][e] = 1.0 - maxOf(F.traffic[e], 0.6 * (if (F.built[e]) 1 else 0), 0.5 * F.noise[e])
-            // on foot a narrow path is worth more than a wide track of the same ground (quality trails)
-            v[WEG][e] = if (F.rail[e] && ch.bike) 1.0 else (1.0 - ch.path) * ch.ground[F.ground[e]] + ch.path * width[F.width[e]]
-            var tip = tips[F.areas[F.area[e]]] ?: 0.0
-            for (i in F.named[e]) tip = maxOf(tip, tips[things[i].name] ?: 0.0)
-            val other = maxOf(maxOf(F.signed[e] * ch.signed, 0.9 * (if (F.rail[e] && ch.bike) 1 else 0), 0.6 * (if (F.area[e] > 0) 1 else 0)),
-                maxOf(tip, pRim * F.rim[e], pSight * (if (F.sight[e]) 1 else 0)))
-            v[BESONDERES][e] = minOf(1.0, maxOf(wWater * F.water[e], wOther * other)) * (1.0 - F.traffic[e])
-        }
+        width = doubleArrayOf(W["path"].d, W["track"].d, W["rough_track"].d, W["wide"].d)
+        val things = F.things
         for (a in 0 until 4) {
-            low[a] = quantile(ok, v[a], P["low"].d)
-            high[a] = maxOf(quantile(ok, v[a], P["high"].d), low[a] + P["min_span"].d)
+            low[a] = quantile(ok, a, P["low"].d)
+            high[a] = maxOf(quantile(ok, a, P["high"].d), low[a] + P["min_span"].d)
         }
         val ax = DoubleArray(4) { ch.axis(AXES[it]) }
         val wsum = ax[0] + ax[1] + ax[2] + ax[3]
@@ -77,7 +75,7 @@ class Place(
         val taste = Q["taste"].d; val road = Q["road"].d; val prof = Q["profile"].d
         for (e in ok) {
             var s = 0.0
-            for (a in 0 until 4) s += ax[a] * rel(a, v[a][e])
+            for (a in 0 until 4) s += ax[a] * rel(a, value(a, e))
             val g = s / wsum
             good[e] = g
             cost[e] = F.ln[e] * (1 + taste * (1 - g)) * (1 + road * F.traffic[e]) * (1 + prof * (F.costfactor[e] - 1))
@@ -88,7 +86,7 @@ class Place(
         tree = search.tree()
         d0 = tree.dist
         len0 = tree.metres
-        val reach = ok.filter { d0[net.linkA[it]] < NetSearch.INF }.toIntArray()
+        val reach = ok.filterTo(d0)
         // --- what stands out here: areas and lines
         val bar = quantile(reach, good, 1.0 - P["standout"].d)
         val besideFrom = S["facts"]["beside_from"].d
@@ -114,11 +112,32 @@ class Place(
         val core = reach.filter { core(it) }.toIntArray().let { if (it.isEmpty()) reach else it }
         val ring = S["form"]["ring"].d
         for (a in 0 until 4) {
-            top[a] = maxOf(quantile(core, v[a], P["top"][AXES[a]].d) + (if (a == BESONDERES) ring else 0.0), low[a] + P["min_span"].d)
+            top[a] = maxOf(quantile(core, a, P["top"][AXES[a]].d) + (if (a == BESONDERES) ring else 0.0), low[a] + P["min_span"].d)
         }
         // --- what a loop can lead to: summits, lakes, viewpoints, huts, castles … (Aims)
+        parent = null
         @Suppress("LeakingThis")
         aims = Aims.find(this, S)
+    }
+
+    /** The absolute value of way [e] on axis [a] (natur, ruhe, weg, besonderes), 0..1; 0 for a way not allowed. */
+    fun value(a: Int, e: Int): Double {
+        if (!F.ok[e]) return 0.0
+        return when (a) {
+            // an open edge with a view and a natural shore (quality trails: "Ränder – Waldrand, Ufer") are nature too
+            NATUR -> maxOf((1 - ch.depth) * F.green[e] + ch.depth * F.depth[e], rimNatur * F.rim[e],
+                waterNatur * F.water[e] * (if (F.built[e]) 0 else 1))
+            RUHE -> 1.0 - maxOf(F.traffic[e], 0.6 * (if (F.built[e]) 1 else 0), 0.5 * F.noise[e])
+            // on foot a narrow path is worth more than a wide track of the same ground (quality trails)
+            WEG -> if (F.rail[e] && ch.bike) 1.0 else (1.0 - ch.path) * ch.ground[F.ground[e]] + ch.path * width[F.width[e]]
+            else -> {
+                var tip = tips[F.areas[F.area[e]]] ?: 0.0
+                for (i in F.named[e]) tip = maxOf(tip, tips[F.things[i].name] ?: 0.0)
+                val other = maxOf(maxOf(F.signed[e] * ch.signed, 0.9 * (if (F.rail[e] && ch.bike) 1 else 0), 0.6 * (if (F.area[e] > 0) 1 else 0)),
+                    maxOf(tip, pRim * F.rim[e], pSight * (if (F.sight[e]) 1 else 0)))
+                minOf(1.0, maxOf(wWater * F.water[e], wOther * other)) * (1.0 - F.traffic[e])
+            }
+        }
     }
 
     /** An absolute value on this place's yardstick: 0 = poor here, 1 = as good as it gets here. */
@@ -133,25 +152,34 @@ class Place(
     private fun sumLn(es: IntArray): Double { var s = 0.0; for (e in es) s += F.ln[e]; return s }
 
     /** place.py `groups`: connected groups of [edges], each in the order of [edges], groups by their first edge. */
-    fun groups(edges: List<Int>): List<IntArray> {
-        val parent = HashMap<Int, Int>()
+    fun groups(edges: List<Int>): List<IntArray> = groups(edges.toIntArray())
+
+    fun groups(edges: IntArray): List<IntArray> {
+        val parent = parent ?: IntArray(net.nodeCount) { -1 }.also { parent = it }
         fun find(x0: Int): Int {
             var x = x0
             while (true) {
-                val p = parent.getOrPut(x) { x }
+                var p = parent[x]
+                if (p < 0) { parent[x] = x; p = x }
                 if (p == x) return x
-                val pp = parent.getOrPut(p) { p }
+                var pp = parent[p]
+                if (pp < 0) { parent[p] = p; pp = p }
                 parent[x] = pp
                 x = pp
             }
         }
-        for (e in edges) {
-            val ra = find(net.linkA[e])
-            parent[ra] = find(net.linkB[e])
+        try {
+            for (e in edges) {
+                val ra = find(net.linkA[e])
+                parent[ra] = find(net.linkB[e])
+            }
+            // groups in the order of their first edge (the root's number does not matter, only who is together)
+            val groupOf = LinkedHashMap<Int, IntList>()
+            for (e in edges) groupOf.getOrPut(find(net.linkA[e])) { IntList() }.add(e)
+            return groupOf.values.map { it.toArray() }
+        } finally {
+            for (e in edges) { parent[net.linkA[e]] = -1; parent[net.linkB[e]] = -1 }
         }
-        val out = LinkedHashMap<Int, ArrayList<Int>>()
-        for (e in edges) out.getOrPut(find(net.linkA[e])) { ArrayList() }.add(e)
-        return out.values.map { it.toIntArray() }
     }
 
     /** place.py `_thing`. */
@@ -238,13 +266,18 @@ class Place(
          * place.py `quantile`: length-weighted quantile of (value, metres) over [edges] – every k-th of them (a sample
          * of at most ~30 000), sorted by value then metres.
          */
-        fun quantileOf(values: DoubleArray, metres: DoubleArray, q: Double): Double {
-            val n = values.size
+        fun quantileOf(values: DoubleArray, metres: DoubleArray, q: Double): Double =
+            quantileOf(values.size, { values[it] }, { metres[it] }, q)
+
+        /** [quantileOf] of n entries given by index – only the sampled ones are read (no arrays of all n). */
+        inline fun quantileOf(n: Int, valueAt: (Int) -> Double, metresAt: (Int) -> Double, q: Double): Double {
             if (n == 0) return 0.0
             val step = maxOf(1, n / 30000)
-            val idx = (0 until n step step).sortedWith { a, b ->
-                val c = values[a].compareTo(values[b]); if (c != 0) c else metres[a].compareTo(metres[b])
-            }
+            val m = (n + step - 1) / step
+            val values = DoubleArray(m) { valueAt(it * step) }
+            val metres = DoubleArray(m) { metresAt(it * step) }
+            val idx = IntArray(m) { it }
+            stableSort(idx) { a, b -> val c = values[a].compareTo(values[b]); if (c != 0) c else metres[a].compareTo(metres[b]) }
             var total = 0.0
             for (i in idx) total += metres[i]
             val want = q * total
@@ -255,8 +288,43 @@ class Place(
             }
             return values[idx.last()]
         }
+
+        /** A stable merge sort of ints (the order Kotlin's sortedWith gives – a stable sort's result is unique –
+         *  without a boxed list). */
+        inline fun stableSort(a: IntArray, cmp: (Int, Int) -> Int) {
+            var src = a
+            var dst = IntArray(a.size)
+            var width = 1
+            while (width < a.size) {
+                var lo = 0
+                while (lo < a.size) {
+                    val mid = minOf(lo + width, a.size); val hi = minOf(lo + 2 * width, a.size)
+                    var i = lo; var j = mid; var k = lo
+                    while (i < mid && j < hi) dst[k++] = if (cmp(src[j], src[i]) < 0) src[j++] else src[i++]
+                    while (i < mid) dst[k++] = src[i++]
+                    while (j < hi) dst[k++] = src[j++]
+                    lo = hi
+                }
+                val t = src; src = dst; dst = t
+                width *= 2
+            }
+            if (src !== a) src.copyInto(a)
+        }
+    }
+
+    private fun IntArray.filterTo(d: DoubleArray): IntArray {
+        var k = 0
+        for (e in this) if (d[net.linkA[e]] < NetSearch.INF) k++
+        val out = IntArray(k)
+        k = 0
+        for (e in this) if (d[net.linkA[e]] < NetSearch.INF) out[k++] = e
+        return out
     }
 
     private fun quantile(edges: IntArray, value: DoubleArray, q: Double): Double =
-        quantileOf(DoubleArray(edges.size) { value[edges[it]] }, DoubleArray(edges.size) { F.ln[edges[it]] }, q)
+        quantileOf(edges.size, { value[edges[it]] }, { F.ln[edges[it]] }, q)
+
+    /** [quantile] of axis [a]'s values ([value]). */
+    private fun quantile(edges: IntArray, a: Int, q: Double): Double =
+        quantileOf(edges.size, { value(a, edges[it]) }, { F.ln[edges[it]] }, q)
 }
