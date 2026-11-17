@@ -5,6 +5,8 @@ import com.onpath.app.ui.AppMode
 import com.onpath.app.ui.AppViewModel
 import com.onpath.strings.Res
 import com.onpath.strings.Txt
+import com.onpath.strings.plan_add_as_stop
+import com.onpath.strings.plan_make_destination
 import com.onpath.strings.plan_start_here
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -59,6 +61,38 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
         waitUntil("the start on the POI") { waypointCount() == 1 }
         val p = read { it.waypoints.first() }
         assertTrue("the start is the POI ($p)", dist(p.lat, p.lon, POI_LAT, POI_LON) < 5.0)
+    }
+
+    /**
+     * b2) while PLANNING (owner 2026-11-17: „wenn ich da nicht einfügen muss, dann braucht das auch im Menü nicht angezeigt
+     * zu werden“): a plan coming from the south ends 300 m short of the POI – a hold on the symbol measures on the paths
+     * (ring on the POI), then the menu opens with only „Neues Ziel“ (appending clearly shorter, on the paths and on straight
+     * lines alike); taken, the plan goes on to the POI.
+     */
+    @Test fun holdOnADrawnPoiSymbolWhilePlanningShowsOnlyTheMatchingRow() {
+        val a = com.onpath.app.routing.GeoPoint(POI_LAT - 0.018, POI_LON)   // ~2 km south
+        val b = com.onpath.app.routing.GeoPoint(POI_LAT - 0.0027, POI_LON)  // ~300 m south: the goal
+        scenario.onActivity { vm(it).addPoint(a); vm(it).addPoint(b) }
+        waitUntil("a plan of two points") { waypointCount() == 2 }
+        waitFor("the route drawn") { read { !it.routing && it.route != null } }
+        val s = drawnPoiSymbol(POI_ID, POI_LAT, POI_LON, ICON_LAYER)
+        com.onpath.app.debug.Problems.clear()
+        hold(s.first, s.second, takeAddMenu = false) // waits for the measure (waitHoldMeasured)
+        waitFor("the POI menu after the measure") { read { it.poiMenu?.id } == POI_ID }
+        val rows = read { vm -> vm.poiMenu?.let(vm::placeMenu)?.main }
+        val trace = com.onpath.app.debug.Problems.events().map { it.message }
+        val line = trace.firstOrNull { it.startsWith("Place menu of a") }
+        android.util.Log.i("OnPathE2E", "POI hold while planning: rows $rows, realRouting $realRouting: $line")
+        assertEquals("only „Neues Ziel“ – $line", listOf(com.onpath.app.ui.PlaceAddMenu.Item.NEW_DESTINATION), rows)
+        assertTrue("the decision says how it measured – $trace", line != null && (line.contains("paths: ") || line.contains("paths failed")))
+        if (realRouting) assertTrue("measured on the paths with real routing data: $line", line!!.contains("paths: insert"))
+        assertNotNull("„Neues Ziel“ shown", findFresh(By.text(Txt.s(Res.string.plan_make_destination)), 5_000))
+        assertNull("no „Einfügen“", device.findObject(By.text(Txt.s(Res.string.plan_add_as_stop))))
+        shot("planning-menu")
+        clickText(Txt.s(Res.string.plan_make_destination))
+        waitUntil("the plan goes on to the POI") { waypointCount() == 3 }
+        val last = read { it.waypoints.last() }
+        assertTrue("the new goal is the POI ($last)", dist(last.lat, last.lon, POI_LAT, POI_LON) < 5.0)
     }
 
     /** c) a hold on the empty map beside the symbol (beyond the finger box + icon) → the plain hold, no POI menu. */
