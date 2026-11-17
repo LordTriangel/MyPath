@@ -43,6 +43,10 @@
    rule; parity-smoke clicked into a map note while the first-route fit moved the map). Tests fixed (8976753b,
    22f292d8), check-web now runs nowebgl/robust like CI. The live planner stays as deployed.
 
+9. **„Plan request failed (Failed requirement)“ found and fixed** (88ddec64): the page could send a plan with 0/1 point
+   when the points changed while an older recalculation was still waiting (folder switch, Clear, New plan). Only the
+   newest run plans now; shared `Planner.kt` got a message for its `require` (donald told).
+
 ## Open for the owner (morning)
 - Hold rule past the goal (with donald's first item): with the band of f12e8d83 a silent new goal happens only exactly straight on past the goal – in practice every hold past the goal asks, with „Neues Ziel“ first, in app and planner alike (the planner follows the app's shared rule).
 - Suggest file into all cells (schema 9): yes / when? Each refreshed cell is downloaded whole again (9–23 MB), not
