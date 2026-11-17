@@ -100,7 +100,7 @@ class SyncFiles(val dir: File) {
     private val scanFile = File(dir, "scan.txt")
 
     /** Routes from the browser not opened yet (My routes: a "New" / "Changed" tag); one instance per folder user. */
-    val marks = SyncMarks({ read(marksFile) }, { write(marksFile, it) })
+    val marks = SyncMarks({ readOurs(marksFile, SyncMarks.HEADER) }, { write(marksFile, it) })
 
     fun pairing(): Pairing? {
         val lines = read(pairFile)?.lines() ?: return null
@@ -123,10 +123,10 @@ class SyncFiles(val dir: File) {
         return d
     }
 
-    fun ledger(): SyncLedger = SyncLedger.read(read(ledgerFile))
+    fun ledger(): SyncLedger = SyncLedger.read(readOurs(ledgerFile, SyncLedger.HEADER + " "))
     fun saveLedger(l: SyncLedger) = write(ledgerFile, l.write())
 
-    fun links(): SyncLinks = SyncLinks.read(read(linksFile))
+    fun links(): SyncLinks = SyncLinks.read(readOurs(linksFile, SyncLinks.HEADER))
     fun saveLinks(l: SyncLinks) = write(linksFile, l.write())
 
     /** When the last sync round ended well (ms), 0 = never. */
@@ -150,6 +150,15 @@ class SyncFiles(val dir: File) {
         if (f.isFile) f.readText() else null
     } catch (e: Exception) {
         Problems.warn("sync", "Sync file ${f.name} unreadable", e); null
+    }
+
+    /**
+     * [read] for a file that starts with [header]: one that is there without it (empty, cut, garbage – the app never
+     * writes such a file) reads as before – its reader starts empty, a ledger keeps the lines – and is reported, so a
+     * damaged sync file is never silent. A newer app's ledger has the header and is not reported.
+     */
+    private fun readOurs(f: File, header: String): String? = read(f)?.also { text ->
+        if (!text.trimStart().startsWith(header)) Problems.warn("sync", "Sync file ${f.name} damaged – read as empty")
     }
 
     /**

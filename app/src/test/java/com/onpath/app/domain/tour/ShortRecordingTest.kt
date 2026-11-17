@@ -18,6 +18,9 @@ import org.junit.Test
  * every point of every piece must lie within 50 m of the first point, and a tour with a ride part is never short.
  */
 class ShortRecordingTest {
+    /** TourController holds Compose state: each test writes it in a snapshot of its own (OwnComposeSnapshot says why). */
+    @get:org.junit.Rule val composeState = com.onpath.app.testkit.OwnComposeSnapshot()
+
     private class NoService : TourRecorder {
         override fun start(activity: String, sac: Int) {}
         override fun continueTour(tourId: Long) {}

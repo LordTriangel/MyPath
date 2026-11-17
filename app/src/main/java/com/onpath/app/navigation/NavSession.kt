@@ -125,13 +125,16 @@ data class NavSession(
 /** JSON file for [NavSession]; never throws (a broken file = no session). */
 class NavSessionStore(private val file: File) {
 
-    fun save(s: NavSession?) {
+    /** One lock per file for every store of it in the process (the guard of [saveIfMine]). */
+    private val lock = lockOf(file)
+
+    fun save(s: NavSession?) = synchronized(lock) {
         try {
-            if (s == null) { file.delete(); return }
-            AtomicFiles.writeText(file, toJson(s).toString())
+            if (s == null) file.delete() else AtomicFiles.writeText(file, toJson(s).toString())
         } catch (e: Exception) {
             Problems.error("navigation", "Navigation session file could not be saved; a restart may lose the route", e)
         }
+        Unit
     }
 
     fun load(): NavSession? = try {
@@ -147,7 +150,25 @@ class NavSessionStore(private val file: File) {
      */
     fun tokenOnDisk(mine: Long): Long? = if (!file.isFile) null else load()?.token ?: mine
 
+    /**
+     * The service's write of its (re-routed / changed) session: only while the file still holds that session
+     * ([NavSession.mayOverwrite]). False = not written: the app follows something else.
+     *
+     * The look at the file and the write are one step among every store of this file in the process (the app's and the
+     * service's). A guard, not a repair: today both writers run on the main thread, so nothing can come between the two
+     * anyway; once the recording leaves the main thread, this keeps the app's new session from landing between them
+     * and being written over by the old line (NavSessionStoreTest, two threads).
+     */
+    fun saveIfMine(s: NavSession): Boolean = synchronized(lock) {
+        if (!NavSession.mayOverwrite(tokenOnDisk(s.token), s.token)) return false
+        save(s)
+        true
+    }
+
     companion object {
+        private val locks = java.util.concurrent.ConcurrentHashMap<String, Any>()
+        private fun lockOf(file: File): Any = locks.getOrPut(file.absoluteFile.normalize().path) { Any() }
+
         fun toJson(s: NavSession): JSONObject = JSONObject()
             .put("v", 1)
             .put("kind", s.kind.name).put("name", s.name).put("activity", s.activity.name).put("sac", s.sac)
