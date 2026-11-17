@@ -85,13 +85,29 @@ const $ = id => document.getElementById(id), P = new URLSearchParams(location.se
 const CLS = {W:'#2e8b57', P:'#8a6d3b', S:'#e08a2c', G:'#c62828'};
 // the five values and the hints as pills, exactly as sketch 7 (owner 2026-11-17, https://claude.ai/artifact/DAWvWBJqNkyhxUhnkmNRoV):
 // computed here from the shown cards – the Python method stays as it is (it is the reference for the Kotlin port)
-const AX = ['natur', 'ruhe', 'weg', 'besonderes', 'form'];
-const GOOD = {natur: 'am grünsten', ruhe: 'am ruhigsten', weg: 'schönste Wege', besonderes: 'am meisten Besonderes', form: 'sauberste Runde'};
-const BAD = {natur: 'weniger Grün', ruhe: 'lauter', weg: 'rauerer Weg', besonderes: 'wenig Besonderes', form: 'unrundere Form'};
-const GOOD_BIKE = {weg: 'glattester Belag'}, BAD_BIKE = {weg: 'rauerer Belag'};
+// pill words accepted by the owner 2026-11-17 (shared strings: suggest_pill_* in strings_suggest.xml); no Form pill
+const AX = ['natur', 'ruhe', 'weg', 'besonderes'];
+const GOOD = {natur: 'grün', ruhe: 'ruhig', weg: 'schöne Wege', besonderes: 'viele Highlights'};
+const BAD = {natur: 'wenig Grün', ruhe: 'lauter', besonderes: 'wenige Highlights'};
+const GOOD_BIKE = {weg: 'guter Belag'};
+// a weak Weg names its real cause: of the causes, the one where the card lies most above the list's mean (percentage
+// points of the card's numbers) – on foot paved / wide tracks / rough ground, on wheels bumpy ground / gravel (bike only)
+function wegCause(c, cs, activity) {
+  const n = x => x.numbers, g = (x, i) => (n(x).ground_pct || [0, 0, 0, 0])[i];
+  const causes = activity === 'hike'
+    ? [['viel Asphalt', x => g(x, 0)], ['breite Forstwege', x => n(x).track_pct || 0], ['holprig', x => g(x, 3)]]
+    : [['holpriger Belag', x => g(x, 2) + g(x, 3)]].concat(activity === 'bike' ? [['viel Schotter', x => g(x, 1)]] : []);
+  let best = null, top = -Infinity;
+  for (const [t, f] of causes) {
+    const above = f(c) - cs.reduce((s, x) => s + f(x), 0) / cs.length;
+    if (above > top) { top = above; best = t; }
+  }
+  return best;
+}
 // the rule: spread of the list on a value ≥ 0.08; strength = position in the list ≥ 0.75, weakness ≤ 0.25;
 // intensity by the distance from the list's mean: < 0.08 light, < 0.15 clear, else strong; at most 2 green + 2 yellow
-function pills(c, cs, bike, wish) {
+function pills(c, cs, activity, wish) {
+  const bike = activity !== 'hike';
   const g = [], y = [];
   for (const a of AX) {
     const v = cs.map(x => x.axes[a]), lo = Math.min(...v), hi = Math.max(...v);
@@ -99,7 +115,7 @@ function pills(c, cs, bike, wish) {
     const q = (c.axes[a] - lo) / (hi - lo), mean = v.reduce((s, x) => s + x, 0) / v.length, d = Math.abs(c.axes[a] - mean);
     const lvl = d < 0.08 ? 1 : d < 0.15 ? 2 : 3;
     if (q >= 0.75 && c.axes[a] > mean) g.push({d, lvl, t: (bike && GOOD_BIKE[a]) || GOOD[a]});
-    else if (q <= 0.25 && c.axes[a] < mean) y.push({d, lvl, t: (bike && BAD_BIKE[a]) || BAD[a]});
+    else if (q <= 0.25 && c.axes[a] < mean) y.push({d, lvl, t: a === 'weg' ? wegCause(c, cs, activity) : BAD[a]});
   }
   g.sort((p, q) => q.d - p.d); y.sort((p, q) => q.d - p.d);
   const yellow = hintPills(c, wish).map(([, lvl, t]) => ({lvl, t})).concat(y).slice(0, 2);
@@ -110,16 +126,16 @@ function pills(c, cs, bike, wish) {
 // [priority (lower first), level, text]
 function hintPills(c, wish) {
   const out = [], [lo, hi] = wish.hours, [upMin, upMax] = wish.ascent, up = c.numbers.ascent, h = c.numbers.hours;
-  if (up > upMax) { const x = up - upMax; out.push([0, x < 50 ? 1 : x < 150 ? 2 : 3, `↑ ${up} m – mehr als gewünscht`]); }
-  if (up < upMin) { const x = upMin - up; out.push([0, x < 50 ? 1 : x < 150 ? 2 : 3, `↑ ${up} m – weniger als gewünscht`]); }
-  if (h > hi + 1 / 120) { const m = Math.round((h - hi) * 60); out.push([1, m <= 10 ? 1 : m <= 30 ? 2 : 3, `${m} min länger als gewünscht`]); }
-  if (h < lo - 1 / 120) { const m = Math.round((lo - h) * 60); out.push([1, m <= 10 ? 1 : m <= 30 ? 2 : 3, `${m} min kürzer als gewünscht`]); }
+  if (up > upMax) { const x = up - upMax; out.push([0, x < 50 ? 1 : x < 150 ? 2 : 3, `↑ ${up} m – mehr als geplant`]); }
+  if (up < upMin) { const x = upMin - up; out.push([0, x < 50 ? 1 : x < 150 ? 2 : 3, `↑ ${up} m – weniger als geplant`]); }
+  if (h > hi + 1 / 120) { const m = Math.round((h - hi) * 60); out.push([1, m <= 10 ? 1 : m <= 30 ? 2 : 3, `${m} min länger als geplant`]); }
+  if (h < lo - 1 / 120) { const m = Math.round((lo - h) * 60); out.push([1, m <= 10 ? 1 : m <= 30 ? 2 : 3, `${m} min kürzer als geplant`]); }
   for (const t of c.hints) {
     let m;
     if ((m = t.match(/^(\d+) m an einer Straße/))) { const v = +m[1]; out.push([2, v < 300 ? 1 : v < 700 ? 2 : 3, `${v} m an der Straße`]); }
-    else if ((m = t.match(/^(\d+) % durch Häuser/))) { const v = +m[1]; out.push([3, v < 15 ? 1 : v < 30 ? 2 : 3, `${v} % durch Ort`]); }
+    else if ((m = t.match(/^(\d+) % durch Häuser/))) { const v = +m[1]; out.push([3, v < 15 ? 1 : v < 30 ? 2 : 3, `${v} % im Ort`]); }
     else if (/kreuzt sich/.test(t)) out.push([4, 1, 'kreuzt sich']);
-    else if (/doppelt/.test(t)) out.push([4, 1, 'Weg doppelt']);
+    else if (/doppelt/.test(t)) out.push([4, 1, 'Stück doppelt']);
     else if (/Kartengebiet/.test(t)) out.push([4, 1, 'am Rand des Kartengebiets']);
   }
   return out.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
@@ -179,9 +195,9 @@ function show(r) {
   $('status').textContent = `${shown.length - nOff} Vorschläge${nOff ? ` und ${nOff} offizielle${nOff > 1 ? ' Rundwege' : 'r Rundweg'}` : ''} aus ${r.candidates.length} Runden · ${km(r.seconds)} s · ${hm(r.hours[0])}–${hm(r.hours[1])} h (${km(r.target_km[0])}–${km(r.target_km[1])} km) · ↑ ${r.ascent[0]}–${r.ascent[1]} m · Charakter ${r.character.word} · Stand ${r.version}`;
   $('notes').innerHTML = r.notes.map(n => `<div>${n}</div>`).join('');
   $('cards').innerHTML = '';
-  const bike = r.wish.activity !== 'hike', wishRange = {hours: r.hours, ascent: r.ascent};
+  const wishRange = {hours: r.hours, ascent: r.ascent};
   shown.forEach((c, i) => {
-    const p = pills(c, shown, bike, wishRange);
+    const p = pills(c, shown, r.wish.activity, wishRange);
     const n = c.numbers, d = document.createElement('div');
     const o = c.official;
     d.className = 'card';

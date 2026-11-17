@@ -455,6 +455,10 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   through a town, crossing, last soft weaknesses); no pill when the list is alike on that value; no separate hint lines.
   The POC page (`tools/suggest-poc/page.html`) shows the cards this way since 2026-11-17 – computed in its JS from the
   shown cards' `axes` and `hints`, the Python method unchanged.
+  **Pill words (owner 2026-11-17, `suggest_pill_*` in `strings_suggest.xml`):** grün · ruhig · schöne Wege (Rad: guter
+  Belag) · viele Highlights / wenig Grün · lauter · wenige Highlights; no Form pill; a weak Weg names its cause (most
+  above the list's mean): viel Asphalt · breite Forstwege · holprig (Rad: holpriger Belag · viel Schotter, `numbers`
+  ground / `track_pct`); hints „… als geplant“, „25 % im Ort“, „Stück doppelt“, „450 m an der Straße“, „kreuzt sich“.
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one

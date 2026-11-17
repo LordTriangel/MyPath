@@ -69,6 +69,8 @@ class Candidate(
         val pathPct: Int = 0,
         val variety: Double = 0.0,
         val aims: List<Aims.Reached> = emptyList(),
+        /** share on a track (Facts.width 1): the card's „breite Forstwege“ pill */
+        val trackPct: Int = 0,
     )
 
     /** The loop's line as lon / lat pairs (start, every shape point, every node). */

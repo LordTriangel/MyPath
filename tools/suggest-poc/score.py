@@ -109,7 +109,8 @@ def numbers(P, c, sights):
             "reserves": top("reserves", 0.8), "known": top("known", 0.8), "lakes": top("lakes", 0.4),
             "rim_km": round(sum(F.ln[e] for e in edges if F.rim[e] >= 0.5) / 1000.0, 1),
             "sights": [[s["what"], s["name"]] for s in sights][:6],
-            "path_pct": pct(lambda e: F.width[e] == 0), "variety": c.get("variety", 0.0), "aims": c.get("reached", [])}
+            "path_pct": pct(lambda e: F.width[e] == 0), "track_pct": pct(lambda e: F.width[e] == 1),
+            "variety": c.get("variety", 0.0), "aims": c.get("reached", [])}
 
 
 def road_run(F, edges):

@@ -169,7 +169,7 @@ val CASES: Map<String, List<Pair<String, (List<View>, List<String>) -> Boolean>>
         "keine Runde mit > 300 m an einer Straße" to { s, _ -> s.all { it.road <= 300 } }),
     "nordkirchen-rad-3h" to listOf("höchstens 5 Karten, mindestens 3" to { s, _ -> s.size in 3..5 }),
     "dhuenn-rad-350" to listOf(
-        "keine Karte über 350 m ohne Hinweis" to { s, _ -> s.all { it.up <= 350 || it.hints.any { h -> "mehr als gewünscht" in h } } },
+        "keine Karte über 350 m ohne Hinweis" to { s, _ -> s.all { it.up <= 350 || it.hints.any { h -> "mehr als geplant" in h } } },
         "geht es hier nicht so flach, sagt der Lauf es" to { s, notes -> s.all { it.up <= 350 } || notes.any { "Höhenmetern" in it } }),
     "nordkirchen-rad-kurz" to listOf(
         "jede Karte fährt am Startpunkt los, die ganze Fahrt in der gewünschten Zeit" to { s, _ -> s.all { it.fromM <= 300 && it.hours <= 1.1 * 2 } },
