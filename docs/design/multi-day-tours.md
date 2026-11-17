@@ -17,14 +17,19 @@ a sketch of the exact picture and his yes (owner rule).
 | 7 | Gluing is only gluing – **the joint is nothing special**; the days are set afterwards. | "warum die Nahtstelle ein Tagesende werden soll, verstehe ich nicht" |
 | 8 | **The number of days is set once** (and can be changed); after that the user only adds and removes overnight stops – no "split into days" tool, no "split / join day", no fine-tuning page. | "im Prinzip muss ich nur ein einziges Mal die Anzahl der Tage festlegen" |
 | 9 | **Three states, one colour each:** very light grey bed = nothing decided (the app's proposal, orientation only) · blue bed = **Übernachtung** (I sleep here) · green bed = **Hotel** (booked, name / address stored, the route goes exactly there). | "Grau heißt, ich habe noch nichts. Blau … Übernachtung festgelegt. Grün … Hotel gebucht." |
-| 10 | **Everything saves itself** – no Save button for the tour. | "Immer wenn ich was mache, wird sowieso sofort gespeichert" |
+| 10 | **Saving as for every plan** – "Speichern" as today, unsaved work stays under "Zuletzt"; nothing special. | 2026-11-17 late: "das muss konsistent sein zu einem normalen Tourenplan … es ist ja auch eine normale Tour" (replaces his earlier "sofort gespeichert") |
 | 11 | The way in must **guide** the user: where do I start, what do I do next (load a GPX track, open or plan a route → set the days). | "das Menü, wie ich in diese Mehrtagesplanung reinkomme" |
 | 12 | Words: **GPX-Track** (glossary: "Track" only for GPX), **Übernachtung**, **Hotel**. | "Spur war nicht vereinbart" |
 | 13 | Little effort, robust, extendable later. | |
 
 Left out of the first version (my reading, to confirm): rest days / several nights at one place, and day trips from
-one base. Also left out: limits per day (time / ascent) – the days are set by their number only; the overview shows
-the average per day.
+one base.
+
+**Limits per day stay** (owner 2026-11-17: "Natürlich bleiben die Grenzen pro Tag"): at most time and ascent per day,
+set in the days box under the number of days. Two jobs: (1) they propose the number of days ("mindestens 6 Tage"),
+the user may still change it; (2) afterwards a day above a limit gets an orange row with the value that is too high.
+The grey proposals are spread so that no day is above a limit where that is possible; without limits evenly by
+time. The app never adds a day by itself.
 
 ## 2. The model (round 2, owner 2026-11-17 – replaces free / fixed / stay)
 
@@ -34,7 +39,8 @@ the average per day.
   sits at the hotel; the route leads there and back. Name and place are kept so the phone can show them.
 - **Proposals (very light grey):** the days the user has not decided yet. They are **not stored and not plan
   points** – the app works them out every time: N − 1 − (number of overnight stops) of them, spread along the route
-  so the open days are about equal (by time), between start, overnight stops and finish. They never change the route.
+  so the open days stay within the limits per day and are otherwise about equal (by time), between start, overnight
+  stops and finish. They never change the route.
 - That is all of the "floating": grey = worked out, moves when anything changes; blue and green = yours, never moved.
 - **Day n** runs from the (n−1)th day end to the nth – a day end being a grey proposal, an Übernachtung or a Hotel.
 
@@ -48,6 +54,7 @@ Rules (each is one undo step, then saved):
 | R4 Hotel removed | Green → blue at the place on the route nearest the hotel (the night stays planned, only the hotel is gone). |
 | R5 N changed (− / +) | Only grey proposals come or go. "−" with no grey left: not possible ("Erst eine Übernachtung entfernen"). |
 | R6 Route changed (another pass, a point moved) | Grey proposals spread again; Übernachtung and Hotel stay where they are. |
+| R8 A day above a limit | Its row turns orange with the value that is too high; nothing moves by itself. Fix: + a day, or move / add an Übernachtung. |
 | R7 A grey proposal dragged (proposal, owner to confirm) | It becomes a blue Übernachtung where it is dropped – R1 at that place. |
 
 ## 3. The flows
@@ -64,11 +71,11 @@ Rules (each is one undo step, then saved):
 3. **Glue (new).** With a route already there, the GPX-Track panel offers "An die Route anhängen": the trimmed track's
    route goes behind the last point. The joint is a normal point. If the track runs the other way (its end is nearer),
    it is turned round. The guide panel stays at step 1 until "Weiter: Tage festlegen".
-4. **Days.** One small box, everything under each other: name (proposal "München – Venedig"), number of days with
-   − / +, below it live "≈ 94 km · 970 hm · 5 h 20 min pro Tag". "Fertig" → the tour is saved and the overview opens
-   with N − 1 grey proposals.
-5. **Overview** = the tour from now on: name, totals, N with − / +, the height profile with the day borders, one row per
-   day (km, hm, time, the bed of its end). Every change saves itself and syncs.
+4. **Days.** One small box, everything under each other: name (proposal "München – Venedig"), limits per day (time,
+   ascent), number of days with − / + (proposed from the limits), below it live "≈ 94 km · 970 hm · 5 h 20 min pro
+   Tag". "Fertig" → the overview opens with N − 1 grey proposals.
+5. **Overview** = the tour from now on: name, totals, N with − / +, the limits, the height profile with the day borders,
+   one row per day (km, hm, time, the bed of its end; orange above a limit). Saving as for every plan ("Speichern").
 6. **Overnight stops.** Tap the route → "Übernachtung hier". Tap a bed → its menu: blue "Hotel hinterlegen" ·
    "Übernachtung entfernen"; green "Hotel ändern" · "Hotel entfernen" · "Übernachtung entfernen". "Hotel hinterlegen":
    search the hotel, or paste a Google Maps / Booking link or an address. A found place's menu also has "Hotel für
@@ -108,11 +115,9 @@ Every row is solved with R1–R7; none needs another tool.
 | R | Rest day, two nights in one hotel | – | not in version 1 (later: "Nächte: 2" on a hotel). |
 
 Found while checking:
-- **Saving:** a normal plan in the planner waits for "Speichern" today (unsaved work stays under "Zuletzt"). The tour
-  is saved the moment the days box says "Fertig" and then saves itself on every change – different from a normal
-  plan, but what the owner asked for. Undo covers mistakes.
+- **Saving:** as for every plan (owner 2026-11-17 late) – "Speichern", unsaved work under "Zuletzt".
 - **Grey days have no place yet:** on the phone the day's end is the worked-out point on the route – enough to follow.
-- **No limits:** without "at most 6 h a day" there is no orange warning; the overview's numbers per day are the warning.
+- **Limits:** they stay (R8); a removed Übernachtung or a far hotel can push a day over – the orange row says so.
 
 ## 5. Why this fits the architecture
 
@@ -169,11 +174,10 @@ phone, day trips from one base.
 
 ## 9. Open points for the owner
 
-1. Rest days, base-camp tours and limits per day – all out of version 1?
+1. Rest days and base-camp tours – both out of version 1?
 2. §7: the moment for the map download.
 3. R4: "Hotel entfernen" keeps the night (blue) – or should the whole night go (grey)?
 4. R7: dragging a grey bed makes it a blue Übernachtung there?
-5. Saving by itself only for multi-day tours, or later for every saved plan?
 
 ## 10. UI rounds
 
