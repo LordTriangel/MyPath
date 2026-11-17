@@ -86,6 +86,8 @@ const CALLS = new Set(['historyRecord', 'historySnap', 'historyStep', 'historySt
   'searchCategories', 'searchReset',
   // kept places and „Zuletzt gesucht“ (WebKept.kt – the app's SavedPlaces / SearchStore.addRecent, owner 2026-11-15)
   'keptState', 'keptApply', 'keptStart', 'recentAdd',
+  // kept places ⇄ the sync (web-sync.md §5.4: the shared PlaceSync)
+  'syncPlacesExport', 'syncPlacesImport', 'syncPlacesChanged', 'syncPlaceItems', 'syncPlacesForget',
   // the phone unpaired itself (its hello deleted – the app's guard)
   'syncPhoneGone',
   // the app's shared rules wired since main 2e50efbc: mailbox restart (M4), save as copy (H3), route names, route fit
