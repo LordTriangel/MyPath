@@ -18,6 +18,9 @@ const assets = path.join(repo, 'app/src/main/assets/brouter');
 const profiles = fs.readdirSync(assets).filter((f) => f.endsWith('.brf') || f === 'lookups.dat');
 for (const f of profiles) fs.copyFileSync(path.join(assets, f), path.join(pub, 'brouter', f));
 fs.writeFileSync(path.join(pub, 'brouter', 'index.json'), JSON.stringify(profiles));
+// the tour suggestions' numbers (one file for the POC, the app and the planner – docs/design/tour-suggestions.md §7)
+fs.mkdirSync(path.join(pub, 'suggest'), { recursive: true });
+fs.copyFileSync(path.join(repo, 'tools/suggest-poc/settings.json'), path.join(pub, 'suggest', 'settings.json'));
 console.log('engine + profiles copied to public/');
 
 // The app's map style (format 2) and its glyphs + sprite, unchanged; the page points the URLs at the web paths.

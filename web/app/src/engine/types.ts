@@ -16,6 +16,8 @@ export type EngineRequest =
   | { id: number; type: 'insert'; points: string; lat: number; lon: number; lineSnapM: number }
   | { id: number; type: 'gpxRead'; data: Uint8Array; fileName: string; activity: Activity; sac: number }
   | { id: number; type: 'planFromTrack'; points: string; activity: Activity; sac: number }
+  // round-trip suggestions (suggest.ts): the wish as JSON (WebSuggest.kt), [cells] = the map store root (cells/f2/…)
+  | { id: number; type: 'suggest'; wish: string; cells: string }
   /** The page dropped plan [target] (superseded): skip it if it has not started routing yet. No answer. */
   | { id: number; type: 'drop'; target: number };
 
