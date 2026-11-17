@@ -43,12 +43,15 @@ class SuggestResult(
  * Inputs: the [Wish], the way network ([NetSource]), the map cells' suggest files ([SuggestFiles]: land grid, heights,
  * names, aims, signed routes and loops) and the method's numbers ([SuggestSettings], one file). Its words come from the
  * shared strings ([SuggestText]). Blocking (a 3 h bike wish: a few seconds on a phone).
+ *
+ * [check] runs between the phases (network, facts, place, loops, judging): the app passes its coroutine's
+ * `ensureActive`, so a newer wish stops this one at the next phase instead of letting two runs hold memory at once.
  */
 object TourSuggester {
-    fun suggest(wish: Wish, netSource: NetSource, files: SuggestFiles, S: SuggestSettings): SuggestResult {
+    fun suggest(wish: Wish, netSource: NetSource, files: SuggestFiles, S: SuggestSettings, check: () -> Unit = {}): SuggestResult {
         val times = LinkedHashMap<String, Double>()
         var t = System.nanoTime()
-        fun lap(key: String) { val now = System.nanoTime(); times[key] = (now - t) / 1e9; t = now }
+        fun lap(key: String) { val now = System.nanoTime(); times[key] = (now - t) / 1e9; t = now; check() }
         val notes = ArrayList<String>()
         val ch = Character(wish, S)
         val radius = ch.radius(S)
@@ -56,6 +59,7 @@ object TourSuggester {
         // the map is being updated there (the file comes with the cell's next map version)
         val updating = Land.cellsFor(wish.lon, wish.lat, radius).any { files.cell(it[0], it[1]).let { f -> f == null || f.content < SuggestFile.CONTENT } }
         if (updating) notes.add(SuggestText.noteMapUpdating())
+        check()
         val net = netSource.read(ch, radius)
         val things = Named.load(files, wish.lon, wish.lat, radius + 500.0, ch.bike, S["facts"]["rank"])
         lap("network")

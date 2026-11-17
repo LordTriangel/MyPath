@@ -138,6 +138,8 @@ suggest/TourSuggester.kt
 # shared strings (strings_suggest.xml, Txt – DE / EN)
 suggest/Aims.kt
 suggest/SuggestText.kt
+# the light cards app and planner show (stage 3 / 4, IR 2026-11-18): card fields, the sketch-7 pills, the wish as asked
+suggest/SuggestCards.kt
 
 [tests]
 routing/OfflineCorridorTest.kt
