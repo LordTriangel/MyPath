@@ -165,6 +165,7 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
         for (c in chains.take(fam["chains"].i)) add(c.pts, "Kette", c.names)
 
         // --- a signed route whose ways close into a ring: walked round exactly
+        val ringLike = BooleanArray(F.things.size)
         for ((i, th) in F.things.withIndex()) {
             if (th.kind != "route" || th.points < 40) continue
             var mx = 0.0; var my = 0.0
@@ -172,8 +173,17 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             mx /= th.points; my /= th.points
             val bins = HashSet<Int>()
             for (k in 0 until th.points) bins.add((SuggestGeo.bearing(mx, my, th.dense[2 * k], th.dense[2 * k + 1]) / 15.0).toInt())
-            if (bins.size < 18) continue
-            val mine = linksWhere(net.linkCount) { e -> P.d0[net.linkA[e]] < NetSearch.INF && F.named[e].contains(i) }
+            ringLike[i] = bins.size >= 18
+        }
+        // per such route its reached links in link order (one pass over the links, not one per route)
+        val linksOf = HashMap<Int, IntList>()
+        for (e in 0 until net.linkCount) {
+            if (P.d0[net.linkA[e]] >= NetSearch.INF) continue
+            for (i in F.named[e]) if (ringLike[i]) linksOf.getOrPut(i) { IntList() }.add(e)
+        }
+        for ((i, th) in F.things.withIndex()) {
+            if (!ringLike[i]) continue
+            val mine = linksOf[i]?.toArray() ?: IntArray(0)
             val on = runsAlong(th.dense, mine)
             var whole = 0.0
             for (e in on.toIntArray()) whole += F.ln[e]
@@ -192,14 +202,15 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             for (x in deg.keys) if (P.len0[x] < P.len0[entry]) entry = x
             var m = 0.0
             for (e in on.toIntArray()) m += F.ln[e]
-            val exact = DoubleArray(net.linkCount) { if (it in on) F.ln[it] else -1.0 }
-            P.search.full(entry, exact)
-            val way = P.search.metres.copyOf()
-            val prev = P.search.prevNode.copyOf()
             // (the POC also asks "every ring node reached", on the metres – which are never infinite: always true)
             if (on.isEmpty() || m < 0.85 * whole) continue  // a ring with gaps: its guessed order is not ported
             val t = ch.time(m + 2.0 * P.len0[entry], 0.0)
             if (!(0.6 * hLo <= t && t <= 1.3 * hHi)) continue
+            val exact = DoubleArray(net.linkCount) { if (it in on) F.ln[it] else -1.0 }
+            P.search.full(entry, exact)
+            // read straight from the search (no copies): nothing searches again before the points are chosen
+            val way = P.search.metres
+            val prev = P.search.prevNode
             fun third(vs: List<Int>): Int { var b = vs[0]; for (v in vs) if (abs(way[v] - m / 3.0) < abs(way[b] - m / 3.0)) b = v; return b }
             val a = third(deg.keys.toList())
             val firstThird = HashSet<Int>()
@@ -217,13 +228,15 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             val along = P.cost.copyOf()
             for (e in ln.edges.toIntArray()) along[e] *= lineF
             P.search.bounded(entry, 0.75 * ch.maxM, along)
-            val d = P.search.dist.copyOf()
-            val alongM = P.search.metres.copyOf()
-            val on = ln.nodes.filter { d[it] < NetSearch.INF && it != entry && inReach[it] }
+            val on = ln.nodes.filter { P.search.dist[it] < NetSearch.INF && it != entry && inReach[it] }
             if (on.isEmpty()) continue
+            // the metres along of the line's nodes only (the searches of [add] below reuse the search's arrays)
+            val alongAt = HashMap<Int, Double>(on.size * 2)
+            for (v in on) alongAt[v] = P.search.metres[v]
+            fun alongM(w: Int): Double = alongAt.getValue(w)
             val eLon = net.lon(entry); val eLat = net.lat(entry)
             fun turn(u: Int, w: Int) = abs(SuggestGeo.pyMod(SuggestGeo.bearing(eLon, eLat, net.lon(u), net.lat(u)) - SuggestGeo.bearing(eLon, eLat, net.lon(w), net.lat(w)) + 180.0, 360.0) - 180.0)
-            fun half(w: Int) = abs(hours(2.0 * (P.len0[entry] + alongM[w]), w) - hMid)
+            fun half(w: Int) = abs(hours(2.0 * (P.len0[entry] + alongM(w)), w) - hMid)
             fun minBy(xs: List<Int>, f: (Int) -> Double): Int { var b = xs[0]; var bv = f(b); for (x in xs) { val fx = f(x); if (fx < bv) { bv = fx; b = x } }; return b }
             val first = minBy(on, ::half)
             val other = on.filter { turn(it, first) >= 90.0 }
@@ -231,7 +244,7 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
             for (guess in guesses) {
                 val same = on.filter { turn(it, guess) < 60.0 }
                 for (share in doubleArrayOf(1.0, 1.15, 0.85)) {
-                    add(intArrayOf(entry, minBy(same) { abs(alongM[it] - share * alongM[guess]) }), "Linie", listOf(ln.name), mapOf(1 to along))
+                    add(intArrayOf(entry, minBy(same) { abs(alongM(it) - share * alongM(guess)) }), "Linie", listOf(ln.name), mapOf(1 to along))
                 }
             }
         }

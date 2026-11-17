@@ -12,28 +12,29 @@ package com.onpath.app.suggest
  * things it lies on.
  *
  * Lengths and heights as the POC sees them (0.1 m; its route service rounds them so) and cost factors as their
- * shortest decimal text – the port computes on the very same numbers.
+ * shortest decimal text – the port computes on the very same numbers. The facts with few distinct values per network
+ * are kept as [CodedDoubles] (2 bytes per link instead of 8, the very same numbers).
  */
 class Facts(val net: WayNet, index: Named.Index, K: SuggestSettings.J, bike: Boolean, land: Land) {
     val n = net.linkCount
     val ln = DoubleArray(n) { Math.round(net.linkLen[it] * 10.0) / 10.0 }
     val ok = BooleanArray(n) { net.allowed(it) }
-    val costfactor = DoubleArray(n)
-    val ground = IntArray(n)
-    val traffic = DoubleArray(n)
+    val costfactor = CodedDoubles(n)
+    val ground = SmallInts(n)
+    val traffic = CodedDoubles(n)
     val built = BooleanArray(n)
-    val green = DoubleArray(n)
-    val depth = DoubleArray(n)
-    val water = DoubleArray(n)
-    val signed = DoubleArray(n)
+    val green = CodedDoubles(n)
+    val depth = CodedDoubles(n)
+    val water = CodedDoubles(n)
+    val signed = CodedDoubles(n)
     val rail = BooleanArray(n)
     val ferry = BooleanArray(n)
-    val noise = DoubleArray(n)
-    val rim = DoubleArray(n)
+    val noise = CodedDoubles(n)
+    val rim = CodedDoubles(n)
     val sight = BooleanArray(n)
     /** 0 path · 1 track · 2 rough track · 3 road / wide (facts.py `of_tags`) */
-    val width = IntArray(n) { 3 }
-    val area = IntArray(n)
+    val width = SmallInts(n, 3)
+    val area = SmallInts(n)
     val named: Array<IntArray> = Array(n) { EMPTY }
     /** names of the protected areas; 0 = none */
     val areas = arrayListOf("")
@@ -261,5 +262,69 @@ class Facts(val net: WayNet, index: Named.Index, K: SuggestSettings.J, bike: Boo
             return Tags(road, ground, signed, rail, tag(WayKinds.ROUTE) == "ferry", num(WayKinds.NOISE_CLASS) / 6.0,
                 num(WayKinds.RIVER_CLASS), tag(WayKinds.TUNNEL) == "yes", width)
         }
+    }
+}
+
+/**
+ * A double per link where a network has few distinct values (a road weight, a share of a small square, a rank …):
+ * a 2-byte code per link and each distinct value once – [get] gives back exactly the value [set] was given. More than
+ * 65 535 distinct values: it turns into a plain array (still exact).
+ */
+class CodedDoubles(val size: Int) {
+    private var codes = ShortArray(size)
+    private var plain: DoubleArray? = null
+    private var values = DoubleArray(16)
+    private var count = 1  // code 0 = 0.0, the start value of every link
+    private val codeOf = LongIntMap(64)
+
+    init { codeOf.put(key(0.0), 0) }
+
+    operator fun get(e: Int): Double {
+        val p = plain
+        return if (p != null) p[e] else values[codes[e].toInt() and 0xffff]
+    }
+
+    operator fun set(e: Int, value: Double) {
+        val p = plain
+        if (p != null) { p[e] = value; return }
+        val k = key(value)
+        var c = if (k == Long.MIN_VALUE) -1 else codeOf[k]
+        if (c < 0) {
+            if (count > 0xffff || k == Long.MIN_VALUE) {  // too many values (or the one bit pattern the map cannot hold)
+                val all = DoubleArray(size) { values[codes[it].toInt() and 0xffff] }
+                all[e] = value
+                plain = all
+                codes = ShortArray(0)
+                return
+            }
+            c = count++
+            if (c == values.size) values = values.copyOf(c * 2)
+            values[c] = value
+            codeOf.put(k, c)
+        }
+        codes[e] = c.toShort()
+    }
+
+    /** the value's bits, shifted by one (LongIntMap cannot hold Long.MIN_VALUE, which is −0.0) */
+    private fun key(value: Double): Long = java.lang.Double.doubleToRawLongBits(value) + 1
+}
+
+/** A small int per link (a class 0..3, an area's number): one byte per link while every value fits 0..255, else a
+ * plain int array (exact either way). */
+class SmallInts(val size: Int, initial: Int = 0) {
+    private var bytes: ByteArray? = ByteArray(size).also { if (initial != 0) it.fill(initial.toByte()) }
+    private var ints: IntArray? = null
+
+    operator fun get(e: Int): Int {
+        val b = bytes
+        return if (b != null) b[e].toInt() and 0xff else ints!![e]
+    }
+
+    operator fun set(e: Int, value: Int) {
+        val b = bytes
+        if (b == null) { ints!![e] = value; return }
+        if (value in 0..255) { b[e] = value.toByte(); return }
+        ints = IntArray(size) { b[it].toInt() and 0xff }.also { it[e] = value }
+        bytes = null
     }
 }

@@ -164,10 +164,18 @@ class WayNet(
         /** Heap of the arrays so far, with their spare room (bytes). */
         fun capacityBytes(): Long = nLon.size * 10L + lA.size * 25L + gOff.size * 4L + g.size * 4L
 
-        /** The network; the arrays are handed over as they are (spare room at the end is never read – no copy, so
-         *  reading needs no second set of arrays at its end). Do not use the builder afterwards. */
-        fun build(start: Int): WayNet = WayNet(start, nodeCount, nLon, nLat, nEle, linkCount, lA, lB, lLen, lUp, lDown,
-            lKind, lFlags, gOff, g, kinds)
+        /** The network; the arrays are trimmed to size one by one (never a second set of all of them at once – the
+         *  growing left up to a third spare). Do not use the builder afterwards. */
+        fun build(start: Int): WayNet {
+            if (nLon.size > nodeCount + 64) { nLon = nLon.copyOf(nodeCount); nLat = nLat.copyOf(nodeCount); nEle = nEle.copyOf(nodeCount) }
+            if (lA.size > linkCount + 64) {
+                lA = lA.copyOf(linkCount); lB = lB.copyOf(linkCount); lLen = lLen.copyOf(linkCount); lUp = lUp.copyOf(linkCount)
+                lDown = lDown.copyOf(linkCount); lKind = lKind.copyOf(linkCount); lFlags = lFlags.copyOf(linkCount)
+                gOff = gOff.copyOf(linkCount + 1)
+            }
+            if (g.size > gN + 128) g = g.copyOf(gN)
+            return WayNet(start, nodeCount, nLon, nLat, nEle, linkCount, lA, lB, lLen, lUp, lDown, lKind, lFlags, gOff, g, kinds)
+        }
 
         private fun grow(n: Int) = n + (n shr 1) + 16
     }

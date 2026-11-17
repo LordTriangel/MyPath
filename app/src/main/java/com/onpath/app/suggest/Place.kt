@@ -22,8 +22,8 @@ class Place(
 ) {
     val target = ch.targetM
     val n = net.linkCount
-    /** natur, ruhe, weg, besonderes: absolute 0..1 per way */
-    val v = Array(4) { DoubleArray(n) }
+    /** extra Besonderes per area or thing name ([value]) */
+    private val tips = tips
     val low = DoubleArray(4)
     val high = DoubleArray(4)
     val top = DoubleArray(4)
@@ -41,37 +41,33 @@ class Place(
     val aims: List<Aims.Aim>
     /** the names made up for unnamed areas and lines ("Wald bei Hilden") – a card may be called after one */
     val spotNames = HashSet<String>()
-    /** union-find over nodes for [groups]: −1 = not in the current call (reset after each) */
-    private val parent = IntArray(net.nodeCount) { -1 }
+    /** union-find over nodes for [groups]: −1 = not in the current call (reset after each); given back after init */
+    private var parent: IntArray? = null
 
     /** An area or a line as the generators and the cards need it (place.py `_thing`). */
     class Spot(val kind: String, val name: String, val rank: Double, val edges: PyIntSet, val nodes: IntArray,
                val m: Double, val lon: Double, val lat: Double, val near: Int, val d: Double, val heart: Int, val good: Double)
 
+    // [value]'s numbers: natur, ruhe, weg, besonderes per way are worked out when asked, not kept (4 × 8 bytes per way)
+    private val wWater: Double
+    private val wOther: Double
+    private val rimNatur: Double
+    private val pRim: Double
+    private val pSight: Double
+    private val waterNatur: Double
+    private val width: DoubleArray
+
     init {
         val P = S["place"]; val Q = S["search"]
         val ok = Generate.linksWhere(n) { F.ok[it] }
-        val (wWater, wOther) = if (ch.water) 1.0 to 0.4 else 0.6 to 1.0
-        val things = F.things
-        val rimNatur = P["rim_natur"].d; val pRim = P["rim"].d; val pSight = P["sight"].d; val waterNatur = P["water_natur"].d
+        if (ch.water) { wWater = 1.0; wOther = 0.4 } else { wWater = 0.6; wOther = 1.0 }
+        rimNatur = P["rim_natur"].d; pRim = P["rim"].d; pSight = P["sight"].d; waterNatur = P["water_natur"].d
         val W = S["quality"]["width"]
-        val width = doubleArrayOf(W["path"].d, W["track"].d, W["rough_track"].d, W["wide"].d)
-        for (e in ok) {
-            // an open edge with a view and a natural shore (quality trails: "Ränder – Waldrand, Ufer") are nature too
-            v[NATUR][e] = maxOf((1 - ch.depth) * F.green[e] + ch.depth * F.depth[e], rimNatur * F.rim[e],
-                waterNatur * F.water[e] * (if (F.built[e]) 0 else 1))
-            v[RUHE][e] = 1.0 - maxOf(F.traffic[e], 0.6 * (if (F.built[e]) 1 else 0), 0.5 * F.noise[e])
-            // on foot a narrow path is worth more than a wide track of the same ground (quality trails)
-            v[WEG][e] = if (F.rail[e] && ch.bike) 1.0 else (1.0 - ch.path) * ch.ground[F.ground[e]] + ch.path * width[F.width[e]]
-            var tip = tips[F.areas[F.area[e]]] ?: 0.0
-            for (i in F.named[e]) tip = maxOf(tip, tips[things[i].name] ?: 0.0)
-            val other = maxOf(maxOf(F.signed[e] * ch.signed, 0.9 * (if (F.rail[e] && ch.bike) 1 else 0), 0.6 * (if (F.area[e] > 0) 1 else 0)),
-                maxOf(tip, pRim * F.rim[e], pSight * (if (F.sight[e]) 1 else 0)))
-            v[BESONDERES][e] = minOf(1.0, maxOf(wWater * F.water[e], wOther * other)) * (1.0 - F.traffic[e])
-        }
+        width = doubleArrayOf(W["path"].d, W["track"].d, W["rough_track"].d, W["wide"].d)
+        val things = F.things
         for (a in 0 until 4) {
-            low[a] = quantile(ok, v[a], P["low"].d)
-            high[a] = maxOf(quantile(ok, v[a], P["high"].d), low[a] + P["min_span"].d)
+            low[a] = quantile(ok, a, P["low"].d)
+            high[a] = maxOf(quantile(ok, a, P["high"].d), low[a] + P["min_span"].d)
         }
         val ax = DoubleArray(4) { ch.axis(AXES[it]) }
         val wsum = ax[0] + ax[1] + ax[2] + ax[3]
@@ -79,7 +75,7 @@ class Place(
         val taste = Q["taste"].d; val road = Q["road"].d; val prof = Q["profile"].d
         for (e in ok) {
             var s = 0.0
-            for (a in 0 until 4) s += ax[a] * rel(a, v[a][e])
+            for (a in 0 until 4) s += ax[a] * rel(a, value(a, e))
             val g = s / wsum
             good[e] = g
             cost[e] = F.ln[e] * (1 + taste * (1 - g)) * (1 + road * F.traffic[e]) * (1 + prof * (F.costfactor[e] - 1))
@@ -116,11 +112,32 @@ class Place(
         val core = reach.filter { core(it) }.toIntArray().let { if (it.isEmpty()) reach else it }
         val ring = S["form"]["ring"].d
         for (a in 0 until 4) {
-            top[a] = maxOf(quantile(core, v[a], P["top"][AXES[a]].d) + (if (a == BESONDERES) ring else 0.0), low[a] + P["min_span"].d)
+            top[a] = maxOf(quantile(core, a, P["top"][AXES[a]].d) + (if (a == BESONDERES) ring else 0.0), low[a] + P["min_span"].d)
         }
         // --- what a loop can lead to: summits, lakes, viewpoints, huts, castles … (Aims)
+        parent = null
         @Suppress("LeakingThis")
         aims = Aims.find(this, S)
+    }
+
+    /** The absolute value of way [e] on axis [a] (natur, ruhe, weg, besonderes), 0..1; 0 for a way not allowed. */
+    fun value(a: Int, e: Int): Double {
+        if (!F.ok[e]) return 0.0
+        return when (a) {
+            // an open edge with a view and a natural shore (quality trails: "Ränder – Waldrand, Ufer") are nature too
+            NATUR -> maxOf((1 - ch.depth) * F.green[e] + ch.depth * F.depth[e], rimNatur * F.rim[e],
+                waterNatur * F.water[e] * (if (F.built[e]) 0 else 1))
+            RUHE -> 1.0 - maxOf(F.traffic[e], 0.6 * (if (F.built[e]) 1 else 0), 0.5 * F.noise[e])
+            // on foot a narrow path is worth more than a wide track of the same ground (quality trails)
+            WEG -> if (F.rail[e] && ch.bike) 1.0 else (1.0 - ch.path) * ch.ground[F.ground[e]] + ch.path * width[F.width[e]]
+            else -> {
+                var tip = tips[F.areas[F.area[e]]] ?: 0.0
+                for (i in F.named[e]) tip = maxOf(tip, tips[F.things[i].name] ?: 0.0)
+                val other = maxOf(maxOf(F.signed[e] * ch.signed, 0.9 * (if (F.rail[e] && ch.bike) 1 else 0), 0.6 * (if (F.area[e] > 0) 1 else 0)),
+                    maxOf(tip, pRim * F.rim[e], pSight * (if (F.sight[e]) 1 else 0)))
+                minOf(1.0, maxOf(wWater * F.water[e], wOther * other)) * (1.0 - F.traffic[e])
+            }
+        }
     }
 
     /** An absolute value on this place's yardstick: 0 = poor here, 1 = as good as it gets here. */
@@ -138,6 +155,7 @@ class Place(
     fun groups(edges: List<Int>): List<IntArray> = groups(edges.toIntArray())
 
     fun groups(edges: IntArray): List<IntArray> {
+        val parent = parent ?: IntArray(net.nodeCount) { -1 }.also { parent = it }
         fun find(x0: Int): Int {
             var x = x0
             while (true) {
@@ -278,4 +296,8 @@ class Place(
 
     private fun quantile(edges: IntArray, value: DoubleArray, q: Double): Double =
         quantileOf(DoubleArray(edges.size) { value[edges[it]] }, DoubleArray(edges.size) { F.ln[edges[it]] }, q)
+
+    /** [quantile] of axis [a]'s values ([value]). */
+    private fun quantile(edges: IntArray, a: Int, q: Double): Double =
+        quantileOf(DoubleArray(edges.size) { value(a, edges[it]) }, DoubleArray(edges.size) { F.ln[edges[it]] }, q)
 }
