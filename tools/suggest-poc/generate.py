@@ -9,6 +9,10 @@ choose the points:
   chains          the stand-out areas of the place, in order around the start, each crossed through its heart
   rings           a signed route that is itself a loop of the right length, walked round (also from its pieces)
   lines           follow a known route, a rail trail or a bank, come home another way
+  aims            a summit, a lake, a viewpoint, a hut, a castle … (aims.py) as the turning point, alone, with a turning
+                  point a quarter turn away, or two in a chain; a wished Ziel's aims always
+When the pool stays small (mountains: few ways, most points too high for the time), the turning points are tried again
+in twice as many directions and across the whole wished range.
 A loop inside one big area needs no generator of its own: there the pleasant turning points lie inside it.
 The wished time is a range: turning points are taken across all of it, and distance is counted in time.
 """
@@ -16,8 +20,9 @@ from net import bearing, climb, dijkstra, dist, path, runs_along, INF
 from score import road_run
 
 
-def assemble(P, S, points, costs=None):
-    """-> the loop's edges in walking order, or None. costs = {part index: cost list} for a part that follows a line."""
+def assemble(P, S, points, costs=None, keep=()):
+    """-> the loop's edges in walking order, or None. costs = {part index: cost list} for a part that follows a line.
+    keep = nodes (aims) whose way out and back stays in the loop (the last stretch up to a summit)."""
     net, F, Q = P.net, P.F, S["search"]
     free = P.ch.family["free_stem_m"]
     pen, edges, cur, walked = {}, [], net.start, 0.0
@@ -40,27 +45,31 @@ def assemble(P, S, points, costs=None):
                     pen.setdefault(e2, Q["beside_used"])
         edges += leg
         cur = w
-    edges = cut_spurs(net, F, edges)
+    edges = cut_spurs(net, F, edges, keep)
     return edges if len(edges) >= 3 else None
 
 
-def cut_spurs(net, F, edges):
+def cut_spurs(net, F, edges, keep=()):
     """A spur – out to a turning point off the way and back the same way, also with a little loop at its tip – is not
-    part of a loop: cut it. (A closed piece of the walk of which a third or more is walked twice.)"""
+    part of a loop: cut it. (A closed piece of the walk of which a third or more is walked twice.) Not when its tip is
+    an aim in `keep`: the way up to a summit and back down is the point of the loop."""
     while True:
-        out = []
+        out, at = [], [net.start]
         for ei in edges:  # straight there and back
-            if out and out[-1] == ei:
+            if out and out[-1] == ei and at[-1] not in keep:
                 out.pop()
+                at.pop()
             else:
                 out.append(ei)
+                at.append(net.other(ei, at[-1]))
         edges, nodes, first = out, [net.start], {net.start: 0}
         for k, ei in enumerate(edges):
             x = net.other(ei, nodes[-1])
             nodes.append(x)
             i = first.setdefault(x, k + 1)
             piece = edges[i:k + 1]
-            if 0 < i <= k and len(piece) < 0.6 * len(edges):  # back at a node passed before: is the piece between a spur?
+            if 0 < i <= k and len(piece) < 0.6 * len(edges) and not (keep and keep & set(nodes[i:])):
+                # back at a node passed before: is the piece between a spur?
                 walked = sum(F.ln[e] for e in piece)
                 if walked - sum(F.ln[e] for e in set(piece)) >= 0.3 * walked:
                     edges = edges[:i] + edges[k + 1:]
@@ -69,10 +78,11 @@ def cut_spurs(net, F, edges):
             return edges
 
 
-def measure(P, edges, start=None):
+def measure(P, edges, start=None, keep=()):
     """The plain measures of a loop: nodes, metres, ascent, hours, metres walked twice beyond the free stem, and how
     often it meets its own way (a crossing, an eight's middle, a shared stretch = one meeting each; the start, the
-    stem and a touch within the free stem do not count). start = its first node (default: the wish's start)."""
+    stem and a touch within the free stem do not count). start = its first node (default: the wish's start).
+    keep = aims whose way out and back (up to a summit) is not counted as walked twice."""
     net, F, ch = P.net, P.F, P.ch
     start = net.start if start is None else start
     nodes, at = [start], [0.0]
@@ -90,8 +100,20 @@ def measure(P, edges, start=None):
     for ei in edges:
         count[ei] = count.get(ei, 0) + 1
     doubled = sum(F.ln[e] * (c - 1) for e, c in count.items() if c > 1)
+    tip, on_tip = 0.0, set()  # out to an aim and back the same way: part of the loop, not walked twice, no meeting
+    for i in range(1, len(edges)):
+        if nodes[i] in keep:
+            j = 0
+            while i - 1 - j >= 0 and i + j < len(edges) and edges[i - 1 - j] == edges[i + j]:
+                tip += F.ln[edges[i + j]]
+                j += 1
+            on_tip.update(range(i - j, i + j + 1))
+    doubled -= tip
     seen, cross, in_run, last = {}, 0, False, -1e9
     for i in range(stem, len(nodes) - 1 - stem):
+        if i in on_tip:
+            seen[nodes[i]] = i
+            continue
         j = seen.get(nodes[i])
         if j is not None and i - j > 1 and not (at[j] <= free and total - at[i] <= free):
             cross += not in_run and at[i] - last > 150.0
@@ -113,21 +135,21 @@ def pool(P, S):
     out, seen = [], set()
     P.steep = []
 
-    road_max, F = fam["road_walk_max_m"], P.F
+    road_max, F = fam["road_repair_m"], P.F  # a loop longer than this along a road is built once more without it
     roadside = lambda e: F.traffic[e] >= 0.45 and not F.built[e]
     calm_cost = [c * Q["road_repair"] if roadside(e) else c for e, c in enumerate(P.cost)] if road_max else None
 
-    def add(points, origin, aim=(), costs=None):
+    def add(points, origin, aim=(), costs=None, keep=()):
         """Assemble, measure, keep if it fits. -> its measures (also when it does not fit), None if nothing new came.
         A loop that would be out for a long stretch along a road (on foot) is built once more with such stretches
         made dear: the way to the same turning points mostly exists without the road."""
-        edges = assemble(P, S, points, costs)
+        edges = assemble(P, S, points, costs, keep)
         if edges and road_max and road_run(F, edges) > road_max:
             calm = {i: calm_cost for i in range(len(points) + 1)}
             for i, cost in (costs or {}).items():
                 calm[i] = [c * Q["road_repair"] if roadside(e) else c for e, c in enumerate(cost)]
-            edges = assemble(P, S, points, calm) or edges
-        m = measure(P, edges) if edges and frozenset(edges) not in seen else None
+            edges = assemble(P, S, points, calm, keep) or edges
+        m = measure(P, edges, keep=keep) if edges and frozenset(edges) not in seen else None
         if m:
             seen.add(frozenset(edges))
             if m["cross"] <= S["form"]["max_cross"] and (1 - S["form"]["short_zero"]) * h_lo <= m["hours"] \
@@ -142,33 +164,38 @@ def pool(P, S):
     hours = lambda metres, *via: ch.time(metres, max(rise(v) for v in via))  # a loop over these points, estimated
     there_and_back = lambda v: hours(2.2 * P.len0[v], v)  # the way home is another way, a little longer
 
-    def anchors(fits):
+    def anchors(fits, sectors=fam["sectors"]):
         """Per direction the node that fits and is reached most pleasantly."""
         best = {}
         for v in reached:
             if fits(v):
-                k, r = int(bear[v] * fam["sectors"] / 360.0), P.d0[v] / P.len0[v]
+                k, r = int(bear[v] * sectors / 360.0), P.d0[v] / P.len0[v]
                 if k not in best or r < best[k][0]:
                     best[k] = (r, v)
         return [v for _, v in best.values()]
 
-    # --- turning points: one per direction (at the short and the long end of the range), then pairs a quarter turn apart
-    for h in ((h_mid,) if h_hi < 1.25 * h_lo else (h_lo, h_hi)):
-        for v in anchors(lambda v: 0.9 * h <= there_and_back(v) <= 1.1 * h):
-            add([v], "Wendepunkt")
-    if ch.up[0] >= 100.0:  # a climb is wished: turning points high enough
-        for v in anchors(lambda v: 0.8 * ch.up[0] <= net.nodes[v][2] - start[2] <= ch.up[1] and h_lo <= there_and_back(v) <= h_hi):
-            add([v], "Anstieg")
-    A = anchors(lambda v: 0.6 * h_lo <= there_and_back(v) <= 0.8 * h_hi)
-    pairs = []
-    for a in A:
-        est = lambda b: hours(P.len0[a] + 1.3 * dist(net.nodes[a], net.nodes[b]) + P.len0[b], a, b)
-        fit = lambda b: max(0.0, h_lo - est(b), est(b) - h_hi)
-        side = [b for b in A if 40.0 <= (bear[b] - bear[a]) % 360.0 <= 110.0]
-        if side:
-            pairs.append((fit(min(side, key=fit)), a, min(side, key=fit)))
-    for _, a, b in sorted(pairs)[:fam["pairs"]]:
-        add([a, b], "Wendepunkte")
+    def pair_hours(a, b):
+        return hours(P.len0[a] + 1.3 * dist(net.nodes[a], net.nodes[b]) + P.len0[b], a, b)
+
+    def turning(sectors, times, n_pairs):
+        """Turning points: one per direction (at the given times), then pairs a quarter turn apart."""
+        for h in times:
+            for v in anchors(lambda v: 0.9 * h <= there_and_back(v) <= 1.1 * h, sectors):
+                add([v], "Wendepunkt")
+        if ch.up[0] >= 100.0:  # a climb is wished: turning points high enough
+            for v in anchors(lambda v: 0.8 * ch.up[0] <= net.nodes[v][2] - start[2] <= ch.up[1] and h_lo <= there_and_back(v) <= h_hi, sectors):
+                add([v], "Anstieg")
+        A = anchors(lambda v: 0.6 * h_lo <= there_and_back(v) <= 0.8 * h_hi, sectors)
+        pairs = []
+        for a in A:
+            fit = lambda b: max(0.0, h_lo - pair_hours(a, b), pair_hours(a, b) - h_hi)
+            side = [b for b in A if 40.0 <= (bear[b] - bear[a]) % 360.0 <= 110.0]
+            if side:
+                pairs.append((fit(min(side, key=fit)), a, min(side, key=fit)))
+        for _, a, b in sorted(pairs)[:n_pairs]:
+            add([a, b], "Wendepunkte")
+
+    turning(fam["sectors"], (h_mid,) if h_hi < 1.25 * h_lo else (h_lo, h_hi), fam["pairs"])
 
     # --- chains through the stand-out areas, in order around the start, each through its heart
     areas = sorted(P.areas, key=lambda a: bearing(start, a["p"]))
@@ -269,4 +296,57 @@ def pool(P, S):
             same = [u for u in on if turn(u, guess) < 60.0]
             for share in (1.0, 1.15, 0.85):
                 add([entry, min(same, key=lambda u: abs(along[u] - share * along[guess]))], "Linie", [ln["name"]], {1: along_cost})
+
+    # --- aims (aims.py): a summit, a lake, a viewpoint, a hut, a castle … as the turning point – alone when the time
+    #     fits, else with a turning point a quarter turn away on either side; two aims in a chain. A wished Ziel's
+    #     aims always; the others by worth and nearness. A lake's shore is cheap while the loop aims at it.
+    Z, ziel = S["aims"], ch.ziel
+    fits_time = lambda a: there_and_back(a["node"]) <= 1.2 * h_hi
+    rank = lambda a: (a["ziel"] not in ziel, -a["worth"] / (1.0 + P.len0[a["node"]] / ch.target_m))
+    beyond = max(P.access, 0.1 * ch.target_m)  # an aim in the town one starts from is no turning point
+    pick = sorted((a for a in P.aims if a["node"] in bear and P.len0[a["node"]] >= beyond and fits_time(a)), key=rank)
+    n = Z["candidates"]["wheel" if ch.bike else "foot"]
+    pick = pick[:max(n, min(Z["chosen_candidates"], sum(a["ziel"] in ziel for a in pick)))]
+    shore = {}
+
+    def costs_for(*aims_):
+        es = [e for a in aims_ if a["what"] == "lake" for e in a["edges"]]
+        if not es:
+            return None
+        key = frozenset(es)
+        if key not in shore:
+            cost = list(P.cost)
+            for e in es:
+                cost[e] *= Z["shore"]
+            shore[key] = cost
+        return shore[key]
+    B = anchors(lambda v: 0.25 * h_lo <= there_and_back(v) <= 0.8 * h_hi, 2 * fam["sectors"])
+    for a in pick:
+        v, cost = a["node"], costs_for(a)
+        cs, keep = cost and {i: cost for i in range(3)}, frozenset([v])
+        if 0.7 * h_lo <= there_and_back(v) <= 1.2 * h_hi:
+            add([v], "Ziel", [a["name"]], cs, keep)
+        if there_and_back(v) < 0.7 * h_lo:  # near: the loop goes on beyond it, to one side and to the other
+            for lo_b, hi_b, order in ((40.0, 110.0, lambda b: [v, b]), (250.0, 320.0, lambda b: [b, v])):
+                side = [b for b in B if lo_b <= (bear[b] - bear[v]) % 360.0 <= hi_b]
+                if side:
+                    b = min(side, key=lambda b: max(0.0, h_lo - pair_hours(v, b), pair_hours(v, b) - h_hi))
+                    if 0.7 * h_lo <= pair_hours(v, b) <= 1.25 * h_hi:
+                        add(order(b), "Ziel", [a["name"]], cost and {i: cost for i in range(4)}, keep)
+    two = []
+    for i, a in enumerate(pick):
+        for b in pick[i + 1:]:
+            if a["node"] != b["node"] and 0.7 * h_lo <= pair_hours(a["node"], b["node"]) <= 1.2 * h_hi:
+                pair = sorted((a, b), key=lambda x: bear[x["node"]])
+                if (bear[pair[1]["node"]] - bear[pair[0]["node"]]) % 360.0 > 180.0:
+                    pair = pair[::-1]  # around the start the short way
+                two.append((rank(a)[0] + rank(b)[0], -(a["worth"] + b["worth"]), pair))
+    for _, _, (a, b) in sorted(two, key=lambda t: t[:2])[:fam["chains"]]:
+        cost = costs_for(a, b)
+        add([a["node"], b["node"]], "Ziele", [a["name"], b["name"]], cost and {i: cost for i in range(3)},
+            frozenset([a["node"], b["node"]]))
+
+    # --- few loops (mountains: few ways, most points too high for the time): more turning points, generally
+    if len(out) + len(P.steep) < fam["few"]:  # (too steep for the wish is not "few": the flatter re-build is for that)
+        turning(2 * fam["sectors"], (h_lo, h_mid, h_hi), 2 * fam["pairs"])
     return out

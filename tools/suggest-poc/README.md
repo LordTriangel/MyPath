@@ -8,7 +8,8 @@ only; nothing here is in the app or the planner. The method and its principles: 
 ```
 python3 tools/suggest-poc/serve.py                      # the page: http://localhost:8790 (+ /vergleich)
 python3 tools/suggest-poc/run.py Hilden --hours 1.5-2.5 --ascent 0-150 --png
-python3 tools/suggest-poc/run.py Zons --activity bike --hours 3 --natur hoch --wasser --all
+python3 tools/suggest-poc/run.py Zons --activity bike --hours 3 --ziel wasser --all
+python3 tools/suggest-poc/run.py Mittenwald --hours 2.75-3.25 --ziel gipfel,einkehr      # Ziel: gipfel wasser aussicht einkehr kultur
 python3 tools/suggest-poc/cases.py                      # the owner's comments as checks
 python3 tools/suggest-poc/feedback.py --last 5          # his comments from the page, with their routes
 ```
@@ -53,7 +54,8 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
 | `character.py` | level 3: the wish (with its two ranges) and the character it gives |
 | `facts.py` | level 1: way tags + map grids → facts per way |
 | `place.py` | level 2: the place's yardstick, what stands out (areas, lines), the way out |
-| `generate.py` | one assembly routine, turning points from four sources → the pool of loops |
+| `generate.py` | one assembly routine, turning points from five sources (turning points, chains, signed rings, lines, aims) → the pool of loops |
+| `aims.py` | aims a loop can lead to (summits, lakes, viewpoints, huts / cafés, castles / chapels, waterfalls): which exist in reach, what a loop reaches, what that is worth |
 | `score.py` | five axes, hard rules, selection, title / reasons / hints |
 | `net.py` | the way network and the graph routines (search, path) |
 | `land.py`, `named.py`, `cells.py`, `pmt.py` | our map areas: land grid, named routes / lakes / viewpoints, download, tile reader – from the cell's suggest file, else computed by the same code the file's producer uses (`tools/build_suggest.py`, `tools/suggest_tiles.py`) |
@@ -66,7 +68,21 @@ python3 tools/suggest-poc/feedback.py --last 5          # his comments from the 
 | `settings.json` | every number of the method |
 | `reference.py`, `FROZEN.md` | the frozen method's reference runs for the Kotlin port; what is frozen and the numbers to reproduce |
 
-## Weak spots (2026-11-16, evening)
+## Weak spots (2026-11-16, evening; aims 2026-11-17)
+
+- **Every named hill is a Gipfel.** In the Siebengebirge a loop collects "Gipfel Schallenberg (310 m), Gipfel
+  Geisberg (324 m)"; the map gives no prominence. Peaks count like any aim (worth 1.0); a height above the start or
+  the map's rank would tell a real summit from a knoll – not done.
+- **Einkehr is any named restaurant or café** (and hut). By bike through towns a loop passes many; only the one
+  nearest the middle counts and is named, but the bonus is a little noise for wheels. Opening hours are in the data,
+  not used.
+- **"Inside the wished time" is strict.** Mittenwald 2.75–3.25 h: the loop round the Ferchensee (2.74 h, 91 points)
+  is listed after in-time loops of 57 points (`score.order`, unchanged this round).
+- **Aims' names are the map's**: "Voller Durchblick" (a viewpoint), "Erkennbare überreste Burg Hugenpoth" (a castle)
+  appear in titles as they are.
+- **Bikes are slower** with the aims and the road repair on wheels (Nordkirchen bike 4 h: 35 → 48 s on a busy
+  machine).
+- **Kultur** has no monuments and no churches (pois.geojson has churches in every village; not taken).
 
 - **Following a river is brittle.** A loop along a line needs a way home that is not the line; at a river that means
   a bridge or a ferry at the right place. Zons, bike 3 h: the check (a loop ≥ 25 km on the Rheinradweg) holds since
@@ -320,3 +336,99 @@ loops is still needed (without it Traumschleifen 43 → 28 %).
 
 After this round the method is frozen: `FROZEN.md`.
 
+
+## Sixth round (2026-11-17 night): the Ziel, aims as turning points, quality-trail measures (Python lab)
+
+The owner's comments at Mittenwald ("warum nicht auch den Ferchensee?" on a Lautersee loop; "warum geht dieser Weg
+nicht um den Lautersee? oder auf einer Seite hin und auf der anderen zurück") and his decision of 2026-11-17: the
+controls Natur, Ruhe, Bekannte Wege and "am Wasser entlang" go, the wish gets a **Ziel** (optional, several:
+Gipfel · Wasser · Aussicht · Einkehr · Kultur; none = the finest in reach).
+
+**Found on the way:** the owner's Mittenwald runs had no map of Mittenwald itself (cell 10-544-358 – "Für 1
+Kartengebiete gibt es noch keine Karte"): it was ready on the server but not on this computer. Most likely the
+long-running page had marked it "not there" once and never asked again (`cells.ensure` kept "none" for the life of
+the process). Now a missing cell is asked again after 10 minutes. With the cell the base version already builds 16
+loops there instead of 4–5.
+
+**The wish** (`character.py`, page, `run.py --ziel`, `cases.py`): `ziel` = a list of the five words. Nature, quiet
+and paths are fixed at the former middle setting (factor 1.0 – the comparison sets, which always used the middle,
+did not change by this alone). A chosen Ziel: Besonderes weighs × 1.5; its aims are always turning points; per
+chosen kind the best loop that leads to it is shown and those loops come first. "Wasser" also keeps what "am Wasser
+entlang" did for lines and the at-the-water card.
+
+**Aims** (`aims.py`, `generate.pool`, `score.judge`) – one mechanism for all kinds, see the design note §3.5 / 6:
+summits (`build_suggest.aims`: base.pmtiles `mountain_peak` zoom 12–14, named, with height), lakes (their shore),
+viewpoints, huts / restaurants / cafés, castles / ruins / chapels / museums, waterfalls / named springs. Each is a
+turning point (alone, with a turning point a quarter turn away, two in a chain); reaching one adds worth × 0.06 to
+Besonderes (at most three; × 2 for a wished Ziel; Einkehr only near the middle; a lake: along one side half, round
+full); titles and the card line name it ("Gipfel Eckbauer (1237 m)", "rund um den Ferchensee", "Einkehr Gasthaus
+Ferchensee"). The suggest file has a new section `AIMS` (content 2, `tools/suggest_file.py`; ~600 aims in the
+Mittenwald cell); the POC reads aims from the tiles where a file has none.
+
+**Quality-trail logic.** Read (web, 2026-11-17): Deutsches Wanderinstitut, "Premiumwege" criteria v6.0
+(wanderinstitut.de/deutsches-wandersiegel/kriterien) and the Wanderverband's flyer "Kurzer Qualitätsweg Wanderbares
+Deutschland" (2025, wanderbares-deutschland.de). What they measure, against our five axes:
+
+| Criterion (DWI / DWV) | Ours before | Now |
+| --- | --- | --- |
+| natural ground: earth, grass (+), gravel / asphalt (−); asphalt ≤ 15–35 %, natural ways ≥ 30–35 % | Weg (ground welcome) | unchanged |
+| **way format: narrow path (+), wide straight track (−)**; DWV: "Pfade < 1 m" | – | **Weg on foot: (1 − p) ground + p width** (path 1, track 0.5, rough track 0.8, road 0.2; p 0.2 … 0.4) |
+| **variety: landscape changes** (DWI ≥ 2 within 6 km, DWV 1 per 2–3 km) | – (deep uniform forest was best) | **Natur × (0.85 + 0.15 × changes per km / 0.5)** (forest / open / water / village per 400 m) |
+| along / on roads, traffic; intensively used surroundings | Ruhe, the road rules | unchanged |
+| views (≥ 45°, 2 km deep), forest margins, shores | edge with a view, viewpoints | viewpoints also as aims |
+| natural waters, attractive landscapes, geology | water, protected areas, sights | lakes / waterfalls / springs as aims |
+| culture: castles, monuments, chapels; townscape | sights | as aims (Kultur) |
+| guesthouses / huts (Einkehr) | – | aims (Einkehr), best near the middle |
+| signposting, benches, information boards | signed routes on Besonderes | not in our data (benches are, not used) |
+
+**More loops where few are built** (`family.few`, 12 on foot / 8 on wheels): the turning points again in twice as
+many directions and at three times across the range – when fewer loops are built than that (loops above the wished
+ascent count too: for those the flatter re-build exists). **Wheels: road repair at 1 km** (`family.road_repair_m`):
+a bike loop with more than 1 km at a road with cars is built once more with such ways dearer (not a limit) – an aim
+loop to Schloss Reuschenberg had 1.5 km at a road and broke the Rhine check.
+
+**A shore is nature too** (`place.water_natur` 0.8): a way at water outside settlements counts as nature (× the water
+fact) – the quality trails count shores like forest margins. Without it the loop round the Ferchensee and along the
+Lautersee lost on Natur (66 against 84) for leaving the forest; neutral on the sets (below: `aim1` without, `wnat`
+with).
+
+**Measured** – the six sets (`official.py compare`, labels `acc` = origin/main, `wnat` = this round; medians over
+the loops, "mean" = the mean share of the official loop our first loop walks; the sets' wishes always had the middle
+setting, so dropping the controls changes nothing there):
+
+| Set (loops) | first on the official | ≥ 80 % | best shown | pool | rank of the official | official 1st | cards | mean first |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Traumpfade (21) | 75 → 70 % | 10 → 9 | 86 → 81 % | 87 → 88 % | 2 → 2 | 9 → 9 | 4.8 → 4.9 | 0.62 → 0.63 |
+| Traumschleifen (24) | 28 → 39 % | 3 → 3 | 61 → 61 % | 63 → 69 % | 2 → 3 | 12 → 10 | 4.9 → 5.0 | 0.39 → 0.40 |
+| RLP cycling / MTB (32) | 11 → 10 % | 1 → 1 | 20 → 20 % | 34 → 28 % | 7 → 10 | 6 → 5 | 4.2 → 4.3 | 0.20 → 0.17 |
+| other RLP hiking (24) | 23 → 21 % | 2 → 3 | 47 → 49 % | 64 → 66 % | 4 → 5 | 7 → 7 | 4.6 → 4.7 | 0.29 → 0.32 |
+| NRW hiking (25) | 22 → 27 % | 3 → 3 | 42 → 39 % | 53 → 54 % | 7 → 6 | 4 → 3 | 4.6 → 4.6 | 0.33 → 0.34 |
+| NRW cycling / MTB (15) | 10 → 13 % | 0 → 0 | 25 → 25 % | 30 → 27 % | 3 → 3 | 6 → 5 | 4.7 → 4.7 | 0.12 → 0.12 |
+
+On foot the mean rises on all four sets (the Traumpfade median falls by one loop crossing the middle: four first
+loops moved closer to the official one, four further away). Ablations on the four hiking sets (one thing off each):
+without *variety* Traumpfade mean 0.63 → 0.57, Traumschleifen 0.40 → 0.38; without the *way width* 0.63 → 0.61,
+0.40 → 0.33, other RLP 0.33 → 0.29 – both kept. Without the *aims' bonus* (aims still built): Traumschleifen 0.40 →
+0.43, the rest equal; with a smaller one (0.04, restaurants / cafés 0.25) Traumschleifen 0.43, other RLP best shown
+49 → 44 % – kept at 0.06 (the owner wants a reached aim to count). Wheels: the RLP pool 34 → 28 % comes from the road
+repair from 1 km (without it 34 %): official cycling loops there ride roads (README "Third round"), our repaired
+loops leave them – the owner's rule; the Rhine check (`rhein-rad`) needs it.
+
+`cases.py`: **83 of 83** (the 69 old statements – their wishes adapted, see the file's head – and 14 new, with the two checks every case has: Mittenwald
+3 h: a card with Lautersee and Ferchensee; Mittenwald Ziel Wasser: a card round a lake, the first leads to water;
+Garmisch-Partenkirchen Ziel Gipfel 3.5–4.5 h: the first card reaches a summit, one the Eckbauer; Mittenwald Ziel
+Einkehr: the first card stops between 25 and 75 % of the loop). Before this round (origin/main, the new cases'
+wishes without a Ziel): the four new cases 8 of 14 – no card with both lakes, none round a lake, no summit, no
+Einkehr in the middle.
+
+**Mittenwald, hike 2.75–3.25 h, no Ziel** (with the map cell now there): before – "Richtung Westen" (Wanderweg 830,
+8.7 km, 476 m), "Wald bei Elmau", "Karwendel", "Wald bei Schanz" (Walderlebnispfad Lautersee, crosses itself),
+"Richtung Südwesten" (0.8 km at the Lautersee); no card with the Ferchensee. After – "Voller Durchblick –
+Ferchensee" (Gasthaus Ferchensee, at the Ferchensee), "Kratzenköpfl – Lainbach-Wasserfall" (two summits, Hoher
+Kranzberg 1391 m, St. Anton), "untere Kälberalm – Karwendel", "Ferchensee" (round the Ferchensee, along the
+Lautersee, 2.74 h – just below the range, so listed after the in-time cards), a two-lake chain. With Ziel Wasser
+the first card goes along the Lautersee to the Ferchensee, the third round the Lautersee.
+
+**Speed:** walks unchanged (0.5–2 s); bikes slower – Nordkirchen bike 4 h 35 → 48 s, Dhünntalsperre ≤ 350 m 20 → 38 s
+(the machine was busy with the sets; the aims, the road repair on wheels and the bigger pool
+cost the time).

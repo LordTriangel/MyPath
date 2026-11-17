@@ -14,6 +14,7 @@ import math
 import os
 import re
 import sys
+import time
 import urllib.request
 
 import pmt  # noqa: F401 – puts tools/ on the path
@@ -147,7 +148,8 @@ def get(x, y, log=print):
     return d
 
 
-_checked = {}
+_checked = {}  # cell -> (what, when): "none" is asked again after RECHECK_S – the page runs for days, a cell gets built
+RECHECK_S = 600.0
 
 
 def ensure(lon, lat, reach_m, log=None):
@@ -158,17 +160,19 @@ def ensure(lon, lat, reach_m, log=None):
     Never raises: without network / key the missing areas simply stay missing."""
     need = cells_for(lon, lat, reach_m)
     missing = [c for c in need if not have(*c)]
-    todo = [c for c in missing if _checked.get(c) != "none"]
+    # a cell the server did not have is asked again after a while (2026-11-17: the page had marked Mittenwald's own
+    # cell as missing the night before and never fetched it once it was built – every run there lacked the map)
+    todo = [c for c in missing if _checked.get(c, ("", 0.0))[0] != "none" or time.time() - _checked[c][1] > RECHECK_S]
     fetched = []
     for c in need:  # an area fetched before the terrain was used: its terrain file of the same version as the rest
-        if have(*c) and not os.path.isfile(os.path.join(folder(*c), "terrain.pmtiles")) and _checked.get(c) != "no terrain":
+        if have(*c) and not os.path.isfile(os.path.join(folder(*c), "terrain.pmtiles")) and _checked.get(c, ("",))[0] != "no terrain":
             try:
                 with open(os.path.join(folder(*c), "manifest.json"), encoding="utf-8") as f:
                     for x in json.load(f)["files"]:
                         if x["name"] == "terrain.pmtiles":
                             _file(folder(*c), x, log or (lambda *_: None))
             except (Exception, SystemExit):  # expected: no network / an old version gone – no "Kante mit Blick" there
-                _checked[c] = "no terrain"
+                _checked[c] = ("no terrain", time.time())
     if todo:
         try:
             st = {tuple(int(v) for v in x["id"].replace("-", "/").split("/")[-2:]): x.get("state")
@@ -184,7 +188,7 @@ def ensure(lon, lat, reach_m, log=None):
                     get(c[0], c[1], log or (lambda *_: None))
                     fetched.append(c)
                 else:
-                    _checked[c] = "none"
+                    _checked[c] = ("none", time.time())
         except (Exception, SystemExit):  # expected: no network, no key, a server hiccup – the areas stay missing
             pass
     return fetched, [c for c in need if not have(*c)]

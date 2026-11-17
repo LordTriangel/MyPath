@@ -8,6 +8,10 @@
 Each case is one wish and a few statements about the suggestions it must give, in the owner's sense; it runs as on
 the page, with the official loops near the start (where a loops file exists). A check gets
 `s` = the shown suggestions (best first), each as a small record (see `view`). Not a test suite: a yardstick to read.
+
+2026-11-17 (owner: the controls Natur, Ruhe, Bekannte Wege and "am Wasser entlang" are gone, the wish has a Ziel):
+the wishes lost those fields – "natur" / "ruhe" / "bekannt" were dropped (the middle setting is built in now),
+"wasser": true became "ziel": ["wasser"]; every statement stayed as it was.
 """
 import json
 import os
@@ -15,7 +19,6 @@ import subprocess
 import sys
 
 DIRS = ["N", "NO", "O", "SO", "S", "SW", "W", "NW"]
-HOCH = {"natur": "hoch", "ruhe": "hoch"}
 RHEIN = ("Rheinradweg", "EV15")
 
 
@@ -36,35 +39,35 @@ CASES = [
      "„die Ohligser Heide, Waldrand, das war eine gute Wanderung“", [
          ("erste Runde ≥ 2 km in der Ohligser Heide", lambda s: km(s[0], "Ohligser Heide") >= 2.0),
          ("erste Runde ≥ 60 % am Wald, nichts doppelt", lambda s: s[0]["forest"] >= 60 and s[0]["doubled"] <= 5)]),
-    ("elbsee-wasser", {"start": [6.94460, 51.18413], "hours": 2, "natur": "hoch", "wasser": True},
+    ("elbsee-wasser", {"start": [6.94460, 51.18413], "hours": 2, "ziel": ["wasser"]},
      "„warum nicht am Wasser entlang?“ (südlich des Elbsees, Wasser angekreuzt)", [
          ("erste Runde ≥ 1,5 km an Elbsee / Menzelsee", lambda s: km(s[0], "Elbsee", "Menzelsee") >= 1.5)]),
-    ("nordkirchen-wandern", {"start": [7.52518, 51.73802], "hours": 2, **HOCH},
+    ("nordkirchen-wandern", {"start": [7.52518, 51.73802], "hours": 2},
      "„warum taucht der Hirschpark nicht auf, super schön“ · „auf einer Landstraße wandern“ · „geht nur durch den Ort“", [
          ("eine Runde ≥ 2,5 km im Hirschpark", lambda s: any(km(r, "Hirschpark") >= 2.5 for r in s)),
          ("keine Runde mit > 300 m Landstraße", lambda s: all(r["road"] <= 300 for r in s)),
          ("keine Runde > 40 % durch Häuser", lambda s: all(r["town"] <= 40 for r in s))]),
-    ("nordkirchen-rad", {"start": [7.52518, 51.73802], "activity": "bike", "hours": 2, "natur": "hoch"},
+    ("nordkirchen-rad", {"start": [7.52518, 51.73802], "activity": "bike", "hours": 2},
      "„warum durch Werne, es ist viel Grün drum rum“ · „warum gehen alle Wege nach Süden“", [
          ("erste Runde ≤ 20 % durch Häuser", lambda s: s[0]["town"] <= 20),
          ("Vorschläge in mindestens 3 Richtungen", lambda s: len({r["dir"] for r in s}) >= 3)]),
-    ("nordkirchen-rad-4h", {"start": [7.52518, 51.73802], "activity": "bike", "hours": 4, "natur": "hoch"},
+    ("nordkirchen-rad-4h", {"start": [7.52518, 51.73802], "activity": "bike", "hours": 4},
      "„einige Strecken doppelt gefahren, war das nötig“", [
          ("erste Runde ≤ 3 % doppelt", lambda s: s[0]["doubled"] <= 3)]),
-    ("hilden-rad", {"start": [6.9395, 51.168], "activity": "bike", "hours": 2, **HOCH},
+    ("hilden-rad", {"start": [6.9395, 51.168], "activity": "bike", "hours": 2},
      "„Rückweg nur durch die Stadt, warum nichts über die Urdenbacher Kämpe“ · „zu viel durch Orte“ · „alle Grüngürtel geschickt kombiniert“", [
          ("eine Runde durch die Urdenbacher Kämpe", lambda s: any(km(r, "Urdenbacher") >= 1.0 for r in s)),
          ("erste Runde ≤ 35 % durch Häuser (seine gelobte Runde hatte 35)", lambda s: s[0]["town"] <= 35),
          ("erste Runde durch ≥ 2 Schutzgebiete", lambda s: s[0]["reserves"] >= 2)]),
-    ("rhein-rad", {"start": [6.81206, 51.14162], "activity": "bike", "hours": 2, **HOCH, "wasser": True},
+    ("rhein-rad", {"start": [6.81206, 51.14162], "activity": "bike", "hours": 2, "ziel": ["wasser"]},
      "„das ist eigentlich die beste, wunderbar am Rhein lang“ · „Rückweg entlang der Münchner Straße … stärker bestrafen“ · „viel zu viel Wohngebiet“", [
          ("unter den ersten 3 eine Runde ≥ 15 km auf dem Rheinradweg", lambda s: any(km(r, *RHEIN) >= 15 for r in s[:3])),
          ("keine Runde mit > 1 km an einer Straße am Stück", lambda s: all(r["road"] <= 1000 for r in s)),
          ("keine Runde > 30 % durch Häuser", lambda s: all(r["town"] <= 30 for r in s))]),
-    ("zons-rad-3h", {"start": [6.8448, 51.1231], "activity": "bike", "hours": 3, **HOCH, "bekannt": "hoch", "wasser": True},
+    ("zons-rad-3h", {"start": [6.8448, 51.1231], "activity": "bike", "hours": 3, "ziel": ["wasser"]},
      "„es gibt einen wunderbaren Radweg am Rhein entlang – warum haben wir den nicht genommen?“", [
          ("eine Runde ≥ 25 km auf dem Rheinradweg", lambda s: any(km(r, *RHEIN) >= 25 for r in s))]),
-    ("koeln-rad", {"start": [6.97278, 50.94156], "activity": "bike", "hours": 2, **HOCH, "bekannt": "niedrig"},
+    ("koeln-rad", {"start": [6.97278, 50.94156], "activity": "bike", "hours": 2},
      "„warum hat diese gegen das 2. Ziel gewonnen“ (eine lange schmale Runde an beiden Ufern ist keine schlechte Form)", [
          ("mindestens 3 Vorschläge", lambda s: len(s) >= 3),
          ("eine Runde ≥ 10 km auf dem Rheinradweg", lambda s: any(km(r, *RHEIN) >= 10 for r in s))]),
@@ -72,20 +75,20 @@ CASES = [
      "„mitten aus der Stadt sind alle Routen schwach … vielleicht benutze ich den falschen Maßstab“", [
          ("mindestens 2 Vorschläge", lambda s: len(s) >= 2),
          ("erste Runde ≤ 35 % durch Häuser", lambda s: s[0]["town"] <= 35)]),
-    ("meran-wandern", {"start": [11.09986, 46.68463], "hours": 3, **HOCH, "bekannt": "hoch"},
+    ("meran-wandern", {"start": [11.09986, 46.68463], "hours": 3},
      "„schöner Weg in der Natur“ (Waalwege, Tappeiner)", [
          ("eine Runde ≥ 2 km auf Waalweg / Tappeiner", lambda s: any(km(r, "Waalweg", "Tappeiner") >= 2.0 for r in s))]),
     ("meran-flach", {"start": [11.1597, 46.6713], "hours": [2.5, 3.5], "ascent": [0, 200]},
      "„eine Einschränkung bei den Höhenmetern“: höchstens 200 m", [
          ("keine Runde über 200 m", lambda s: all(r["up"] <= 200 for r in s))]),
-    ("nordkirchen-wandern-3h", {"start": [7.52518, 51.73802], "hours": [2.5, 3.25], "natur": "hoch"},
+    ("nordkirchen-wandern-3h", {"start": [7.52518, 51.73802], "hours": [2.5, 3.25]},
      "„warum wird nur ein Weg angezeigt, gibt viel mehr“ (2026-11-16)", [
          ("mindestens 3 Vorschläge", lambda s: len(s) >= 3),
          ("keine Runde mit > 300 m an einer Straße", lambda s: all(r["road"] <= 300 for r in s))]),
-    ("nordkirchen-rad-3h", {"start": [7.52518, 51.73802], "activity": "bike", "hours": [2.5, 3.25], "natur": "hoch"},
+    ("nordkirchen-rad-3h", {"start": [7.52518, 51.73802], "activity": "bike", "hours": [2.5, 3.25]},
      "zu viele ähnliche Karten (2026-11-16: 5 eigene + 3 offizielle)", [
          ("höchstens 5 Karten, mindestens 3", lambda s: 3 <= len(s) <= 5)]),
-    ("dhuenn-rad-350", {"start": [7.20201, 51.07514], "activity": "bike", "hours": [2.5, 3.75], "wasser": True,
+    ("dhuenn-rad-350", {"start": [7.20201, 51.07514], "activity": "bike", "hours": [2.5, 3.75], "ziel": ["wasser"],
                         "ascent": [None, 350]},
      "„Höhenmeter-Filter war auf 350, scheint nicht zu zählen“ (nur „bis“ ausgefüllt, 2026-11-16)", [
          ("keine Karte über 350 m ohne Hinweis auf der Karte", lambda s: all(r["up"] <= 350 or any("mehr als gewünscht" in h for h in r["hints"]) for r in s)),
@@ -98,6 +101,23 @@ CASES = [
     ("meran-steil", {"start": [11.1597, 46.6713], "hours": [4, 5], "ascent": [500, 900], "t_level": 3},
      "500–900 Höhenmeter gewünscht: ein echter Anstieg", [
          ("erste Runde 500–900 m", lambda s: 500 <= s[0]["up"] <= 900)]),
+]
+CASES += [
+    ("mittenwald-wandern-3h", {"start": [11.26143, 47.44178], "hours": [2.75, 3.25]},
+     "„warum nicht auch den Ferchensee?“ (Lautersee-Runde, 2026-11-16) · „warum geht dieser Weg nicht um den Lautersee?“", [
+         ("eine Karte mit Lautersee und Ferchensee", lambda s: any(km(r, "Lautersee") >= 0.4 and km(r, "Ferchensee") >= 0.4 for r in s))]),
+    ("mittenwald-wasser", {"start": [11.26143, 47.44178], "hours": [2.75, 3.25], "ziel": ["wasser"]},
+     "Ziel Wasser: „um den Lautersee, oder auf einer Seite hin und auf der anderen zurück“ (2026-11-17)", [
+         ("eine Karte geht um einen See (oder an beiden Ufern entlang)", lambda s: any(a["what"] == "lake" and a["round"] >= 0.7 for r in s for a in r["aims"])),
+         ("die erste Karte führt zum Wasser", lambda s: any(a["ziel"] == "wasser" and a["goal"] for a in s[0]["aims"]) or s[0]["water_goal"])]),
+    ("garmisch-gipfel", {"start": [11.1105, 47.4885], "hours": [3.5, 4.5], "ziel": ["gipfel"]},
+     "Ziel Gipfel aus Garmisch-Partenkirchen: ein leichter Gipfel wie der Eckbauer (1237 m) (2026-11-17)", [
+         ("die erste Karte erreicht einen Gipfel", lambda s: any(a["what"] == "peak" for a in s[0]["aims"])),
+         ("eine Karte erreicht den Eckbauer", lambda s: any(a["name"] == "Eckbauer" for r in s for a in r["aims"]))]),
+    ("mittenwald-einkehr", {"start": [11.26143, 47.44178], "hours": [2.75, 3.5], "ziel": ["einkehr"]},
+     "Ziel Einkehr: eine Hütte / ein Gasthaus etwa in der Mitte der Runde (2026-11-17)", [
+         ("die erste Karte kehrt zwischen 25 und 75 % der Runde ein",
+          lambda s: any(a["ziel"] == "einkehr" and 0.25 <= a["at"] <= 0.75 for a in s[0]["aims"]))]),
 ]
 NOTES = []  # the run's notes, for checks about what the run says
 EVERY = [("keine Runde kreuzt sich mehr als einmal", lambda s: all(r["cross"] <= 1 for r in s)),
@@ -123,6 +143,7 @@ def view(result):
                     "reserves": len(n.get("reserves") or []), "reserve_km": sum(r[1] for r in n.get("reserves") or []),
                     "dir": DIRS[int((b + 22.5) // 45) % 8] if isinstance(b, (int, float)) else str(b), "notes": result.get("notes", []),
                     "hints": c.get("hints", []), "hours": n.get("hours", 0), "official": bool(c.get("official")),
+                    "aims": n.get("aims") or [], "water_goal": bool(c.get("water_goal")),
                     "from_m": dist(c["coords"][0], result["wish"]["start"]) if c.get("coords") else 0.0})
     return out
 

@@ -15,6 +15,7 @@ weighted by the character.
 """
 import re
 
+import aims as AIMS
 from net import direction, dist
 
 AXES = ("natur", "ruhe", "weg", "besonderes", "form")
@@ -36,8 +37,35 @@ def judge(P, S, cands, sights):
         # 2026-11-16: on wheels the road rule beats the bonus; on foot such a loop is out anyway)
         ring = c["origin"] in ("Rundweg", "offiziell") and road_run(F, c["edges"]) <= K["ring_road_m"]
         c["raw"]["besonderes"] += K["sight"] * min(3, len(c["sights"])) + K["ring"] * ring
-        _finish(P, S, c, {a: P.judge(a, c["raw"][a]) for a in AXES[:4]})
+        # aims really reached (a summit, a lake gone round or along, a hut in the middle …) count more than passing
+        # by; the more when the wish names their Ziel (aims.py)
+        got = AIMS.reached(P, S, c["edges"])
+        gain = [(AIMS.worth(S, a, P.ch.ziel), a) for a in got]
+        c["raw"]["besonderes"] += sum(sorted((w for w, _ in gain), reverse=True)[:S["aims"]["most"]])
+        c["reached"] = [{"ziel": a["ziel"], "what": a["what"], "name": a["name"], "ele": a["ele"], "at": round(a["at"], 2),
+                         "round": round(a["round"], 2), "worth": a["worth"], "goal": a["ziel"] in P.ch.ziel and w > 0.0} for w, a in gain]
+        c["variety"] = variety(P, S, core)
+        ax = {a: P.judge(a, c["raw"][a]) for a in AXES[:4]}
+        V = S["quality"]["variety"]  # quality trails: the landscape changes along the way, not one uniform forest
+        ax["natur"] *= 1.0 - V["share"] + V["share"] * min(1.0, c["variety"] / V["per_km"])
+        _finish(P, S, c, ax)
     return cands
+
+
+def variety(P, S, edges):
+    """Landscape changes per km along the walk (Deutscher Wanderverband: 'Abwechslung / Landschaftswechsel'): every
+    step_m stretch gets its dominant kind – village, water, forest, open land – and each change of it counts."""
+    F, step = P.F, S["quality"]["variety"]["step_m"]
+    kind = lambda e: 0 if F.built[e] else 1 if F.water[e] > 0 else 2 if F.green[e] >= 0.5 else 3
+    kinds, acc, cur = [], 0.0, [0.0] * 4
+    for e in edges:
+        cur[kind(e)] += F.ln[e]
+        acc += F.ln[e]
+        if acc >= step:
+            kinds.append(max(range(4), key=cur.__getitem__))
+            acc, cur = 0.0, [0.0] * 4
+    total = sum(F.ln[e] for e in edges)
+    return round(sum(a != b for a, b in zip(kinds, kinds[1:])) / max(1.0, total / 1000.0), 2)
 
 
 def _finish(P, S, c, ax):
@@ -53,6 +81,7 @@ def _finish(P, S, c, ax):
     c["score"] = round(100.0 * sum(ch.axes[a] * ax[a] for a in AXES), 1)
     c["form_parts"] = {k: round(v, 2) for k, v in parts.items() if v < 0.995}
     n = c["numbers"] = numbers(P, c, seen)
+    c["water_goal"] = P.ch.water and n["water_pct"] >= 20
     c["out"] = "langes Stück an einer Straße mit Autos" if 0 < fam["road_walk_max_m"] < n["road_longest_m"] else None
 
 
@@ -79,7 +108,8 @@ def numbers(P, c, sights):
             "doubled_pct": int(round(100.0 * c["doubled_m"] / total)), "stem_m": int(c["stem_m"]),
             "reserves": top("reserves", 0.8), "known": top("known", 0.8), "lakes": top("lakes", 0.4),
             "rim_km": round(sum(F.ln[e] for e in edges if F.rim[e] >= 0.5) / 1000.0, 1),
-            "sights": [[s["what"], s["name"]] for s in sights][:6]}
+            "sights": [[s["what"], s["name"]] for s in sights][:6],
+            "path_pct": pct(lambda e: F.width[e] == 0), "variety": c.get("variety", 0.0), "aims": c.get("reached", [])}
 
 
 def road_run(F, edges):
@@ -123,7 +153,17 @@ def explain(P, c):
     n, net = c["numbers"], P.net
     far = max(c["nodes"], key=lambda x: dist(net.nodes[net.start], net.nodes[x]))
     where = "Richtung %s" % direction(net.nodes[net.start], net.nodes[far])
-    main = list(dict.fromkeys([short(x[0]) for x in n["reserves"][:2]] + [x[0] for x in n["lakes"][:1]]
+    # what the loop leads to names it first: the wished Ziel's aims, then the finest reached (a summit, a lake …)
+    # (one per kind of Ziel: a place to eat the one nearest the middle; a lake when gone along a good part)
+    worthy = lambda a: (a["goal"] or a["worth"] >= 0.7) and (a["what"] != "lake" or a["round"] >= 0.5) and a["name"] != "Aussichtspunkt"
+    per_kind = {}
+    for a in sorted((a for a in n["aims"] if worthy(a)),
+                    key=lambda a: (not a["goal"], abs(a["at"] - 0.5) if a["ziel"] == "einkehr" else
+                                   -a["worth"] * (1 + a["round"]) - a["ele"] / 10000.0)):  # of two summits the higher
+        per_kind.setdefault(a["ziel"], a)
+    lead = [a["name"] for a in sorted(per_kind.values(), key=lambda a: (not a["goal"], -a["worth"]))]
+    lead = [x for i, x in enumerate(lead) if not any(y in x or x in y for y in lead[:i])]  # "Eckbauer", not "Gasthof Eckbauer"
+    main = list(dict.fromkeys(lead[:2] + [short(x[0]) for x in n["reserves"][:2]] + [x[0] for x in n["lakes"][:1]]
                               + [short_route(x[0]) for x in n["known"][:1] if x[1] >= 0.25 * n["km"]]
                               + (["Bahntrasse"] if n["rail_km"] >= 0.25 * n["km"] else [])))[:2]
     title = " – ".join(main)
@@ -131,7 +171,7 @@ def explain(P, c):
     c["bearing"] = where
     km = lambda rows, pre: ["%s km %s%s" % (str(k).replace(".", ","), pre, nm) for nm, k in rows]
     kind = lambda nm: nm if "schutzgebiet" in nm.lower() or nm.startswith(("Nationalpark", "Naturpark")) else "Schutzgebiet " + nm
-    c["reasons"] = (km([[kind(nm), k] for nm, k in n["reserves"]], "im ") + ["%s km %s" % (str(k).replace(".", ","), am(nm)) for nm, k in n["lakes"]] + km(n["known"], "auf ")
+    c["reasons"] = (aim_bits(n) + km([[kind(nm), k] for nm, k in n["reserves"]], "im ") + ["%s km %s" % (str(k).replace(".", ","), am(nm)) for nm, k in n["lakes"]] + km(n["known"], "auf ")
                     + (["%s km am Wasser" % str(n["water_km"]).replace(".", ",")] if n["water_km"] >= 1 and not n["lakes"] else [])
                     + (["%s km Bahntrasse" % str(n["rail_km"]).replace(".", ",")] if n["rail_km"] >= 1 else [])
                     + ["%s %s" % (w, nm) if nm != w else w for w, nm in n["sights"][:1]] + (["mit Fähre"] if n["ferry_m"] else []))[:5]
@@ -154,6 +194,33 @@ def explain(P, c):
     return c
 
 
+def um(name):
+    """'rund um den Lautersee', 'rund um die Dhünntalsperre', 'rund um das Pulvermaar'."""
+    low = name.lower()
+    art = "die " if low.endswith(("sperre", "bucht", "aue", "lache")) else "das " if low.endswith("maar") else "den "
+    return "rund um " + art + name
+
+
+def aim_bits(n):
+    """The aims a loop reaches, as words for its line: a summit with its height, a lake gone round, a place to eat in
+    the middle, a spring, a museum (castles, chapels, viewpoints, waterfalls are said with the sights)."""
+    out = []
+    for a in sorted(n.get("aims") or [], key=lambda a: (not a["goal"], a["at"])):
+        w, nm = a["what"], a["name"]
+        if w == "peak":
+            out.append("Gipfel %s%s" % (nm, " (%d m)" % a["ele"] if a["ele"] else ""))
+        elif w == "lake" and a["round"] >= 0.7:
+            out.append(um(nm))
+        elif w in ("hut", "restaurant", "cafe") and 0.2 <= a["at"] <= 0.8 and not any(x.startswith("Einkehr") for x in out):
+            mid = min((b for b in n["aims"] if b["ziel"] == "einkehr"), key=lambda b: abs(b["at"] - 0.5))
+            out.append("Einkehr " + mid["name"])
+        elif w == "spring":
+            out.append(nm if "quelle" in nm.lower() or "brunn" in nm.lower() else "Quelle " + nm)
+        elif w == "museum":
+            out.append(nm if "museum" in nm.lower() else "Museum " + nm)
+    return list(dict.fromkeys(out))[:3]
+
+
 def am(name):
     """'am Elbsee', 'an der Dhrontalsperre'."""
     return ("an der " if name.lower().endswith(("sperre", "bucht", "aue", "lache")) else "am ") + name
@@ -173,8 +240,9 @@ def line(n):
     things = [say(w, nm) for w, nm in named] + [w for w, nm in n["sights"] if nm == w and w != "Aussichtspunkt"
                                                 and w not in {x for x, _ in named}]  # an unnamed one only when none of its kind has a name
     views = [nm for w, nm in n["sights"] if w == "Aussichtspunkt"]
-    bits = (["durch " + both([kind(short(nm)) for nm, _ in n["reserves"][:2]])] if n["reserves"] else []) \
-        + ([am(n["lakes"][0][0])] if n["lakes"] else []) \
+    rounds = {a["name"] for a in n.get("aims") or [] if a["what"] == "lake" and a["round"] >= 0.7}
+    bits = aim_bits(n) + (["durch " + both([kind(short(nm)) for nm, _ in n["reserves"][:2]])] if n["reserves"] else []) \
+        + ([am(n["lakes"][0][0])] if n["lakes"] and n["lakes"][0][0] not in rounds else []) \
         + (["vorbei an " + both(list(dict.fromkeys(things))[:3])] if things else []) \
         + (["%s km an Kanten mit Weitblick" % num(n["rim_km"])] if n["rim_km"] >= 0.5 else []) \
         + (["Aussicht " + (views[0] if views[0] != "Aussichtspunkt" else "unterwegs")] if views else []) \
@@ -206,13 +274,13 @@ def choose(P, S, cands):
         return all(length(core[id(c)] & core[id(o)]) <= K["overlap"] * min(length(core[id(c)]), length(core[id(o)])) for o in shown)
     uses = lambda c, thing: length(core[id(c)] & thing["edges"]) >= (0.25 * P.target if thing["kind"] != "area" else min(2500.0, 0.3 * thing["m"]))
     top = pts(ranked[0])
-    # what the wish names is always shown: with "am Wasser entlang" the best loop really at the water (and first),
-    # with "Bekannte Wege: hoch" the best loop along the first known route here
-    at_water = lambda c: not order(P, c)[0]
+    # what the wish names is always shown: per chosen Ziel the best loop that leads to it (and first); for the
+    # gemütlich end the best loop along the first known route here
     route = next((ln for ln in P.lines if ln["kind"] == "route" and ln["rank"] >= 0.9), None) if P.ch.signed >= 1.0 else None
     shown = [ranked[0]]
-    if not at_water(ranked[0]):
-        shown += [c for c in ranked if at_water(c)][:1]
+    for z in P.ch.ziel:
+        if not any(z in goals(c) for c in shown):
+            shown += [c for c in ranked if z in goals(c)][:1]
     if route:  # the clean loop that stays on the route longest
         on_it = [c for c in ranked if uses(c, route) and c["axes"]["form"] >= 0.5]
         shown += [c for c in sorted(on_it, key=lambda c: -length(core[id(c)] & route["edges"]))[:1] if c not in shown]
@@ -221,6 +289,15 @@ def choose(P, S, cands):
     for c in ranked:
         if c.get("official") and fits(c) and c not in shown and len(shown) < K["max"] and pts(c) >= top - K["cover_behind"] \
                 and fresh(c, shown):
+            shown.append(c)
+    # the finest aims in reach (a summit, a lake, a castle) get their best loop if it is good enough
+    finest = {}
+    for c in ranked:
+        for a in c["reached"]:
+            if a["worth"] >= 0.9 and (a["what"] != "lake" or a["round"] >= 0.5):
+                finest.setdefault(a["name"], c)
+    for c in list(finest.values())[:2]:
+        if c not in shown and len(shown) < K["max"] and pts(c) >= top - K["cover_behind"] and fresh(c, shown):
             shown.append(c)
     for thing in [ln for ln in P.lines if ln["rank"] >= 0.9][:2] + P.areas:
         best = next((c for c in ranked if uses(c, thing)), None)
@@ -235,8 +312,14 @@ def choose(P, S, cands):
     return sorted(shown[:K["max"]], key=lambda c: order(P, c))
 
 
+def goals(c):
+    """The wished Ziel kinds a loop leads to (a reached aim of that kind; Wasser also: a fifth of the way at water)."""
+    out = {a["ziel"] for a in c["reached"] if a["goal"]}
+    return out | ({"wasser"} if c.get("water_goal") else set())
+
+
 def order(P, c):
-    """The order of the list: with "am Wasser entlang" a loop really at the water first, then loops inside the wished
-    time, each by points."""
+    """The order of the list: with a Ziel the loops that lead to it first, then loops inside the wished time, each by
+    points."""
     lo, hi = P.ch.hours
-    return not (P.ch.water and c["numbers"]["water_pct"] >= 20), not lo <= c["hours"] <= hi, -c["score"]
+    return not (P.ch.ziel and goals(c)), not lo <= c["hours"] <= hi, -c["score"]

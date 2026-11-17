@@ -2,8 +2,8 @@
 """Tour suggestions in the terminal – one wish, the suggestions as text, on request as pictures.
 
   python3 tools/suggest-poc/run.py Hilden --hours 1.5-2.5 --ascent 0-150
-  python3 tools/suggest-poc/run.py "51.18413, 6.94460" --wasser --png        (map picture of the suggestions + the first one)
-  python3 tools/suggest-poc/run.py Zons --activity bike --hours 3 --natur hoch --all
+  python3 tools/suggest-poc/run.py "51.18413, 6.94460" --ziel wasser --png     (map picture of the suggestions + the first one)
+  python3 tools/suggest-poc/run.py Mittenwald --hours 3-4 --ziel gipfel,einkehr --all
 
 The run is saved like a run from the page (~/onpath-suggest-poc/runs/<run>.json; pictures in runs/<run>/).
 """
@@ -49,9 +49,7 @@ if __name__ == "__main__":
     span = lambda s: [float(x) for x in s.split("-")] if "-" in s else float(s)
     ap.add_argument("--hours", type=span, default=2.0, help="2 or a range 1.5-2.5")
     ap.add_argument("--ascent", type=span, default=None, help="metres up as a range, e.g. 0-200 (default: flat up to what is usual for the activity)")
-    for k, default in (("natur", "mittel"), ("ruhe", "mittel"), ("bekannt", "mittel")):
-        ap.add_argument("--" + k, default=default)
-    ap.add_argument("--wasser", action="store_true")
+    ap.add_argument("--ziel", default="", help="what the loop should lead to: gipfel,wasser,aussicht,einkehr,kultur (several, comma)")
     ap.add_argument("--tips", action="store_true", help="mit KI-Regionswissen (region_ai.py)")
     ap.add_argument("--official", action="store_true", help="official loops near the start join the list, as on the page")
     ap.add_argument("--seed", type=int, default=1)

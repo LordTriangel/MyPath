@@ -18,16 +18,16 @@ machen würde"):
    centre every loop starts through houses – that part is the same for all loops and is not held against them).
    In flat farmland a quiet field way is top; in the mountains the bar is higher by itself.
 3. **What this person wants** – one character scale *gemütlich … wild* from the activity and the level (T1 relaxed on
-   made paths … T5 wilderness; touring smooth and calm, gravel further out, MTB trails). The few controls only nudge it.
+   made paths … T5 wilderness; touring smooth and calm, gravel further out, MTB trails). Nature, quiet and good paths are always built in; the one choice is the Ziel (2026-11-17).
 
 **Five axes, each 0–100, every suggestion explains itself in these words:**
 
 | Axis | Means | Measured |
 | --- | --- | --- |
-| Natur | green beside the way, being deep inside nature | relative to the place |
+| Natur | green beside the way, being deep inside nature (an edge with a view and a shore count too), a varied landscape | relative to the place |
 | Ruhe | away from traffic and houses | relative to the place |
-| Weg | the ground fits the character | relative to the place |
-| Besonderes | water, known routes by rank, a rail trail, a named protected area, an edge with a view, castles / ruins / chapels / viewpoints, a signed loop walked round, a tip | relative to the place |
+| Weg | the ground fits the character; on foot a narrow path over a wide track | relative to the place |
+| Besonderes | water, known routes by rank, a rail trail, a named protected area, an edge with a view, castles / ruins / chapels / viewpoints, a signed loop walked round, aims reached (a summit, a lake, a hut in the middle …), a tip | relative to the place |
 | Form | time and ascent inside the wished ranges, nothing walked twice, not crossing itself | absolute |
 
 "Relative to the place" = between the value that is poor here (a low quantile of the ways in reach) and what the ways
@@ -52,9 +52,13 @@ gar nicht mehr wissen, warum").
 | activity, t_level | hike (T1–T5), bike, gravel, mtb | gives the character |
 | hours (or duration) | **[from, to]** hours | a single number is widened by ± 1 km on foot / ± 5 km by bike |
 | ascent | **[from, to]** metres up | missing = from flat up to what is usual for the activity and level; one end alone is fine ("bis 350" = 0–350) |
-| natur, ruhe, bekannt | niedrig / mittel / hoch | nudge the axis weights / the worth of signed routes |
-| wasser | yes / no | "am Wasser entlang": water is what counts as special, the best loop at the water is shown first |
+| ziel | none or several of gipfel · wasser · aussicht · einkehr · kultur | what the loop should lead to (§3 "Aims"); none = the finest in reach |
 | tips | yes / no | use the AI's region tips where a file exists |
+
+The controls Natur, Ruhe, Bekannte Wege (niedrig / mittel / hoch) and "am Wasser entlang" are gone (owner
+2026-11-17): nature, quiet and good paths are always built in, as on a Traumpfad – their middle setting is the fixed
+one. „Wasser“ as a Ziel also does what "am Wasser entlang" did (banks and brooks are lines worth following, a loop at
+the water counts as leading to it).
 
 Ranges instead of fixed values (owner 2026-11-14: "eine Range bei den Höhenmetern und eine Range bei der Zeit … man
 erkennt den Willen des Nutzers besser"): inside both ranges every loop is equally fine, so the other axes decide; a
@@ -85,7 +89,8 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
    trees – that side is); **a sight** within ~50 m (castle, ruin, chapel, viewpoint, cave, waterfall from
    `pois.geojson`).
 4. **Place** (`place.py`): per way the absolute value on Natur, Ruhe, Weg, Besonderes for this character (an open
-   edge with a view counts as nature too – leaving the forest for it costs no Natur; it and a sight count 0.8 on
+   edge with a view counts as nature too – leaving the forest for it costs no Natur; so does a way at water outside
+   settlements, 0.8 × its water fact, since 2026-11-17; the edge and a sight count 0.8 on
    Besonderes); the place's
    yardstick per axis (25 % and 95 % quantile by length); "how good is this way here" = the weighted mean on that
    yardstick; search cost = metres × (1 + 4 × (1 − good)) × (1 + 3 × traffic). One search from the start. **What
@@ -109,6 +114,18 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
      direction's mean point in order, are the ring – turning points on the route there (7 on foot, 9 on wheels), its
      ways at 0.3 ×, gaps by the best way (measured against official loops, `tools/suggest-poc/README.md` "Official
      loops").
+   - **aims** (`aims.py`, 2026-11-17): what a loop can lead to – a named summit (base.pmtiles `mountain_peak`, with
+     its height), a lake (its shore), a viewpoint, a hut / restaurant / café (Einkehr), a castle / ruin / chapel /
+     museum (Kultur), a waterfall / named spring (Wasser). One mechanism for all kinds: an aim a way leads to (within
+     80 m; a summit 120 m and not more than 80 m lower; a lake: the ways along its shore) is a turning point – alone
+     when the time fits, else with a turning point a quarter turn away on either side, or two aims in a chain; for a
+     summit at the end of a dead end the way up and back stays in the loop (not cut as a spur, not "walked twice"); a
+     lake's turning point is the shore node farthest from where one meets it, its shore ways at 0.3 × while the loop
+     aims at it – so the loop goes round, or along one side there and the other back. Aims in the town one starts
+     from (on the way out) are none. Per wish the 10 finest in reach (wheels 6) by worth and nearness, a wished
+     Ziel's aims first (up to 16).
+   When fewer than 12 loops (wheels 8) are built – the mountains: few ways, most points too high for the time – the
+   turning points are tried again in twice as many directions and at three times across the wished range.
    On foot a loop that would be out for a long stretch along a road is built once more with such stretches 8 × dearer
    (`search.road_repair`): the way to the same turning points mostly exists without the road (Nordkirchen on foot:
    12 of 22 loops were out, 4 of 14 after it). Kept: at most one meeting with the own way, time within −30 % / +10 %
@@ -116,12 +133,23 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
    than usual, the loops are built once more with climbing dearer (`search.climb`; always on it made the comparison
    sets worse), and if still none fits, the flattest are shown, each with "↑ 416 m – mehr als gewünscht (350 m)" and
    a note in the run (Große Dhünntalsperre, bike, ≤ 350 m: the flattest has 416 m).
-6. **Judging** (`score.py`): the four place axes as means over the loop beyond the way out, read between "poor here"
+6. **Aims reached and the quality-trail measures** (2026-11-17): a loop *reaches* an aim when it passes within 80 m
+   (summit 120 m) beyond the way out; a lake when it runs along 30 % of its shore (or 1.5 km of a big one) – along one
+   side counts half, round (70 %) full. Each reached aim adds its worth (summit, lake 1.0; castle 0.9; hut,
+   waterfall 0.8; viewpoint 0.7 …) × 0.06 to the raw Besonderes, at most three, × 2 for a wished Ziel; a place to eat
+   counts full in the middle of the loop, nothing at its ends. With a Ziel the Besonderes weight is × 1.5, per chosen
+   kind its best loop is shown, and loops that lead to it come first. From the published criteria of German quality
+   trails (Deutscher Wanderverband "Qualitätsweg Wanderbares Deutschland", Deutsches Wanderinstitut "Premiumweg"):
+   *way format* – on foot Weg is (1 − p) × the ground's welcome + p × the way's width (narrow path 1, track 0.5, rough
+   track 0.8, road / wide made way 0.2; p 0.2 gemütlich … 0.4 wild); *variety* – changes of the landscape (forest /
+   open land / water / village, the dominant kind per 400 m) per km: Natur × (0.85 + 0.15 × min(1, changes / 0.5 per
+   km)) (Wanderverband: one change per 2–3 km).
+7. **Judging** (`score.py`): the four place axes as means over the loop beyond the way out, read between "poor here"
    and the best loop of our own pool (an official loop is measured on it, it does not move it); on Besonderes + 0.05
    per sight passed (at most 3) and + 0.15 for a signed loop walked round, ours or an official one (what the place's
    makers laid out) – only while its longest stretch along a road with cars stays within 300 m (owner 2026-11-16:
    on wheels the road rule beats the bonus; on foot such a loop is out anyway); Form from the ranges, the share walked twice and a meeting; points = weighted mean.
-7. **Selection** – one selection over all cards: our loops and, where official loops are known (the POC page:
+8. **Selection** – one selection over all cards: our loops and, where official loops are known (the POC page:
    Rheinland-Pfalz, Nordrhein-Westfalen), the official loops in reach that fit the wish (time as for our loops, ascent
    not above the wished maximum), judged with the same yardstick – as a ride from the wished start (owner 2026-11-17:
    "die Anfahrt einbeziehen"; the POC page – the Kotlin core follows in the batch of FROZEN.md): the cheapest way to the loop's best joining point, once round in its order (either
@@ -136,10 +164,12 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
    up to 30 points behind (Nordkirchen on foot: the Hirschpark loops are far ahead of everything else, the other
    directions still give walkable loops); fewer than three is fine when the rest is poorer still. The list is sorted
    by points (loops inside the wished time first).
-8. **Words**: a title from what the loop really uses (protected areas with ≥ 0.8 km, a lake, the main known route;
-   else direction), a reason line with kilometres, honest hints (longer / shorter than wished, at a road, through
+9. **Words**: a title from what the loop leads to (a wished Ziel's aim, else the finest reached: a summit, a lake gone
+   along, a castle …, one per kind) and what it really uses (protected areas with ≥ 0.8 km, a lake, the main known
+   route; else direction), a reason line with kilometres, honest hints (longer / shorter than wished, at a road, through
    houses, walked twice, crosses itself, at the edge of a range), "stark bei … · schwächer bei …", and **one line
-   on what the loop really passes** (protected areas, a lake, castles / ruins / chapels, km at edges with a view, a
+   on what the loop really passes** (the aims first: "Gipfel Eckbauer (1237 m)", "rund um den Ferchensee", "Einkehr
+   Gasthaus Ferchensee"; protected areas, a lake, castles / ruins / chapels, km at edges with a view, a
    viewpoint, the main known route, water, a rail trail) – for an official loop too (never its OSM / operator
    description, owner 2026-11-16). Long protected-area names are shortened for titles and the line (without brackets
    and what follows " mit "; a list gives its more telling part).
@@ -274,7 +304,7 @@ note. A change still has to hold in more than one region (Traumpfade + other loo
 - Time and ascent are ranges; rather a clean loop at the edge of the range than a tangled one in the middle.
 - A brook with green around it is always nice; with "am Wasser entlang" the loop must really be at the water.
 - Rail trails are first-class for bikes.
-- Few controls ("hoch, mittel, niedrig – nicht zu Tode konfigurieren").
+- Few controls ("hoch, mittel, niedrig – nicht zu Tode konfigurieren"); since 2026-11-17 none for taste, only the Ziel.
 - What is good depends on where one is and on the chosen level.
 
 ## 6. Where an AI fits

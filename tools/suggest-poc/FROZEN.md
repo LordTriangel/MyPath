@@ -69,3 +69,23 @@ reference: the official loops differ; everything else is identical).
    six comparison sets above keep their medians (measured again 2026-11-17, label `acc`). `cases.py`: 69 of 69 with
    the new case `nordkirchen-rad-kurz` (bike 1.5–2 h: every card starts at the start and the whole ride stays in the
    wished time; at least one own loop).
+2. **2026-11-17 night, the Ziel and aims; quality-trail measures** (owner: the controls Natur / Ruhe / Bekannte
+   Wege / "am Wasser entlang" go, the wish gets „Ziel“; Mittenwald: "warum nicht auch den Ferchensee?", "warum geht
+   dieser Weg nicht um den Lautersee?"). Branch `wip/ir-2026-11-17-aims`; README "Sixth round". Kotlin to change:
+   - `Character` / `Wish`: no `natur`, `ruhe`, `bekannt`, `wasser`; `ziel` (list of gipfel / wasser / aussicht /
+     einkehr / kultur); Besonderes × `aims.weight` with a Ziel; `water` = "wasser" in ziel; `path` from the character
+     ends (foot only). `settings.json`: `controls` gone; new `aims`, `quality`, `character.*.path`,
+     `place.water_natur`, `family.*.few`, `family.*.road_repair_m`.
+   - `SuggestFile`: section `AIMS` (content 2: u8 kind of `AIM_KINDS`, name, point, zz height); `Named`: aims as
+     things of kind "aim" (not in the index); `build_suggest.aims` is the producer (peaks from base `mountain_peak`
+     z12–14, pois: hut, restaurant, cafe, spring, museum – named only).
+   - `Facts.width` (path / track / rough track / wide, `of_tags`); `Place`: Weg on foot with the width, Natur with
+     `water_natur`, `aims` = `aims.find`.
+   - `Generate`: `assemble` / `cutSpurs` / `measure` with `keep` (the way up to a summit stays, is not "walked twice",
+     no meeting); the aims generator (alone, a quarter turn either side when near, two in a chain, lake shore cost);
+     the "few" retry (`turning` with twice the sectors at three times); road repair on wheels from 1 km.
+   - `Score`: `aims.reached` / `aims.worth` on raw Besonderes (at most `most`); `variety` on Natur; `goals`, the
+     order and one card per chosen Ziel in `choose` instead of "am Wasser"; the finest aims get a card like areas;
+     title and line words for aims (`aim_bits`, `um`); numbers `path_pct`, `variety`, `aims`.
+   - The port's fixtures (`port/fixtures.py`) still send the old fields – rebuild them with the batch.
+   - Not for the batch: `cells.ensure` asks again for a missing cell after 10 minutes (POC edge only).

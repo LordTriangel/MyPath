@@ -10,6 +10,8 @@ The one place where routing-data tags and the map-area grids (land.py, named.py)
   rim      0..1 at an edge with a view: the ground within ~300 m on one side lies clearly lower and is open (land.rim)
   sight    within ~50 m of a viewpoint, castle, ruin, chapel, cave or waterfall (named.py)
   signed   0..1 rank of the best signed route on it (international / national 1 … local 0.6)
+  width    0 a narrow path (path / footway / steps / bridleway, not paved) · 1 a track (grade 1 / 2 or no grade)
+           · 2 a rough track (grade 3–5) · 3 a road or a wide made way – what quality trails call the way's format
   rail     a rail trail (former railway line, car-free, flat) · ferry · noise 0..1 (routing data)
   area     the named protected area it lies in · named = the known routes / lakes it lies on (named.py)
 """
@@ -55,7 +57,7 @@ class RoadGrid:
 
 
 def of_tags(t, K, bike):
-    """Tags of a way -> (road weight, ground, signed rank, rail, ferry, noise, river class)."""
+    """Tags of a way -> (road weight, ground, signed rank, rail, ferry, noise, river class, width)."""
     hw = t.get("highway", "").replace("_link", "")
     road = K["road"].get(hw, 0.0) if hw in ROADS else 0.0
     if road and t.get("maxspeed", "") in ("10", "20", "30", "walk"):
@@ -74,7 +76,9 @@ def of_tags(t, K, bike):
                   and k.startswith("route_bicycle_" if bike else ("route_hiking_", "route_foot_"))] or [0.0])
     rail = t.get("railway") == "abandoned" and hw in ("path", "cycleway", "track") and t.get("bicycle", "yes") != "no"
     num = lambda k: int(t.get(k, "0") or 0)
-    return road, ground, signed, rail, t.get("route") == "ferry", num("estimated_noise_class") / 6.0, num("estimated_river_class")
+    width = 0 if hw in ("path", "footway", "steps", "bridleway") and ground > 0 else \
+        (2 if tt in ("grade3", "grade4", "grade5") else 1) if hw == "track" else 3
+    return road, ground, signed, rail, t.get("route") == "ferry", num("estimated_noise_class") / 6.0, num("estimated_river_class"), width
 
 
 class Facts:
@@ -92,13 +96,13 @@ class Facts:
         self.costfactor = [min(e[3], e[4], 5.0) for e in net.edges]
         self.ground, self.traffic, self.built, self.green, self.depth = [0] * n, [0.0] * n, [False] * n, [0.0] * n, [0.0] * n
         self.water, self.signed, self.rail, self.ferry, self.noise = [0.0] * n, [0.0] * n, [False] * n, [False] * n, [0.0] * n
-        self.rim, self.sight = [0.0] * n, [False] * n
+        self.rim, self.sight, self.width = [0.0] * n, [False] * n, [3] * n
         self.area, self.named, self.areas = [0] * n, [()] * n, [""]
         things = self.things = index.things
         for ei, e in enumerate(net.edges):
             if not self.ok[ei]:
                 continue
-            road, self.ground[ei], signed, self.rail[ei], self.ferry[ei], self.noise[ei], river = per_tag[e[5]]
+            road, self.ground[ei], signed, self.rail[ei], self.ferry[ei], self.noise[ei], river, self.width[ei] = per_tag[e[5]]
             mid = net.mid(ei)
             if not road and e[2] >= 25.0 and roads.cells:
                 road = K["beside"] * roads.beside(net.geom(ei))

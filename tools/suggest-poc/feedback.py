@@ -24,10 +24,13 @@ def line(d):
         w, n, name = w or run["wish"], n or c.get("numbers"), name or c.get("name")
     w, n = w or {}, n or {}
     taste = w.get("simple") or w  # older versions kept the three levels under "simple"
+    # since 2026-11-17 the wish has a Ziel instead of the levels Natur / Ruhe / Bekannte Wege and "am Wasser"
+    want = ("Ziel " + ", ".join(w["ziel"]) if w.get("ziel") else "ohne Ziel") if "ziel" in w else \
+        "Natur %s · Ruhe %s · Bekannte Wege %s%s" % (taste.get("natur", "?"), taste.get("ruhe", "?"), taste.get("bekannt", "?"),
+                                                    " · am Wasser" if taste.get("wasser") else "")
     out = ["%s · Lauf %s · Runde %s" % (d.get("at", "?"), d.get("run"), d.get("candidate")),
-           "   Wunsch: %s · %s · %s h · Natur %s · Ruhe %s · Bekannte Wege %s%s" % (
-               w.get("start_name") or w.get("start"), w.get("activity", "hike"), w.get("hours"), taste.get("natur", "?"),
-               taste.get("ruhe", "?"), taste.get("bekannt", "?"), " · am Wasser" if taste.get("wasser") else "")]
+           "   Wunsch: %s · %s · %s h%s · %s" % (w.get("start_name") or w.get("start"), w.get("activity", "hike"), w.get("hours"),
+                                                " · ↑ %s m" % w["ascent"] if w.get("ascent") else "", want)]
     if n:
         out.append("   Runde: %s · %s km · %s h · am Wald %s %% · durch Häuser %s %% · Straße %s %%" % (
             name, n.get("km"), n.get("hours"), n.get("forest_pct"), n.get("town_pct", n.get("built_pct", "?")), n.get("street_pct")))
