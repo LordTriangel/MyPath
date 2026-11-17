@@ -1,5 +1,9 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.MapGestures
+import com.onpath.app.domain.PinMenuItems
+import com.onpath.app.domain.PinMenuPlace
+import com.onpath.app.domain.PlaceAddMenu
 import com.onpath.strings.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -73,7 +77,7 @@ import com.onpath.app.poi.PoiLinks
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.search.Place
 import com.onpath.app.search.SearchKinds
-import com.onpath.app.ui.MapGestures.PointAction
+import com.onpath.app.domain.MapGestures.PointAction
 import com.onpath.app.domain.plan.RoutingSpot
 
 /** "Meraner Hütte", else "Start" / "Stop 2" / "Destination". */
@@ -205,7 +209,7 @@ fun MapOverlayHost(
 fun RoutingRing(center: Offset, stillProgress: Float? = null) {
     val d = LocalDensity.current
     val r = with(d) { 21.dp.roundToPx() }
-    val label = com.onpath.app.ui.PlanStatus.CALCULATING
+    val label = com.onpath.app.domain.PlanStatus.CALCULATING
     val m = Modifier
         .offset { androidx.compose.ui.unit.IntOffset(center.x.toInt() - r, center.y.toInt() - r) }
         .size(42.dp)

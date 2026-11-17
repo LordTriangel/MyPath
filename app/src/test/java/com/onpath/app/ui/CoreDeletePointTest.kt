@@ -1,5 +1,8 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.PlanHistory
+import com.onpath.app.domain.PointMenuTarget
+import com.onpath.app.domain.RouteRequests
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.PlanPoints
 import com.onpath.app.routing.WaypointSnap

@@ -2,6 +2,7 @@ package com.onpath.app.ui.routes
 
 import com.onpath.app.data.Tour
 import com.onpath.app.data.TourKind
+import com.onpath.app.domain.routes.RouteSort
 import com.onpath.app.routing.Activity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

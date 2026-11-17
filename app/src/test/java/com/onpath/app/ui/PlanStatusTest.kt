@@ -1,5 +1,8 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.NotRouted
+import com.onpath.app.domain.PlanStatus
+import com.onpath.app.domain.WaitBar
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.LongRoute

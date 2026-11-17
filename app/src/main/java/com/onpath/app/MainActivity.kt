@@ -37,7 +37,7 @@ import androidx.core.content.IntentCompat
 import com.onpath.app.ui.AppViewModel
 import com.onpath.app.ui.MapScreen
 import com.onpath.app.ui.MissingDataScreen
-import com.onpath.app.ui.AppMode
+import com.onpath.app.domain.AppMode
 import com.onpath.app.ui.ScreenMessageHost
 import com.onpath.app.ui.OnPathTheme
 import com.onpath.app.ui.PageFade
@@ -138,7 +138,7 @@ class MainActivity : ComponentActivity() {
             // Navigate over the lock screen (owner): while a tour runs in Navigate, a short press of the power button
             // shows the navigation without unlocking; Plan (routes, settings) asks to unlock first.
             val recNow by vm.recState.collectAsState()
-            val overLock = com.onpath.app.ui.LockScreenNav.shows(vm.mode == com.onpath.app.ui.AppMode.NAVIGATE, recNow != null)
+            val overLock = com.onpath.app.domain.LockScreenNav.shows(vm.mode == com.onpath.app.domain.AppMode.NAVIGATE, recNow != null)
             LaunchedEffect(overLock) { showOverLockScreen(overLock) }
             // A new serious problem (error / crash) is said once per run – nothing stays unseen (owner).
             val problemCount by com.onpath.app.debug.Problems.count.collectAsState()

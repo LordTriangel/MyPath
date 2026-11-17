@@ -4,8 +4,8 @@ import com.onpath.app.gpx.GpxParser
 import com.onpath.app.gpx.PlanGpx
 import com.onpath.app.gpx.TrackPoint
 import com.onpath.app.routing.WaypointInsertion.Kind
-import com.onpath.app.ui.MapGestures
-import com.onpath.app.ui.MapGestures.PointAction
+import com.onpath.app.domain.MapGestures
+import com.onpath.app.domain.MapGestures.PointAction
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

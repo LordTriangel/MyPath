@@ -21,13 +21,13 @@ import com.onpath.app.routing.Share
 import com.onpath.app.routing.SlowPlan
 import com.onpath.app.routing.LegCache
 import com.onpath.app.routing.OfflineCorridor
-import com.onpath.app.ui.PlanStatus
+import com.onpath.app.domain.PlanStatus
 import com.onpath.app.time.RouteTimes
 import com.onpath.app.poi.PoiLinks
 import com.onpath.app.recording.GpsStatus
-import com.onpath.app.ui.MapGestures
-import com.onpath.app.ui.PlanHistory
-import com.onpath.app.ui.RouteWarnings
+import com.onpath.app.domain.MapGestures
+import com.onpath.app.domain.PlanHistory
+import com.onpath.app.domain.RouteWarnings
 import com.onpath.strings.*
 import org.teavm.jso.JSBody
 import org.teavm.jso.JSExport
@@ -497,7 +497,7 @@ object Engine {
         }
     }
 
-    // ---- undo / redo: the app's PlanHistory (ui/PlanState.kt) on the page's point list ----
+    // ---- undo / redo: the app's PlanHistory (domain/PlanState.kt) on the page's point list ----
     private val history = PlanHistory()
 
     /** Before a change of the points: [points] as they are now (one Undo step). */
@@ -554,13 +554,13 @@ object Engine {
         val p = GeoPoint(lat, lon)
         // while planning the same decision as a plain hold (the shorter detour first – one rule everywhere, the app's
         // AppViewModel.placeMenu, owner 2026-11-15); a round trip keeps the zone
-        val d = if (roundTrip) null else com.onpath.app.ui.PlaceAddMenu.detours(w, p)
-        val m = if (d != null) com.onpath.app.ui.PlaceAddMenu.planningMenu(d)
-        else com.onpath.app.ui.PlaceAddMenu.menu(w.size, touring = false,
-            zone = if (w.size < 2) null else com.onpath.app.ui.PlaceAddMenu.zone(w, p, loop = roundTrip))
+        val d = if (roundTrip) null else com.onpath.app.domain.PlaceAddMenu.detours(w, p)
+        val m = if (d != null) com.onpath.app.domain.PlaceAddMenu.planningMenu(d)
+        else com.onpath.app.domain.PlaceAddMenu.menu(w.size, touring = false,
+            zone = if (w.size < 2) null else com.onpath.app.domain.PlaceAddMenu.zone(w, p, loop = roundTrip))
         val stop = if (w.size < 2) w.size else WaypointInsertion.decide(w, p, lastPlanFor(w)?.points, 30.0, stopOnly = true).index
-        fun list(items: List<com.onpath.app.ui.PlaceAddMenu.Item>) = items.joinToString(",", "[", "]") { str(it.name) }
-        val keepOld = com.onpath.app.ui.PlaceAddMenu.keepsOldGoal(touring = false)
+        fun list(items: List<com.onpath.app.domain.PlaceAddMenu.Item>) = items.joinToString(",", "[", "]") { str(it.name) }
+        val keepOld = com.onpath.app.domain.PlaceAddMenu.keepsOldGoal(touring = false)
         // "more" stays empty (owner 2026-11-15: both entries always in "main", the likelier first) – kept for the planner's reader
         return "{\"main\":" + list(m.main) + ",\"more\":[],\"stop\":" + stop + ",\"keepOld\":" + keepOld + "}"
     }
@@ -575,14 +575,14 @@ object Engine {
      * ones ask. [why] goes to the diagnostics.
      */
     fun holdOnMap(points: String, lat: Double, lon: Double, roundTrip: Boolean, lineSnapM: Double): String {
-        val pam = com.onpath.app.ui.PlaceAddMenu
+        val pam = com.onpath.app.domain.PlaceAddMenu
         val w = parsePoints(points)
         val p = GeoPoint(lat, lon)
         val n = w.size
         val route = lastPlanFor(w)?.points
         fun add(i: Int, why: String) = "{\"action\":\"ADD\",\"index\":" + i + ",\"why\":" + str(why) + "}"
         fun smart() = WaypointInsertion.decide(w, p, route, lineSnapM).index
-        fun ask(m: com.onpath.app.ui.PlaceAddMenu.Menu, why: String) = "{\"action\":\"ASK\",\"main\":" +
+        fun ask(m: com.onpath.app.domain.PlaceAddMenu.Menu, why: String) = "{\"action\":\"ASK\",\"main\":" +
             m.main.joinToString(",", "[", "]") { str(it.name) } + ",\"stop\":" +
             WaypointInsertion.decide(w, p, route, lineSnapM, stopOnly = true).index + ",\"why\":" + str(why) + "}"
         if (n < 2) return add(smart(), "plan $n → ${n + 1}")
@@ -599,12 +599,12 @@ object Engine {
         val d = pam.detours(w, p)!!
         val why = "line ${lineDp.toInt()} dp, insert +${d.insertM.toInt()} m, append ${d.appendM.toInt()} m, $n points"
         return when (pam.planningHold(lineDp, d)) {
-            com.onpath.app.ui.PlaceAddMenu.HoldAction.ON_LINE -> add(smart(), "on the line, set at once ($why)")
-            com.onpath.app.ui.PlaceAddMenu.HoldAction.NEW_GOAL -> add(n, "appending is much shorter, the new goal at once ($why)")
-            com.onpath.app.ui.PlaceAddMenu.HoldAction.STOP ->
+            com.onpath.app.domain.PlaceAddMenu.HoldAction.ON_LINE -> add(smart(), "on the line, set at once ($why)")
+            com.onpath.app.domain.PlaceAddMenu.HoldAction.NEW_GOAL -> add(n, "appending is much shorter, the new goal at once ($why)")
+            com.onpath.app.domain.PlaceAddMenu.HoldAction.STOP ->
                 add(WaypointInsertion.decide(w, p, route, lineSnapM, stopOnly = true).index.coerceIn(0, n),
                     "inserting is much shorter, a stop at once ($why)")
-            com.onpath.app.ui.PlaceAddMenu.HoldAction.ASK -> ask(pam.planningMenu(d), "in doubt ($why)")
+            com.onpath.app.domain.PlaceAddMenu.HoldAction.ASK -> ask(pam.planningMenu(d), "in doubt ($why)")
         }
     }
 
@@ -620,8 +620,8 @@ object Engine {
      * "790 km", or "" (in view / no position). The planner is always "Plan".
      */
     fun locateLabel(located: Boolean, lat: Double, lon: Double, south: Double, west: Double, north: Double, east: Double): String =
-        com.onpath.app.ui.LocateDistance.label(plan = true, located = located, me = if (located) GeoPoint(lat, lon) else null,
-            view = com.onpath.app.ui.LocateDistance.View(south, west, north, east)) ?: ""
+        com.onpath.app.domain.LocateDistance.label(plan = true, located = located, me = if (located) GeoPoint(lat, lon) else null,
+            view = com.onpath.app.domain.LocateDistance.View(south, west, north, east)) ?: ""
 
     fun pointMenu(index: Int, count: Int, isPlace: Boolean, roundTrip: Boolean, points: String = ""): String {
         // the loop's first point ([PlanEdits.loopStart]): with stops on the way before a round trip, ① of the loop reads

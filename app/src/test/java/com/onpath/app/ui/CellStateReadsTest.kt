@@ -10,6 +10,7 @@ import app.cash.paparazzi.Paparazzi
 import app.cash.paparazzi.SnapshotHandler
 import com.onpath.app.cells.CellId
 import com.onpath.app.cells.CellState
+import com.onpath.app.domain.RecomposeProbe
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
 import org.junit.Assert.assertEquals

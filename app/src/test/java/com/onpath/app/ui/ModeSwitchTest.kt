@@ -17,6 +17,8 @@ import androidx.compose.ui.layout.layout
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import app.cash.paparazzi.SnapshotHandler
+import com.onpath.app.domain.AppMode
+import com.onpath.app.domain.RecomposeProbe
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

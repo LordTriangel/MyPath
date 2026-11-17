@@ -25,6 +25,36 @@ import com.onpath.app.backup.Backups
 import com.onpath.app.data.TourKind
 import com.onpath.app.data.RoutingDataNotice
 import com.onpath.app.debug.Problems
+import com.onpath.app.domain.AppMode
+import com.onpath.app.domain.HoldPaths
+import com.onpath.app.domain.LinkOpen
+import com.onpath.app.domain.NewPlanNote
+import com.onpath.app.domain.NotRouted
+import com.onpath.app.domain.OfflineReady
+import com.onpath.app.domain.OpenAsk
+import com.onpath.app.domain.PlaceAddMenu
+import com.onpath.app.domain.PlaceMenuMeasure
+import com.onpath.app.domain.PlanAutoSave
+import com.onpath.app.domain.PlanCamera
+import com.onpath.app.domain.PlanGap
+import com.onpath.app.domain.PlanGaps
+import com.onpath.app.domain.PlanGuidance
+import com.onpath.app.domain.PlanStart
+import com.onpath.app.domain.PlanStatus
+import com.onpath.app.domain.PointMenuTarget
+import com.onpath.app.domain.RouteMenuState
+import com.onpath.app.domain.RouteRequests
+import com.onpath.app.domain.RouteRules
+import com.onpath.app.domain.RouteShape
+import com.onpath.app.domain.RouteSpot
+import com.onpath.app.domain.RouteWarnings
+import com.onpath.app.domain.RoutesTab
+import com.onpath.app.domain.SaveAsk
+import com.onpath.app.domain.SaveMode
+import com.onpath.app.domain.SplitRequests
+import com.onpath.app.domain.StyleReloadRule
+import com.onpath.app.domain.TakenPin
+import com.onpath.app.domain.WaitBar
 import com.onpath.app.gpx.GpxParser
 import com.onpath.app.gpx.GpxWaypoint
 import com.onpath.app.gpx.GpxWriter
@@ -289,8 +319,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var routesTab: RoutesTab
         get() = routes.tab
         set(v) { routes.tab = v }
-    /** My routes' order (owner 2026-11-12, [com.onpath.app.ui.routes.RouteSort]): one for both tabs, kept across app starts. */
-    var routesSort: com.onpath.app.ui.routes.RouteSort.Choice
+    /** My routes' order (owner 2026-11-12, [com.onpath.app.domain.routes.RouteSort]): one for both tabs, kept across app starts. */
+    var routesSort: com.onpath.app.domain.routes.RouteSort.Choice
         get() = routes.sort
         set(v) { routes.sort = v } // while My routes is open only: "Neueste zuerst" at each opening (owner 2026-11-13)
     /** My routes' "☆ Favoriten" pill (owner 2026-11-13, favourites C): on = only the starred ones; kept while the app runs. */
@@ -3739,7 +3769,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * "Los geht's" in My routes (owner 2026-11-07, [com.onpath.app.ui.routes.RoutesGo]): [t] is loaded as the plan like
+     * "Los geht's" in My routes (owner 2026-11-07, [com.onpath.app.domain.routes.RoutesGo]): [t] is loaded as the plan like
      * "Planen" (an unsaved plan on the map goes under Zuletzt – no question), then, once its line is calculated, [start]
      * runs – the plan sheet's own Los geht's (phone check → [startNavigation]: the plan is followed, Hinführen when the
      * start is far). During a tour it is "Folgen" ([requestOpen]).
@@ -3751,12 +3781,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         openTour(t, lineOf = lineOf) {
             val loaded = waypoints.toList()
             goJob = viewModelScope.launchSafe("app", "goFromRoutes") {
-                val step = withTimeoutOrNull(com.onpath.app.ui.routes.RoutesGo.MAX_WAIT_MS) {
+                val step = withTimeoutOrNull(com.onpath.app.domain.routes.RoutesGo.MAX_WAIT_MS) {
                     androidx.compose.runtime.snapshotFlow {
-                        com.onpath.app.ui.routes.RoutesGo.step(loaded, waypoints.toList(), routing, route != null, recState.value != null)
-                    }.first { it != com.onpath.app.ui.routes.RoutesGo.Step.WAIT }
-                } ?: com.onpath.app.ui.routes.RoutesGo.Step.DROP
-                if (step == com.onpath.app.ui.routes.RoutesGo.Step.START) {
+                        com.onpath.app.domain.routes.RoutesGo.step(loaded, waypoints.toList(), routing, route != null, recState.value != null)
+                    }.first { it != com.onpath.app.domain.routes.RoutesGo.Step.WAIT }
+                } ?: com.onpath.app.domain.routes.RoutesGo.Step.DROP
+                if (step == com.onpath.app.domain.routes.RoutesGo.Step.START) {
                     Problems.trace("routes", "Los geht's from My routes: the line of \"${t.name}\" is there – the normal start")
                     start()
                 } else Problems.trace("routes", "Los geht's from My routes: no tour started for \"${t.name}\" (changed meanwhile, " +

@@ -1,6 +1,10 @@
 package com.onpath.app.ui
 
 import com.onpath.app.data.TourKind
+import com.onpath.app.domain.Drafts
+import com.onpath.app.domain.OpenAsk
+import com.onpath.app.domain.PlanAutoSave
+import com.onpath.app.domain.RouteRules
 import com.onpath.app.routing.GeoPoint
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

@@ -7,12 +7,13 @@ import com.onpath.app.data.Tour
 import com.onpath.app.data.TourKind
 import com.onpath.app.debug.Problems
 import com.onpath.app.domain.plan.LivePlanRows
+import com.onpath.app.domain.routes.RouteSort
 import com.onpath.app.gpx.TrackPoint
 import com.onpath.app.routing.GeoPoint
-import com.onpath.app.ui.Drafts
-import com.onpath.app.ui.OpenAsk
-import com.onpath.app.ui.RouteRules
-import com.onpath.app.ui.RoutesTab
+import com.onpath.app.domain.Drafts
+import com.onpath.app.domain.OpenAsk
+import com.onpath.app.domain.RouteRules
+import com.onpath.app.domain.RoutesTab
 
 /**
  * What My routes needs of the tour database (TourDb in the app, a map in tests): the list (everything not in the

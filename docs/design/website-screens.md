@@ -100,8 +100,8 @@ C04, C05, C07, C08 may stay Paparazzi snapshots (`GermanScreenshotTest_settingsS
 | D03 | `D03-handy-karte-halten-hierhin` | map held: "Hier starten" · "Hierhin" | halten · erste-schritte, home (step 1) | `firstPointMenu` | `ui/MapOverlays.kt` |
 | D04 | `D04-handy-start-gesetzt` | start set, waiting for the goal | punkt1 · route-planen | `planOnePoint` | `ui/PlanPanel.kt`, `ui/MapHost.kt` |
 | D05 | `D05-handy-route-fertig-los-gehts` | route ready: "PLANEN · Ohne Netz ✓", length · ↑ · ↓, profile, big green "Los geht's" | fertig · erste-schritte, home, store S1 | `plan` | `ui/PlanPanel.kt`, `ui/ElevationProfile.kt` |
-| D06 | `D06-handy-plan-wandern-t2` | the whole hike on the map, steep parts marked (hero picture) | plan (help), plan-wandern (home) · home hero, route-planen, store S5 | `planWholeRoute` | `ui/PlanPanel.kt`, `ui/RouteWarnings.kt`, map style |
-| D07 | `D07-handy-hinweise-steil` | the route notes open: where it gets steep | hinweise · route-planen | `routeSpotsList` `routeSpotsListHints` | `ui/RouteWarnings.kt` |
+| D06 | `D06-handy-plan-wandern-t2` | the whole hike on the map, steep parts marked (hero picture) | plan (help), plan-wandern (home) · home hero, route-planen, store S5 | `planWholeRoute` | `ui/PlanPanel.kt`, `domain/RouteWarnings.kt`, map style |
+| D07 | `D07-handy-hinweise-steil` | the route notes open: where it gets steep | hinweise · route-planen | `routeSpotsList` `routeSpotsListHints` | `domain/RouteWarnings.kt` |
 | D08 | `D08-handy-t-band-t3` | grey band with red "T3" beside the T2 route | t-band · route-planen | – | `map/ActivityLayers.kt`, map style |
 | D09 | `D09-handy-ort-halten-als-zwischenstopp` | a place held near the route: „Einfügen“ (tinted) / „Neues Ziel“, one line each (owner 2026-11-15) | ziel · erste-schritte, route-planen | `poiMenu` | `ui/MapOverlays.kt` |
 | D10 | `D10-handy-erreichbar-ab-t2` | a stop the route does not reach: "② erst ab T2 erreichbar" | erreichbar · route-planen | `planReachHike` | `ui/PlanPanel.kt` |
@@ -153,7 +153,7 @@ C04, C05, C07, C08 may stay Paparazzi snapshots (`GermanScreenshotTest_settingsS
 
 | Step | File | What you see | Key · used on | Snapshot (Paparazzi) | Change here → new picture |
 | --- | --- | --- | --- | --- | --- |
-| I01 | `I01-handy-meine-touren-geplant` | Geplant: Zuletzt / Gespeichert, route pictures, "In Bearbeitung" | meine-touren · gpx, store S4 | `tours` `toursRecent` | `ui/Screens.kt`, `ui/RoutesTab.kt`, `ui/RoutePreview.kt` |
+| I01 | `I01-handy-meine-touren-geplant` | Geplant: Zuletzt / Gespeichert, route pictures, "In Bearbeitung" | meine-touren · gpx, store S4 | `tours` `toursRecent` | `ui/Screens.kt`, `domain/RoutesTab.kt`, `ui/RoutePreview.kt` |
 | I02 | `I02-handy-uebersicht-los-gehts` | a route's large overview: map picture, "▶ Los geht's", Abbrechen \| Planen | uebersicht · gpx, film 2 | `routesOverview` | `ui/Screens.kt` |
 | I03 | `I03-handy-touren-menue` | ⋮ on a row: Planen, Los geht's, Umbenennen, Als Kopie speichern, GPX exportieren, Plan teilen, Löschen | – | `routesItemMenuPlanned` | `ui/Screens.kt` |
 | I04 | `I04-handy-gpx-als-plan` | an imported GPX track opened: "Als Plan übernehmen" | gpx-plan · gpx | `track` | `ui/Panels.kt` |
@@ -171,7 +171,7 @@ C04, C05, C07, C08 may stay Paparazzi snapshots (`GermanScreenshotTest_settingsS
 
 | Step | File | What you see | Key · used on | Snapshot (Paparazzi) | Change here → new picture |
 | --- | --- | --- | --- | --- | --- |
-| K01 | `K01-handy-plan-ebike` | the bike route by E-Bike: surface, push section | ebike (help), plan-ebike (home) · home, route-planen | `planSummaryBike` `planProfileBike` | `ui/PlanPanel.kt`, `ui/RouteWarnings.kt` |
+| K01 | `K01-handy-plan-ebike` | the bike route by E-Bike: surface, push section | ebike (help), plan-ebike (home) · home, route-planen | `planSummaryBike` `planProfileBike` | `ui/PlanPanel.kt`, `domain/RouteWarnings.kt` |
 | K02 | `K02-handy-ruheanzeige` | rest view on the handlebar: arrow, distance, arrival | ruhe (help), ruheanzeige (home) · home, navigation | `RestViewScreenshotGermanTest_turn` | `ui/RestView.kt`, `ui/SmartScreen.kt` |
 | K03 | `K03-handy-rad-abzweigung` | the map back shortly before the turn | – | – | `ui/SmartScreen.kt` |
 

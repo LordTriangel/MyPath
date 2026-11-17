@@ -2,8 +2,8 @@ package com.onpath.app.domain.plan
 
 import com.onpath.app.data.Geo
 import com.onpath.app.routing.GeoPoint
-import com.onpath.app.ui.PlanGuidance
-import com.onpath.app.ui.PlanHistory
+import com.onpath.app.domain.PlanGuidance
+import com.onpath.app.domain.PlanHistory
 
 /**
  * The plan being edited – its points, Undo / Redo, the pinned (POI) points and the start the one-point rule put in –

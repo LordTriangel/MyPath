@@ -1,5 +1,8 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.MapHostView
+import com.onpath.app.domain.OwnedRef
+import com.onpath.app.domain.StyleReloadRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

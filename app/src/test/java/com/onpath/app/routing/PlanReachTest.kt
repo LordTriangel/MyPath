@@ -2,8 +2,8 @@ package com.onpath.app.routing
 
 import com.onpath.app.data.Geo
 import com.onpath.app.poi.inGerman
-import com.onpath.app.ui.PlanGap
-import com.onpath.app.ui.PlanGaps
+import com.onpath.app.domain.PlanGap
+import com.onpath.app.domain.PlanGaps
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

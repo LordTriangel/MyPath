@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.NewPlanNote
 import com.onpath.strings.*
 
 import androidx.compose.runtime.setValue

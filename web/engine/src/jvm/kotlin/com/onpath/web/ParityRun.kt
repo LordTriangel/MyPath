@@ -7,8 +7,8 @@ import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.PlanPoints
 import com.onpath.app.routing.PlanResult
 import com.onpath.app.time.TimeEstimate
-import com.onpath.app.ui.PlanGaps
-import com.onpath.app.ui.RouteWarnings
+import com.onpath.app.domain.PlanGaps
+import com.onpath.app.domain.RouteWarnings
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File

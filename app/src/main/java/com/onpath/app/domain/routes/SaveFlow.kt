@@ -1,8 +1,8 @@
 package com.onpath.app.domain.routes
 
-import com.onpath.app.ui.RouteRules
-import com.onpath.app.ui.SaveAsk
-import com.onpath.app.ui.SaveMode
+import com.onpath.app.domain.RouteRules
+import com.onpath.app.domain.SaveAsk
+import com.onpath.app.domain.SaveMode
 
 /**
  * Save's dialog (owner 2026-10-31, core feature C18): every Save opens it – prefilled with the proposal (else the date

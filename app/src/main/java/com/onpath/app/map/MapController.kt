@@ -592,13 +592,13 @@ class MapController(private val context: Context, val map: MapLibreMap, val styl
      * Navigate's start zoom, made sure (field A-019: after "Continue" the map kept Plan's 1 km zoom). MapLibre zooms in
      * setCameraMode only when tracking starts from none: from Plan's own following (same or another tracking mode) it
      * does not zoom at all, and a transition can be cancelled. So when the transition ends and the map still follows,
-     * the missing zoom is animated while tracking ([com.onpath.app.ui.AppMode.zoomStill]).
+     * the missing zoom is animated while tracking ([com.onpath.app.domain.AppMode.zoomStill]).
      */
     private fun ensureStartZoom(wanted: Double?) {
         try {
             val lc = map.locationComponent
             if (lc.cameraMode == CameraMode.NONE) return // a gesture or a fit ended following: the user's / app's view stays
-            val z = com.onpath.app.ui.AppMode.zoomStill(map.cameraPosition.zoom, wanted) ?: return
+            val z = com.onpath.app.domain.AppMode.zoomStill(map.cameraPosition.zoom, wanted) ?: return
             lc.zoomWhileTracking(z, 600L)
         } catch (e: Exception) {
             Problems.warn("map", "Navigate start zoom not set", e)
@@ -885,7 +885,7 @@ class MapController(private val context: Context, val map: MapLibreMap, val styl
     }
 
     /** Grey dashed lines from where the route ends to each point it does not reach; empty = none. Never throws. */
-    fun setPlanGaps(gaps: List<com.onpath.app.ui.PlanGap>) = guarded("plan gaps") {
+    fun setPlanGaps(gaps: List<com.onpath.app.domain.PlanGap>) = guarded("plan gaps") {
         val src = source(SRC_GAPS) ?: return
         src.setGeoJson(FeatureCollection.fromFeatures(gaps.map { g ->
             Feature.fromGeometry(LineString.fromLngLats(listOf(
@@ -997,19 +997,19 @@ class MapController(private val context: Context, val map: MapLibreMap, val styl
      * zoom; overlapping markers → the nearest one), or -1. Never throws.
      */
     fun waypointAt(screen: PointF, points: List<GeoPoint>? = null,
-                   radiusDp: Float = com.onpath.app.ui.MapGestures.MARKER_RADIUS_DP, log: Boolean = true): Int = try {
+                   radiusDp: Float = com.onpath.app.domain.MapGestures.MARKER_RADIUS_DP, log: Boolean = true): Int = try {
         // the plan's own list when given: the list kept with the drawing can lag behind the plan (e.g. an update skipped
         // while the style reloads), and a hold on a point must not add a new one
         val pts = points ?: shownWaypoints
         val xs = FloatArray(pts.size); val ys = FloatArray(pts.size)
         pts.forEachIndexed { i, p -> map.projection.toScreenLocation(LatLng(p.lat, p.lon)).let { xs[i] = it.x; ys[i] = it.y } }
-        val hit = com.onpath.app.ui.MapGestures.nearestMarker(xs, ys, screen.x, screen.y, radiusDp * density)
+        val hit = com.onpath.app.domain.MapGestures.nearestMarker(xs, ys, screen.x, screen.y, radiusDp * density)
         if (hit < 0 && log) {
             // diagnostics: a press just outside a marker (each press its own line in the gesture log)
-            val near = com.onpath.app.ui.MapGestures.nearestMarker(xs, ys, screen.x, screen.y, 2 * com.onpath.app.ui.MapGestures.NEAR_RADIUS_DP * density)
+            val near = com.onpath.app.domain.MapGestures.nearestMarker(xs, ys, screen.x, screen.y, 2 * com.onpath.app.domain.MapGestures.NEAR_RADIUS_DP * density)
             if (near >= 0) Problems.trace("map", "Press %.0f dp from point ${near + 1} – outside the %.0f dp marker radius (near zone %.0f dp; drawn %d, plan %d)"
                 .format(java.util.Locale.ROOT, kotlin.math.hypot(xs[near] - screen.x, ys[near] - screen.y) / density,
-                    radiusDp, com.onpath.app.ui.MapGestures.NEAR_RADIUS_DP, shownWaypoints.size, pts.size))
+                    radiusDp, com.onpath.app.domain.MapGestures.NEAR_RADIUS_DP, shownWaypoints.size, pts.size))
         }
         hit
     } catch (e: Exception) { Problems.warn("map", "Marker tap test failed, tap treated as no marker", e); -1 }

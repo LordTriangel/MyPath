@@ -3,7 +3,7 @@ package com.onpath.app.search
 import com.onpath.app.backup.BackupCodec
 import com.onpath.app.backup.BackupRestore
 import com.onpath.app.backup.PlacesBackup
-import com.onpath.app.ui.PinMenuItems
+import com.onpath.app.domain.PinMenuItems
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

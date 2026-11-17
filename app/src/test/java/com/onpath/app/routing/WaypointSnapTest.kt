@@ -1,6 +1,6 @@
 package com.onpath.app.routing
 
-import com.onpath.app.ui.PlanHistory
+import com.onpath.app.domain.PlanHistory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

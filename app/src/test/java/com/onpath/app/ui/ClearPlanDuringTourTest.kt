@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.PlanGuidance
 import com.onpath.app.domain.plan.ClearRule
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

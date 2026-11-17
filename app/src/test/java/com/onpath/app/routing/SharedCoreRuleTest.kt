@@ -15,7 +15,7 @@ class SharedCoreRuleTest {
     /** Single shared files in packages that also hold platform code (package/name; the web planner compiles them). */
     private val files = listOf("search/PlaceIndex.kt", "map/ActivityLayers.kt",
         // the plan result of app and web (routing/PlanResult, docs/design/web-planner.md §22) and the ui/ rules it calls
-        "routing/PlanResult.kt", "routing/ProfileData.kt", "ui/PlanGaps.kt", "ui/RouteWarnings.kt", "data/Geo.kt",
+        "routing/PlanResult.kt", "routing/ProfileData.kt", "domain/PlanGaps.kt", "domain/RouteWarnings.kt", "data/Geo.kt",
         // the plan sheet's routing-data notice and way-type / surface line (docs/design/web-planner.md §22)
         "data/RoutingDataNotice.kt", "routing/BreakdownRules.kt")
     private val platform = Regex("""\b(android|androidx|org\.maplibre|btools|org\.json)\.""")

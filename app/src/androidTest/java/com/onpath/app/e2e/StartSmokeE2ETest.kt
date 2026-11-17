@@ -4,7 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.onpath.app.data.Prefs
 import com.onpath.app.routing.GeoPoint
-import com.onpath.app.ui.AppMode
+import com.onpath.app.domain.AppMode
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Until
 import org.junit.Assert.assertEquals
@@ -46,11 +46,11 @@ class StartSmokeE2ETest : E2EBase() {
         waitUntil("long-route question", 15_000) { var a = false; scenario.onActivity { a = vm(it).longRouteAsk != null }; a }
         clickText("Cancel")
         waitUntil("question closed", 5_000) { var a = true; scenario.onActivity { a = vm(it).longRouteAsk != null }; !a }
-        var routing = true; var why: com.onpath.app.ui.NotRouted? = null
+        var routing = true; var why: com.onpath.app.domain.NotRouted? = null
         scenario.onActivity { routing = vm(it).routing; why = vm(it).notRouted }
         assertEquals("the plan's points stay", 2, waypointCount())
         assertFalse("no routing request runs", routing)
-        assertEquals(com.onpath.app.ui.NotRouted.LONG, why)
+        assertEquals(com.onpath.app.domain.NotRouted.LONG, why)
         assertTrue("not stuck on Calculating – ${state()}", device.findObject(By.textContains("Calculating")) == null)
         assertTrue("Plan anyway offered", device.wait(Until.findObject(By.text("Plan anyway")), 5_000) != null)
     }
