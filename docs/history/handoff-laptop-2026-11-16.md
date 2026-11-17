@@ -47,6 +47,14 @@
    when the points changed while an older recalculation was still waiting (folder switch, Clear, New plan). Only the
    newest run plans now; shared `Planner.kt` got a message for its `require` (donald told).
 
+## State at the end of the night (2026-11-17 ~05:00)
+- **Live: 01524309** – hold rule F-PLAN-15, bare name ≠ POI, kept places sync with the phone, clicks decided in order,
+  POI click after a move, no 0/1-point plan request. Local check-web green (now incl. nowebgl/robust), GitHub CI green,
+  deploy-quick ok.
+- Not on main by decision: suggest layer s9 (`wip/laptop-2026-11-17-suggest-layer`, test cells on the laptop).
+- Backlog for the laptop: POI click on a slow phone after a pan (placement-independent lookup – to decide),
+  routes-smoke 4b precondition flake, CI-smokes PR (owner later), donald's re-download proposal (owner/donald).
+
 ## Open for the owner (morning)
 - Hold rule past the goal (with donald's first item): with the band of f12e8d83 a silent new goal happens only exactly straight on past the goal – in practice every hold past the goal asks, with „Neues Ziel“ first, in app and planner alike (the planner follows the app's shared rule).
 - Suggest file into all cells (schema 9): yes / when? Each refreshed cell is downloaded whole again (9–23 MB), not
