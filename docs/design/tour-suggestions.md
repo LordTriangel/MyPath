@@ -378,6 +378,9 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   wish control to say what one wants („Ziel: Gipfel · See · Aussicht · Einkehr · Kultur“, few choices), and a little of
   the quality-trail logic (paths over wide tracks, variety, views, water, culture; check our five axes against the
   published criteria of Deutscher Wanderverband / Deutsches Wanderinstitut).
+  **Owner 2026-11-17: the controls Natur, Ruhe, Bekannte Wege and „am Wasser entlang“ go** – nature, quiet and paths are
+  always built in, as on a Traumpfad; the wish is activity · time from–to · ascent from–to · **Ziel** (optional, several:
+  Gipfel · Wasser · Aussicht · Einkehr · Kultur; none = the finest in reach).
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
