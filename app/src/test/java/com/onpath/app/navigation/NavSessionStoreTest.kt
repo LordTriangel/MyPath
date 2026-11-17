@@ -194,10 +194,14 @@ class NavSessionStoreTest {
         assertNotNull(proposed); assertNull(NavSessionStore(f).load())
     }
 
-    // --- (c2) the same two writers on two threads: the service's "is the file still mine?" and its write are one
-    // step ([NavSessionStore.saveIfMine]). Today both run on the main thread (the view model's saves and
-    // RecordingService.handle), so nothing can come between them; the cleanup moves the recording off the main thread –
-    // then only this keeps a re-route of the old line from landing on the app's newer session. ---
+    // --- (c2) a guard for later, not a bug of today: the same two writers on two threads. Today both run on the main
+    // thread (the view model's saves and RecordingService.handle), so nothing can come between the service's "is the
+    // file still mine?" and its write. The cleanup moves the recording off the main thread – then only the one step
+    // of [NavSessionStore.saveIfMine] keeps a re-route of the old line from landing on the app's newer session.
+    // (Check-then-write without the lock: the old line won in nearly every round of these tests.) ---
+
+    /** Rounds per race test: without the lock ~9 of 10 rounds went wrong, so 50 fail almost surely and stay fast. */
+    private val ROUNDS = 50
 
     /** A tour with a long line (~3000 points): reading and writing it takes long enough for the other thread to cut in. */
     private fun longTour(n: Int) = NavSession.start(NavKind.PLAN, "tour$n", Activity.HIKE, 3,
@@ -223,7 +227,7 @@ class NavSessionStoreTest {
 
     @Test fun aReRouteRacingTheAppsNewSessionOnAnotherThreadNeverWins() {
         val stale = ArrayList<Int>()
-        race(300, { app, r -> app.save(longTour(2 * r + 2)) }) { r, _ ->
+        race(ROUNDS, { app, r -> app.save(longTour(2 * r + 2)) }) { r, _ ->
             // the service first: its re-route is replaced by the app's session; the app first: the re-route is dropped
             val onDisk = NavSessionStore(file).load()
             if (onDisk?.token != (2 * r + 2).toLong() || onDisk.rerouted) stale += r
@@ -233,7 +237,7 @@ class NavSessionStoreTest {
 
     @Test fun aReRouteRacingTheEndOfGuidanceOnAnotherThreadNeverBringsTheFileBack() {
         val back = ArrayList<Int>()
-        race(300, { app, _ -> app.save(null) }) { r, _ -> if (file.exists()) back += r }
+        race(ROUNDS, { app, _ -> app.save(null) }) { r, _ -> if (file.exists()) back += r }
         assertEquals("rounds in which the removed route came back", emptyList<Int>(), back)
     }
 

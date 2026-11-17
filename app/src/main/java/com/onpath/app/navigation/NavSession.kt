@@ -125,7 +125,7 @@ data class NavSession(
 /** JSON file for [NavSession]; never throws (a broken file = no session). */
 class NavSessionStore(private val file: File) {
 
-    /** One lock per file for every store of it in the process ([saveIfMine]). */
+    /** One lock per file for every store of it in the process (the guard of [saveIfMine]). */
     private val lock = lockOf(file)
 
     fun save(s: NavSession?) = synchronized(lock) {
@@ -152,9 +152,12 @@ class NavSessionStore(private val file: File) {
 
     /**
      * The service's write of its (re-routed / changed) session: only while the file still holds that session
-     * ([NavSession.mayOverwrite]) – the look at the file and the write are one step among every store of this file in
-     * the process (the app's and the service's), so the app's new session can never land between them and be written
-     * over by the old line (NavSessionStoreTest, two threads). False = not written: the app follows something else.
+     * ([NavSession.mayOverwrite]). False = not written: the app follows something else.
+     *
+     * The look at the file and the write are one step among every store of this file in the process (the app's and the
+     * service's). A guard, not a repair: today both writers run on the main thread, so nothing can come between the two
+     * anyway; once the recording leaves the main thread, this keeps the app's new session from landing between them
+     * and being written over by the old line (NavSessionStoreTest, two threads).
      */
     fun saveIfMine(s: NavSession): Boolean = synchronized(lock) {
         if (!NavSession.mayOverwrite(tokenOnDisk(s.token), s.token)) return false

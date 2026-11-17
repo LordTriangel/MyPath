@@ -940,7 +940,8 @@ class RecordingService : Service() {
         // never reached but led there ("Guide me", Bug 02): the edited plan is led to again at once
         if (session != null) {
             val carried = NavSession.afterPlanEdit(old?.session, session)
-            if (carried != session) { session = carried; sessionStore.save(carried) }
+            // its token is the file's (read just above): written unless the app wrote a newer session meanwhile (a guard)
+            if (carried != session) { session = carried; sessionStore.saveIfMine(carried) }
         }
         // the walking direction carries over to the new line (plan edited mid-walk: the way back of a round trip)
         navigator = session?.let { Navigator(it).apply { setNavigating(navigatingApplied); old?.let { o -> detector.adoptHeading(o.detector) } } }
@@ -994,7 +995,7 @@ class RecordingService : Service() {
         step.job?.let { startReroute(it) }
         // the session is written before the new line is shown (crash recovery R-07) – unless the app chose a new line
         // meanwhile (its FOLLOW_CHANGED is on the way): then this result belongs to the old session. Look and write
-        // are one step (NavSessionStore.saveIfMine).
+        // are one step (NavSessionStore.saveIfMine – a guard: today both writers run on this main thread anyway).
         if ((step.lineChanged || step.sessionChanged) && !sessionStore.saveIfMine(nav.session)) {
             Problems.trace("navigation", "Re-route result of an older line dropped: the app follows a new line")
             loadFollow()
