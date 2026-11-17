@@ -36,7 +36,7 @@ await page.waitForSelector('.pointmenu'); // first click: New route – Start he
 await page.click('.pointmenu button:first-of-type'); await page.waitForTimeout(300);
 await page.waitForFunction(() => document.querySelectorAll('.pin').length === 1);
 // empty map (no POI symbol within reach) and a POI beside it
-const c2 = [11.1265, 46.6880], c3 = [11.1499, 46.7017];
+const c2 = [11.1265, 46.6880], c3 = [11.1425, 46.7000]; // c3: near equal both on straight lines and on the paths (the hold asks)
 // the POI part needs the map cells' POIs (a cell store as 2nd argument / the server's data); CI's short run has only
 // the routing data – then it is skipped, the back-to-back check below runs either way
 const hasPois = await page.waitForFunction(() => window.__map.queryRenderedFeatures({ layers: window.__map.getStyle().layers.map((l) => l.id)
@@ -54,7 +54,8 @@ if (ruster) {
   const pins = await page.evaluate(() => document.querySelectorAll('.pin').length), open = await popups();
   check(pins === 1 && open.length === 0, `a POI clicked, then the map at once: the POI's menu closed again, nothing added (${pins} points, menus ${JSON.stringify(open)})`);
 }
-// the 2nd and 3rd point back to back: the 3rd is decided on the plan with the 2nd in it – both detours similar there, so
+// the 2nd and 3rd point back to back: the 3rd is decided on the plan with the 2nd in it – both detours near equal there
+// (straight +1.9 / 1.8 km; on the paths +4.7 / 4.1 km, whichever the engine can measure yet), so
 // the hold menu asks (the app's hold rule, F-PLAN-15) – and it stays open: the 3rd press came after the first route's fit
 // was asked, so the map is not moved away under it (the app's lastMapTouch)
 {

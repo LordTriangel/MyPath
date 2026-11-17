@@ -45,8 +45,8 @@ export type PinRow = 'START_HERE' | 'GO_HERE' | 'ADD' | 'ADD_STOP' | 'NEW_DESTIN
 /**
  * The app's PinMenuItems.of: the rows of a held place's menu in their order – the same for a hold and for a picked
  * search result. [main] = the add entries (the engine's placeMenu – PlaceAddMenu; the planner has no tour, so an empty
- * plan gives Start here · Go here; with 2+ points both „Einfügen“ and „Neues Ziel“, the likelier first – owner
- * 2026-11-15: nothing under „⋯ Mehr“ any more), [pin] = the found place's pin (the menu ends with "Remove pin"),
+ * plan gives Start here · Go here; with 2+ points while planning one row in a clear case, both „Einfügen“ and „Neues
+ * Ziel“ only when near equal, the likelier first – owner 2026-11-15 / 2026-11-17; nothing under „⋯ Mehr“), [pin] = the found place's pin (the menu ends with "Remove pin"),
  * [keep] = the place can be kept (owner 2026-11-15, „Orte merken“): after the route rows „☆ Merken“ and „⌂ Als Zuhause
  * festlegen“ – what is about the place itself.
  */

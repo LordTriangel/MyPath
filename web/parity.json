@@ -20,7 +20,7 @@
         "web/app/src/menus.ts",
         "web/app/src/search.ts"
       ],
-      "blob": "6c40a04ace0b062fd79a3b84274b950ad731548c"
+      "blob": "7608b662a791c2005d530cbba5b323d81a85e9c0"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/PlanStatus.kt",
@@ -160,7 +160,7 @@
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/AppViewModel.kt",
-      "what": "recalc long-route ask / answerLongRoute / cancelRun; importGpx (its note is the shared GpxData.skippedNote), planFromShown; withModelTime; addPlace; poiAsNewDestination (appends while planning – PlaceAddMenu.keepsOldGoal; the planner has no tour, main.ts placeAsNewDestination); requestSave; suggestName; pinnedPoiKinds / refreshPinnedKinds; holdOnMap (F-PLAN-15: on the line / new goal / stop at once, else the hold menu – PlaceAddMenu.planningHold, the engine's WebApi.holdOnMap; a round trip by the zone) and placeMenu while planning = PlaceAddMenu.planningMenu (WebApi.placeMenu); holdAsStop / holdAsNewDestination (main.ts holdAddMenu); keepPlaces / placesChanged = the kept-places sync (keptplaces.ts / sync.ts); the done tours' Ø speed is not in the planner (no recorded tours)",
+      "what": "recalc long-route ask / answerLongRoute / cancelRun; importGpx (its note is the shared GpxData.skippedNote), planFromShown; withModelTime; addPlace; poiAsNewDestination (appends while planning – PlaceAddMenu.keepsOldGoal; the planner has no tour, main.ts placeAsNewDestination); requestSave; suggestName; pinnedPoiKinds / refreshPinnedKinds; holdOnMap / measureHold (F-PLAN-15: on the line / new goal / stop at once, else the hold menu – PlaceAddMenu.planningHold on the real paths, the engine's WebApi.holdOnMap + measurePaths = HoldPaths + routedLength, ~1.5 s, straight lines on failure; a round trip by the zone) and placeMenu while planning = PlaceAddMenu.planningPlaceMenu (WebApi.placeMenu, measured on the paths like PlaceMenuMeasure); holdAsStop / holdAsNewDestination (main.ts holdAddMenu); keepPlaces / placesChanged = the kept-places sync (keptplaces.ts / sync.ts); the done tours' Ø speed is not in the planner (no recorded tours)",
       "web": [
         "web/app/src/main.ts",
         "web/app/src/longroute.ts",
@@ -170,7 +170,7 @@
         "web/app/src/plans.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "7298283102af60dd2282eb5681f67a9d1e8489f5"
+      "blob": "f2ef199a1dcd127be19094a18ef771fa20d5772b"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -461,7 +461,7 @@
     {
       "app": "app/src/main/java/com/onpath/app/poi/PoiTap.kt",
       "why": "how a tap / hold finds the POI under the finger (app: ShownPois, read once per camera stop – MapLibre Native's queryRenderedFeatures waits for its render thread; web: main.ts poiAt asks GL JS at the click, p50 0.1 ms in Köln, no render thread)",
-      "blob": "b77dd5d805096db3ab351ef87a0f90bf820e866d"
+      "blob": "19e0d3547379bf4e0a01ee6ce070d8c6311a5a30"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/PlanPanel.kt",
@@ -531,7 +531,7 @@
     {
       "app": "tools/make_style.py",
       "why": "map style (the web copies the generated style)",
-      "blob": "a1e6432dcbd416d1632374f9b641a26cbc03c0a9"
+      "blob": "e9cf1ef140e9ada87cab2eb66032eca9c253cfd6"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapLoad.kt",
@@ -943,8 +943,9 @@
       ]
     },
     "app/src/main/java/com/onpath/app/ui/PlaceAddMenu.kt": {
-      "blob": "8322e14a9382e04e70cebf5257f702b2fb3b3f9e",
+      "blob": "0584b48dcb205d009f8c2202359977544783b18c",
       "perf": [
+        "var insert = Double.MAX_VALUE",
         "var detour = Double.MAX_VALUE"
       ]
     },
@@ -1370,7 +1371,7 @@
       "perf": []
     },
     "app/src/test/java/com/onpath/app/ui/PlaceAddMenuTest.kt": {
-      "blob": "3922daf1e18a7ce11032d68084f71cee09bb6d45",
+      "blob": "87ece57b0024b8e7fad4adb56d1fe11f958e6566",
       "perf": []
     },
     "app/src/test/java/com/onpath/app/ui/LocateDistanceTest.kt": {
@@ -1685,7 +1686,7 @@
       "perf": []
     },
     "app/src/main/assets/style/f2/onpath.json": {
-      "blob": "f3df0c910812748cf33d707f7fff7ada982b958c",
+      "blob": "1c409cb28ff79aaf7c56578053c9e792a41f66c0",
       "perf": []
     }
   }
