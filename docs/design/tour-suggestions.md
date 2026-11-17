@@ -368,6 +368,13 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   JVM entry; same results as the frozen POC; the Python method is deleted, settings stay one file) → **3 planner**
   (sketch 4, behind the switch, owner tests in NRW, deploy on his word) → **4 app** → **5 all cells** get the file
   (before 3 goes public; a cell without it says the map is being updated). Owner 2026-11-16 late: the file is built now, with the map rebuild of these days, as its own layer with its own version and a compatibility check – released apps have no tour planner and ignore it.
+- **Owner 2026-11-17 – how we work from here:** Python (the POC page) is the lab again; changes are tried there, the
+  owner looks at them on the page, and only accepted changes are ported to the Kotlin core in one batch (parity
+  restored then). No building twice. Batch so far: (1) official loops measured from the wished start (the ride there and
+  back counts); next (2) **aims** – summit, lake, viewpoint, hut / food, castle / monument as turning points, with a new
+  wish control to say what one wants („Ziel: Gipfel · See · Aussicht · Einkehr · Kultur“, few choices), and a little of
+  the quality-trail logic (paths over wide tracks, variety, views, water, culture; check our five axes against the
+  published criteria of Deutscher Wanderverband / Deutsches Wanderinstitut).
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
