@@ -45,7 +45,7 @@ class StyleFormatTest {
             "access-no-dash-foot", "access-no-sign-foot", "access-no-dash-bike", "access-no-sign-bike",
             "trails-sac-label", "trails-mtb-label", "surface-loose-track", "surface-loose-path",
             "greenway-foot", "greenway-bike", "greenway-touring", "greenway-mtb", "poi-station", "poi-tier1",
-            "poi-station-name", "poi-tier1-name")
+            "poi-station-named", "poi-tier1-named")
         for (s in listOf(f1, f2)) { val have = ids(s).toSet(); used.forEach { assertTrue(it, it in have) } }
         // no MTB route band: mtb.brf ignores route=mtb, MTB shows the cycle band
         for (s in listOf(f1, f2)) assertTrue(ids(s).none { it.startsWith("routes-mtb") })
@@ -122,45 +122,52 @@ class StyleFormatTest {
     }
 
     /**
-     * Names can never push out icons (owner). Each POI layer is split into an icon layer "poi-<x>" (icon + an
-     * invisible key text that takes no room, [assertInvisibleKeyText]) and a name layer "poi-<x>-name" (text, no icon) with the same filter, sort key and zooms. MapLibre Native
-     * places symbols from the TOP layer down, so every icon layer lies above every name layer – all icons are placed
-     * before any name; a name without room simply does not show. Icons still collide (no pile-ups), names collide
-     * with icons and each other, nothing ignores placement.
+     * Every POI layer draws the symbol (owner 2026-11-17; the full kinds × zooms check is PoiSymbolStyleTest): one zoom
+     * band in two layers that never show at the same zoom – "poi-<x>" below z17 (icon + an invisible key text that takes
+     * no room, [assertInvisibleKeyText]; no names) and "poi-<x>-named" from z17 (icon WITH its name in one symbol: icon
+     * required, text optional – the icon stays when its name has no room, a name only beside its own placed icon).
+     * Same filter, sort key and icon; the bands adjoin at z17. Icons and names collide, nothing ignores placement.
+     * Never a "-name" id: the tap lookup takes a "-name" layer for text only (PoiHit.symbolLayer).
      */
-    @Test fun poiIconsArePlacedBeforeNames() {
+    @Test fun poiLayersAreSymbolsOnly() {
         for (s in listOf(f1, f2)) {
             val a = s.getJSONArray("layers")
             val all = (0 until a.length()).map { a.getJSONObject(it) }
-            val idx = all.withIndex().associate { (i, l) -> l.getString("id") to i }
+            val byId = all.associateBy { it.getString("id") }
             val pois = all.filter { it.getString("id").startsWith("poi-") }
-            val (names, icons) = pois.partition { it.getString("id").endsWith("-name") }
+            val (named, icons) = pois.partition { it.getString("id").endsWith("-named") }
+            assertTrue("POI layers with names found", named.size >= 5)
             assertTrue("POI icon layers found", icons.size >= 6)
-            assertEquals("one name layer per icon layer", icons.map { it.getString("id") + "-name" }.toSet(),
-                names.map { it.getString("id") }.toSet())
-            assertTrue("every icon layer above (= placed before) every name layer",
-                icons.minOf { idx.getValue(it.getString("id")) } > names.maxOf { idx.getValue(it.getString("id")) })
+            assertTrue("no text-only -name layer", pois.none { it.getString("id").endsWith("-name") })
             for (l in pois) {
                 val id = l.getString("id")
                 val lo = l.getJSONObject("layout")
                 assertEquals("$id: symbol", "symbol", l.getString("type"))
-                if (id.endsWith("-name")) {
-                    assertTrue("$id: name only", lo.has("text-field") && !lo.has("icon-image"))
+                assertTrue("$id: icon", lo.has("icon-image"))
+                assertEquals("$id: icon not optional", false, lo.optBoolean("icon-optional", false))
+                assertEquals("$id: icons collide", false, lo.optBoolean("icon-allow-overlap", false))
+                assertEquals("$id: icons block others", false, lo.optBoolean("icon-ignore-placement", false))
+                if (id.endsWith("-named")) {
+                    assertEquals("$id: names from z17", 17.0, l.getDouble("minzoom"), 0.0)
+                    assertEquals("$id: the icon stays when its name has no room", true, lo.optBoolean("text-optional", false))
                     assertTrue("$id: variable anchors", lo.has("text-variable-anchor"))
                     assertTrue("$id: offset beside the icon", lo.optDouble("text-radial-offset", 0.0) > 0.0)
                     assertEquals("$id: names collide", false, lo.optBoolean("text-allow-overlap", false))
                     assertEquals("$id: names block others", false, lo.optBoolean("text-ignore-placement", false))
+                    // an unnamed POI's text is its key: never seen, 1 px (inside its own icon)
+                    val field = lo.get("text-field").toString().replace(" ", "")
+                    assertTrue("$id: name, else the key", field.startsWith("""["coalesce",["get","name"],""") && field.contains("""["get","id"]"""))
+                    assertEquals("$id: key never seen", """["case",["has","name"],1,0]""",
+                        l.getJSONObject("paint").get("text-opacity").toString().replace(" ", ""))
+                    val twin = byId[id.removeSuffix("-named")] ?: continue
+                    for (k in listOf("filter", "source"))
+                        assertEquals("$id: same $k as its icon band", l.opt(k)?.toString(), twin.opt(k)?.toString())
+                    for (k in listOf("symbol-sort-key", "icon-image", "icon-size"))
+                        assertEquals("$id: same $k as its icon band", lo.opt(k)?.toString(), twin.getJSONObject("layout").opt(k)?.toString())
+                    assertEquals("$id: starts where its icon band ends", twin.getDouble("maxzoom"), l.getDouble("minzoom"), 0.0)
                 } else {
-                    assertTrue("$id: icon", lo.has("icon-image"))
                     assertInvisibleKeyText(id, l)
-                    assertEquals("$id: icon not optional", false, lo.optBoolean("icon-optional", false))
-                    assertEquals("$id: icons collide", false, lo.optBoolean("icon-allow-overlap", false))
-                    assertEquals("$id: icons block others", false, lo.optBoolean("icon-ignore-placement", false))
-                    val twin = all[idx.getValue("$id-name")]
-                    for (k in listOf("filter", "minzoom", "maxzoom", "source"))
-                        assertEquals("$id: same $k as its name", l.opt(k)?.toString(), twin.opt(k)?.toString())
-                    assertEquals("$id: same sort key as its name", lo.opt("symbol-sort-key")?.toString(),
-                        twin.getJSONObject("layout").opt("symbol-sort-key")?.toString())
+                    assertTrue("$id: no names below z17 – the band ends by z17", l.has("maxzoom") && l.getDouble("maxzoom") <= 17.0)
                 }
             }
         }

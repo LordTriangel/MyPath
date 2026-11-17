@@ -122,7 +122,12 @@ class PoiHitTest {
             val symbols = ids.filter { PoiHit.symbolLayer(it) }
             assertTrue("${f.path}: symbol layers $ids", symbols.any { it == "poi-tier1" })
             for (id in ids) assertEquals("${f.path}: $id", !id.endsWith("-name"), PoiHit.symbolLayer(id))
+            // owner 2026-11-17: from z17 icon + name are one symbol in "poi-<x>-named" – a symbol layer like the others
+            assertTrue("${f.path}: the z17 layers with names are symbol layers $ids", symbols.any { it == "poi-tier1-named" })
+            assertEquals("${f.path}: every POI layer draws its symbol", ids, symbols)
         }
+        assertTrue(PoiHit.symbolLayer("poi-station-named"))
+        assertFalse("a text-only -name layer (older style)", PoiHit.symbolLayer("poi-station-name"))
         assertFalse(PoiHit.symbolLayer("route-line"))
     }
 

@@ -1623,7 +1623,7 @@ def labels():
 # Format 2: the app puts a POI into vector tiles only from the zoom its kind is drawn (cells/PoiTiles.kt minZoom: train
 # z10, tier 1 z12, rest z14) – drawing a kind earlier needs that table changed too (PoiTilesStyleTest fails otherwise).
 POI_TIERS = [
-    # tier, icon minzoom, label minzoom, kinds
+    # tier, icon minzoom, label minzoom (unused since 2026-11-17: every POI name from POI_NAME_ZOOM, see pois()), kinds
     # restaurants and cafés with huts and lifts from z12 (owner): a hike is planned around where you can eat
     # shelters right after huts (owner 2026-11-06: "Unterstände verschwinden zwischendurch beim Zoomen" – in tier 2 they
     # lost the collision to every tier-1 POI, water, bars and snack bars; a roof in the rain matters on foot and by bike)
@@ -1646,6 +1646,7 @@ POI_KINDS = set(POI_PRIO)
 POI_SORT_UNNAMED = 50000    # > every "pr" (extract_pois.PR_LEVELS * PR_TIE)
 POI_SORT_RANK_STEP = 2 * POI_SORT_UNNAMED  # one kind rank = named + unnamed band
 POI_SMALL_UNTIL = 13  # tier 1 uses the small dot variant below this zoom
+POI_NAME_ZOOM = 17    # POI names from here, beside their icon (owner 2026-11-17); below it icons only
 LOW_ZOOM_SOLID = 13   # below this zoom dashed paths / tracks / trails are drawn solid and darker
 GROUND_SYMBOLS_ZOOM = 16  # ground symbol patterns only from here (app max zoom 18: the last two zoom steps)
 ROCK_SYMBOLS_ZOOM = 14    # rock / scree symbols from here (owner 2026-10-30: back to z14, mountains only)
@@ -1672,18 +1673,26 @@ def _match(values, fallback):
 
 
 def pois():
-    """POI symbols, each POI layer split in two (owner): an ICON layer "poi-<x>" (icon only) and a NAME
-    layer "poi-<x>-name" (text only, same filter / sort key / zooms). MapLibre Native places symbols layer by layer
-    from the TOP of the style down (RenderOrchestrator walks the placement layers in reverse), so all icon layers sit
-    above all name layers: every icon is placed before any name, and a name can never push out an icon. A name that
-    does not fit beside its icon simply does not show (rarely a name may show without its icon – accepted).
+    """POI symbols (owner 2026-11-17: "normally hidden, but at the current zoom level as I have it now (17.2) and closer,
+    written out"). Each POI layer is one zoom band in two layers that never show at the same zoom:
+      "poi-<x>"       below POI_NAME_ZOOM: the icon only (+ the invisible key text, below) – the icons as before;
+      "poi-<x>-named" from POI_NAME_ZOOM: the icon WITH its name in one symbol – icon required, text optional, so a name
+                      shows only beside its own placed icon, and the icon stays when its name has no room.
+    Symbols first: a name never stands without its symbol. From z17 a name may take the room of a less important icon
+    placed after it where it is crowded (owner 2026-11-17, accepted; render check: Soho z17 −8 of 52 icons, Meran z17
+    −3 of 32, nothing lost elsewhere). Why the name is in the icon's symbol: a name in a layer of its own cannot know
+    whether its icon was placed (MapLibre checks only boxes placed before; no "*-overlap: cooperative" in Native) – with
+    the separate "-name" layers until 2026-11-17 nearly every name shown was a bare one (Hilden 2026-11-15).
     Ids start with "poi-", so the app's tap lookup, Settings POI filter and the missing-file strip treat both alike.
+    "-named", never "-name": the tap lookup counts every poi- layer as a symbol layer except a text-only "-name" layer
+    (PoiHit.symbolLayer); only the symbol is a tap target, never the name beside it.
 
-    Each icon symbol also carries an invisible key text (KEY_TEXT, the POI's OSM id): MapLibre matches a tile's
+    Every symbol carries a key text (KEY_TEXT, the POI's OSM id) where it has no name: MapLibre matches a tile's
     symbols with the same symbols of its parent / child tiles (CrossTileSymbolIndex) by their TEXT – every icon-only
     symbol has the empty text, so all icons of a layer fell into one group and the matching went n² (owner's Pixel in
     central London 2026-11-13: ~1 fps, 93 % of the render thread in TileLayerIndex::findMatches). The key text is never
-    seen (opacity 0) and never collides (allow overlap + ignore placement, optional), so the look stays as it was."""
+    seen (opacity 0): in the icon layers it never collides (allow overlap + ignore placement, optional); in the name
+    layers an unnamed POI's key is 1 px small, inside its own icon."""
     kind = ["get", "kind"]
     rank = _match([(k, i) for i, k in enumerate(POI_PRIO)], 99)
     # lower = placed first: kind rank, then named before unnamed, then the POI's fixed priority "pr" (0..49999,
@@ -1694,60 +1703,65 @@ def pois():
     sort_key = ["+", ["*", rank, POI_SORT_RANK_STEP], ["case", ["has", "name"], 0, POI_SORT_UNNAMED],
                 ["-", POI_SORT_UNNAMED - 1, ["max", 0, ["min", POI_SORT_UNNAMED - 1, pr]]]]
     badge = ["concat", "poi-", kind]
-    name = ["coalesce", ["get", "name"], ""]
+    has_name = ["has", "name"]
     halo = {"text-halo-color": T("label.halo.color"), "text-halo-width": T("label.halo.width")}
+
+    def named(stops):
+        """Text size: the name's size for a named POI, 1 px (the key text) for an unnamed one."""
+        out = []
+        for z, size in zip(stops[::2], stops[1::2]):
+            out += [z, ["case", has_name, size, 1]]
+        return interp(*out, base=1)
+
+    def pair(id_, minz, maxz, label_z, flt, icon_layout, text_layout, text_size, text_color):
+        icon_max = min(label_z, maxz) if maxz else label_z
+        if icon_max > minz:   # zoomed out: the icon only
+            layer(id_=id_, type="symbol", source="pois", minzoom=minz, maxzoom=icon_max, filter=flt,
+                  layout={**icon_layout, **KEY_TEXT_LAYOUT}, paint=dict(KEY_TEXT_PAINT))
+        if maxz is None or label_z < maxz:   # the icon with its name beside it (radial offset from the point, in ems)
+            layer(id_=f"{id_}-named", type="symbol", source="pois", minzoom=max(minz, label_z), filter=flt,
+                  **({"maxzoom": maxz} if maxz else {}),
+                  layout={**icon_layout,
+                          "text-field": ["coalesce", ["get", "name"], KEY_TEXT_LAYOUT["text-field"]],
+                          "text-size": named(text_size),
+                          # the icon stays when its name has no room (owner 2026-10-23); no name without its icon
+                          "text-optional": True, "text-allow-overlap": False, "text-ignore-placement": False,
+                          "text-padding": 2, "text-justify": "auto", **text_layout},
+                  paint={"text-color": text_color, **halo, "text-opacity": ["case", has_name, 1, 0]})
+
     # Bottom-most layer = least important tier; MapLibre places symbols of upper layers first.
     # Bus stops: the merged pair symbol (plus unpaired stops) until BUS_DETAIL_ZOOM, then every stop.
     is_bus = ["==", kind, "bus"]
     specs = [
-        (f"poi-bus-detail", 3, BUS_DETAIL_ZOOM, None, BUS_DETAIL_ZOOM, ["all", is_bus, ["!", ["has", "merged"]]]),
-        (f"poi-bus", 3, BUS_ZOOM, BUS_DETAIL_ZOOM, 15, ["all", is_bus, ["!", ["has", "detail"]]]),
-    ] + [(f"poi-tier{tier}", tier, minz, None, label_z, ["all", ["in", kind, ["literal", kinds]], POI_DENSITY_FILTER])
-         for tier, minz, label_z, kinds in reversed(POI_TIERS)]
-    icons, names = [], []
+        (f"poi-bus-detail", 3, BUS_DETAIL_ZOOM, None, POI_NAME_ZOOM, ["all", is_bus, ["!", ["has", "merged"]]]),
+        (f"poi-bus", 3, BUS_ZOOM, BUS_DETAIL_ZOOM, POI_NAME_ZOOM, ["all", is_bus, ["!", ["has", "detail"]]]),
+    ] + [(f"poi-tier{tier}", tier, minz, None, POI_NAME_ZOOM, ["all", ["in", kind, ["literal", kinds]], POI_DENSITY_FILTER])
+         for tier, minz, _label_z, kinds in reversed(POI_TIERS)]
     for id_, tier, minz, maxz, label_z, flt in specs:
         icon = badge
         if minz < POI_SMALL_UNTIL:
             icon = ["step", ["zoom"], ["concat", "poi-", kind, "-small"], POI_SMALL_UNTIL, badge]
-        extra = {"maxzoom": maxz} if maxz else {}
-        icons.append(dict(id_=id_, type="symbol", source="pois", minzoom=minz, filter=flt, **extra,
-                          layout={"icon-image": icon,
-                                  # small dots stay tiny while zoomed out, badges from z13
-                                  "icon-size": interp(12, 0.45, 12.9, 0.5, 13, 0.78, 15, 0.92, 17, 1.05, base=1),
-                                  "icon-allow-overlap": False, "icon-padding": 1,
-                                  "symbol-sort-key": sort_key, "symbol-z-order": "auto", **KEY_TEXT_LAYOUT},
-                          paint=dict(KEY_TEXT_PAINT)))
-        # the name beside the (already placed) icon: radial offset from the POI point, in ems
-        names.append(dict(id_=f"{id_}-name", type="symbol", source="pois", minzoom=minz, filter=flt, **extra,
-                          layout={"text-field": ["step", ["zoom"], "", label_z, name],
-                                  "symbol-sort-key": sort_key, "symbol-z-order": "auto",
-                                  "text-font": T("font.medium") if tier == 1 else T("font.minor-label"),
-                                  "text-size": interp(14, 10.5, 17, 12.5, base=1),
-                                  "text-variable-anchor": ["left", "right", "top", "bottom"],
-                                  "text-radial-offset": 1.05, "text-justify": "auto", "text-max-width": 8,
-                                  "text-padding": 2},
-                          paint={"text-color": T("poi.label.color") if tier > 1 else T("poi.label.tier1.color"),
-                                 **halo}))
-    # Train stations: always prominent (owner request) – their own top POI layers, icon from z10, name from z11.
-    station = ["==", kind, "train"]
-    icons.append(dict(id_="poi-station", type="symbol", source="pois", minzoom=10, filter=station,
-                      layout={"icon-image": "poi-train",
-                              "icon-size": interp(10, 0.85, 13, 0.95, 16, 1.15, base=1),
-                              "icon-allow-overlap": False, "icon-padding": 1, "symbol-sort-key": 0,
-                              **KEY_TEXT_LAYOUT},
-                      paint=dict(KEY_TEXT_PAINT)))
-    names.append(dict(id_="poi-station-name", type="symbol", source="pois", minzoom=10, filter=station,
-                      layout={"text-field": ["step", ["zoom"], "", 11, name],
-                              "symbol-sort-key": 0,
-                              "text-font": T("station.label.font"),
-                              "text-size": interp(11, 11, 14, 12.5, 17, 14, base=1),
-                              "text-variable-anchor": ["right", "left", "top", "bottom"],
-                              "text-radial-offset": 1.1, "text-justify": "auto", "text-max-width": 9,
-                              "text-padding": 2},
-                      paint={"text-color": T("station.label.color"), **halo}))
-    # names below, icons above: icons are placed first (top-down placement), names drawn under the icons
-    for kw in names + icons:
-        layer(**kw)
+        pair(id_, minz, maxz, label_z, flt,
+             icon_layout={"icon-image": icon,
+                          # small dots stay tiny while zoomed out, badges from z13
+                          "icon-size": interp(12, 0.45, 12.9, 0.5, 13, 0.78, 15, 0.92, 17, 1.05, base=1),
+                          "icon-allow-overlap": False, "icon-padding": 1,
+                          "symbol-sort-key": sort_key, "symbol-z-order": "auto"},
+             text_layout={"text-font": T("font.medium") if tier == 1 else T("font.minor-label"),
+                          "text-variable-anchor": ["left", "right", "top", "bottom"],
+                          "text-radial-offset": 1.05, "text-max-width": 8},
+             text_size=[14, 10.5, 17, 12.5],
+             text_color=T("poi.label.color") if tier > 1 else T("poi.label.tier1.color"))
+    # Train stations: always prominent (owner request) – their own top POI layers, icon from z10, name from POI_NAME_ZOOM.
+    pair("poi-station", 10, None, POI_NAME_ZOOM, ["==", kind, "train"],
+         icon_layout={"icon-image": "poi-train",
+                      "icon-size": interp(10, 0.85, 13, 0.95, 16, 1.15, base=1),
+                      "icon-allow-overlap": False, "icon-padding": 1, "symbol-sort-key": 0},
+         text_layout={"text-font": T("station.label.font"),
+                      "text-variable-anchor": ["right", "left", "top", "bottom"],
+                      "text-radial-offset": 1.1, "text-max-width": 9},
+         text_size=[11, 11, 14, 12.5, 17, 14],
+         text_color=T("station.label.color"))
 
 
 def build(theme=DEFAULT_THEME, fmt=1, out=None):

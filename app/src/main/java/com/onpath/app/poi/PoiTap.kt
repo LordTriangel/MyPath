@@ -15,8 +15,9 @@ import kotlin.math.abs
  * shows (screen position, symbol drawn or not). A POI is hit only through its drawn symbol: the finger's box ([pick]
  * boxPx, 24 dp) touches its icon; the nearest POI point wins. A name the map drew without its symbol (an older style,
  * or any case the style check missed) is no POI – the hold is a plain map hold (owner 2026-11-15, Hilden: a bus stop's
- * bare name „Dorothea-Erxleben-Straße" read like a street name and a hold on it opened the place menu). How names are
- * drawn is still the owner's open choice (backlog „Waiting for the owner“, POI names A/B/C).
+ * bare name „Dorothea-Erxleben-Straße" read like a street name and a hold on it opened the place menu). Since
+ * 2026-11-17 the style draws POI names only from z17, beside their icon in the same symbol (owner); a name is never a
+ * tap target of its own – only the symbol's finger box counts.
  */
 object PoiHit {
     class Candidate(val poi: Poi, val x: Float, val y: Float, val icon: Boolean)
@@ -25,8 +26,9 @@ object PoiHit {
     const val ICON_HALF_DP = 11f
 
     /**
-     * Whether the style layer [id] draws the POI symbol: every `poi-` layer except the text-only `-name` layers (the
-     * style's naming, tools/make_style.py pois()). A name from a `-name` layer is never a hit of its own.
+     * Whether the style layer [id] draws the POI symbol: every `poi-` layer – the icon bands `poi-<x>` and, from z17,
+     * `poi-<x>-named` (icon + name in one symbol, tools/make_style.py pois()) – except a text-only `-name` layer (an
+     * older style's naming), whose name is never a hit of its own.
      */
     fun symbolLayer(id: String): Boolean = id.startsWith(POI_LAYER_PREFIX) && !id.endsWith("-name")
 

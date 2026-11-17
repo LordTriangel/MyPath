@@ -1,5 +1,6 @@
 package com.onpath.app.poi
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -37,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -50,7 +52,9 @@ import com.onpath.strings.*
  * All data shown is OpenStreetMap; Google Maps is only an external link.
  */
 @Composable
-fun PoiDetails(poi: Poi, onClose: () -> Unit, modifier: Modifier = Modifier) {
+fun PoiDetails(poi: Poi, onClose: () -> Unit, modifier: Modifier = Modifier,
+               /** The map's symbol of the POI's kind (the sprite badge, owner 2026-11-17); the glyph when it is missing. */
+               symbol: PoiSymbol = rememberPoiSymbol(poi.kind)) {
     val context = LocalContext.current
     val kind = poi.kindInfo
     val color = Color(kind.group.argb)
@@ -63,14 +67,20 @@ fun PoiDetails(poi: Poi, onClose: () -> Unit, modifier: Modifier = Modifier) {
             .padding(bottom = 16.dp)
             .navigationBarsPadding()
     ) {
-        // Header: colour dot, title, kind, close
+        // Header: the map's symbol (else colour dot + glyph), title, kind, close
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(44.dp).background(color, CircleShape).border(2.dp, Color.White, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(kind.glyph, color = Color.White, fontSize = if (kind.glyph.length > 1) 13.sp else 20.sp,
-                    fontWeight = FontWeight.Bold, maxLines = 1)
+            val image = symbol.image
+            when {
+                image != null -> Image(image, contentDescription = null, modifier = Modifier.size(44.dp),
+                    filterQuality = FilterQuality.High)
+                !symbol.ready -> Spacer(Modifier.size(44.dp)) // the sprite is read (a moment, off the main thread)
+                else -> Box(
+                    Modifier.size(44.dp).background(color, CircleShape).border(2.dp, Color.White, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(kind.glyph, color = Color.White, fontSize = if (kind.glyph.length > 1) 13.sp else 20.sp,
+                        fontWeight = FontWeight.Bold, maxLines = 1)
+                }
             }
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
