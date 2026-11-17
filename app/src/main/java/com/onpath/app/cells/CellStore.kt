@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * <dataDir>/cells/download/10-543-361/2026-10-19.part/   while downloading (never used)
  * <dataDir>/cells/download/10-543-361/2026-10-19/        complete + verified, waiting to be joined
  * <dataDir>/addresses/10-543-361.sqlite                  the cell's addresses (search reads every file there)
+ * <dataDir>/suggest/10-543-361.bin                       the cell's suggest file (schema 9 cells; tour suggestions)
  * ```
  *
  * Every change (add, replace, delete a cell, new region package) writes a new **generation** `gNNNNNN.tmp`, checks
@@ -48,6 +49,8 @@ class CellStore(
     val storeDir = File(root, "store")
     val downloadDir = File(root, "download")
     val addressesDir = File(dataDir, "addresses")
+    /** The cells' suggest files (`suggest.bin` of a schema-9 cell, docs/design/tour-suggestions.md §4a), one per cell. */
+    val suggestDir = File(dataDir, "suggest")
 
     data class InstalledCell(
         val id: CellId,
@@ -297,6 +300,8 @@ class CellStore(
             // the cells' addresses go where the search reads them; only after the generation is active
             for (d in add) installAddresses(d)
             for (c in remove - addIds) deleteAddresses(c)
+            for (d in add) installSuggest(d)
+            for (c in remove - addIds) deleteSuggest(c)
             prune(keep = setOfNotNull(number, cur?.number, inUse))
             // the cost of each generation in the event log (a whole region is rewritten per generation)
             Problems.trace("cells", "Generation ${final.name}: +${add.size} −${(remove - addIds).size} cells (${cells.size} total), " +
@@ -459,6 +464,41 @@ class CellStore(
         if (f.exists() && !f.delete()) Problems.warn("cells", "Address file of deleted cell $c could not be removed")
     }
 
+    /** Where the tour suggestions read a cell's suggest file (missing = the cell came without one or before this app kept it). */
+    fun suggestFile(id: CellId): File = File(suggestDir, "${id.id}.bin")
+
+    private fun installSuggest(d: Download) {
+        val src = d.manifest.files.firstOrNull { it.name == SUGGEST }?.let { File(d.dir, it.name) }?.takeIf { it.isFile } ?: return
+        installSuggest(d.manifest.cell, src)
+    }
+
+    /**
+     * Puts [src] (a cell's verified `suggest.bin`; moved, or copied when it cannot be) where [suggestFile] reads it.
+     * False when it failed (reported): the tour suggestions then say the map is being updated there.
+     */
+    fun installSuggest(id: CellId, src: File): Boolean {
+        suggestDir.mkdirs()
+        val dest = suggestFile(id)
+        try { AtomicFiles.replace(src, dest); return true } catch (e: IOException) {
+            Problems.info("cells", "Suggest file of cell $id not moved; copied instead", e)
+        }
+        val tmp = File(suggestDir, ".${dest.name}.tmp")
+        return try {
+            src.copyTo(tmp, overwrite = true)
+            AtomicFiles.replace(tmp, dest)
+            true
+        } catch (e: IOException) {
+            tmp.delete()
+            Problems.warn("cells", "Suggest file of cell $id could not be installed; tour suggestions there wait for it", e)
+            false
+        }
+    }
+
+    private fun deleteSuggest(c: CellId) {
+        val f = suggestFile(c)
+        if (f.exists() && !f.delete()) Problems.warn("cells", "Suggest file of deleted cell $c could not be removed")
+    }
+
     // ------------------------------------------------------------------------------------------- helpers
 
     private fun boundsOf(cells: Set<CellId>, regionInputs: List<File>): DoubleArray? {
@@ -496,6 +536,8 @@ class CellStore(
          * Tile layers of a format-2 map (style sources base, overlays, terrain, contours; region-shade = the region
          * packages' pre-rendered relief z7–9, map-cells.md §20).
          */
+        /** A cell's suggest file in its manifest (cell layer `suggest`, schema 9). */
+        const val SUGGEST = "suggest.bin"
         val LAYERS = listOf("base.pmtiles", "overlays.pmtiles", "terrain.pmtiles", "contours.pmtiles", "hillshade.pmtiles")
         private val GEN = Regex("""^g(\d{6})(\.tmp|\.bad|\.del)?$""")
         private val TEMP = listOf(".tmp", ".bad", ".del")

@@ -31,6 +31,22 @@ class CellStoreTest {
         return out.sorted()
     }
 
+    @Test fun theSuggestFileIsKeptPerCellBesideTheStore() {
+        // schema-9 cells bring suggest.bin (tour suggestions); the store keeps it as suggest/<cell>.bin, deletes it with the cell
+        val data = tmp.newFolder("data")
+        val store = CellStore(data)
+        val d = download(store, a, "2026-11-17-s9")
+        File(d.dir, CellStore.SUGGEST).writeText("suggest of a")
+        val m = d.manifest.copy(files = d.manifest.files + CellManifest.File(CellStore.SUGGEST, 12, "0".repeat(64), "x"))
+        store.apply(add = listOf(CellStore.Download(m, d.dir)))
+        assertEquals("suggest of a", store.suggestFile(a).readText())
+        store.apply(add = listOf(download(store, b, "2026-10-19"))) // a cell without one: nothing there
+        assertFalse(store.suggestFile(b).exists())
+        assertEquals("suggest of a", store.suggestFile(a).readText())
+        store.remove(setOf(a))
+        assertFalse(store.suggestFile(a).exists())
+    }
+
     @Test fun addReplaceDelete() {
         val data = tmp.newFolder("data")
         val store = CellStore(data)
