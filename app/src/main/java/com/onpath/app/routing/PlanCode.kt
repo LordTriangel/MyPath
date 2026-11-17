@@ -19,7 +19,46 @@ data class SharedPlan(
     val names: Map<Int, String> = emptyMap(),
     /** Name of the route, when it has one. */
     val title: String? = null,
+    /**
+     * Multi-day tour (docs/design/multi-day-tours.md §2, owner 2026-11-17): the number of days N; null = a normal plan.
+     * The grey proposals are worked out each time ([PlanDays]), never stored.
+     */
+    val days: Int? = null,
+    /** Limits per day of a multi-day tour (they propose N and flag a day above them); [DayLimits.NONE] = none. */
+    val limits: DayLimits = DayLimits.NONE,
+    /**
+     * Night marks by point index – the third per-point attribute beside [pinned] and [names] ([PlanEdits.follow]):
+     * "I end the day here" (Übernachtung, blue) or a hotel (green; the point sits at the hotel). Never on the start or
+     * the last point.
+     */
+    val nights: Map<Int, NightMark> = emptyMap(),
+    /** The tour's description (multi-day tours), free text with line breaks. */
+    val description: String? = null,
 )
+
+/** Limits per day of a multi-day tour (owner 2026-11-17: "Natürlich bleiben die Grenzen pro Tag"); null = no limit. */
+data class DayLimits(val maxTimeMin: Int? = null, val maxAscentM: Int? = null) {
+    val isNone: Boolean get() = maxTimeMin == null && maxAscentM == null
+
+    companion object {
+        val NONE = DayLimits()
+    }
+}
+
+/**
+ * A night mark on a plan point (owner 2026-11-17, round 3 variant A): [hotel] null = Übernachtung (blue moon, the point
+ * stays on the route), else Hotel (green bed: the point sits at the hotel, the route leads there).
+ */
+data class NightMark(val hotel: Hotel? = null) {
+    val isHotel: Boolean get() = hotel != null
+
+    companion object {
+        val OVERNIGHT = NightMark()
+    }
+}
+
+/** A booked hotel: its name and an address and / or a link (Google Maps, Booking) – the phone shows them. */
+data class Hotel(val name: String? = null, val address: String? = null, val link: String? = null)
 
 /**
  * The plan code: compact, URL safe text for a [SharedPlan] (owner).
@@ -34,6 +73,11 @@ data class SharedPlan(
  * - pinned points: ceil(n / 8) bytes, bit i = point i
  * - optional fields until the end: tag (varint), length (varint), bytes. 1 = title (UTF-8),
  *   2 = point name (varint index + UTF-8). Unknown tags are skipped, so newer codes still open in older apps.
+ * - multi-day tours (owner 2026-11-17, still version 1 – an older app reads a multi-day plan as a normal long plan, its
+ *   hotels as named points): 3 = number of days (varint), 4 = limits per day (varint minutes, varint metres of ascent;
+ *   0 = none), 5 = night mark (varint index, varint kind 1 = Übernachtung / 2 = hotel, then the hotel's own fields as
+ *   tag, length, UTF-8: 1 = name, 2 = address, 3 = link; unknown ones skipped, an unknown kind reads as Übernachtung),
+ *   6 = description (UTF-8, line breaks kept).
  *
  * Reading never throws: anything broken, too large or of a newer major version is null.
  */
@@ -41,6 +85,15 @@ object PlanCode {
     const val VERSION = 1
     const val MAX_POINTS = 500
     const val MAX_NAME = 100
+    /** Most days of a multi-day tour. */
+    const val MAX_DAYS = 99
+    const val MAX_ADDRESS = 200
+    /** A Booking link with its query is long; the rest of a link is cut. */
+    const val MAX_LINK = 500
+    const val MAX_DESCRIPTION = 2_000
+    /** Limits above these are read as none (minutes: 24 h; metres). */
+    private const val MAX_LIMIT_MIN = 24 * 60
+    private const val MAX_LIMIT_ASCENT = 20_000
     private const val MAX_TEXT = 16_000
     private const val SCALE = 100_000.0
 
@@ -51,6 +104,18 @@ object PlanCode {
 
     private const val TAG_TITLE = 1
     private const val TAG_NAME = 2
+    private const val TAG_DAYS = 3
+    private const val TAG_LIMITS = 4
+    private const val TAG_NIGHT = 5
+    private const val TAG_DESCRIPTION = 6
+    /** The highest tag this reader knows; tests read as an older app with a lower one ([decode]). */
+    private const val TAG_LAST = TAG_DESCRIPTION
+
+    private const val NIGHT_OVERNIGHT = 1
+    private const val NIGHT_HOTEL = 2
+    private const val HOTEL_NAME = 1
+    private const val HOTEL_ADDRESS = 2
+    private const val HOTEL_LINK = 3
 
     /** The stored code of [a] – the same fixed table for the plan sync's track code (sync/TrackCode). */
     fun activityCode(a: Activity): Int = ACTIVITIES.indexOf(a).coerceAtLeast(0)
@@ -84,6 +149,24 @@ object PlanCode {
             val b = Bytes().apply { varint(i.toLong()) }
             out.field(TAG_NAME, b.toArray() + n.encodeToByteArray())
         }
+        plan.days?.let { out.field(TAG_DAYS, Bytes().apply { varint(it.coerceIn(1, MAX_DAYS).toLong()) }.toArray()) }
+        if (!plan.limits.isNone) out.field(TAG_LIMITS, Bytes().apply {
+            varint(limit(plan.limits.maxTimeMin, MAX_LIMIT_MIN).toLong()); varint(limit(plan.limits.maxAscentM, MAX_LIMIT_ASCENT).toLong())
+        }.toArray())
+        for ((i, mark) in plan.nights.toSortedMap()) {
+            if (i <= 0 || i >= pts.lastIndex) continue // never on the start or the last point
+            val b = Bytes().apply { varint(i.toLong()) }
+            val h = mark.hotel
+            if (h == null) b.varint(NIGHT_OVERNIGHT.toLong())
+            else {
+                b.varint(NIGHT_HOTEL.toLong())
+                clean(h.name)?.let { b.field(HOTEL_NAME, it.encodeToByteArray()) }
+                clean(h.address, MAX_ADDRESS)?.let { b.field(HOTEL_ADDRESS, it.encodeToByteArray()) }
+                clean(h.link, MAX_LINK)?.let { b.field(HOTEL_LINK, it.encodeToByteArray()) }
+            }
+            out.field(TAG_NIGHT, b.toArray())
+        }
+        cleanText(plan.description)?.let { out.field(TAG_DESCRIPTION, it.encodeToByteArray()) }
         return Base64Url.encode(out.toArray())
     }
 
@@ -102,11 +185,14 @@ object PlanCode {
         return decode(code)
     }
 
-    /** The plan for a bare [code], or null. */
-    fun decode(code: String): SharedPlan? {
+    /**
+     * The plan for a bare [code], or null. [knownTags] = the highest optional field this reader knows (tests: 2 reads as
+     * an app before multi-day tours did).
+     */
+    fun decode(code: String, knownTags: Int = TAG_LAST): SharedPlan? {
         val bytes = Base64Url.decode(code) ?: return null
         return try {
-            read(Reader(bytes))
+            read(Reader(bytes), knownTags)
         } catch (_: IndexOutOfBoundsException) {
             null // expected: cut-off or damaged code (typed by hand, half a QR code) – the caller says "not a plan"
         } catch (_: IllegalArgumentException) {
@@ -114,7 +200,7 @@ object PlanCode {
         }
     }
 
-    private fun read(r: Reader): SharedPlan? {
+    private fun read(r: Reader, knownTags: Int): SharedPlan? {
         if (r.byte() != VERSION) return null
         val activity = ACTIVITIES.getOrNull(r.byte()) ?: return null
         // T0 from a bike plan (field bug 2026-10-31): the level means nothing there – read it as the default T2
@@ -137,26 +223,64 @@ object PlanCode {
         }
         var title: String? = null
         val names = HashMap<Int, String>()
+        var days: Int? = null
+        var limits = DayLimits.NONE
+        val nights = HashMap<Int, NightMark>()
+        var description: String? = null
         while (r.more()) {
             val tag = r.varint()
             val len = r.varint()
             require(len in 0..r.left().toLong())
             val f = Reader(r.take(len.toInt()))
-            when (tag.toInt()) {
+            when (if (tag > knownTags) -1 else tag.toInt()) {
                 TAG_TITLE -> title = clean(f.rest().decodeToString())
                 TAG_NAME -> {
                     val i = f.varint()
                     val name = clean(f.rest().decodeToString())
                     if (i >= 0 && i < points.size && name != null) names[i.toInt()] = name
                 }
+                TAG_DAYS -> days = f.varint().takeIf { it in 1..MAX_DAYS }?.toInt()
+                TAG_LIMITS -> limits = DayLimits(limitOf(f.varint(), MAX_LIMIT_MIN), if (f.more()) limitOf(f.varint(), MAX_LIMIT_ASCENT) else null)
+                TAG_NIGHT -> {
+                    val i = f.varint()
+                    val kind = if (f.more()) f.varint() else NIGHT_OVERNIGHT.toLong()
+                    val mark = if (kind == NIGHT_HOTEL.toLong()) NightMark(readHotel(f)) else NightMark.OVERNIGHT
+                    if (i > 0 && i < points.lastIndex) nights[i.toInt()] = mark
+                }
+                TAG_DESCRIPTION -> description = cleanText(f.rest().decodeToString())
                 else -> Unit // a field from a newer app: skip it
             }
         }
-        return SharedPlan(points, activity, sac, pinned, names, title)
+        return SharedPlan(points, activity, sac, pinned, names, title, days, limits, nights, description)
     }
 
-    private fun clean(s: String): String? =
-        s.filter { it >= ' ' }.trim().take(MAX_NAME).trim().takeIf { it.isNotEmpty() }
+    private fun readHotel(f: Reader): Hotel {
+        var name: String? = null; var address: String? = null; var link: String? = null
+        while (f.more()) {
+            val tag = f.varint()
+            val len = f.varint()
+            require(len in 0..f.left().toLong())
+            val text = f.take(len.toInt()).decodeToString()
+            when (tag.toInt()) {
+                HOTEL_NAME -> name = clean(text)
+                HOTEL_ADDRESS -> address = clean(text, MAX_ADDRESS)
+                HOTEL_LINK -> link = clean(text, MAX_LINK)
+                else -> Unit // a hotel field from a newer app: skip it
+            }
+        }
+        return Hotel(name, address, link)
+    }
+
+    private fun limit(v: Int?, max: Int): Int = v?.takeIf { it in 1..max } ?: 0
+    private fun limitOf(v: Long, max: Int): Int? = v.takeIf { it in 1..max.toLong() }?.toInt()
+
+    private fun clean(s: String?, max: Int = MAX_NAME): String? =
+        s?.filter { it >= ' ' }?.trim()?.take(max)?.trim()?.takeIf { it.isNotEmpty() }
+
+    /** [clean] for a text with paragraphs: line breaks stay (at most two in a row), other control characters go. */
+    private fun cleanText(s: String?): String? =
+        s?.replace("\r\n", "\n")?.filter { it == '\n' || it >= ' ' }?.replace(Regex("\n{3,}"), "\n\n")?.trim()
+            ?.take(MAX_DESCRIPTION)?.trim()?.takeIf { it.isNotEmpty() }
 
     private class Bytes {
         private var buf = ByteArray(64)

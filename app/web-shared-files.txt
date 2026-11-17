@@ -137,6 +137,7 @@ suggest/TourSuggester.kt
 [tests]
 routing/OfflineCorridorTest.kt
 routing/PlanCodeTest.kt
+routing/PlanCodeDaysTest.kt
 ui/PlanStateTest.kt
 ui/MapGesturesTest.kt
 ui/RouteWarningsTest.kt

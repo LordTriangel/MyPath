@@ -212,7 +212,7 @@ class PlanSyncPass(
                     item == null -> if (live) save(ledger, id, t, now, device)
                     !live -> if (!item.deleted) ledger.delete(id, now, device)
                     item.deleted || item.kind != RouteItems.kindOf(t) -> save(ledger, id, t, now, device)
-                    item.kind == SyncItem.PLAN && !RouteItems.samePlan(RouteItems.planOf(t), item.plan) -> save(ledger, id, t, now, device)
+                    item.kind == SyncItem.PLAN && !RouteItems.samePlan(RouteItems.planOf(t), item.plan, RouteItems.PHONE_KEEPS_DAYS) -> save(ledger, id, t, now, device)
                     item.kind == SyncItem.TRACK && !RouteItems.sameTrackHeader(t, item) -> save(ledger, id, t, now, device)
                     item.title != title(t) -> ledger.rename(id, title(t), now, device)
                 }
@@ -292,7 +292,7 @@ class PlanSyncPass(
                         var changed = false
                         if (tour.deletedMs != null) { store.fromBin(tour); changed = true }
                         if (item.kind == SyncItem.PLAN) {
-                            if (!RouteItems.samePlan(RouteItems.planOf(tour), item.plan)) {
+                            if (!RouteItems.samePlan(RouteItems.planOf(tour), item.plan, RouteItems.PHONE_KEEPS_DAYS)) {
                                 val c = RouteItems.planContent(item)
                                 if (c == null) unreadable++
                                 else if (store.replacePlan(tour, c)) { toRoute += tour.id; changed = true; routedWith(item) }
@@ -394,7 +394,7 @@ class PlanSyncPass(
     }
 
     private fun sameContent(t: Tour, item: SyncItem): Boolean = try {
-        if (item.kind == SyncItem.PLAN) item.plan != null && RouteItems.samePlan(RouteItems.planOf(t), item.plan)
+        if (item.kind == SyncItem.PLAN) item.plan != null && RouteItems.samePlan(RouteItems.planOf(t), item.plan, RouteItems.PHONE_KEEPS_DAYS)
         else item.track != null && RouteItems.trackOf(t, store.segments(t.id)) == item.track
     } catch (e: Exception) {
         Problems.warn("sync", "Sync: a saved route could not be compared with one from the browser; it is added as new", e); false

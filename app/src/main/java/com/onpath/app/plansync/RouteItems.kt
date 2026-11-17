@@ -4,7 +4,9 @@ import com.onpath.app.data.Tour
 import com.onpath.app.gpx.GpxWaypoint
 import com.onpath.app.gpx.TrackPoint
 import com.onpath.app.routing.Activity
+import com.onpath.app.routing.DayLimits
 import com.onpath.app.routing.GeoPoint
+import com.onpath.app.routing.NightMark
 import com.onpath.app.routing.PlanCode
 import com.onpath.app.routing.SharedPlan
 import com.onpath.app.sync.SyncFormat
@@ -15,9 +17,14 @@ import com.onpath.app.sync.TrackCode
 import com.onpath.app.sync.TrackMark
 import com.onpath.app.sync.TrackPt
 
-/** What a synced plan puts into a planned route: its points (with names) and pins, activity and T level. */
+/**
+ * What a synced plan puts into a planned route: its points (with names) and pins, activity and T level – and, for a
+ * multi-day tour (owner 2026-11-17), N, the limits per day, the night marks and the description (the phone store keeps
+ * them from stage 4 on, docs/design/multi-day-tours.md §8).
+ */
 data class PlanContent(val points: List<GeoPoint>, val activity: Activity, val sac: Int, val pinned: Set<Int>,
-                       val names: Map<Int, String>) {
+                       val names: Map<Int, String>, val days: Int? = null, val limits: DayLimits = DayLimits.NONE,
+                       val nights: Map<Int, NightMark> = emptyMap(), val description: String? = null) {
     /** The route's stops as saved (GpxWaypoint with the names, like AppViewModel.savedStops). */
     val stops: List<GpxWaypoint> get() = points.mapIndexed { i, p -> GpxWaypoint(p.lat, p.lon, names[i]) }
 }
@@ -46,14 +53,27 @@ object RouteItems {
             t.waypoints.mapIndexedNotNull { i, w -> w.name?.let { i to it } }.toMap(), title = null))
     }
 
-    /** Same plan (points, activity, T level, pins, names) – a title inside a code made elsewhere does not count. */
-    fun samePlan(a: String?, b: String?): Boolean = normal(a) == normal(b)
+    /**
+     * The phone's route store keeps a multi-day tour's days (N, limits, night marks, description): false until stage 4
+     * of docs/design/multi-day-tours.md. While false, a saved route and its item compare without them ([samePlan]) –
+     * else every sync pass would send the route back without its days and wipe the browser's (owner 2026-11-17).
+     */
+    const val PHONE_KEEPS_DAYS = false
 
-    private fun normal(code: String?): String? = code?.let(PlanCode::decode)?.copy(title = null)?.let(PlanCode::encode)
+    /**
+     * Same plan (points, activity, T level, pins, names and – with [days] – a multi-day tour's days) – a title inside a
+     * code made elsewhere does not count. Two items compare with their days; a saved route on the phone with an item
+     * with [PHONE_KEEPS_DAYS].
+     */
+    fun samePlan(a: String?, b: String?, days: Boolean = true): Boolean = normal(a, days) == normal(b, days)
+
+    private fun normal(code: String?, days: Boolean): String? = code?.let(PlanCode::decode)?.copy(title = null)
+        ?.let { if (days) it else it.copy(days = null, limits = DayLimits.NONE, nights = emptyMap(), description = null) }
+        ?.let(PlanCode::encode)
 
     fun planContent(item: SyncItem): PlanContent? {
         val p = item.plan?.let(PlanCode::decode)?.takeIf { it.points.size >= 2 } ?: return null
-        return PlanContent(p.points, p.activity, p.sac, p.pinned, p.names)
+        return PlanContent(p.points, p.activity, p.sac, p.pinned, p.names, p.days, p.limits, p.nights, p.description)
     }
 
     /** The track item text of an imported tour (thinned to fit when long); null without points. */
