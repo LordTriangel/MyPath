@@ -39,6 +39,9 @@
    clicks in the wrong order; parity-smoke: a click on the line not put into the leg). robust-smoke was not in
    check-web.sh – I add it. Decision: fix forward at once (night, few users) rather than roll back; if the fix takes
    long I roll the planner back to 0f18a0c6.
+   Result: no page bug – both CI failures were tests (robust-smoke clicked past the goal, which now asks by the hold
+   rule; parity-smoke clicked into a map note while the first-route fit moved the map). Tests fixed (8976753b,
+   22f292d8), check-web now runs nowebgl/robust like CI. The live planner stays as deployed.
 
 ## Open for the owner (morning)
 - Hold rule past the goal (with donald's first item): with the band of f12e8d83 a silent new goal happens only exactly straight on past the goal – in practice every hold past the goal asks, with „Neues Ziel“ first, in app and planner alike (the planner follows the app's shared rule).
