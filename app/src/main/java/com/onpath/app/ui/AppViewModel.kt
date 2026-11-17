@@ -1966,9 +1966,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var holdAddMenu by mutableStateOf<HoldAdd?>(null)
 
     /**
-     * A hold on the empty map in Plan ([MapGestures.Action.AddPoint], core feature C1), owner 2026-11-15. While planning
-     * the shorter detour decides ([PlaceAddMenu.planningHold]: on the line → the smart insertion, appending much cheaper → the
-     * new goal, inserting much cheaper → a stop, similar → the small menu „Einfügen“ / „Neues Ziel“, the cheaper first);
+     * A hold on the empty map in Plan ([MapGestures.Action.AddPoint], core feature C1), owner 2026-11-15 / 11-17. While
+     * planning [PlaceAddMenu.planningHold] decides: on the line → the smart insertion, clearly beside an earlier part → a
+     * stop, straight on behind the goal → the new goal, else the shorter detour by half, similar → the small menu
+     * „Einfügen“ / „Neues Ziel“, the cheaper first;
      * on a tour or a round trip the zone does ([PlaceAddMenu.asksOnHold]). Back / a tap elsewhere adds nothing.
      */
     fun holdOnMap(p: GeoPoint, lineSnapM: Double) {
@@ -1995,15 +1996,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val mPerDp = lineSnapM / PlaceAddMenu.LINE_SNAP_DP
             val line = (if (routing) null else route?.points)?.takeIf { it.size >= 2 } ?: waypoints.toList()
             val lineDp = Geo.distanceToLine(p, line) / mPerDp
-            val d = PlaceAddMenu.detours(waypoints.toList(), p)!!
-            val why = "line ${lineDp.toInt()} dp, insert +${d.insertM.toInt()} m, append ${d.appendM.toInt()} m, $n points"
+            val d = PlaceAddMenu.detours(waypoints.toList(), p, if (routing) null else route?.points)!!
+            val why = "line ${lineDp.toInt()} dp, insert +${d.insertM.toInt()} m" +
+                (d.earlyInsertM?.let { " (earlier legs +${it.toInt()} m)" } ?: "") + ", append ${d.appendM.toInt()} m" +
+                (d.aheadDeg?.let { ", ${it.toInt()}° off the arrival" } ?: "") + ", $n points"
             when (PlaceAddMenu.planningHold(lineDp, d)) {
                 PlaceAddMenu.HoldAction.ON_LINE -> {
                     Problems.trace("plan", "New point by a hold: on the line, set at once ($why)")
                     addPoint(p, lineSnapM); return
                 }
                 PlaceAddMenu.HoldAction.NEW_GOAL -> {
-                    Problems.trace("plan", "New point by a hold: appending is much shorter, the new goal at once ($why)")
+                    Problems.trace("plan", "New point by a hold: straight on behind the goal or appending much shorter, the new goal at once ($why)")
                     asNewDestination(p); return
                 }
                 PlaceAddMenu.HoldAction.STOP -> {

@@ -84,30 +84,68 @@ object PlaceAddMenu {
      */
     const val ASK_BAND = 2.0
 
-    /** The two costs of a new point while planning, metres, straight lines ([detours]). */
+    /**
+     * „Straight on behind the goal“ (owner 2026-11-17, way 3 of the step-back page: „anhängen, außer es liegt erkennbar an
+     * der Route“): a spot at most this many degrees off the direction the route arrives at the goal continues the way –
+     * the new goal at once. The owner's field cases: St.-Konrad-Allee 19:51 and four holds 2026-11-16 23:42 (0–40°, he
+     * wanted the new goal), Hilden Süd 23:27 (~75°, „hätte ein Zwischenpunkt sein können“) and the Färberweg junction
+     * (~70°) ask.
+     */
+    const val AHEAD_DEG = 60.0
+
+    /** The arrival direction is read over the route's last this many metres before the goal. */
+    const val ARRIVAL_M = 40.0
+
+    /** The costs of a new point while planning, metres, straight lines ([detours]). */
     data class Detours(
         /** The cheapest insertion detour over the legs: d(a,s) + d(s,b) − d(a,b) (as [zone]). */
         val insertM: Double,
         /** What appending costs: d(goal, s). */
         val appendM: Double,
+        /** The cheapest insertion detour over the legs before the last one; null with one leg. */
+        val earlyInsertM: Double? = null,
+        /** Degrees between the direction the route arrives at the goal and goal → spot; null when not known. */
+        val aheadDeg: Double? = null,
     )
 
-    /** [Detours] of a spot [s] for a plan of 2+ [points]; null with fewer. */
-    fun detours(points: List<GeoPoint>, s: GeoPoint): Detours? {
+    /**
+     * [Detours] of a spot [s] for a plan of 2+ [points]; null with fewer. [line] = the drawn route (its last [ARRIVAL_M]
+     * give the arrival direction); without it the last leg's straight line does.
+     */
+    fun detours(points: List<GeoPoint>, s: GeoPoint, line: List<GeoPoint>? = null): Detours? {
         if (points.size < 2) return null
-        val insert = points.zipWithNext().minOf { (a, b) -> Geo.distance(a, s) + Geo.distance(s, b) - Geo.distance(a, b) }
-        return Detours(insert, Geo.distance(points.last(), s))
+        val legs = points.zipWithNext().map { (a, b) -> Geo.distance(a, s) + Geo.distance(s, b) - Geo.distance(a, b) }
+        val goal = points.last()
+        val from = arrivalFrom(line, goal) ?: points[points.size - 2]
+        val ahead = if (Geo.distance(from, goal) < 1.0 || Geo.distance(goal, s) < 1.0) null
+            else kotlin.math.abs(Geo.angleDiff(Geo.bearing(from, goal), Geo.bearing(goal, s)))
+        return Detours(legs.min(), Geo.distance(goal, s), legs.dropLast(1).minOrNull(), ahead)
+    }
+
+    /** The point [ARRIVAL_M] before the end of [line] (walking back from its last point); null without a usable line. */
+    private fun arrivalFrom(line: List<GeoPoint>?, goal: GeoPoint): GeoPoint? {
+        if (line == null || line.size < 2 || Geo.distance(line.last(), goal) > 2 * ARRIVAL_M) return null
+        var walked = 0.0
+        for (i in line.size - 1 downTo 1) {
+            walked += Geo.distance(line[i], line[i - 1])
+            if (walked >= ARRIVAL_M) return line[i - 1]
+        }
+        return line.first()
     }
 
     /**
      * A hold on the empty map with 2+ points while PLANNING – no tour, no round trip (those keep [asksOnHold] on the zone).
-     * The owner's rule (2026-11-15, after a field case at a junction beside the goal of a long plan): „Die App nimmt, was
-     * den kürzeren Umweg macht; sind beide ähnlich, fragt sie.“ On the line ([lineDp] ≤ [snapDp]) → [HoldAction.ON_LINE];
-     * appending at most 1/[ASK_BAND] of inserting → [HoldAction.NEW_GOAL]; inserting at most 1/[ASK_BAND] of appending →
-     * [HoldAction.STOP]; else [HoldAction.ASK]. [lineDp] null = no line yet.
+     * The owner's rule (2026-11-17, way 3 after comparing Komoot, Strava, OsmAnd …: „anhängen, außer es liegt erkennbar
+     * an der Route“), in order: on the line ([lineDp] ≤ [snapDp]) → [HoldAction.ON_LINE]; beside an earlier part of the
+     * route, inserting there at most 1/[ASK_BAND] of appending → [HoldAction.STOP]; straight on behind the goal (≤
+     * [AHEAD_DEG] off the arrival) → [HoldAction.NEW_GOAL]; else the band the same both ways (2026-11-16): appending at most
+     * 1/[ASK_BAND] of inserting → [HoldAction.NEW_GOAL], inserting at most 1/[ASK_BAND] of appending → [HoldAction.STOP],
+     * else [HoldAction.ASK]. [lineDp] null = no line yet.
      */
     fun planningHold(lineDp: Double?, d: Detours, snapDp: Double = LINE_SNAP_DP): HoldAction = when {
         lineDp != null && lineDp <= snapDp -> HoldAction.ON_LINE
+        d.earlyInsertM != null && d.earlyInsertM * ASK_BAND <= d.appendM -> HoldAction.STOP
+        d.aheadDeg != null && d.aheadDeg <= AHEAD_DEG -> HoldAction.NEW_GOAL
         d.appendM * ASK_BAND <= d.insertM -> HoldAction.NEW_GOAL
         d.insertM * ASK_BAND <= d.appendM -> HoldAction.STOP
         else -> HoldAction.ASK

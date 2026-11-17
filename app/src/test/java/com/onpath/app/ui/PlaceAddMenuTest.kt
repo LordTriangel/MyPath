@@ -240,6 +240,50 @@ class PlaceAddMenuTest {
         assertEquals(PlaceAddMenu.HoldAction.ON_LINE, planning(plan, at(here, 5.0, -1000.0), lineDp = 10.0))
     }
 
+    // ---- 2026-11-17: „anhängen, außer es liegt erkennbar an der Route“ (way 3 after comparing Komoot, Strava, OsmAnd …) ----
+
+    /**
+     * The owner's field case 2026-11-17 19:51 (St.-Konrad-Allee, Hilden): a hold ~95 m straight on behind the goal, the
+     * way the route arrives – inserting ≈ 172 m, appending ≈ 95 m. The symmetric band asked; „I want to continue my way“
+     * → the new goal at once. Same shape: a long last leg from the north, the spot ~95 m on and a little aside.
+     */
+    @Test fun straightOnBehindTheGoalIsTheNewGoalAtOnce() {
+        val goal = at(here, 0.0, -2000.0)
+        val plan = listOf(here, goal)
+        val spot = at(goal, -30.0, -90.0)
+        val d = PlaceAddMenu.detours(plan, spot)!!
+        assertTrue("the band alone would ask: append ${d.appendM}, insert ${d.insertM}", d.appendM * PlaceAddMenu.ASK_BAND > d.insertM)
+        assertTrue("ahead ${d.aheadDeg}", d.aheadDeg!! <= PlaceAddMenu.AHEAD_DEG)
+        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, planning(plan, spot))
+    }
+
+    /** Hilden Süd 2026-11-16 23:27: appending 32 m, inserting 62 m, ~75° aside – „hätte ein Zwischenpunkt sein können“: asks. */
+    @Test fun asideOfTheGoalStillAsks() {
+        assertEquals(PlaceAddMenu.HoldAction.ASK,
+            PlaceAddMenu.planningHold(93.0, PlaceAddMenu.Detours(insertM = 62.0, appendM = 32.0, aheadDeg = 75.0)))
+    }
+
+    /** The arrival is read on the drawn route: it comes in from the east although the last leg's straight line is from the north. */
+    @Test fun theArrivalIsTheDrawnRoutesLastMetres() {
+        val goal = at(here, 0.0, -1000.0)
+        val plan = listOf(here, goal)
+        val line = listOf(here, at(here, 300.0, -500.0), at(goal, 200.0, 0.0), goal) // last 200 m arrive going west
+        val west = at(goal, -100.0, 10.0)
+        val south = at(goal, 10.0, -100.0)
+        assertTrue(PlaceAddMenu.detours(plan, west, line)!!.aheadDeg!! <= PlaceAddMenu.AHEAD_DEG)
+        assertTrue(PlaceAddMenu.detours(plan, south, line)!!.aheadDeg!! > PlaceAddMenu.AHEAD_DEG)
+        assertTrue(PlaceAddMenu.detours(plan, south)!!.aheadDeg!! <= PlaceAddMenu.AHEAD_DEG) // straight line: from the north
+    }
+
+    /** Beside an earlier part of the route (an out-and-back), inserting there is far shorter than appending: a stop at once. */
+    @Test fun besideAnEarlierPartIsAStopAtOnce() {
+        val plan = listOf(here, at(here, 0.0, 1000.0), at(here, 200.0, 0.0))
+        val spot = at(here, -30.0, 500.0)
+        val d = PlaceAddMenu.detours(plan, spot)!!
+        assertTrue("early ${d.earlyInsertM}, append ${d.appendM}", d.earlyInsertM!! * PlaceAddMenu.ASK_BAND <= d.appendM)
+        assertEquals(PlaceAddMenu.HoldAction.STOP, planning(plan, spot))
+    }
+
     @Test fun theAskBandIsNamed() {
         val d = { i: Double, g: Double -> PlaceAddMenu.Detours(i, g) }
         assertEquals(PlaceAddMenu.HoldAction.STOP, PlaceAddMenu.planningHold(null, d(100.0, 100.0 * PlaceAddMenu.ASK_BAND)))
