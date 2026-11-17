@@ -532,7 +532,9 @@ async function commit(points: LatLon[], meta?: Meta[]) {
   // the map shows it whole once it is there, unless the map was touched meanwhile (fitFirstRoute). Asked before the
   // plan: the one worker answers in order, so this is known when the route comes.
   const fromCard = placeFit; placeFit = false;
-  const asked = performance.now();
+  // asked when the press that made this edit happened (pressInOrder): a press after it – even one made before this commit,
+  // a fast click – is a touch after the ask and keeps the map where the user is working (its hold menu stays open)
+  const asked = pressedAt ?? performance.now();
   const fit = (yes: string) => { if (yes === 'true') { fitNextRoute = true; fitAskedAt = asked; } };
   engine.call('routeFirst', state.points.length, points.length).then(fit, (e) => problem('plan', 'route fit rule not asked', e));
   if (fromCard) engine.call('routeFitAfterPlace', enc(state.points), enc(points)).then(fit, (e) => problem('plan', 'route fit rule not asked', e));
@@ -661,7 +663,7 @@ async function drawPoints() {
     el.addEventListener('click', (ev) => {
       ev.stopPropagation();
       if (Date.now() - draggedAt < 300) return; // the click that ends a drag
-      press(m.getLngLat(), i);
+      pressInOrder(m.getLngLat(), i);
     });
     markers.push(m);
   });
@@ -718,8 +720,25 @@ function openMenu(at: maplibregl.LngLat, items: MenuItem[], head: string) {
   menu = m;
 }
 
-map.on('click', (e) => press(e.lngLat, -1, e.point));
-map.on('contextmenu', (e) => { e.preventDefault(); press(e.lngLat, -1, e.point); }); // right-click / long press: the same
+map.on('click', (e) => pressInOrder(e.lngLat, -1, e.point));
+map.on('contextmenu', (e) => { e.preventDefault(); pressInOrder(e.lngLat, -1, e.point); }); // right-click / long press: the same
+
+/**
+ * Presses one after the other: each is decided on the plan and the menu as the press before it left them – its menu open,
+ * its point in the plan (not yet routed). A fast double click gives what two slow clicks give: without this, a click
+ * right after one on a POI was decided while that POI's menu was still being built (engine calls), so it added a point
+ * and the POI's menu opened after it, with the old plan's rows (edit-smoke, 2026-11-17).
+ */
+let pressChain: Promise<void> = Promise.resolve();
+/** When the press being decided now happened: its edit's route fit counts map touches from then (commit). */
+let pressedAt: number | null = null;
+function pressInOrder(at: maplibregl.LngLat, marker: number, pt?: maplibregl.Point) {
+  const when = performance.now();
+  pressChain = pressChain.then(async () => {
+    pressedAt = when;
+    try { await press(at, marker, pt); } finally { pressedAt = null; }
+  }).catch((e) => problem('plan', 'a press on the map failed', e, 'error'));
+}
 
 // The pointing hand over what a click opens (owner 2026-10-30): a POI (its menu) and the route line (a point goes into
 // that leg). Markers are DOM elements with their own cursor. One lookup per frame at most.
@@ -748,19 +767,32 @@ map.on('mouseout', () => { map.getCanvas().style.cursor = ''; routeProfile.hover
  * The POI lookup (`poiAt`) reads MapLibre's last symbol placement. Right after the map moved (a pan, the search's own
  * move for the found place's menu) that placement still holds the old screen positions until the next one is done –
  * a few hundred ms, more on a slow GPU: a click on a POI drawn right there found nothing, or the POI that stood there
- * before the move (search-smoke, Gasthaus Egger, 2026-11-16). So a click waits for the map to settle ('idle' = the
- * placement done for this camera), 1 s at most, and then looks at the clicked place's spot as it is now. The app reads
- * its POIs at the camera's idle, too (PoiTap).
+ * before the move (search-smoke, Gasthaus Egger, 2026-11-16). So a click waits until the placement is the one for this
+ * camera (or the map is 'idle'), and then looks at the clicked place's spot as it is now. The app reads its POIs at the
+ * camera's idle, too (PoiTap). The wait was 1 s at most: on a slow GPU (SwiftShader under load, frames > 1 s) the click
+ * still read the old placement and a POI became a plain map click (search-smoke 1 in 4, 2026-11-17) – now 5 s at most,
+ * ended by the first frame whose placement fits the camera.
  */
 let mapSettled = false;
 map.on('movestart', () => { mapSettled = false; });
 map.on('idle', () => { mapSettled = true; });
+/** MapLibre's committed symbol placement was made for the camera as it is now; null = not known (another MapLibre). */
+function placedHere(): boolean | null {
+  type Cam = { center?: { lng: number; lat: number }; zoom?: number; bearing?: number; pitch?: number };
+  const t = (map as unknown as { style?: { placement?: { transform?: Cam } } }).style?.placement?.transform;
+  if (!t?.center || t.zoom == null) return null;
+  const c = map.getCenter(), near = (x: number, y: number) => Math.abs(x - y) < 1e-9;
+  return !map.isMoving() && near(t.center.lng, c.lng) && near(t.center.lat, c.lat) && near(t.zoom, map.getZoom())
+    && near(t.bearing ?? 0, map.getBearing()) && near(t.pitch ?? 0, map.getPitch());
+}
 async function settledPoint(at: maplibregl.LngLat): Promise<maplibregl.Point> {
-  if (!mapSettled) {
+  if (!mapSettled && placedHere() !== true) {
     await new Promise<void>((done) => {
-      const fin = () => { clearTimeout(timer); map.off('idle', fin); done(); };
-      const timer = setTimeout(fin, 1000);
+      const fin = () => { clearTimeout(timer); map.off('idle', fin); map.off('render', frame); done(); };
+      const frame = () => { if (placedHere() === true) fin(); };
+      const timer = setTimeout(fin, 5000);
       map.on('idle', fin);
+      map.on('render', frame);
       map.triggerRepaint(); // nothing left to draw: 'idle' comes with the next frame
     });
   }
@@ -777,18 +809,19 @@ async function press(at: maplibregl.LngLat, marker: number, pt?: maplibregl.Poin
     if (terrain3d.on || !pt) return;
     pt = await settledPoint(at);
     const poi = markerNear(pt) < 0 ? poiAt(pt) : null;
-    if (poi) void poiMenu(poi);
+    if (poi) await poiMenu(poi);
     return;
   }
   if (terrain3d.on) { closeMenu(); return; } // 3D is for looking (the note on the map says so); planning is on the flat map
-  if (pt) pt = await settledPoint(at); // clicks in a row keep their order: they wait for the same 'idle'
+  if (pt) pt = await settledPoint(at);
   if (marker < 0 && pt) marker = markerNear(pt);
   const poi = pt && marker < 0 ? poiAt(pt) : null;
   const action = await engine.call('gesture', menu != null, marker, poi != null, state.points.length === 0);
-  if (action.startsWith('PointMenu:')) pointMenu(Number(action.split(':')[1]));
-  else if (action === 'PoiMenu' && poi) poiMenu(poi);
-  else if (action === 'FirstPointMenu') firstPointMenu(at);
-  else if (action === 'AddPoint') addPoint(at);
+  // each waits until its menu is open or its point is in the plan (pressInOrder); the route is not waited for
+  if (action.startsWith('PointMenu:')) await pointMenu(Number(action.split(':')[1]));
+  else if (action === 'PoiMenu' && poi) await poiMenu(poi);
+  else if (action === 'FirstPointMenu') await firstPointMenu(at);
+  else if (action === 'AddPoint') { void addPoint(at); await editChain; }
   else if (action === 'CloseMenu') closeMenu();
 }
 
