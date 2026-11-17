@@ -96,7 +96,7 @@ object PlaceAddMenu {
     /** The arrival direction is read over the route's last this many metres before the goal. */
     const val ARRIVAL_M = 40.0
 
-    /** The costs of a new point while planning, metres, straight lines ([detours]). */
+    /** The costs of a new point while planning, metres – straight lines ([detours]) or on the paths ([pathDetours]). */
     data class Detours(
         /** The cheapest insertion detour over the legs: d(a,s) + d(s,b) − d(a,b) (as [zone]). */
         val insertM: Double,
@@ -122,6 +122,52 @@ object PlaceAddMenu {
         return Detours(legs.min(), Geo.distance(goal, s), legs.dropLast(1).minOrNull(), ahead)
     }
 
+    /**
+     * „Always real paths“ (owner 2026-11-17, field case Hilden Feldstraße: straight lines said insert +68 m, append +63 m
+     * – asked; on the paths inserting is ≈ +120 m, from point 12 there is no direct way, it goes past the goal; appending
+     * ≈ 60 m): this many legs with the smallest straight-line detour are measured on the paths, the last leg always on top
+     * ([pathCandidates]) – it caps the router's work.
+     */
+    const val PATH_CANDIDATES = 3
+
+    /**
+     * The legs (index of the leg's start point) [pathDetours] measures for a spot [s] in a plan of 2+ [points]: the last leg
+     * first (it decides most holds), then the [PATH_CANDIDATES] legs with the smallest straight-line detour; empty with
+     * fewer than 2 points.
+     */
+    fun pathCandidates(points: List<GeoPoint>, s: GeoPoint): List<Int> {
+        if (points.size < 2) return emptyList()
+        val last = points.size - 2
+        val byDetour = (0..last).sortedBy { i ->
+            Geo.distance(points[i], s) + Geo.distance(s, points[i + 1]) - Geo.distance(points[i], points[i + 1])
+        }.take(PATH_CANDIDATES)
+        return listOf(last) + byDetour.filter { it != last }
+    }
+
+    /**
+     * [Detours] on the real paths (owner 2026-11-17 „Always real paths“): [length] (a, b) = the routed length a → b in
+     * metres for the plan's activity; it throws when there is no route (the caller then keeps the straight lines,
+     * [detours]). Appending = length(goal, s); inserting into a candidate leg a → b ([pathCandidates]) = length(a, s) +
+     * length(s, b) − length(a, b), never below 0; [Detours.earlyInsertM] = the smallest among the candidates before the last
+     * leg (null when none is measured). [Detours.aheadDeg] stays the drawn route's ([straight]): straight on behind the goal
+     * the paths alone would ask (there and back is about twice the way on).
+     */
+    fun pathDetours(points: List<GeoPoint>, s: GeoPoint, straight: Detours, length: (GeoPoint, GeoPoint) -> Double): Detours {
+        require(points.size >= 2) { "a plan needs two points, got ${points.size}" }
+        val goal = points.last()
+        val append = length(goal, s)
+        val last = points.size - 2
+        var insert = Double.MAX_VALUE
+        var early: Double? = null
+        for (i in pathCandidates(points, s)) {
+            val a = points[i]; val b = points[i + 1]
+            val d = maxOf(0.0, length(a, s) + length(s, b) - length(a, b))
+            insert = minOf(insert, d)
+            if (i < last) early = minOf(early ?: d, d)
+        }
+        return Detours(insert, append, early, straight.aheadDeg)
+    }
+
     /** The point [ARRIVAL_M] before the end of [line] (walking back from its last point); null without a usable line. */
     private fun arrivalFrom(line: List<GeoPoint>?, goal: GeoPoint): GeoPoint? {
         if (line == null || line.size < 2 || Geo.distance(line.last(), goal) > 2 * ARRIVAL_M) return null
@@ -140,7 +186,8 @@ object PlaceAddMenu {
      * route, inserting there at most 1/[ASK_BAND] of appending → [HoldAction.STOP]; straight on behind the goal (≤
      * [AHEAD_DEG] off the arrival) → [HoldAction.NEW_GOAL]; else the band the same both ways (2026-11-16): appending at most
      * 1/[ASK_BAND] of inserting → [HoldAction.NEW_GOAL], inserting at most 1/[ASK_BAND] of appending → [HoldAction.STOP],
-     * else [HoldAction.ASK]. [lineDp] null = no line yet.
+     * else [HoldAction.ASK]. [lineDp] null = no line yet. Since 2026-11-17 („Always real paths“) the app gives [d] on the
+     * paths ([pathDetours]) when its router measured them in time, else the straight lines ([detours]) – the rule is the same.
      */
     fun planningHold(lineDp: Double?, d: Detours, snapDp: Double = LINE_SNAP_DP): HoldAction = when {
         lineDp != null && lineDp <= snapDp -> HoldAction.ON_LINE
@@ -153,7 +200,8 @@ object PlaceAddMenu {
 
     /**
      * The add rows while planning (a held place, or a hold that asks): both, the cheaper first and tinted – the same
-     * decision a plain hold takes ([planningHold]), one rule everywhere.
+     * decision a plain hold takes ([planningHold]), one rule everywhere. A held place orders its rows on straight lines (its
+     * menu opens at once); a hold that asks orders them on the numbers it decided with (the paths when measured).
      */
     fun planningMenu(d: Detours): Menu =
         Menu(if (d.insertM < d.appendM) listOf(Item.ADD_STOP, Item.NEW_DESTINATION) else listOf(Item.NEW_DESTINATION, Item.ADD_STOP))

@@ -298,4 +298,71 @@ class PlaceAddMenuTest {
         val loop = listOf(here, at(here, 2000.0, 0.0), at(here, 2000.0, 2000.0), here)
         assertTrue(PlaceAddMenu.asksOnHold(PlaceAddMenu.zone(loop, at(here, -3000.0, -3000.0), loop = true)))
     }
+
+    // ---- 2026-11-17: „Always real paths“ – the decision on the router's lengths ----
+
+    /**
+     * The Feldstraße shape (Hilden, 13 points, goal at Poststraße / Feldstraße, the hold north of the goal, the last leg
+     * arriving from the east): on straight lines inserting +68 m, appending +63 m – about equal, it asked. [paths] = the
+     * plan, the spot and a fake router: from point 12 there is no direct way to the spot, it goes past the goal
+     * (12 → spot 480 m, the leg 12 → goal 420 m, spot ↔ goal 60 m) – inserting ≈ +120 m, appending 60 m.
+     */
+    object Feldstrasse {
+        private val goal = GeoPoint(51.1650, 6.9300)
+        private fun at(eastM: Double, northM: Double) =
+            GeoPoint(goal.lat + Geo.degLat(northM), goal.lon + Geo.degLon(eastM, goal.lat))
+        /** 12 points coming in from the east along a street, the 13th the goal. */
+        val plan: List<GeoPoint> = (11 downTo 1).map { k -> at(394.4 + 300.0 * k, if (k % 2 == 0) 40.0 else -40.0) } +
+            listOf(at(394.4, 0.0), goal)
+        val spot = at(0.0, 63.0)
+        private val p12 = plan[plan.size - 2]
+        /** The fake router: the field's lengths around the goal, 1.3 × the straight line elsewhere. */
+        fun length(a: GeoPoint, b: GeoPoint): Double = when {
+            a == p12 && b == spot -> 480.0
+            a == p12 && b == goal -> 420.0
+            (a == spot && b == goal) || (a == goal && b == spot) -> 60.0
+            else -> 1.3 * Geo.distance(a, b)
+        }
+    }
+
+    @Test fun feldstrasseOnStraightLinesAsks() {
+        val d = PlaceAddMenu.detours(Feldstrasse.plan, Feldstrasse.spot)!!
+        assertEquals(68.0, d.insertM, 2.0)
+        assertEquals(63.0, d.appendM, 2.0)
+        assertTrue("aside of the arrival: ${d.aheadDeg}", d.aheadDeg!! > PlaceAddMenu.AHEAD_DEG)
+        assertEquals(PlaceAddMenu.HoldAction.ASK, PlaceAddMenu.planningHold(100.0, d))
+    }
+
+    @Test fun feldstrasseOnThePathsIsTheNewGoalAtOnce() {
+        val straight = PlaceAddMenu.detours(Feldstrasse.plan, Feldstrasse.spot)!!
+        val d = PlaceAddMenu.pathDetours(Feldstrasse.plan, Feldstrasse.spot, straight, Feldstrasse::length)
+        assertEquals(120.0, d.insertM, 1.0)
+        assertEquals(60.0, d.appendM, 0.1)
+        assertEquals(straight.aheadDeg, d.aheadDeg)
+        assertEquals(PlaceAddMenu.HoldAction.NEW_GOAL, PlaceAddMenu.planningHold(100.0, d))
+    }
+
+    /** The router's work is capped: the last leg first, then the 3 legs with the smallest straight detour. */
+    @Test fun thePathsMeasureTheLastLegAndThreeMore() {
+        val c = PlaceAddMenu.pathCandidates(Feldstrasse.plan, Feldstrasse.spot)
+        assertEquals(Feldstrasse.plan.size - 2, c.first())
+        assertEquals(1 + PlaceAddMenu.PATH_CANDIDATES - 1, c.size) // the last leg is one of the three nearest
+        val calls = ArrayList<Pair<GeoPoint, GeoPoint>>()
+        PlaceAddMenu.pathDetours(Feldstrasse.plan, Feldstrasse.spot, PlaceAddMenu.Detours(1.0, 1.0)) { a, b -> calls += a to b; Feldstrasse.length(a, b) }
+        assertEquals("append first", Feldstrasse.plan.last() to Feldstrasse.spot, calls.first())
+        assertEquals(1 + 3 * c.size, calls.size)
+        // a far leg in the middle of a long plan is a candidate when it is among the nearest, the last leg always
+        val two = listOf(here, at(here, 0.0, -2000.0))
+        assertEquals(listOf(0), PlaceAddMenu.pathCandidates(two, at(here, 100.0, -500.0)))
+    }
+
+    /** Beside an earlier part on the paths too: inserting there at most half of appending → a stop at once. */
+    @Test fun anEarlierLegOnThePathsIsAStop() {
+        val plan = listOf(here, at(here, 0.0, 1000.0), at(here, 200.0, 0.0))
+        val spot = at(here, -30.0, 500.0)
+        val straight = PlaceAddMenu.detours(plan, spot)!!
+        val d = PlaceAddMenu.pathDetours(plan, spot, straight) { a, b -> 1.2 * Geo.distance(a, b) }
+        assertTrue("early ${d.earlyInsertM}", d.earlyInsertM != null && d.earlyInsertM!! * PlaceAddMenu.ASK_BAND <= d.appendM)
+        assertEquals(PlaceAddMenu.HoldAction.STOP, PlaceAddMenu.planningHold(100.0, d))
+    }
 }
