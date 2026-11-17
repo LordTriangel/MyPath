@@ -60,9 +60,11 @@ class NetReader(private val segmentsDir: File) {
         var tileBytesPeak = 0L
         var nodesDecoded = 0L
         var wayKinds = 0
+        /** reverse texts BRouter made (the others are put together from the forward text, Tiles.reverseText) */
+        var reverseTexts = 0
         var ms = 0L
         override fun toString() = "tiles $tilesDecoded (again $tilesDecodedAgain), raw tiles peak ${tileBytesPeak / 1_000_000} MB, " +
-            "nodes decoded $nodesDecoded, way kinds $wayKinds, $ms ms"
+            "nodes decoded $nodesDecoded, way kinds $wayKinds (reverse texts $reverseTexts), $ms ms"
     }
 
     class ReadException(message: String, cause: Throwable? = null) : Exception(message, cause)
@@ -315,13 +317,42 @@ class NetReader(private val segmentsDir: File) {
             val cb = way.costfactor
             val grantB = way.nodeAccessGranted != 0f
             val textF = way.getKeyValueDescription(false, desc)
-            val textB = way.getKeyValueDescription(true, desc)
             val k = kinds.add(cf, cb, textF)
             if (k >= kindBits.size) { kindBits = kindBits.copyOf(kindBits.size * 2); wayCheck = wayCheck.copyOf(kindBits.size) }
+            // the reverse text only where the coarse filter reads it
+            val skipB = coarse.skip != null && skips(reverseText(desc, textF))
             kindBits[k] = (if (grantF) 1 else 0) or (if (grantB) 2 else 0) or
-                (if (skips(textF)) 4 else 0) or (if (skips(textB)) 8 else 0)
+                (if (skips(textF)) 4 else 0) or (if (skipB) 8 else 0)
             return k
         }
+
+        // BRouter's text of a description read against its direction differs from the forward text only in the first
+        // lookup (BExpressionContext.decode sets lookup 0, "reversedirection", and nothing else): the reverse text is
+        // that lookup's token in front of the forward text. Checked on the first kinds against BRouter's own text
+        // (else every reverse text is BRouter's) – one text per way kind instead of two.
+        private var reverseHead: String? = null
+        private var reverseChecked = 0
+        private var reverseOwn = false
+
+        private fun reverseText(desc: ByteArray, textF: String): String {
+            val head = reverseHead
+            if (reverseOwn || head == null || reverseChecked < 8) {
+                val real = rc.expctxWay.getKeyValueDescription(true, desc)
+                stats.reverseTexts++
+                if (!reverseOwn) {
+                    if (head == null) {
+                        if (textF.isNotEmpty() && real.length > textF.length && real.endsWith(" $textF")) {
+                            reverseHead = real.substring(0, real.length - textF.length - 1)
+                        } else if (textF.isNotEmpty()) reverseOwn = true
+                    } else if (real != joined(head, textF)) reverseOwn = true
+                    reverseChecked++
+                }
+                return real
+            }
+            return joined(head, textF)
+        }
+
+        private fun joined(head: String, textF: String) = if (textF.isEmpty()) head else "$head $textF"
 
         private fun skips(text: String): Boolean {
             val skip = coarse.skip ?: return false

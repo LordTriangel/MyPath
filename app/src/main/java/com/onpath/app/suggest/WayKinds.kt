@@ -17,6 +17,9 @@ class WayKinds {
     private var routeBits = IntArray(64)
     private val values = Array(KEYS.size) { arrayListOf<String>("") }
     private val routeKeys = ArrayList<String>()
+    /** "key=value" → what it adds to a kind (≥ 0: key index shl 8 or value code; −1 − bit: a route flag; [IGNORED]) –
+     *  the same tags come again and again in the kinds of one network */
+    private val tokens = HashMap<String, Int>()
 
     /** The profile's cost factor of [kind]: as stored, or against the stored direction ([reverse]). ≥ 9999 = closed. */
     fun costFactor(kind: Int, reverse: Boolean): Float = if (reverse) cfB[kind] else cfF[kind]
@@ -47,25 +50,39 @@ class WayKinds {
         val k = size++
         cfF[k] = costFactor; cfB[k] = costFactorReverse
         var bits = 0
-        for (kv in tagText.split(' ')) {
-            val i = kv.indexOf('=')
-            if (i <= 0 || i == kv.length - 1) continue
-            val key = kv.substring(0, i)
-            val value = kv.substring(i + 1)
-            if (key.startsWith("route_") && value == "yes") {
-                var b = routeKeys.indexOf(key)
-                if (b < 0 && routeKeys.size < 32) { routeKeys.add(key); b = routeKeys.size - 1 }
-                if (b >= 0) bits = bits or (1 shl b)
-                continue
+        var from = 0
+        val n = tagText.length
+        while (from <= n) {
+            var to = tagText.indexOf(' ', from)
+            if (to < 0) to = n
+            if (to > from) {
+                val kv = tagText.substring(from, to)
+                val t = tokens[kv] ?: token(kv).also { tokens[kv] = it }
+                if (t >= 0) codes[k * KEYS.size + (t shr 8)] = (t and 0xff).toByte()
+                else if (t != IGNORED) bits = bits or (1 shl (-1 - t))
             }
-            val ki = KEY_INDEX[key] ?: continue
-            val table = values[ki]
-            var code = table.indexOf(value)
-            if (code < 0 && table.size < OTHER) { table.add(value); code = table.size - 1 }
-            codes[k * KEYS.size + ki] = (if (code < 0) OTHER else code).toByte()
+            from = to + 1
         }
         routeBits[k] = bits
         return k
+    }
+
+    /** What one "key=value" adds to a kind (see [tokens]); new values and route keys are numbered when first seen. */
+    private fun token(kv: String): Int {
+        val i = kv.indexOf('=')
+        if (i <= 0 || i == kv.length - 1) return IGNORED
+        val key = kv.substring(0, i)
+        val value = kv.substring(i + 1)
+        if (key.startsWith("route_") && value == "yes") {
+            var b = routeKeys.indexOf(key)
+            if (b < 0 && routeKeys.size < 32) { routeKeys.add(key); b = routeKeys.size - 1 }
+            return if (b >= 0) -1 - b else IGNORED
+        }
+        val ki = KEY_INDEX[key] ?: return IGNORED
+        val table = values[ki]
+        var code = table.indexOf(value)
+        if (code < 0 && table.size < OTHER) { table.add(value); code = table.size - 1 }
+        return (ki shl 8) or (if (code < 0) OTHER else code)
     }
 
     fun bytes(): Long = cfF.size * 12L + codes.size + 64L * KEYS.size
@@ -79,6 +96,7 @@ class WayKinds {
         )
         /** Code of a value beyond the 254 a key can hold here ([tag] answers null; lookups.dat has far fewer per key). */
         const val OTHER = 255
+        private const val IGNORED = Int.MIN_VALUE
         const val HIGHWAY = 0
         const val SURFACE = 1
         const val TRACKTYPE = 2
