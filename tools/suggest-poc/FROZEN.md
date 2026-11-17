@@ -89,3 +89,4 @@ reference: the official loops differ; everything else is identical).
      title and line words for aims (`aim_bits`, `um`); numbers `path_pct`, `variety`, `aims`.
    - The port's fixtures (`port/fixtures.py`) still send the old fields – rebuild them with the batch.
    - Not for the batch: `cells.ensure` asks again for a missing cell after 10 minutes (POC edge only).
+- (batch, owner 2026-11-17) card order: loops a few minutes outside the wished time (10 % of the range end, at least 10 min) sort with the ones inside (`score.order`).

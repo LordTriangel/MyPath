@@ -319,7 +319,10 @@ def goals(c):
 
 
 def order(P, c):
-    """The order of the list: with a Ziel the loops that lead to it first, then loops inside the wished time, each by
-    points."""
+    """The order of the list: with a Ziel the loops that lead to it first, then loops about inside the wished time, each
+    by points. "About": a few minutes short or long count as inside (owner 2026-11-17: „wenn nur ganz knapp drüber,
+    drunter – dann auch oben lassen“) – 10 % of the range's end, at least 10 minutes."""
     lo, hi = P.ch.hours
-    return not (P.ch.ziel and goals(c)), not lo <= c["hours"] <= hi, -c["score"]
+    slack = lambda h: max(0.1 * h, 1.0 / 6.0)
+    inside = lo - slack(lo) <= c["hours"] <= hi + slack(hi)
+    return not (P.ch.ziel and goals(c)), not inside, -c["score"]
