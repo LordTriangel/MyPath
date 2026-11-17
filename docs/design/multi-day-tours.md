@@ -1,4 +1,4 @@
-# Multi-day tours – concept (owner discussion 2026-11-16)
+# Multi-day tours – concept (owner discussion 2026-11-16, round 2 on 2026-11-17)
 
 Status: **concept, nothing built.** The owner chose the base model and said "noch nichts bauen – erst weiter
 überlegen". This page is the agreed state and the build order for the day the owner says go. Before any UI is built:
@@ -8,116 +8,124 @@ a sketch of the exact picture and his yes (owner rule).
 
 | # | Decision | His words |
 | --- | --- | --- |
-| 1 | A multi-day tour is **one normal plan** in which points are marked as **day end**. Days are parts of it, not stored routes. | "plan mit tagesenden" |
-| 2 | The route **leads to the accommodation**; the detour counts. | "Punkt 1 stimme ich dir zu" |
-| 3 | An **accommodation** is more than a plain day end (it has a place and a name, it is fixed). | "eine Unterkunft etwas anderes als ein normales Tagesende" |
-| 4 | On the phone the user **always picks the day** himself. No guessing from the position – a break, a day by train, a skipped day need no rule. | "Einen Tag werden wir immer auswählen" |
-| 5 | **Planned in the browser planner first**, then sent to the phone. No multi-day planning on the phone in the first version. | "erstmal nur auf dem Planer im Netz" |
-| 6 | The phone should load **all maps of the tour**; the right moment is open (§7). | "sollte es schon alle Karten runterladen. Die Frage ist, wann?" |
-| 7 | Multi-day tours often start from a **downloaded GPX** (München–Venedig): cut off start and end, keep the part, make a plan from it. Find one UI that combines this. | "Schneiden von GPS-Routen" |
-| 8 | Little effort, robust, extendable later. | |
+| 1 | A multi-day tour is **one normal plan** plus a number of days and its overnight stops. Days are parts of it, not stored routes. | "plan mit tagesenden" (2026-11-16) |
+| 2 | The route **leads to the hotel**; the detour counts. | "Punkt 1 stimme ich dir zu" |
+| 3 | On the phone the user **always picks the day** himself. No guessing from the position – a break, a day by train, a skipped day need no rule. | "Einen Tag werden wir immer auswählen" |
+| 4 | **Planned in the browser planner first**, then sent to the phone. No multi-day planning on the phone in the first version. | "erstmal nur auf dem Planer im Netz" |
+| 5 | The phone should load **all maps of the tour**; the right moment is open (§7). | "sollte es schon alle Karten runterladen. Die Frage ist, wann?" |
+| 6 | Multi-day tours often start from a **downloaded GPX track**: trim start and end, make a route from it, glue several together. | "GPX zuschneiden macht Sinn … Zusammensetzen finde ich auch gut" (2026-11-17) |
+| 7 | Gluing is only gluing – **the joint is nothing special**; the days are set afterwards. | "warum die Nahtstelle ein Tagesende werden soll, verstehe ich nicht" |
+| 8 | **The number of days is set once** (and can be changed); after that the user only adds and removes overnight stops – no "split into days" tool, no "split / join day", no fine-tuning page. | "im Prinzip muss ich nur ein einziges Mal die Anzahl der Tage festlegen" |
+| 9 | **Three states, one colour each:** very light grey bed = nothing decided (the app's proposal, orientation only) · blue bed = **Übernachtung** (I sleep here) · green bed = **Hotel** (booked, name / address stored, the route goes exactly there). | "Grau heißt, ich habe noch nichts. Blau … Übernachtung festgelegt. Grün … Hotel gebucht." |
+| 10 | **Everything saves itself** – no Save button for the tour. | "Immer wenn ich was mache, wird sowieso sofort gespeichert" |
+| 11 | The way in must **guide** the user: where do I start, what do I do next (load a GPX track, open or plan a route → set the days). | "das Menü, wie ich in diese Mehrtagesplanung reinkomme" |
+| 12 | Words: **GPX-Track** (glossary: "Track" only for GPX), **Übernachtung**, **Hotel**. | "Spur war nicht vereinbart" |
+| 13 | Little effort, robust, extendable later. | |
 
-Left out of the first version (my reading of "lassen wir weg", to confirm): rest days / several nights at one place, and
-day trips from one base (that is a folder of single tours, a different thing).
+Left out of the first version (my reading, to confirm): rest days / several nights at one place, and day trips from
+one base. Also left out: limits per day (time / ascent) – the days are set by their number only; the overview shows
+the average per day.
 
-## 2. The model
+## 2. The model (round 2, owner 2026-11-17 – replaces free / fixed / stay)
 
-- A plan is a list of points (today: position, pinned or not, optional name). New: a point can carry a **day end**
-  mark. There are three kinds:
+- A multi-day tour = a plan + **N** (number of days) + **overnight stops** (points of the plan with a mark).
+- **Übernachtung (blue):** a point on the route the user chose: "here I end the day". It does not change the route.
+- **Hotel (green):** an overnight stop with a hotel – name, and an address or link (Google Maps / Booking). The point
+  sits at the hotel; the route leads there and back. Name and place are kept so the phone can show them.
+- **Proposals (very light grey):** the days the user has not decided yet. They are **not stored and not plan
+  points** – the app works them out every time: N − 1 − (number of overnight stops) of them, spread along the route
+  so the open days are about equal (by time), between start, overnight stops and finish. They never change the route.
+- That is all of the "floating": grey = worked out, moves when anything changes; blue and green = yours, never moved.
+- **Day n** runs from the (n−1)th day end to the nth – a day end being a grey proposal, an Übernachtung or a Hotel.
 
-  | Kind | Who set it | Picture | May the app move it? |
-  | --- | --- | --- | --- |
-  | **free** | the app ("Split into days") – a proposal: "about here" | hollow ring with the day number | **yes** |
-  | **fixed** | the user: dragged a day end, or marked a point as day end | filled ring | never |
-  | **stay** | the user: an accommodation – place and name, the route leads there (pinned) | bed | never |
+Rules (each is one undo step, then saved):
 
-- **Day n** = the points from day end n−1 (or the start) to day end n (or the last point). The end of one day and the
-  start of the next are the same point, so moving it changes both days and nothing can drift apart.
-- A plan without day ends is exactly today's plan. A plan with day ends opened by an older app is a normal long plan
-  (§6) – the safe fallback.
-- **Floating** (the owner 2026-11-16: "eine clevere Idee" – explained again): the free day ends are the ones that
-  float. Start, finish, fixed day ends and stays are **anchors**. Between two anchors lies a **stretch** with a set
-  number of days. Whenever something in a stretch changes – an anchor moves, an accommodation comes or goes, the
-  route gets longer – the app spreads that stretch's free day ends again so its days are equally heavy (by time).
-  Other stretches do not change. What the user has touched stays; what the app guessed adjusts. When every night is
-  booked, nothing floats any more.
-  Example: München–Venedig in 6 days, all day ends free, ~95 km each. A hotel is booked at km 170 instead of the
-  proposed km 190. Without floating: day 3 grows to 115 km, the rest stays. With floating: days 1–2 share the 170 km
-  (85 each), days 3–6 share the remaining 390 km (4 × ~97).
-- A free day end the user drags becomes fixed (he chose the place). The menu of a fixed one offers "Let the app
-  place it" (back to free).
-- Removing a stay: the accommodation's point goes (and with it the detour); a **free** day end takes its place on the
-  route. The day stays, only the bed is gone.
-- The frame: the tour's description is one text on the plan; the overnight places are the stays. No other container.
-- A single day "on its own": copy a day out as a separate route, or export it as GPX. A copy, not a live link.
+| Rule | What happens |
+| --- | --- |
+| R1 Übernachtung added | N stays. One grey proposal fewer; the others spread again. No grey one left → N + 1 (said in one line). |
+| R2 Übernachtung removed | N stays. A grey proposal comes back; spread again. |
+| R3 Hotel added to an Übernachtung | Blue → green; the point moves to the hotel, the route leads there. |
+| R4 Hotel removed | Green → blue at the place on the route nearest the hotel (the night stays planned, only the hotel is gone). |
+| R5 N changed (− / +) | Only grey proposals come or go. "−" with no grey left: not possible ("Erst eine Übernachtung entfernen"). |
+| R6 Route changed (another pass, a point moved) | Grey proposals spread again; Übernachtung and Hotel stay where they are. |
+| R7 A grey proposal dragged (proposal, owner to confirm) | It becomes a blue Übernachtung where it is dropped – R1 at that place. |
 
 ## 3. The flows
 
 ### Browser planner (where the tour is made)
 
-1. **Get a line.** Plan it as today, or import a GPX (exists: the track is shown with its panel – keep as a track, or
-   "Plan a route from it").
-2. **Trim (new).** The track panel gets two handles – start and end – on the map line and on the height profile. The
-   part outside is shown grey. "Plan a route from it" takes only the part between the handles. The file itself is
-   not changed, so nothing can be lost.
-3. **Combine (new).** With a plan already on the map, the track panel offers **"Append to the plan"** as well: the
-   (trimmed) track becomes route points behind the plan's last point; the joint becomes a fixed day end. This one
-   button covers "glue several routes together" – no separate tool.
-4. **Split (new).** "Split into days…": either a number of days, or limits per day (time, ascent – the same kind of
-   limits as the tour suggestions). The app puts free day ends on the line; the route does not change.
-5. **Adjust** – the scenarios of §4.
-6. **Accommodations.** Search a place or paste a Google Maps link in the planner → "Accommodation, day n".
-7. **Save** – the plan syncs to the phone as today.
+1. **The way in.** ☰ → "Mehrtagestour planen". A short guide panel with two steps:
+   **1 · Route** – "GPX-Track laden", "Gespeicherte Route öffnen" or "Selbst planen";
+   **2 · Tage** – "Weiter: Tage festlegen" (active once there is a route).
+   The same "Als Mehrtagestour planen" sits in the ⋯ menu of any plan on the map, so a long route planned the normal
+   way gets there too.
+2. **Trim (new).** On a loaded GPX track: two handles, start and end, on the line and in the height profile; the part
+   outside is grey. "Route daraus planen" takes only the part between them. The file is not changed.
+3. **Glue (new).** With a route already there, the GPX-Track panel offers "An die Route anhängen": the trimmed track's
+   route goes behind the last point. The joint is a normal point. If the track runs the other way (its end is nearer),
+   it is turned round. The guide panel stays at step 1 until "Weiter: Tage festlegen".
+4. **Days.** One small box, everything under each other: name (proposal "München – Venedig"), number of days with
+   − / +, below it live "≈ 94 km · 970 hm · 5 h 20 min pro Tag". "Fertig" → the tour is saved and the overview opens
+   with N − 1 grey proposals.
+5. **Overview** = the tour from now on: name, totals, N with − / +, the height profile with the day borders, one row per
+   day (km, hm, time, the bed of its end). Every change saves itself and syncs.
+6. **Overnight stops.** Tap the route → "Übernachtung hier". Tap a bed → its menu: blue "Hotel hinterlegen" ·
+   "Übernachtung entfernen"; green "Hotel ändern" · "Hotel entfernen" · "Übernachtung entfernen". "Hotel hinterlegen":
+   search the hotel, or paste a Google Maps / Booking link or an address. A found place's menu also has "Hotel für
+   diese Tour" → the nearest day end is offered.
 
 ### Phone (where it is ridden)
 
-1. The tour arrives by sync. My routes shows one row "München – Venedig · 7 days"; it opens to the days.
+1. The tour arrives by sync. My routes shows one row "München – Venedig · 6 Tage"; it opens to the overview.
 2. Maps: §7.
-3. **Pick a day** → that day is on the map as the plan to follow. Start, navigation and recording work as for any
-   plan; the recording is a normal day tour.
-4. A new accommodation found on the way: share the place to OnPath (exists) → "Accommodation in the tour" (new
-   choice, later stage). The plan changes, syncs back.
+3. **Pick a day** (or several in a row) → that part is followed as a normal plan; a grey day end becomes its
+   destination point. The recording is a normal day tour.
+4. Later stage: share a hotel to OnPath → "Hotel in der Tour" → which night. Syncs back.
 
-## 4. Scenarios – what the user does and how (owner 2026-11-16: part of the concept, so the UI is not rebuilt later)
+## 4. Scenarios with the round-2 model (owner 2026-11-17: "betrachte jeden Satz … überlege potenzielle Szenarien")
 
-The words of the UI in every scenario: the points list with a header per day (Day 2 · 62 km · 800 m ↑ · 4:10 h), the
-three markers on the map and in the height profile (ring, filled ring, bed), the menu of a day end, the menu of a
-place. Every step is one undo step (the planner's history).
+Every row is solved with R1–R7; none needs another tool.
 
-| # | Situation | What the user does | What the app does |
+| # | Situation | What the user does | Result |
 | --- | --- | --- | --- |
-| A | **First split.** A long plan, no days yet. | Plan menu → "Split into days…" → 6 days (or: at most 5 h / 1000 m ↑ a day) | 5 free day ends on the line, 6 day headers. The route is unchanged. |
-| B | **First accommodation.** A hotel found near the end of day 2. | Search the place / paste the Google Maps link → place menu "Accommodation" → "End of day 2" (the nearest day end is preselected, another day can be chosen) | The stay replaces day end 2, the route leads to it. Days 1–2 and days 3–6 float (each stretch spread again). |
-| C | **Accommodation cancelled or changed.** | Bed → "Remove accommodation". Or directly: new place → "Accommodation" → "replaces Hotel X (day 2)" | Removed: a free day end on the route takes its place and floats again. Replaced: as B. |
-| D | **A day longer or shorter** (sightseeing on day 3, a hard pass on day 4). | Drag the day end along the line on the map or in the profile | It becomes fixed. The free day ends of the two stretches beside it float. |
-| E | **A day more or fewer.** | "Split into days…" again with 7. Or in a day header's menu: "Split this day" / "Join with the next day" | Split again: only free day ends are placed anew, fixed ones and stays stay; the dialog says how many days each stretch gets. Split this day: a free day end in its middle. Join: the day end between them goes (a stay: asks first). |
-| F | **The route changes** (another pass on day 4, a point dragged). | Edit the plan as always | The stretch got longer or shorter: its free day ends float. A day above the chosen limit gets an orange header – the app never adds a day by itself. |
-| G | **On the way: not reached the day end, or ridden further** (phone). | In the tour's day list pick where to go on: one day, or several ("Day 2–3") | The picked part is followed from the current position as one plan (exists: follow from position). The plan is not edited on the phone, so nothing can break. |
-| H | **On the way: new accommodation** (phone, stage 5). | Share the place to OnPath → "Accommodation, day n" | As B/C, then the plan syncs back. |
+| A | Start from a downloaded GPX track | Mehrtagestour planen → GPX-Track laden → trim → Route daraus planen → Weiter: Tage festlegen → 6 → Fertig | 5 grey beds, 6 day rows. |
+| B | Start from two tracks (München–Brenner, Brenner–Venedig) | as A, the second track: An die Route anhängen | one route; days set afterwards. |
+| C | Start from a route planned normally | ⋯ → Als Mehrtagestour planen | straight to the days box. |
+| D | I know where I sleep on night 2, not the hotel yet | tap the route there → Übernachtung hier | blue bed; days 1–2 and 3–6 even out (R1). |
+| E | Hotel booked | its blue bed → Hotel hinterlegen → search or paste the link | green bed at the hotel, the route goes there (R3). |
+| F | Hotel found before any Übernachtung | search the hotel → Hotel für diese Tour → night 2 (preselected: the nearest) | green straight away (R1 + R3). |
+| G | Hotel cancelled, the night stays | green bed → Hotel entfernen | blue at the route (R4). |
+| H | Night not needed any more | bed → Übernachtung entfernen | grey proposal back, days even out (R2). |
+| I | A day shorter / longer | move the night: remove it and add it elsewhere – or drag a blue bed (green: change the hotel) | the grey ones even out. |
+| J | One day more / fewer | − / + at "6 Tage" | grey ones come or go (R5). |
+| K | Every night decided and one more stop wanted | tap the route → Übernachtung hier | N + 1, said in one line (R1). |
+| L | Another pass on day 4 | edit the route as always | grey ones even out; the user's beds stay (R6). |
+| M | A day ends at a grey proposal and I want it 10 km later | drag the grey bed | it becomes blue there (R7, to confirm). |
+| N | A point of the route that is an Übernachtung is deleted | ✕ on that point | = Übernachtung entfernen; with a hotel it asks first. |
+| O | On the way: not reached the day's end, or rode on | phone: pick the day or "Tag 3–4" | followed from where I am. |
+| P | On the way: new hotel | later stage: share to OnPath | as E. |
+| Q | Older app / phone not updated | – | sees a normal long route; hotels are named points. |
+| R | Rest day, two nights in one hotel | – | not in version 1 (later: "Nächte: 2" on a hotel). |
 
-What these scenarios fix for the build:
-
-- The three kinds and the floating rule belong to the shared code (stage 1), not to the UI – planner and phone behave
-  the same.
-- The plan stores, per stretch, nothing extra: the number of days in a stretch is the number of its day ends + 1.
-  The limits of "Split into days" (time / ascent) are stored on the plan so the orange header has something to
-  compare with.
-- Floating happens **by itself** after a change, inside one undo step (recommendation – the alternative is a line
-  "Days 3–6 are uneven – spread again?"; owner to decide, §9).
-- The phone never changes the day ends in the first version (scenario G needs only "pick a range").
+Found while checking:
+- **Saving:** a normal plan in the planner waits for "Speichern" today (unsaved work stays under "Zuletzt"). The tour
+  is saved the moment the days box says "Fertig" and then saves itself on every change – different from a normal
+  plan, but what the owner asked for. Undo covers mistakes.
+- **Grey days have no place yet:** on the phone the day's end is the worked-out point on the route – enough to follow.
+- **No limits:** without "at most 6 h a day" there is no orange warning; the overview's numbers per day are the warning.
 
 ## 5. Why this fits the architecture
 
 | Piece | Today | Change |
 | --- | --- | --- |
-| Plan format `routing/PlanCode.kt` (shared with the planner) | points, pinned bits, optional fields by tag; **unknown tags are skipped** by older readers | one new optional tag: day end (point index + kind free / fixed / stay); the split limits, one for the description. No new version, no new sync item kind. |
+| Plan format `routing/PlanCode.kt` (shared with the planner) | points, pinned bits, optional fields by tag; **unknown tags are skipped** by older readers | new optional tags: number of days, overnight mark per point (Übernachtung / Hotel), hotel address or link, the description. No new version, no new sync item kind. |
 | Sync `sync/SyncItem.kt` | a plan item carries the plan code | unchanged |
-| Index bookkeeping `routing/PlanEdits.kt`, `PlanPoints.kt` | every insert / delete / move / reverse keeps `pinned` and `names` on the right points | day ends are the **third per-point attribute** and must travel the same way. This is the one place where a bug would be nasty – it gets the tests first. |
-| Days | – | new pure file (shared), e.g. `routing/PlanDays.kt`: plan + day ends → day ranges; per-day distance / ascent / time from the existing leg results; the split and the floating rule (§2, §4). No UI, no Android. |
-| Routing `routing/Planner.kt`, `LegCache.kt` | per leg, changed legs only | unchanged. Moving a day end routes two legs. |
-| Track → plan `routing/TrackToPlan.kt` (shared) | whole track | takes a range (trim); a second entry "append". |
+| Index bookkeeping `routing/PlanEdits.kt`, `PlanPoints.kt` | every insert / delete / move / reverse keeps `pinned` and `names` on the right points | the overnight mark is the **third per-point attribute** and must travel the same way – the one place where a bug would be nasty; tests first. Grey proposals are worked out, never stored, so they need no bookkeeping. |
+| Days | – | new pure file (shared), e.g. `routing/PlanDays.kt`: plan + N + overnight stops → grey proposals and day ranges; per-day distance / ascent / time from the existing leg results; rules R1–R7. No UI, no Android. |
+| Routing `routing/Planner.kt`, `LegCache.kt` | per leg, changed legs only | unchanged. A hotel routes two legs; grey proposals route nothing. |
+| Track → plan `routing/TrackToPlan.kt` (shared) | whole track | takes a range (trim); "append" turns the track round when its end is nearer. |
 | Following a day | Navigator / recording take a plan | they get the day's part of the plan – from their view a normal plan. `navigation/TourSplit.kt` (edits during a tour) keeps working on that part; an edit is written back into the whole plan by index offset. |
-| Phone store `data/TourDb.kt` | `tours.waypoints`, `pinned` | the day ends beside them (one column / field in the waypoint text) |
+| Phone store `data/TourDb.kt` | `tours.waypoints`, `pinned` | N and the overnight marks beside them (one column / field in the waypoint text) |
 | Maps `cells/CellTriggers.kt` | corridor along every saved route, automatic when online (F-OFF-02) | a multi-day plan must not start this silently – §7 |
 
 What stays untouched: recording, the route line, the mailbox server, the map files.
@@ -150,36 +158,27 @@ Each stage is usable alone and leaves the app releasable.
 | Stage | What | Where | Done when |
 | --- | --- | --- | --- |
 | 0 | Measure §6 with a real München–Venedig GPX. No UI. | tools / tests | numbers on this page; go or change of limits |
-| 1 | Day ends in the plan code, `PlanDays`, index bookkeeping. No UI. | shared code | unit tests: round trip old ⇄ new reader, every edit keeps day ends, day ranges, split rule, scenarios A–F of §4 as tests |
-| 2 | Planner: day headers, mark / unmark day end and accommodation, "Split into days…" | `web/` | sketch approved → built → planner smoke |
-| 3 | Planner: trim handles on an imported track, "Append to the plan" | `web/` + `TrackToPlan` | same |
+| 1 | N + overnight marks in the plan code, `PlanDays` (R1–R7), index bookkeeping. No UI. | shared code | unit tests: round trip old ⇄ new reader, every edit keeps the marks, scenarios D–N of §4 as tests |
+| 2 | Planner: the way in, days box, overview, Übernachtung / Hotel menus, saving by itself | `web/` | sketch approved → built → planner smoke |
+| 3 | Planner: trim handles on a GPX-Track, "An die Route anhängen" | `web/` + `TrackToPlan` | same |
 | 4 | Phone: tour row with days, pick a day or a range (scenario G), follow it; maps question (§7) | app | E2E: synced 3-day plan → pick day 2 → start → recording saved |
-| 5 | Phone: shared place → accommodation; tour description shown | app | – |
+| 5 | Phone: shared hotel → Hotel in der Tour; tour description shown | app | – |
 
 Later, not designed here: several nights / rest days, "done" ticks per day from the recordings, planning on the
 phone, day trips from one base.
 
 ## 9. Open points for the owner
 
-1. §1 last line: are rest days **and** base-camp tours both out for now?
+1. Rest days, base-camp tours and limits per day – all out of version 1?
 2. §7: the moment for the map download.
-3. Stage 2/3 need a sketch of the planner (points list with day headers, trim handles) before anything is built.
-4. §4: floating by itself after a change (recommended), or only after a question?
+3. R4: "Hotel entfernen" keeps the night (blue) – or should the whole night go (grey)?
+4. R7: dragging a grey bed makes it a blue Übernachtung there?
+5. Saving by itself only for multi-day tours, or later for every saved plan?
 
-## 10. UI – a separate round with the owner (2026-11-16: "über die UI reden wir noch einmal separat")
+## 10. UI rounds
 
-Round 1 (2026-11-17, a rough journey sketch, not a design): https://claude.ai/artifact/TdtKJFYzsmyQKJFTWSuCR1 – 11 steps from the GPX in the planner to riding day 4 on the phone, with the tour overview as step 6. The topics to bring to that round, with sketches (at most three variants, his yes before
-any build):
+- Round 1 (2026-11-17): https://claude.ai/artifact/TdtKJFYzsmyQKJFTWSuCR1 – owner: way in missing, "Spur" wrong, joint
+  no day end, no tabs in the days box, no fine-tuning page, the three bed colours, saving by itself (§1 #7–#12).
+- Round 2 (2026-11-17): https://claude.ai/artifact/XUY1sgh15wLP8CLBZFujqc – the round-2 model of §2 and the way in.
 
-1. **Tour overview in the plan** (owner 2026-11-16: "eine schöne Routenübersicht über die einzelnen Tage und
-   Höhenmeter"): all days at a glance – per day distance, ascent, time, the overnight place; the height profile of
-   the whole tour with the day borders in it.
-2. The points list with a header per day; folding days open and shut.
-3. The three day-end markers (free ring, fixed ring, bed) on the map and in the profile; dragging a day end.
-4. "Split into days…" – number of days or limits per day; what it says about fixed day ends and stays.
-5. The menus: day end (fix / let the app place it / remove), day header (split this day / join with the next),
-   place ("Accommodation" → which day, "replaces Hotel X").
-6. The orange day header when a day is above the limit.
-7. GPX: the two trim handles on the line and in the profile, "Append to the plan".
-8. Phone: the tour's row in My routes with its days, picking a day or a range, the maps question with the size.
-9. The tour's description – where it is written and shown.
+Before any build: his yes to the exact picture.
