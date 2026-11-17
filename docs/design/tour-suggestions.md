@@ -501,6 +501,20 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   runs `TourSuggester` on a fixture; a planner smoke for the flow; (5) the owner tests in NRW / Fränkische Schweiz /
   Mittenwald, deploy on his word. Needs the content-2 suggest files in the test cells (laptop) – without them the
   planner says „Karte wird aktualisiert“.
+- **Stage 3 built (IR 2026-11-18, branch `wip/ir-2026-11-18-planner-suggest`; behind the switch, off by default):**
+  engine `web/engine/…/WebSuggest.kt` (`suggest(op, json)` in WebApi: `need` → the rd5 parts within reach + the cells
+  whose `suggest.bin` the method reads, `run` → cards with loop line, km, h, ascent, title, text line, badge and the
+  sketch-7 pills, `mapUpdating`); the worker fetches `suggest/settings.json` (copied from `tools/suggest-poc/settings.json`
+  at build time), each cell's `cells/f2/10/x/y/<current version>/suggest.bin` and the parts, then runs it; UI
+  `web/app/src/suggest.ts` / `suggest.css` (row „Rundtour von hier“ under „Hier starten“ in the first-tap menu and a
+  place's menu, wish sheet 5 B, wait card, cards 4 A + 7, only the chosen loop on the map, „Übernehmen“ = TrackToPlan
+  of the loop, closed as a round trip); switch: `?debug` → „Tourvorschläge (Test)“ (localStorage `onpath.suggestTest`).
+  Tests: `WebSuggestTest` (need / wish / pills / a real Hilden run where the data is), `web/app/test/suggest-smoke.mjs`.
+  **Measured in headless Chromium (donald, Wasm, local rd5 + content-2 suggest files):** hike 2 h Hilden 0.59 s
+  (warm 0.35 s), 33 loops, 5 cards; bike 3 h Zons 6.7 s (warm 6.2 s: network 2.5, facts 1.8–2.2, place 0.6, loops 1.2,
+  judging 0.1), 15 loops, 5 cards; the browser's resident memory grew by ~300 MB (hike, first run, routing data
+  included) and ~610 MB (bike 3 h, first run; +300 MB on the second) – the rd5 parts are held twice in the worker
+  (the engine's part bytes + the written rd5), as for routing.
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
