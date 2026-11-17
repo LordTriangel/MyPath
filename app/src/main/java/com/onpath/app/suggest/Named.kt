@@ -99,28 +99,53 @@ object Named {
      * lakes reach two cells further (a shore path often runs 50–100 m from the water).
      */
     class Index(val things: List<Thing>) {
-        // cell → its set of things (a map without an object per key: a bike wish has ~50 000 cells)
+        // cell → its things, in the order they were added, each once: cell c's are items[start[c] until start[c + 1]]
+        // (plain arrays – a bike wish has ~50 000 cells; the cell's set is made from them when asked, the same set)
         private val cellOf = LongIntMap(1 shl 12)
-        private val sets = ArrayList<PyIntSet>()
-
-        private fun cell(key: Long): PyIntSet? = cellOf[key].let { if (it < 0) null else sets[it] }
+        private val start: IntArray
+        private val items: IntArray
 
         init {
-            for ((i, a) in things.withIndex()) {
-                if (a.kind == "aim") continue  // an aim is a turning point (Aims), not a fact of the ways near it
-                val pad = if (a.kind == "lake") 2 else 0
-                for (k in 0 until a.points) {
-                    val cx = (a.dense[2 * k] / CX).toInt(); val cy = (a.dense[2 * k + 1] / CY).toInt()
-                    for (dx in -pad..pad) for (dy in -pad..pad) (cell(key(cx + dx, cy + dy)) ?: PyIntSet().also { cellOf.put(key(cx + dx, cy + dy), sets.size); sets.add(it) }).add(i)
+            // a thing adds itself to a cell for each of its points there: all its adds come before the next thing's, so
+            // "already in" = "the cell's last thing is this one"
+            val last = IntList(); val count = IntList()
+            fun visit(fill: ((Int, Int) -> Unit)?) {
+                for ((i, a) in things.withIndex()) {
+                    if (a.kind == "aim") continue  // an aim is a turning point (Aims), not a fact of the ways near it
+                    val pad = if (a.kind == "lake") 2 else 0
+                    for (k in 0 until a.points) {
+                        val cx = (a.dense[2 * k] / CX).toInt(); val cy = (a.dense[2 * k + 1] / CY).toInt()
+                        for (dx in -pad..pad) for (dy in -pad..pad) {
+                            val key = key(cx + dx, cy + dy)
+                            var c = cellOf[key]
+                            if (c < 0) { c = last.size; cellOf.put(key, c); last.add(-1); count.add(0) }
+                            if (last[c] == i) continue
+                            last[c] = i
+                            if (fill == null) count[c] = count[c] + 1 else fill(c, i)
+                        }
+                    }
                 }
             }
+            visit(null)
+            start = IntArray(count.size + 1)
+            for (c in 0 until count.size) start[c + 1] = start[c] + count[c]
+            items = IntArray(start[count.size])
+            val at = start.copyOf(count.size)
+            for (c in 0 until last.size) last[c] = -1
+            visit { c, i -> items[at[c]++] = i }
         }
 
         /** The things within [reach] cells of the point, in the POC's order. */
         fun at(lon: Double, lat: Double, reach: Int = 1): IntArray {
             val cx = (lon / CX).toInt(); val cy = (lat / CY).toInt()
             val hit = PyIntSet()
-            for (dx in -reach..reach) for (dy in -reach..reach) cell(key(cx + dx, cy + dy))?.let { hit.addAll(it) }
+            for (dx in -reach..reach) for (dy in -reach..reach) {
+                val c = cellOf[key(cx + dx, cy + dy)]
+                if (c < 0) continue
+                val cell = PyIntSet()  // the cell's set as it was built: the same adds in the same order
+                for (j in start[c] until start[c + 1]) cell.add(items[j])
+                hit.addAll(cell)
+            }
             return hit.toIntArray()
         }
 
@@ -149,5 +174,6 @@ class IntList(capacity: Int = 16) {
     var size = 0; private set
     fun add(x: Int) { if (size == a.size) a = a.copyOf(a.size * 2 + 2); a[size++] = x }
     operator fun get(i: Int) = a[i]
+    operator fun set(i: Int, x: Int) { a[i] = x }
     fun toArray(): IntArray = a.copyOf(size)
 }

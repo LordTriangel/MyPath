@@ -47,7 +47,16 @@ class Facts(val net: WayNet, index: Named.Index, K: SuggestSettings.J, bike: Boo
     init {
         val kinds = net.kinds
         val perKind = arrayOfNulls<Tags>(kinds.size)
-        fun tagsOf(k: Int): Tags = perKind[k] ?: ofTags(kinds, k, K, bike).also { perKind[k] = it }
+        // ofTags reads only these tags and the route flags: one Tags per combination (a bike network: 100 000 way kinds,
+        // a few hundred combinations)
+        val byTags = HashMap<String, Tags>()
+        val keyChars = CharArray(TAG_KEYS.size + 2)
+        fun tagsOf(k: Int): Tags = perKind[k] ?: run {
+            for (i in TAG_KEYS.indices) keyChars[i] = kinds.code(k, TAG_KEYS[i]).toChar()
+            val r = kinds.routes(k)
+            keyChars[TAG_KEYS.size] = (r ushr 16).toChar(); keyChars[TAG_KEYS.size + 1] = (r and 0xffff).toChar()
+            byTags.getOrPut(String(keyChars)) { ofTags(kinds, k, K, bike) }
+        }.also { perKind[k] = it }
         val besideFrom = K["beside_from"].d
         val roads = RoadGrid()
         for (e in 0 until n) {
@@ -142,20 +151,66 @@ class Facts(val net: WayNet, index: Named.Index, K: SuggestSettings.J, bike: Boo
 
     /** Where roads with real car traffic run (squares of ~12 m), to find a separate way *beside* one by geometry. */
     class RoadGrid {
-        /** square → the heaviest road's weight in it (no object per square: a bike network has a few hundred thousand) */
-        private val cells = LongDoubleMap(1 shl 12)
+        // square → the heaviest road's weight in it: blocks of 16 × 16 squares, one byte per square (the weight's code in
+        // [weights], 0 = no road) – roads are lines, so a bike network's few hundred thousand squares fill a few
+        // thousand blocks; more than 255 distinct weights (never: a weight per road class) → a plain map
+        private val blockOf = LongIntMap(1 shl 10)
+        private var pool = ByteArray(256 * 64)
+        private var blocks = 0
+        private val weights = DoubleArray(256)
+        private var nWeights = 1
+        private var plain: LongDoubleMap? = null
 
-        fun isNotEmpty() = cells.size > 0
+        fun isNotEmpty() = blocks > 0 || (plain?.size ?: 0) > 0
 
         private fun key(x: Int, y: Int) = (x.toLong() shl 32) or (y.toLong() and 0xffffffffL)
+
+        /** The weight of square x, y (0.0 = none). */
+        private fun get(x: Int, y: Int): Double {
+            plain?.let { return it[key(x, y)] }
+            val b = blockOf[key(x shr 4, y shr 4)]
+            return if (b < 0) 0.0 else weights[pool[b * 256 + ((x and 15) shl 4) + (y and 15)].toInt() and 0xff]
+        }
+
+        private fun set(x: Int, y: Int, w: Double) {
+            plain?.let { it.put(key(x, y), w); return }
+            var code = -1
+            for (c in 1 until nWeights) if (weights[c] == w && (w != 0.0 || 1.0 / weights[c] == 1.0 / w)) { code = c; break }
+            if (code < 0) {
+                if (nWeights == 256) { toPlain(); plain!!.put(key(x, y), w); return }
+                code = nWeights++
+                weights[code] = w
+            }
+            val bk = key(x shr 4, y shr 4)
+            var b = blockOf[bk]
+            if (b < 0) {
+                b = blocks++
+                if (blocks * 256 > pool.size) pool = pool.copyOf(pool.size * 2)
+                blockOf.put(bk, b)
+            }
+            pool[b * 256 + ((x and 15) shl 4) + (y and 15)] = code.toByte()
+        }
+
+        private fun toPlain() {
+            val m = LongDoubleMap(1 shl 12)
+            blockOf.forEach { bk, b ->
+                val bx = (bk shr 32).toInt(); val by = bk.toInt()
+                for (i in 0 until 256) {
+                    val c = pool[b * 256 + i].toInt() and 0xff
+                    if (c != 0) m.put(key((bx shl 4) + (i shr 4), (by shl 4) + (i and 15)), weights[c])
+                }
+            }
+            plain = m
+            pool = ByteArray(0)
+        }
 
         fun add(pts: DoubleArray, w: Double) {
             for (j in 0 until pts.size / 2 - 1) {
                 val a0 = pts[2 * j]; val a1 = pts[2 * j + 1]; val b0 = pts[2 * j + 2]; val b1 = pts[2 * j + 3]
                 val n = maxOf(1, (SuggestGeo.dist(a0, a1, b0, b1) / 10.0).toInt())
                 for (k in 0..n) {
-                    val kk = key(((a0 + (b0 - a0) * k / n) / CX).toInt(), ((a1 + (b1 - a1) * k / n) / CY).toInt())
-                    if (cells[kk] < w) cells.put(kk, w)
+                    val x = ((a0 + (b0 - a0) * k / n) / CX).toInt(); val y = ((a1 + (b1 - a1) * k / n) / CY).toInt()
+                    if (get(x, y) < w) set(x, y, w)
                 }
             }
         }
@@ -176,7 +231,7 @@ class Facts(val net: WayNet, index: Named.Index, K: SuggestSettings.J, bike: Boo
                         val u = (want - acc) / d
                         val cx = ((a0 + (b0 - a0) * u) / CX).toInt(); val cy = ((a1 + (b1 - a1) * u) / CY).toInt()
                         var best = 0.0
-                        for (i in -1..1) for (jj in -1..1) best = maxOf(best, cells[key(cx + i, cy + jj)])
+                        for (i in -1..1) for (jj in -1..1) best = maxOf(best, get(cx + i, cy + jj))
                         hits.add(best)
                         break
                     }
@@ -195,6 +250,10 @@ class Facts(val net: WayNet, index: Named.Index, K: SuggestSettings.J, bike: Boo
 
     companion object {
         private val EMPTY = IntArray(0)
+        /** the tags [ofTags] reads */
+        private val TAG_KEYS = intArrayOf(WayKinds.HIGHWAY, WayKinds.MAXSPEED, WayKinds.SURFACE, WayKinds.TRACKTYPE,
+            WayKinds.SAC_SCALE, WayKinds.MTB_SCALE, WayKinds.SMOOTHNESS, WayKinds.RAILWAY, WayKinds.BICYCLE, WayKinds.ROUTE,
+            WayKinds.NOISE_CLASS, WayKinds.RIVER_CLASS, WayKinds.TUNNEL)
         private val ROADS = setOf("motorway", "trunk", "primary", "secondary", "tertiary", "unclassified", "residential", "living_street", "service")
         private val PAVED = setOf("asphalt", "paved", "concrete", "concrete:plates", "concrete:lanes", "paving_stones")
         private val FIRM = setOf("compacted", "fine_gravel", "gravel", "pebblestone", "sett", "cobblestone", "unhewn_cobblestone", "metal", "wood", "grass_paver")

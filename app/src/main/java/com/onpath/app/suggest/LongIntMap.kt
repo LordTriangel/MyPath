@@ -42,6 +42,14 @@ internal class LongIntMap(expected: Int = 1024) {
 
     fun bytes(): Long = keys.size * 12L
 
+    inline fun forEach(f: (Long, Int) -> Unit) {
+        val k = keyArray(); val v = valueArray()
+        for (i in k.indices) if (k[i] != Long.MIN_VALUE) f(k[i], v[i])
+    }
+
+    @PublishedApi internal fun keyArray(): LongArray = keys
+    @PublishedApi internal fun valueArray(): IntArray = vals
+
     /** Empty, and gives the memory back (the map stays usable). */
     fun release() {
         keys = LongArray(16) { EMPTY }; vals = IntArray(16); mask = 15; size = 0

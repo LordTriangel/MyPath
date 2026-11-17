@@ -22,16 +22,25 @@ class NetSearch(
 ) {
     private val n = net.nodeCount
     /** Cost so far per node ([INF] = not reached) of the last [run]. */
-    val dist = DoubleArray(n) { INF }
+    var dist = DoubleArray(n) { INF }; private set
     /** Metres so far along the cheapest way. */
-    val metres = DoubleArray(n)
-    val prevNode = IntArray(n) { -1 }
-    val prevLink = IntArray(n) { -1 }
+    var metres = DoubleArray(n); private set
+    var prevNode = IntArray(n) { -1 }; private set
+    var prevLink = IntArray(n) { -1 }; private set
     /** Nodes taken from the queue in the last run (a measure of the work). */
     var settled = 0L; private set
 
-    private val touched = IntArray(n)
+    private var touched = IntArray(n)
     private var touchedN = 0
+
+    /**
+     * Gives the work arrays back (a result kept on screen should not hold them); the next [run] makes them again. Until
+     * then the last run's results ([dist], [path] …) are gone.
+     */
+    fun release() {
+        dist = DoubleArray(0); metres = DoubleArray(0); prevNode = IntArray(0); prevLink = IntArray(0); touched = IntArray(0)
+        touchedN = 0; heapNode = IntArray(256); heapKey = DoubleArray(256)
+    }
     private var heapNode = IntArray(256)
     private var heapKey = DoubleArray(256)
     private var heapSize = 0
@@ -46,6 +55,10 @@ class NetSearch(
      */
     fun run(src: Int, cost: DoubleArray, pen: DoubleArray? = null, stop: Int = -1, maxLen: Double = INF, withMetres: Boolean = true,
             scaleMask: BooleanArray? = null, scale: Double = 1.0) {
+        if (dist.size != n) {  // after release()
+            dist = DoubleArray(n) { INF }; metres = DoubleArray(n); prevNode = IntArray(n) { -1 }; prevLink = IntArray(n) { -1 }
+            touched = IntArray(n); touchedN = 0
+        }
         for (i in 0 until touchedN) {
             val v = touched[i]
             dist[v] = INF; metres[v] = 0.0; prevNode[v] = -1; prevLink[v] = -1
