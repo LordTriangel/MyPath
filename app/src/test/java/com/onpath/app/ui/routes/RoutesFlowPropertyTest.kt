@@ -8,9 +8,9 @@ import com.onpath.app.domain.plan.RecentRow
 import com.onpath.app.gpx.GpxWaypoint
 import com.onpath.app.gpx.TrackPoint
 import com.onpath.app.routing.GeoPoint
-import com.onpath.app.ui.Drafts
-import com.onpath.app.ui.OpenAsk
-import com.onpath.app.ui.RoutesTab
+import com.onpath.app.domain.Drafts
+import com.onpath.app.domain.OpenAsk
+import com.onpath.app.domain.RoutesTab
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

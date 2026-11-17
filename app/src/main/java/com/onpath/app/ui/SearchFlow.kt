@@ -5,6 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.onpath.app.data.Geo
 import com.onpath.app.debug.Problems
+import com.onpath.app.domain.AppMode
+import com.onpath.app.domain.SharedPlaceMenu
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.search.SharedPlaceLookup
 import com.onpath.strings.*

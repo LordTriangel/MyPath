@@ -1,5 +1,7 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.StartCamera
+import com.onpath.app.domain.TakenPin
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.search.Place
 import org.junit.Assert.assertEquals

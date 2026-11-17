@@ -41,8 +41,8 @@ import com.onpath.app.gpx.GpxWaypoint
 import com.onpath.app.gpx.TrackPoint
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.GeoPoint
-import com.onpath.app.ui.AppMode
-import com.onpath.app.ui.RoutesTab
+import com.onpath.app.domain.AppMode
+import com.onpath.app.domain.RoutesTab
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -669,11 +669,11 @@ class CoreFieldE2ETest : E2EBase() {
         val mid = GeoPoint((plan[0].lat + plan[1].lat) / 2 + 0.0003, (plan[0].lon + plan[1].lon) / 2)
         val poi = com.onpath.app.poi.Poi("e2e-shelter", "shelter", "Unterstand E2E", mid.lat, mid.lon)
         var label = ""
-        var menu: com.onpath.app.ui.PlaceAddMenu.Menu? = null
+        var menu: com.onpath.app.domain.PlaceAddMenu.Menu? = null
         scenario.onActivity { label = vm(it).poiAddLabel(poi); menu = vm(it).placeMenu(poi) }
         assertFalse("never a new start during a tour: \"$label\"", label == Txt.s(Res.string.search_card_set_start))
         // beside the middle: a clear stop – the menu offers „Einfügen“ first (owner 2026-11-07 / 2026-11-15), no start
-        assertEquals("the menu: $menu", com.onpath.app.ui.PlaceAddMenu.Item.ADD_STOP, menu?.emphasised)
+        assertEquals("the menu: $menu", com.onpath.app.domain.PlaceAddMenu.Item.ADD_STOP, menu?.emphasised)
         scenario.onActivity { vm(it).addPoiAsStop(poi) }
         waitUntil("3 points, the place between start and goal", 10_000) {
             val w = waypointList()
@@ -766,10 +766,10 @@ class CoreFieldE2ETest : E2EBase() {
         // half the route again beyond the goal, in its direction
         val past = GeoPoint(plan[1].lat + (plan[1].lat - plan[0].lat) / 2, plan[1].lon + (plan[1].lon - plan[0].lon) / 2)
         val poi = com.onpath.app.poi.Poi("e2e-church", "place_of_worship", "Kirche E2E", past.lat, past.lon)
-        var menu: com.onpath.app.ui.PlaceAddMenu.Menu? = null
+        var menu: com.onpath.app.domain.PlaceAddMenu.Menu? = null
         scenario.onActivity { menu = vm(it).placeMenu(poi) }
-        assertEquals("the menu: $menu", com.onpath.app.ui.PlaceAddMenu.Item.NEW_DESTINATION, menu?.main?.firstOrNull())
-        assertTrue("„Einfügen“ is shown too: $menu", com.onpath.app.ui.PlaceAddMenu.Item.ADD_STOP in menu!!.main)
+        assertEquals("the menu: $menu", com.onpath.app.domain.PlaceAddMenu.Item.NEW_DESTINATION, menu?.main?.firstOrNull())
+        assertTrue("„Einfügen“ is shown too: $menu", com.onpath.app.domain.PlaceAddMenu.Item.ADD_STOP in menu!!.main)
         scenario.onActivity { vm(it).poiAsNewDestination(poi) }
         waitUntil("the plan ends at the place, the old goal dropped", 10_000) {
             val w = waypointList()

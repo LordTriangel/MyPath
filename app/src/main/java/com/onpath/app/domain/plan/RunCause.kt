@@ -1,6 +1,6 @@
 package com.onpath.app.domain.plan
 
-import com.onpath.app.ui.PlanStatus.Cause
+import com.onpath.app.domain.PlanStatus.Cause
 
 /**
  * What started the routing run (problem 9 / owner 2026-11-01): Cancel of "This route is very long" or of a running

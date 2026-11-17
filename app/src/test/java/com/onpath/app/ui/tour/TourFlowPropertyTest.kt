@@ -126,7 +126,7 @@ class TourFlowPropertyTest {
             // afterTourEnded → clearPlan: an unsaved plan goes under Zuletzt first (keepAsDraft), then one undoable clear
             val pts = session.points.toList()
             planBeforeEnd = pts
-            if (com.onpath.app.ui.Drafts.keeps(pts.size, pts != savedPoints)) drafts += pts
+            if (com.onpath.app.domain.Drafts.keeps(pts.size, pts != savedPoints)) drafts += pts
             if (pts.isNotEmpty()) session.edit { clear() }
         }
 
@@ -189,7 +189,7 @@ class TourFlowPropertyTest {
                 Op.NEW_PLAN -> if (service.running != null) {
                     c.noteNewPlan(undo = session.points.isNotEmpty())
                     val route = listOf(GeoPoint(51.2, 7.0), GeoPoint(51.3, 7.1)) // a saved route from My routes
-                    session.points.toList().let { old -> if (com.onpath.app.ui.Drafts.keeps(old.size, old != savedPoints)) drafts += old }
+                    session.points.toList().let { old -> if (com.onpath.app.domain.Drafts.keeps(old.size, old != savedPoints)) drafts += old }
                     session.replace(route); followed = session.points.toList()
                     savedPoints = route; if (route !in saved) saved += route
                 }

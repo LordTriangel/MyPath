@@ -1,5 +1,7 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.PointsDeleteGuard
+import com.onpath.app.domain.RecomposeProbe
 import com.onpath.strings.*
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring

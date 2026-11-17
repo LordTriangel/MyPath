@@ -10,7 +10,7 @@ import com.onpath.app.rides.RideView
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.time.TourTimes
 import com.onpath.app.ui.EndAsk
-import com.onpath.app.ui.NewPlanNote
+import com.onpath.app.domain.NewPlanNote
 
 /**
  * What the tour controller asks of the recording service (the only Android-bound part): start / continue / pause /

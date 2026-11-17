@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.AppMode
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test

@@ -1,6 +1,6 @@
 import com.onpath.app.routing.*
-import com.onpath.app.ui.RouteWarnings
-import com.onpath.app.ui.SpotKind
+import com.onpath.app.domain.RouteWarnings
+import com.onpath.app.domain.SpotKind
 import java.io.File
 
 // Route hints: a route over a Rhine ferry gets the amber "Ferry … – check times" line, from the app's

@@ -1,5 +1,7 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.RouteSpot
+import com.onpath.app.domain.RouteWarnings
 import com.onpath.strings.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column

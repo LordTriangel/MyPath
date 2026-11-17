@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.AppMode
 import com.onpath.app.routing.GeoPoint
 
 /**

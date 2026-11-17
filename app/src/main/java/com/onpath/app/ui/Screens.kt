@@ -1,7 +1,9 @@
 package com.onpath.app.ui
 
-import com.onpath.app.ui.routes.RouteRowActions
-import com.onpath.app.ui.routes.RouteSort
+import com.onpath.app.domain.RouteShape
+import com.onpath.app.domain.RoutesTab
+import com.onpath.app.domain.routes.RouteRowActions
+import com.onpath.app.domain.routes.RouteSort
 import com.onpath.app.ui.routes.RouteSortChips
 import kotlinx.coroutines.launch
 
@@ -535,7 +537,7 @@ fun RoutesScreen(
             // every input is a key: a new activity, star filter or order recomputes it (field bug 2026-11-13)
             val saved = remember(shown, sort, favOnly, act) { com.onpath.app.ui.routes.ActivityFilter.saved(shown, sort, favOnly, act) }
             // written while composing (no state): the overview below reads it in the same pass, frozen when it opens
-            pageSource[0] = com.onpath.app.ui.routes.OverviewPages.of(recentTour, saved)
+            pageSource[0] = com.onpath.app.domain.routes.OverviewPages.of(recentTour, saved)
             PullToSync(if (tab == RoutesTab.PLANNED) onPull else null, pulling) {
             if (saved.isEmpty() && !hasRecent) {
                 // a list of one so the empty Planned tab can be pulled too
@@ -578,8 +580,8 @@ fun RoutesScreen(
                     listFirstKey[0] = firstKey
                     // the position of the last layout, before this list is measured
                     androidx.compose.runtime.snapshots.Snapshot.withoutReadObservation {
-                        com.onpath.app.ui.routes.ListTop.scrollTo(before, firstKey,
-                            com.onpath.app.ui.routes.ListTop.atTop(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset))
+                        com.onpath.app.domain.routes.ListTop.scrollTo(before, firstKey,
+                            com.onpath.app.domain.routes.ListTop.atTop(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset))
                     }
                 }
                 androidx.compose.runtime.LaunchedEffect(firstKey) { scrollTop?.let { listState.scrollToItem(it) } }
@@ -624,9 +626,9 @@ fun RoutesScreen(
         androidx.activity.compose.BackHandler { overview = null }
         // swipe through the list as shown (owner 2026-11-15): frozen when the overview opens, starting at the tapped tour;
         // the pages next to the shown one are composed too (their pictures ready from the stored files) – at most three
-        val pages = remember(start.id) { com.onpath.app.ui.routes.OverviewPages.around(pageSource[0].orEmpty(), start) }
+        val pages = remember(start.id) { com.onpath.app.domain.routes.OverviewPages.around(pageSource[0].orEmpty(), start) }
         val pager = androidx.compose.foundation.pager.rememberPagerState(
-            initialPage = remember(start.id) { com.onpath.app.ui.routes.OverviewPages.indexOf(pages, start) }) { pages.size }
+            initialPage = remember(start.id) { com.onpath.app.domain.routes.OverviewPages.indexOf(pages, start) }) { pages.size }
         androidx.compose.foundation.pager.HorizontalPager(pager, Modifier.fillMaxSize(), beyondViewportPageCount = 1,
             key = { pages[it].id }) { i ->
             val t = pages[i]
@@ -735,7 +737,7 @@ private fun TourCard(
     // a plan under Zuletzt: the route sign pale – only a draft (owner 2026-11-06)
     val pale = DraftLook.of(t.draft)
     // a round trip says so in the activity line ("↻ Rundtour", owner 2026-11-13 variant A) and to TalkBack
-    val loop = remember(t, line) { com.onpath.app.ui.routes.RoundTrip.of(t, line) }
+    val loop = remember(t, line) { com.onpath.app.domain.routes.RoundTrip.of(t, line) }
     val openLabel = str(Res.string.routes_open_row, t.name) + (if (loop) ", " + str(Res.string.plan_round_trip) else "")
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Surface(onClick = { onOpen?.invoke() }, enabled = onOpen != null, shape = OnPathShapes.Card, color = OnPathColors.CardPaper,

@@ -1,8 +1,9 @@
 package com.onpath.app.ui.routes
 
 import com.onpath.app.data.Tour
+import com.onpath.app.domain.routes.RouteSort
 import com.onpath.app.gpx.TrackPoint
-import com.onpath.app.ui.RoutesTab
+import com.onpath.app.domain.RoutesTab
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

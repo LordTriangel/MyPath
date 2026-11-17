@@ -1,7 +1,7 @@
 package com.onpath.app.e2e
 
 import androidx.test.uiautomator.By
-import com.onpath.app.ui.AppMode
+import com.onpath.app.domain.AppMode
 import com.onpath.app.ui.AppViewModel
 import com.onpath.strings.Res
 import com.onpath.strings.Txt
@@ -83,7 +83,7 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
         val trace = com.onpath.app.debug.Problems.events().map { it.message }
         val line = trace.firstOrNull { it.startsWith("Place menu of a") }
         android.util.Log.i("OnPathE2E", "POI hold while planning: rows $rows, realRouting $realRouting: $line")
-        assertEquals("only „Neues Ziel“ – $line", listOf(com.onpath.app.ui.PlaceAddMenu.Item.NEW_DESTINATION), rows)
+        assertEquals("only „Neues Ziel“ – $line", listOf(com.onpath.app.domain.PlaceAddMenu.Item.NEW_DESTINATION), rows)
         assertTrue("the decision says how it measured – $trace", line != null && (line.contains("paths: ") || line.contains("paths failed")))
         if (realRouting) assertTrue("measured on the paths with real routing data: $line", line!!.contains("paths: insert"))
         assertNotNull("„Neues Ziel“ shown", findFresh(By.text(Txt.s(Res.string.plan_make_destination)), 5_000))

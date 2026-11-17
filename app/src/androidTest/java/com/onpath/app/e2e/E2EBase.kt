@@ -325,7 +325,7 @@ abstract class E2EBase {
         if (takeAddMenu && launched) scenario.onActivity { a ->
             val v = vm(a)
             val m = v.holdAddMenu ?: return@onActivity
-            if (m.menu.emphasised == com.onpath.app.ui.PlaceAddMenu.Item.NEW_DESTINATION) v.holdAsNewDestination() else v.holdAsStop()
+            if (m.menu.emphasised == com.onpath.app.domain.PlaceAddMenu.Item.NEW_DESTINATION) v.holdAsNewDestination() else v.holdAsStop()
         }
     }
 

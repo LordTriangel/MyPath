@@ -3,7 +3,7 @@ package com.onpath.web
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.PlanResult
 import com.onpath.app.routing.LongRoute
-import com.onpath.app.ui.PlanStatus
+import com.onpath.app.domain.PlanStatus
 import com.onpath.strings.*
 
 /**
@@ -25,12 +25,12 @@ object WebPlanRules {
             ",\"text\":" + Engine.str(LongRoute.text(s, act)) +
             ",\"plan\":" + Engine.str(Txt.s(Res.string.nav_plan_anyway)) +
             ",\"cancel\":" + Engine.str(Txt.s(Res.string.common_cancel)) +
-            ",\"notRouted\":" + Engine.str(PlanStatus.notRoutedText(com.onpath.app.ui.NotRouted.LONG)) +
-            ",\"again\":" + Engine.str(PlanStatus.notRoutedAction(com.onpath.app.ui.NotRouted.LONG)) + "}"
+            ",\"notRouted\":" + Engine.str(PlanStatus.notRoutedText(com.onpath.app.domain.NotRouted.LONG)) +
+            ",\"again\":" + Engine.str(PlanStatus.notRoutedAction(com.onpath.app.domain.NotRouted.LONG)) + "}"
     }
 
     /**
-     * Plan points the route does not reach (the app's [com.onpath.app.ui.PlanGaps], worked out in [PlanResult.gaps]: a
+     * Plan points the route does not reach (the app's [com.onpath.app.domain.PlanGaps], worked out in [PlanResult.gaps]: a
      * summit above the T level, a point off any path – the router stops at the nearest allowed way – or a stop it skips
      * although it lies on a way, Bug 01): the sheet's red line, combined with a failed leg like PlanPanel does (one line,
      * "+N more"), and the grey dashed pieces. [names] = index → name. JSON {text, gaps}.
@@ -38,12 +38,12 @@ object WebPlanRules {
     fun gapsJson(res: PlanResult, names: Map<Int, String>, reach: com.onpath.app.routing.PlanReach? = null): String {
         val gaps = res.gaps
         // what reaches the first gap's point (PlanReach, owner 2026-11-07) says it instead of the missing metres
-        val reachText = com.onpath.app.ui.PlanGaps.reachText(gaps, reach)
-        val gapText = com.onpath.app.ui.PlanGaps.text(gaps, res.activity) { names[it]?.takeIf { n -> n.isNotBlank() } }
+        val reachText = com.onpath.app.domain.PlanGaps.reachText(gaps, reach)
+        val gapText = com.onpath.app.domain.PlanGaps.text(gaps, res.activity) { names[it]?.takeIf { n -> n.isNotBlank() } }
         val text = when {
             reachText != null -> reachText // as the app's planGapText: the reach line as it is
             gapText == null -> null
-            res.route.error != null && !com.onpath.app.ui.PlanGaps.hasMore(gapText) -> com.onpath.app.ui.PlanGaps.withMore(gapText, 1)
+            res.route.error != null && !com.onpath.app.domain.PlanGaps.hasMore(gapText) -> com.onpath.app.domain.PlanGaps.withMore(gapText, 1)
             else -> gapText
         }
         // the way that reaches it (a tap shows it like a steep section: amber on the map, fitted)
@@ -51,7 +51,7 @@ object WebPlanRules {
         return "{\"text\":" + (text?.let { Engine.str(it) } ?: "null") + ",\"way\":" +
             (way?.joinToString(",", "[", "]") { "[" + Engine.num(it.lat, 6) + "," + Engine.num(it.lon, 6) + "]" } ?: "null") +
             ",\"gaps\":" + gaps.joinToString(",", "[", "]") { g ->
-            val (at, zoom) = com.onpath.app.ui.PlanGaps.showTarget(g)
+            val (at, zoom) = com.onpath.app.domain.PlanGaps.showTarget(g)
             "{\"index\":" + g.index + ",\"point\":[" + Engine.num(g.point.lat, 6) + "," + Engine.num(g.point.lon, 6) + "],\"end\":[" +
                 Engine.num(g.routeEnd.lat, 6) + "," + Engine.num(g.routeEnd.lon, 6) + "],\"show\":[" + Engine.num(at.lat, 6) + "," +
                 Engine.num(at.lon, 6) + "," + Engine.num(zoom, 1) + "]}"

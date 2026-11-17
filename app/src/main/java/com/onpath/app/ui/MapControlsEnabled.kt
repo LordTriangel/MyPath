@@ -1,5 +1,7 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.AppMode
+
 /**
  * When the map column's eye, whole route, undo and redo can act (owner 2026-11-06: they are always there and only greyed –
  * "funktioniert das Ausgrauen immer zuverlässig?"). Pure – MapScreen feeds it, MapControlsEnabledTest walks every state.

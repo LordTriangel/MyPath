@@ -1,5 +1,7 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.PlanStart
+import com.onpath.app.domain.RouteRules
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.PlannedLeg

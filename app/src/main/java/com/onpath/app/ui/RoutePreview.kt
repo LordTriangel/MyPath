@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.onpath.app.data.Format
 import com.onpath.app.data.Tour
+import com.onpath.app.domain.RouteShape
 import com.onpath.app.routing.GeoPoint
 import com.onpath.strings.*
 

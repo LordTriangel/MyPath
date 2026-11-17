@@ -29,9 +29,9 @@ import com.onpath.app.sync.SyncFormat
 import com.onpath.app.sync.SyncKeys
 import com.onpath.app.sync.SyncLedger
 import com.onpath.app.sync.SyncRound
-import com.onpath.app.ui.AppMode
+import com.onpath.app.domain.AppMode
 import com.onpath.app.ui.AppViewModel
-import com.onpath.app.ui.RoutesTab
+import com.onpath.app.domain.RoutesTab
 import com.onpath.strings.Res
 import com.onpath.strings.Txt
 import com.onpath.strings.common_delete

@@ -6,8 +6,8 @@ import com.onpath.app.routing.PlanReach
 import com.onpath.app.routing.PlanResult
 import com.onpath.app.routing.PlannedLeg
 import com.onpath.app.routing.PlannedRoute
-import com.onpath.app.ui.PlanGap
-import com.onpath.app.ui.PlanGaps
+import com.onpath.app.domain.PlanGap
+import com.onpath.app.domain.PlanGaps
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

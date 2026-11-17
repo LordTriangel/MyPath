@@ -1,5 +1,7 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.PlanGuidance
+import com.onpath.app.domain.PlanHistory
 import com.onpath.app.routing.GeoPoint
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

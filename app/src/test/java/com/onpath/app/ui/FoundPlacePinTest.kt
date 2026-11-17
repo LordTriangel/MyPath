@@ -1,5 +1,7 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.MapGestures
+import com.onpath.app.domain.PinMenuItems
 import com.onpath.app.map.CandidateMarker
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

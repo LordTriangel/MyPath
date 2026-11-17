@@ -1,0 +1,101 @@
+package com.onpath.app.domain
+
+import com.onpath.app.routing.GeoPoint
+import com.onpath.app.routing.WaypointInsertion
+import com.onpath.app.search.AddPreview
+import com.onpath.app.search.Place
+import com.onpath.app.domain.SharedPlaceMenu.Step
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
+
+/**
+ * Google Maps place → go there (owner 2026-10-30): a shared place opens the ring's hold menu by itself once the map has
+ * flown there – once per share, the same labels and rules as holding the ring. Pure rules in [SharedPlaceMenu]; the
+ * view model needs Android, so its wiring is checked in the source (like CorePlanLinkTest).
+ */
+class SharedPlaceMenuTest {
+    private val place = Place("shared:46.6712,11.1598", "Gelateria Costantin", "other", 46.6712, 11.1598)
+    private val key = SharedPlaceMenu.key(place.lat, place.lon, place.name)
+    private val arrivedPx = 63.0 // 24 dp at 420 dpi
+
+    private fun SharedPlaceMenu.at(offPx: Double?, mark: String? = key, canEdit: Boolean = true,
+                                   elsewhere: Boolean = false, loading: Boolean = false) =
+        check(mark, offPx, arrivedPx, canEdit, elsewhere, loading)
+
+    @Test fun opensOnceWhenTheCameraHasArrived() {
+        val m = SharedPlaceMenu()
+        assertTrue(m.arrived(key))
+        assertEquals(Step.WAIT, m.at(4_000.0)) // still flying
+        assertEquals(Step.WAIT, m.at(null)) // camera unknown
+        assertEquals(Step.OPEN, m.at(0.0)) // flyTo centres exactly on the ring
+        assertEquals(Step.NONE, m.at(0.0)) // a later camera stop opens nothing
+    }
+
+    /**
+     * Field bug 2026-10-31: the same place shared a second time showed the ring only. A share is the user's own act
+     * (a re-delivered intent is dropped by IncomingIntent), so every share opens the menu again.
+     */
+    @Test fun sameShareAgainOpensTheMenuAgain() {
+        val m = SharedPlaceMenu()
+        m.arrived(key); assertEquals(Step.OPEN, m.at(0.0))
+        assertTrue(m.arrived(key)); assertEquals(Step.OPEN, m.at(0.0))
+        // the same share arriving twice before the camera got there: one menu
+        val third = SharedPlaceMenu.key(46.71, 11.21, null)
+        assertTrue(m.arrived(third)); assertTrue(m.arrived(third))
+        assertEquals(Step.OPEN, m.at(0.0, mark = third)); assertEquals(Step.NONE, m.at(0.0, mark = third))
+    }
+
+    /** A share that never got its menu (the user moved on) opens it when shared again. */
+    @Test fun notOpenedYetMeansAnotherTry() {
+        val m = SharedPlaceMenu()
+        m.arrived(key); assertTrue(m.cancel()); assertFalse(m.cancel())
+        assertEquals(Step.NONE, m.at(0.0))
+        assertTrue(m.arrived(key)); assertEquals(Step.OPEN, m.at(0.0))
+    }
+
+    @Test fun theUserWentOnDropsIt() {
+        for ((what, step) in listOf(
+            "ring gone (added / closed)" to SharedPlaceMenu().apply { arrived(key) }.at(0.0, mark = null),
+            "another ring (new search)" to SharedPlaceMenu().apply { arrived(key) }.at(0.0, mark = "x"),
+            // the hold menu needs an editable map: Navigate or a shown track → no menu (same rule as a hold)
+            "map not editable" to SharedPlaceMenu().apply { arrived(key) }.at(0.0, canEdit = false),
+            "another menu / screen open" to SharedPlaceMenu().apply { arrived(key) }.at(0.0, elsewhere = true),
+        )) assertEquals(what, Step.DROP, step)
+    }
+
+    @Test fun waitsForTheMapDownloadModal() {
+        val m = SharedPlaceMenu()
+        m.arrived(key)
+        assertEquals(Step.WAIT, m.at(0.0, loading = true))
+        assertEquals(Step.OPEN, m.at(0.0))
+    }
+
+    /** The labels the menu shows: what a hold on the ring shows (PoiMenu + vm.poiAddLabel → AddPreview.label). */
+    @Test fun labelsEmptyPlanVsPlanWithPoints() {
+        val p = GeoPoint(place.lat, place.lon)
+        // empty plan: PoiMenu(emptyPlan = true) → "Start here" · "Go here" · "Open in Google Maps"
+        val overlays = File("src/main/java/com/onpath/app/ui/MapOverlays.kt").readText()
+        assertTrue(overlays.contains("emptyPlan = vm.waypoints.isEmpty()"))
+        val menu = overlays.substringAfter("fun PoiMenu(").substringBefore("fun PointMenu(")
+        assertTrue(menu.contains("Res.string.plan_start_here") && menu.contains("Res.string.plan_go_here") &&
+            menu.contains("Res.string.plan_open_google_maps"))
+        // a plan with only a start: the place becomes the destination
+        val a = GeoPoint(46.60, 11.10)
+        assertEquals("Set as destination", AddPreview.label(WaypointInsertion.decide(listOf(a), p, null, 30.0), 1))
+        // a route A → B: beyond B a new destination, beside the middle a stop
+        val b = GeoPoint(46.65, 11.14)
+        assertEquals("New destination", AddPreview.label(WaypointInsertion.decide(listOf(a, b), p, null, 30.0), 2))
+        val c = GeoPoint(46.75, 11.20)
+        assertEquals("Insert", AddPreview.label(WaypointInsertion.decide(listOf(a, c), p, null, 30.0), 2))
+    }
+
+
+    @Test fun `a camera stop counts only while the menu waits`() {
+        // following reports a camera stop on every frame – without a waiting menu they must not tick (smooth map 2026-11-08)
+        assertTrue(SharedPlaceMenu.idleCounts(menuWaiting = true))
+        assertFalse(SharedPlaceMenu.idleCounts(menuWaiting = false))
+    }
+}
