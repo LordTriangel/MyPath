@@ -6,7 +6,8 @@ Zoom tiers / priority: `tools/make_style.py` (`POI_TIERS`).
 
 ## Kinds
 
-"Icon from" = the zoom where the icon first appears; "Label from" = the zoom where its name appears.
+"Icon from" = the zoom where the icon first appears; "Label from" = the zoom its name appeared until 2026-11-17 –
+since then every POI name shows from z17 (owner, "Style layers" below).
 Within a tier, the order in the table is the placement priority (collision is on, so higher rows win).
 Named POIs win over unnamed ones of the same kind. Place and peak labels always win over POIs.
 
@@ -56,15 +57,27 @@ bivouac 21, cave 15.
 
 ## Style layers (all symbol layers, source `pois`)
 - `poi-tier3`, `poi-tier2`, `poi-tier1` (bottom to top; minzoom 15 / 14 / 12). There are no
-  circle or glyph layers. Each POI layer is split (owner): icon layer `poi-<x>` (icon only) and name layer `poi-<x>-name` (text only, same
-  filter / sort key / zooms, radial offset beside the icon). MapLibre Native places symbols from the top layer
-  down, so all icon layers lie above all name layers: every icon is placed before any name; a name without room
-  simply does not show (rarely a name may show without its icon – accepted). Same for `poi-station` / `poi-bus*`.
+  circle or glyph layers. **POI names: normally hidden, from z17 written out (owner 2026-11-17).** Each POI layer
+  is one zoom band in two layers that never show at the same zoom: `poi-<x>` below z17 (icon only + an invisible key
+  text) and `poi-<x>-named` from z17 (the icon WITH its name in one symbol: icon required, text optional – the icon
+  stays when its name has no room, a name shows only beside its own placed icon). Same filter / sort key / icon.
+  Same for `poi-station` / `poi-bus-detail`; `poi-bus` (merged stop pairs) ends at z16, so it has no names.
+  Never a `-name` id: the tap lookup takes a `-name` layer for text only (`PoiHit.symbolLayer`).
+  Why: until 2026-11-17 the names were separate `-name` layers after all icons – a name could not know whether its
+  icon was placed (MapLibre checks only boxes placed before; Native 13.7 has no `*-overlap: cooperative`) and it
+  collided with its own placed icon (radial offset 1.05 em), so nearly every name shown was a bare one (Hilden
+  2026-11-15: a bus stop's name read like a street name). Render check 2026-11-17, main → now: below z17 the same
+  icons everywhere, 0 names (main showed only bare ones); at z17+ names beside their icons (Hilden St.-Konrad-Allee
+  z17.2: 4 names, 0 icons lost), and where it is crowded a name takes the room of a smaller icon – Soho z17 −8 of 52
+  icons, Meran z17 −3 of 32, Soho z18 none (owner: accepted). Bare names: 0. Machine check: `PoiSymbolStyleTest`
+  (every kind × zoom × style file: a name only in its icon's symbol, symbols first below z17, no names below z17,
+  names from z17, symbol in the sprite, Settings filter hides the name too).
 - Filters are expressions on `["get","kind"]`, so the app filter
   `["all", <original filter>, ["in", ["get","kind"], ["literal", [enabled kinds]]]]` works.
   Keep the original filter of each layer (read it with `layer.filter` before wrapping, or remember it once
   after the style loads), otherwise a kind may appear at the wrong zoom.
-- The tap / hold lookup (`ShownPois`, read from all `poi-*` layers while the map is idle) keeps working; symbol hit boxes are the icon (~21 dp).
+- The tap / hold lookup (`ShownPois`, read from all `poi-*` symbol layers while the map is idle) hits a POI only
+  through its drawn symbol (icon ~21 dp + the 24 dp finger box); a name – beside its icon or bare – is never a target.
 
 ## Sprite
 - Style: `"sprite": "asset://sprites/onpath"`. MapLibre Native appends `.json`/`.png` and, on screens with
