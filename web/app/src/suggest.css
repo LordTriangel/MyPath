@@ -1,0 +1,60 @@
+/* Round-trip suggestions (suggest.ts): the wish, the wait and the cards take the plan sheet's place, as the GPX panel does */
+#sheet.suggest > :not(#suggestPanel):not(#handle) { display: none !important; }
+#sheet.suggest { overflow-y: auto; }
+#suggestPanel { display: flex; flex-direction: column; gap: 12px; }
+#suggestPanel .sghead { display: flex; align-items: center; gap: 8px; }
+#suggestPanel .sghead b { flex: 1; font-size: 20px; font-weight: 500; letter-spacing: -.01em; }
+#suggestPanel .sgrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#suggestPanel .sgrow.top { align-items: flex-start; }
+#suggestPanel .sglbl { width: 86px; flex: none; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+#suggestPanel .sgfield { display: flex; gap: 6px; flex-wrap: wrap; }
+#suggestPanel .sgselect { height: 36px; border-radius: 10px; border: none; background: var(--chip); color: var(--chip-fg); font: inherit; font-weight: 600; padding: 0 8px; }
+#suggestPanel .sgval { min-width: 78px; text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#suggestPanel .sgchips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+#suggestPanel .sgz { height: 32px; padding: 0 11px; border: 1px solid var(--muted); border-radius: 8px; background: var(--paper); color: var(--fg); font: inherit; font-size: 13.5px; }
+#suggestPanel .sgz.on { background: var(--chip); border-color: var(--chip); color: var(--chip-fg); font-weight: 600; }
+#suggestPanel .sgz.on::before { content: "✓ "; font-size: 12px; }
+#suggestPanel .sgfoot { display: flex; justify-content: flex-end; gap: 8px; }
+#suggestPanel .sgtext { border: none; background: none; color: var(--plan); font: inherit; font-weight: 600; padding: 8px 12px; border-radius: 20px; }
+#suggestPanel .sgtext:hover { background: var(--plan-light); }
+#suggestPanel .sgok { border: none; background: var(--plan); color: #fff; font: inherit; font-weight: 600; min-height: 40px; padding: 0 22px; border-radius: 20px; }
+#suggestPanel .sgok:hover { background: var(--plan-dark); }
+/* two-handle range: two range inputs on one track, only their thumbs take the pointer */
+.sgrange { position: relative; flex: 1 1 150px; min-width: 130px; height: 36px; }
+.sgrange .sgtrack, .sgrange .sgfill { position: absolute; top: 17px; height: 3px; border-radius: 2px; }
+.sgrange .sgtrack { left: 0; right: 0; background: var(--line); }
+.sgrange .sgfill { background: var(--plan); }
+.sgrange input[type=range] { position: absolute; left: 0; top: 0; width: 100%; height: 36px; margin: 0; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; }
+.sgrange input[type=range]::-webkit-slider-runnable-track { background: none; height: 36px; }
+.sgrange input[type=range]::-moz-range-track { background: none; }
+.sgrange input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 20px; height: 20px; margin-top: 8px; border-radius: 50%; background: var(--plan); border: none; box-shadow: var(--shadow-low); cursor: pointer; }
+.sgrange input[type=range]::-moz-range-thumb { pointer-events: auto; width: 20px; height: 20px; border-radius: 50%; background: var(--plan); border: none; box-shadow: var(--shadow-low); cursor: pointer; }
+/* the wait */
+#suggestPanel .sgwait { display: flex; align-items: center; gap: 10px; font-weight: 600; padding: 8px 0; }
+#suggestPanel .sgnote { font-size: 13px; background: var(--warn-bg); color: var(--warn); border-radius: var(--r-small); padding: 8px 10px; }
+/* the cards (sketch 4 A, pills of sketch 7) */
+#suggestPanel .sgcards { display: flex; flex-direction: column; gap: 8px; }
+.sgcard { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: var(--paper); display: flex; flex-direction: column; gap: 4px; cursor: pointer; }
+.sgcard.on { border: 2px solid var(--plan); padding: 9px 11px; }
+.sgcard:focus-visible { outline: 2px solid var(--plan); outline-offset: 2px; }
+.sgbadge { align-self: flex-start; font-size: 11px; font-weight: 700; border-radius: 8px; padding: 2px 7px; }
+.sgbadge.signed { background: #E3E9F7; color: #1E3FAE; }
+.sgbadge.own { background: #DDE9DB; color: #1F4F2A; }
+.sgname { font-weight: 700; font-size: 15px; }
+.sgstats { font-variant-numeric: tabular-nums; font-size: 13.5px; }
+.sgline { font-size: 12.5px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sgcard.on .sgline { white-space: normal; }
+.sgpills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.sgpill { font-size: 12.5px; font-weight: 600; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+.sgpill.g1 { background: #DCEDD4; color: #1C3F1F; } .sgpill.g2 { background: #CDE6C3; color: #1C3F1F; } .sgpill.g3 { background: #A9D49A; color: #1C3F1F; }
+.sgpill.y1 { background: #F7E8B8; color: #4A3A00; } .sgpill.y2 { background: #F6E4A6; color: #4A3A00; } .sgpill.y3 { background: #EED073; color: #4A3A00; }
+.sgcardfoot { display: none; justify-content: flex-end; margin-top: 2px; }
+.sgcard.on .sgcardfoot { display: flex; }
+.sgtake { border: none; background: var(--plan); color: #fff; font: inherit; font-weight: 600; min-height: 34px; padding: 0 16px; border-radius: 20px; }
+.sgtake:disabled { opacity: .7; }
+/* ?debug: the test switch at the map's right edge, half way up */
+.suggestswitch { position: fixed; z-index: 5; right: 12px; top: 42%; padding: 6px 10px; border-radius: 10px; border: 1px solid #888; background: #fff; color: #222; font: 12px sans-serif; }
+@media (max-width: 700px) {
+  #sheet.suggest { max-height: 75%; }
+  #suggestPanel .sglbl { width: 100%; }
+}
