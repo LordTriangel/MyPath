@@ -291,13 +291,22 @@ and planner will do), default: the file where a cell has one. Files lie in the c
   10-531…533-345…346) in the laptop's `onpath-data/store-test-routes`, built from the published s8 / s7 versions with
   the Geofabrik extracts of 2026-11-15 (`LAYERS` from `rebuild_plan`: suggest, or overlays + suggest for an s7 cell).
   The bump makes every phone download its cells once more (the whole new version) for a file it does not use –
-  unless it rides on a rebuild that happens anyway (owner question open).
+  **owner 2026-11-17: accepted** („Normale Kartenschicht“: the file goes into every cell as a normal layer; all cells
+  are rebuilt with it).
   Test cells: version `2026-11-15-s9`, partial build 13–44 s for suggest only, 59 / 105 s with the overlays;
   `suggest.bin` 268–424 KB (with `routelines`; Hilden 268, Traumpfade 274–424). Acceptance: the POC from the tiles
   (`SUGGEST_FILE=0`) and from the file (`SUGGEST_FILE=1`) give equal grid, names, labels, places, heights, routes,
   lakes, sights in all 7 cells; loops against `build_suggest.loops` over the whole extracts (owned by the cell): 229 of
   229 equal (line, km, T, parking), Hilden has 2 more – loops across the Düsseldorf / Köln border, whole only in the
   merged cut.
+  **Rebuilt 2026-11-17 with content 2 (`AIMS`, after IR's section):** version `2026-11-16-s9` (Geofabrik 2026-11-16),
+  the 7 test cells plus 12 for the acceptance (Hilden's reach 10-531-341, 10-532-341…342; Nordkirchen's 3 × 3
+  10-532…534-338…340), 15–75 s suggest only, 71–110 s with the overlays (s7 cells); `suggest.bin` 179–591 KB.
+  Acceptance (POC, own route service, no server): data tiles = file in all 7 cells; `cases.py` Hilden / Nordkirchen
+  (10 wishes) – the shown suggestions with `SUGGEST_FILE=0` and `=1` are identical (39 of 40 statements both ways;
+  `hilden-rad` „≥ 2 Schutzgebiete“ fails in both); `official.py compare --name Traumpfad` (15 loops) identical. One
+  catch: the tiles-way reference needs its loops file from the **merged** Münster + Arnsberg extract – per-Regbez
+  files miss loops across the border (Pättkestour 4), which the cell's merged cut has whole.
 - Later, with stage 4: the app keeps `suggest.bin` per cell at the join (as `addresses/<cell>.sqlite` today).
 
 ## 5. The owner's taste rules

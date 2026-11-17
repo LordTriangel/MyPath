@@ -312,7 +312,8 @@ only from it), and a version named by the OSM date alone would give a rebuild on
   version) – when it asks for a refresh: after a route is computed (corridor cells, `CellTriggers.freshenAlong`),
   „Karten jetzt aktualisieren“, a router-class mismatch; never just from looking at the map (app `CELL_SCHEMA` stays
   3, so no `UPDATE`). Typical cell 9–23 MB for a 0.2–0.3 MB file; the server also pre-warms every cell asked for in the
-  last 30 days (queue.js). Test cells first (`store-test-routes`, laptop), all cells only after IR's check.
+  last 30 days (queue.js). Owner 2026-11-17: accepted – every cell gets the layer, every phone reloads its cells
+  once. Test cells (`store-test-routes`, laptop, content 2 with `AIMS`): `docs/design/tour-suggestions.md` §4a.
 
 ## 7d. Released APKs, loading modal, fresh-install reset
 
