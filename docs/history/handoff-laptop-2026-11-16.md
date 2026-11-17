@@ -34,7 +34,14 @@
    (only cells a phone refreshes: after routing, „Karten jetzt aktualisieren“, a class mismatch – not by looking at the
    map). Proposal to donald in the backlog: reuse files with equal sha256 → later waves tiny.
 
+8. **Deployed 2909bd34 (hold rule F-PLAN-15, bare name ≠ POI, kept places sync with the phone, click fixes)** after a
+   green local check-web – but GitHub CI then showed two regressions on its slower machine (robust-smoke: two quick
+   clicks in the wrong order; parity-smoke: a click on the line not put into the leg). robust-smoke was not in
+   check-web.sh – I add it. Decision: fix forward at once (night, few users) rather than roll back; if the fix takes
+   long I roll the planner back to 0f18a0c6.
+
 ## Open for the owner (morning)
+- Hold rule past the goal (with donald's first item): with the band of f12e8d83 a silent new goal happens only exactly straight on past the goal – in practice every hold past the goal asks, with „Neues Ziel“ first, in app and planner alike (the planner follows the app's shared rule).
 - Suggest file into all cells (schema 9): yes / when? Each refreshed cell is downloaded whole again (9–23 MB), not
   only the 0.3 MB file – unless donald's app first reuses unchanged files (one app release). Recommendation: app fix
   first, then s9; or s9 now if the extra download is fine (only refreshed cells, once).
