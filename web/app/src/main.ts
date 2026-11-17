@@ -51,6 +51,7 @@ import { keepStats, planKey, trackKey, statsText } from './planstats';
 import { keepShape } from './routeshape';
 import { RouteReveal } from './routereveal';
 import { isPoiKind, poiFeatureAt, poiKindAt, poiPin } from './poipin';
+import { installSuggestSwitch, setupSuggest, suggestOn, type SuggestUi } from './suggest';
 /** A track's segments as [lat, lon] lists (Meine Touren's line). */
 const trackSegs = (segs: [number, number, number | null][][]) => segs.map((g) => g.map(([la, lo]) => [la, lo] as [number, number]));
 import './fonts/manrope.css';
@@ -268,6 +269,7 @@ const cells = new Cells(params.get('data') ?? base + 'data/');
 const mapFolder = params.get('data') ?? base + 'map/'; // folder mode only
 if (useCells) maplibregl.addProtocol('cell', cells.protocol);
 installDiag(DEBUG); // the problem log, window.__diag(), ?debug → "Copy diagnostics" (diag.ts)
+installSuggestSwitch(DEBUG); // ?debug → „Tourvorschläge (Test)“: the switch of the round-trip suggestions (suggest.ts); off = nothing
 watchVersion(); // a newer planner deployed while this tab is open: one box "New version of the planner" [Reload] (version.ts)
 addDiagSection(() => `build: ${BUILD}`);
 const baseStyle = await loadStyle();
@@ -547,6 +549,7 @@ function setPoints(points: LatLon[], meta?: Meta[]) {
   state.points = points;
   state.meta = meta ?? points.map((p) => ({ ...(known.get(key(p)) ?? { pinned: false }) }));
   state.points.forEach((p, i) => known.set(key(p), state.meta[i]));
+  if (points.length && suggestUi?.active()) suggestUi.close(); // a plan began meanwhile: the round-trip panel gives the sheet back
 }
 
 /**
@@ -710,6 +713,8 @@ sortable($('points'), (from, to) => applyEdit('move', from, to));
 
 // ---- presses on the map: a click is the app's hold (MapGestures.decide, in the engine) ----
 let menu: maplibregl.Popup | null = null;
+/** Round-trip suggestions (suggest.ts) – null unless the test switch is on (set up at the end of this file). */
+let suggestUi: SuggestUi | null = null;
 let placeCard: PlaceCard = { close: () => {}, isOpen: () => false, removePin: () => {}, planChanged: () => {}, showPin: () => {}, hasPin: () => false }; // the search's place card (set up below)
 function closeMenu() { menu?.remove(); menu = null; }
 function openMenu(at: maplibregl.LngLat, items: MenuItem[], head: string) {
@@ -1028,10 +1033,11 @@ async function fromMe(to: LatLon, toMeta: Meta) {
 /** First press on an empty plan: "Start here" · "Go here" (ui/MapOverlays.FirstPointMenu). */
 async function firstPointMenu(at: maplibregl.LngLat) {
   const p: LatLon = [at.lat, at.lng];
-  openMenu(at, [
+  const items: MenuItem[] = [
     { icon: 'tripOrigin', label: t('plan_start_here'), act: () => commit([p], [{ pinned: false }]) },
     await goHereItem(() => fromMe(p, { pinned: false })),
-  ], `<b>${escapeHtml(t('plan_new_route'))}</b>`);
+  ];
+  openMenu(at, suggestUi ? suggestUi.withRow(items, 0, p) : items, `<b>${escapeHtml(t('plan_new_route'))}</b>`);
 }
 
 /**
@@ -1104,7 +1110,8 @@ async function placeRows(hit: Hit, info: { title: string; sub: string; color: st
   const head = `<span class="txt"><b>${escapeHtml(info.title)}</b><span class="small" style="color:${info.color}">${escapeHtml(info.sub)}</span></span>`;
   const googleRow: MenuItem = { icon: 'map', label: t('plan_open_google_maps'),
     act: () => { if (info.google) window.open(info.google, '_blank', 'noopener'); else google(hit.name ?? '', lat, lon, hit.name ? '' : hit.title); } };
-  return { head, main: await Promise.all(pm.main.map(row)), keep: await keepRows(hit.code), google: googleRow };
+  const main = await Promise.all(pm.main.map(row));
+  return { head, main: suggestUi ? suggestUi.withRow(main, pm.main.indexOf('START_HERE'), p, info.title) : main, keep: await keepRows(hit.code), google: googleRow };
 }
 
 // ---- kept places (owner 2026-11-15, „Orte merken“ – the app's b2504c3d, F-PLAN-14; keptplaces.ts) ----
@@ -2544,6 +2551,21 @@ new ResizeObserver(() => {
 }).observe($('sheet'));
 addEventListener('resize', placeUndoPill);
 changed();
+
+// ---- round-trip suggestions (suggest.ts, docs/design/tour-suggestions.md §7 stage 3) – only with the test switch on ----
+if (suggestOn()) {
+  try {
+    suggestUi = setupSuggest({
+      map, engine, cells: params.get('data') ?? base + 'data/',
+      activity: () => ({ activity: state.activity, sac: state.sac }),
+      setActivity: (a, sac) => setActivity(a, sac, false),
+      plan: async (points, title) => { state.title = title; forgetSaved(); await commit(points); },
+      fitPadding,
+      closeMenus: () => { closeMenu(); closeMenus(); },
+    });
+    document.body.dataset.suggest = 'on';
+  } catch (e) { problem('suggest', 'round-trip suggestions not set up', e); }
+}
 
 /** The sheet's status line; 'busy' = a wait the user started (spinner, CLAUDE.md "Messages"). */
 function status(t: string, kind: 'info' | 'error' | 'busy' = 'info') {
