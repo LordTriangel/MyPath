@@ -72,7 +72,11 @@ check(restored.n === pts && pts === 2, `the unsaved route is back after reopenin
 check(restored.hash === '#p=', 'and in the address again');
 // ---- 5: two quick clicks while the engine is busy go in the order clicked (review web H4) ----
 await again.waitForFunction(() => document.querySelector('#summary .big') && document.body.dataset.planning !== '1', null, { timeout: 120_000 });
-const p1 = [11.1440, 46.7040], p2 = [11.1380, 46.7110]; // beyond the destination, one after the other
+// two spots on the leg, p1 nearer the start, p2 nearer the goal: since the hold rule (F-PLAN-15, b1f8728a) a click past
+// the goal asks „Einfügen“ / „Neues Ziel“ unless it is exactly straight on, so the clicks go onto the leg, where the rule
+// adds at once. Decided on the plan the first click left, p2 goes between p1 and the goal; decided on the old plan (the
+// bug) it would go between the start and p1. Chosen below, once the camera stands, from the drawn line.
+let p1, p2;
 // the engine busy first (another activity → the plan again), then both clicks: both wait behind that plan
 await again.click('#activityChip'); await again.click('[data-act=BIKE_TOURING]');
 // the menu closed – then the camera stands; both clicks queue behind the new plan
@@ -83,11 +87,19 @@ await again.waitForFunction(() => ![...document.querySelectorAll('[data-act]')].
 // lay outside the window – elementFromPoint gave nothing – and its click was lost).
 { const r = await again.locator('#map').boundingBox(), x = r.x + r.width * 0.6, y = r.y + r.height * 0.4;
   await again.mouse.move(x, y); await again.mouse.down(); await again.mouse.move(x + 40, y + 20, { steps: 5 }); await again.mouse.up(); }
-// a fixed close view: the reopened route is fitted whole, where p1 and p2 (~450 m past the goal) lie close to the goal;
-// no padding left by an earlier camera move (it shifts where the centre is drawn)
-// (the centre a bit south: on a wide screen the elevation profile lies along the map's bottom edge – plan sheet A)
-await again.evaluate(() => window.__map.jumpTo({ center: [11.141, 46.7025], zoom: 14, bearing: 0, pitch: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 } }));
+// a fixed view of the leg's middle part; no padding left by an earlier camera move (it shifts where the centre is drawn)
+await again.evaluate(() => window.__map.jumpTo({ center: [11.1554, 46.6894], zoom: 13.5, bearing: 0, pitch: 0, padding: { top: 0, bottom: 0, left: 0, right: 0 } }));
 await again.waitForFunction(() => !window.__map.isMoving(), null, { timeout: 10_000 }).catch(() => {});
+// p1 / p2: the drawn route's points nearest 35 % / 65 % of the way from start to goal (straight), in the free map
+[p1, p2] = await again.evaluate(() => {
+  const m = window.__map, [a, b] = window.__state.points, c = m.getCanvas();
+  const line = m.queryRenderedFeatures({ layers: ['planned-route'] }).flatMap((f) => f.geometry.type === 'LineString' ? f.geometry.coordinates : f.geometry.coordinates.flat());
+  const free = ([lo, la]) => { const q = m.project([lo, la]), r = c.getBoundingClientRect(), e = document.elementFromPoint(q.x + r.left, q.y + r.top); return e === c; };
+  return [0.35, 0.65].map((f) => {
+    const t = [a[1] + f * (b[1] - a[1]), a[0] + f * (b[0] - a[0])];
+    return line.filter(free).reduce((best, p) => (Math.hypot(p[0] - t[0], p[1] - t[1]) < Math.hypot(best[0] - t[0], best[1] - t[1]) ? p : best), [0, 0]);
+  });
+});
 // projected only now: the camera may still move while the activity menu closes (CI: both clicks landed beside p1 / p2)
 // project() gives canvas pixels; the mouse clicks page pixels – the canvas starts below the top bar (was off by 56 px)
 const px = await again.evaluate((ps) => { const r = window.__map.getCanvas().getBoundingClientRect();
@@ -103,7 +115,7 @@ console.log('after two quick clicks:', JSON.stringify(order));
 if (order.length !== 4 || camBefore !== camAfter) console.log('  clicks at', JSON.stringify(px), 'camera', camBefore, '→', camAfter, 'under the clicks:', JSON.stringify(under), 'boxes now:', JSON.stringify(await again.evaluate(() => [...document.querySelectorAll('.msgcard')].map((c) => c.textContent.trim()))));
 // the points may be snapped onto a path – compare which click each one is closer to
 const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
-check(order.length === 4 && d(order[2], p1) < d(order[2], p2) && d(order[3], p2) < d(order[3], p1), 'two quick clicks: the second is the new destination (not put before the first)');
+check(order.length === 4 && d(order[1], p1) < d(order[1], p2) && d(order[2], p2) < d(order[2], p1), `two quick clicks on the leg: the second goes in after the first (decided on the plan the first left; p1 ${JSON.stringify(p1)}, p2 ${JSON.stringify(p2)})`);
 // ---- 5b: Space held = the eye held (owner 2026-11-01) ----
 await again.waitForFunction(() => !document.getElementById('eye').disabled, null, { timeout: 60_000 }).catch(() => {});
 await again.locator('#map canvas').focus().catch(() => {});
@@ -192,7 +204,8 @@ check(errors.length === 0, `no page error (${errors.join(' | ')})`);
     sheet = document.getElementById('sheet').getBoundingClientRect();
     return { text: c.textContent, spin: !!c.querySelector(".msgspin, .bar"), cx: r.left + r.width / 2, sheetRight: sheet.right, w: innerWidth,
       clock: document.getElementById('status').classList.contains('busy') }; }) : null;
-  check(box && card.spin && /Cancel/.test(card.text) && /Calculating the route|Loading the map/.test(card.text),
+  // the load card names its phase: the map's tiles, a map area being prepared (maps_card_preparing), the route
+  check(box && card.spin && /Cancel/.test(card.text) && /Calculating the route|Loading the map|Preparing map/.test(card.text),
     `the wait box: spinner, "${card?.text}", Cancel`);
   check(box && card.cx > card.sheetRight && !card.clock, 'in the free map beside the sheet; no small spinner in the sheet');
   await p.click('#msgcards .msgcard.busy .msgbtn, #mapnotes .mapnote.load button.act');

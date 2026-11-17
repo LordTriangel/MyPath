@@ -458,14 +458,29 @@ check(await page.getAttribute('#paceRow [data-pace=FIT]', 'aria-checked').catch(
   const done = () => hp.waitForFunction(() => document.querySelector('#summary .big') && !document.getElementById('status').textContent.includes('Planning'), null, { timeout: 120_000 });
   await done();
   const pts = async () => (await hp.evaluate(() => window.__engine.parse(location.href))).points;
-  const count = (n) => hp.waitForFunction((k) => document.querySelectorAll('.pin').length === k, n, { timeout: 15_000 }).catch(() => {});
+  // n pins drawn and n points in the address (written a moment after the pins: the engine encodes it)
+  const count = async (n) => {
+    for (const end = Date.now() + 15_000; Date.now() < end; await hp.waitForTimeout(100)) {
+      if (await hp.evaluate(async (k) => document.querySelectorAll('.pin').length === k
+        && (await window.__engine.parse(location.href))?.points.length === k, n)) return;
+    }
+  };
   const still = () => hp.waitForFunction(() => !window.__map.isMoving(), null, { timeout: 10_000 }).catch(() => {});
   const canvas = await hp.locator('#map canvas').first().boundingBox();
+  // the user takes the map first (a short drag), as a person does before clicking: it cancels the link's pending
+  // whole-route fit (WholeRoute.SETTLE_MS after its plan – lastMapTouch). Without it that fit could start between a
+  // spot's centring and its click (CI 2909bd34: the click on the line landed elsewhere – on a note's × – and was lost)
+  { const x = canvas.x + canvas.width * 0.6, y = canvas.y + canvas.height * 0.4;
+    await hp.mouse.move(x, y); await hp.mouse.down(); await hp.mouse.move(x + 40, y + 20, { steps: 5 }); await hp.mouse.up(); }
+  await still();
   /** The spot [lat, lon] centred on the map (its longitude exact on a whole pixel column), then clicked. */
   const clickCentred = async ([la, lo]) => {
     await hp.evaluate(([la2, lo2]) => window.__map.jumpTo({ center: [lo2, la2] }), [la, lo]);
     await still(); await hp.waitForTimeout(200);
     const q = await hp.evaluate(([la2, lo2]) => { const p = window.__map.project([lo2, la2]); return [p.x, p.y]; }, [la, lo]);
+    // nothing over the spot: on a slow machine a note on the map (the load card, its ×) can stand there for a moment –
+    // a click on it is a click on that note, not on the map (parity-smoke on one core: the × closed it, no point added)
+    await hp.waitForFunction(([x, y]) => document.elementFromPoint(x, y) === window.__map.getCanvas(), [canvas.x + q[0], canvas.y + q[1]], { timeout: 10_000 }).catch(() => {});
     await hp.mouse.click(canvas.x + q[0], canvas.y + q[1]);
     return q;
   };
@@ -477,8 +492,13 @@ check(await page.getAttribute('#paceRow [data-pace=FIT]', 'aria-checked').catch(
   }, [la, lo]);
   const back = async () => { await hp.keyboard.press('Control+z'); await count(2); await done();
     await hp.waitForFunction(async () => (await window.__engine.parse(location.href))?.points.length === 2, null, { timeout: 10_000 }).catch(() => {}); };
-  const asked = () => hp.waitForSelector('.holdaddpopup', { timeout: 3_000 }).then(() => true).catch(() => false);
+  // a click right after a camera move waits for the symbol placement of this camera (settledPoint, up to 5 s on a slow
+  // machine) before it is decided – a menu that is expected may take that long; after a point came in, a short look
+  const asked = (ms = 8_000) => hp.waitForSelector('.holdaddpopup', { timeout: ms }).then(() => true).catch(() => false);
   const near = (p, q) => Math.abs(p[0] - q[0]) < 1e-5 && Math.abs(p[1] - q[1]) < 1e-5;
+  // a clicked point is free: once its plan is there it is snapped onto the way (PlanResult, adoptSnapped) – up to ~50 m
+  // here; read before or after that depending on the machine's speed (CI / a loaded laptop: after)
+  const nearSnap = (p, q) => Math.hypot(p[0] - q[0], (p[1] - q[1]) * Math.cos((p[0] * Math.PI) / 180)) * 111_320 < 80;
 
   // on the line: a point of the drawn route → into the leg at once
   const onLine = await hp.evaluate(() => {
@@ -487,7 +507,7 @@ check(await page.getAttribute('#paceRow [data-pace=FIT]', 'aria-checked').catch(
   });
   await clickCentred([onLine[1], onLine[0]]);
   await count(3);
-  const p0 = await pts(), a0 = await asked();
+  const p0 = await pts(), a0 = await asked(500);
   check(!a0 && p0.length === 3 && Math.hypot(p0[1][0] - onLine[1], p0[1][1] - onLine[0]) < 1e-4, `hold rule: a click on the line goes into the leg at once (no menu) (${a0} ${JSON.stringify(p0)} ${JSON.stringify(onLine)})`);
   await hp.keyboard.press('Escape'); await back();
 
@@ -514,7 +534,7 @@ check(await page.getAttribute('#paceRow [data-pace=FIT]', 'aria-checked').catch(
   if (ahead) await hp.mouse.click(canvas.x + ahead[0], canvas.y + ahead[1]);
   await count(3);
   const p1 = await pts();
-  check(!!ahead && !(await asked()) && p1.length === 3 && near(p1[2], [ahead[2], ahead[3]]) && near(p1[1], sB),
+  check(!!ahead && !(await asked(500)) && p1.length === 3 && nearSnap(p1[2], [ahead[2], ahead[3]]) && near(p1[1], sB),
     `hold rule: a click straight on past the goal → the new goal at once, appended (${JSON.stringify(p1)} ${JSON.stringify(ahead)})`);
   await back();
 
@@ -526,7 +546,7 @@ check(await page.getAttribute('#paceRow [data-pace=FIT]', 'aria-checked').catch(
   await clickCentred(aside);
   await count(3);
   const p2 = await pts();
-  check(asideOff >= 40 && !(await asked()) && p2.length === 3 && near(p2[1], aside), `hold rule: beside the leg (${Math.round(asideOff)} px off) → a stop at once (${JSON.stringify(p2)})`);
+  check(asideOff >= 40 && !(await asked(500)) && p2.length === 3 && nearSnap(p2[1], aside), `hold rule: beside the leg (${Math.round(asideOff)} px off) → a stop at once (${JSON.stringify(p2)})`);
   await back();
 
   /** The hold menu's rows, the tinted ones, the ring and whether the menu leaves the spot free. */
@@ -560,7 +580,7 @@ check(await page.getAttribute('#paceRow [data-pace=FIT]', 'aria-checked').catch(
   await hp.click('.holdaddpopup button:nth-of-type(2)');
   await count(3);
   const p3 = await pts();
-  check(p3.length === 3 && near(p3[1], besideGoal), `hold menu: Insert puts the spot between start and goal (${JSON.stringify(p3)})`);
+  check(p3.length === 3 && nearSnap(p3[1], besideGoal), `hold menu: Insert puts the spot between start and goal (${JSON.stringify(p3)})`);
   await back();
 
   // nearer the start than the goal, far out: inserting a little cheaper → the menu, „Insert“ first and tinted
@@ -572,7 +592,7 @@ check(await page.getAttribute('#paceRow [data-pace=FIT]', 'aria-checked').catch(
   await hp.click('.holdaddpopup button:nth-of-type(2)'); // „New destination“: appended, the old goal stays
   await count(3);
   const p4 = await pts();
-  check(p4.length === 3 && near(p4[2], farOut) && near(p4[1], sB), `hold menu: New destination appends, the old goal stays (${JSON.stringify(p4)})`);
+  check(p4.length === 3 && nearSnap(p4[2], farOut) && near(p4[1], sB), `hold menu: New destination appends, the old goal stays (${JSON.stringify(p4)})`);
   await hp.close();
 }
 
