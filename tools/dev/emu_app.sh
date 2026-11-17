@@ -84,8 +84,10 @@ emu_instrument() {
   local cls=$1; shift
   "${A[@]}" shell am instrument -w -r "$@" -e class "com.onpath.app.e2e.$cls" $PKG.test/androidx.test.runner.AndroidJUnitRunner \
     > "${OUT:-$ANDROID_TMP}/instrument-$cls.txt" 2>&1
-  if grep -q "^OK (" "${OUT:-$ANDROID_TMP}/instrument-$cls.txt"; then return 0; fi
-  grep -E "INSTRUMENTATION_(RESULT|CODE)|stack=|Error|Process crashed|FAILURES" "${OUT:-$ANDROID_TMP}/instrument-$cls.txt" | head -12
+  # "OK" alone is not enough: a class skipped by an assumption (the tool classes without `-e onpathTool 1`) says OK too
+  if grep -q "^OK (" "${OUT:-$ANDROID_TMP}/instrument-$cls.txt" &&
+    ! grep -q "INSTRUMENTATION_STATUS_CODE: -[34]" "${OUT:-$ANDROID_TMP}/instrument-$cls.txt"; then return 0; fi
+  grep -E "INSTRUMENTATION_(RESULT|CODE)|STATUS_CODE: -[34]|stack=|Error|Process crashed|FAILURES" "${OUT:-$ANDROID_TMP}/instrument-$cls.txt" | head -12
   return 1
 }
 

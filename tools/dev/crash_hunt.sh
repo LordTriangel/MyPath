@@ -44,7 +44,7 @@ emu_lock; emu_up
 "${A[@]}" wait-for-device
 if [ "${SETUP:-1}" = 1 ]; then
   emu_boot_install
-  emu_instrument CrashHuntSetup || { echo "crash_hunt: setup failed ($OUT/instrument-CrashHuntSetup.txt)"; exit 3; }
+  emu_instrument CrashHuntSetup -e onpathTool 1 || { echo "crash_hunt: setup failed ($OUT/instrument-CrashHuntSetup.txt)"; exit 3; }
 fi
 "${A[@]}" shell svc power stayon true
 "${A[@]}" shell cmd statusbar disable-for-setup true >/dev/null 2>&1 # no notification shade / quick settings under the monkey

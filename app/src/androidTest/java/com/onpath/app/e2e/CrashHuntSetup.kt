@@ -13,11 +13,14 @@ import org.junit.runner.RunWith
  * app with the tiny map package (+ the real routing data when pushed), a saved three-point plan in Meran and the
  * developer tools unlocked (Demo location). `tools/dev/crash_hunt.sh` runs it, then starts the Demo tour through the UI and
  * runs `monkey`.
+ * Skipped unless the run asks for it with `-e onpathTool 1` (the script does): the E2E workflow runs every class here.
  */
 @RunWith(AndroidJUnit4::class)
 class CrashHuntSetup : E2EBase() {
 
     @Test fun prepare() {
+        org.junit.Assume.assumeTrue("a tool, not a test: only with -e onpathTool 1",
+            InstrumentationRegistry.getArguments().getString("onpathTool") == "1")
         launch {
             val ctx = InstrumentationRegistry.getInstrumentation().targetContext
             Prefs(ctx).apply {

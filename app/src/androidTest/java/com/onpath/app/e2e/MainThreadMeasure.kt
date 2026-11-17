@@ -37,7 +37,8 @@ import java.util.concurrent.atomic.AtomicInteger
  *  - reads the window's frame times (FrameMetrics) and which frames a fix overlapped, plus `dumpsys gfxinfo`.
  * Two phases: Navigate on screen ([FG_ARG] seconds, default 180), then the app left with Home ([BG_ARG], default 90 –
  * only the service's tracker takes the fix). The numbers go to logcat under the tag [TAG]; `tools/dev/main_thread_measure.sh`
- * runs this and prints them. Emulator numbers: the order of magnitude and the split count, not the milliseconds.
+ * runs this and prints them. Skipped unless the run asks for it with `-e onpathTool 1` (the script does): the E2E
+ * workflow runs every class here and this one rides for minutes. Emulator numbers: the order of magnitude and the split count, not the milliseconds.
  */
 @RunWith(AndroidJUnit4::class)
 class MainThreadMeasure : E2EBase() {
@@ -125,6 +126,8 @@ class MainThreadMeasure : E2EBase() {
     private fun say(line: String) { Log.i(TAG, line) }
 
     @Test fun measure() {
+        org.junit.Assume.assumeTrue("a tool, not a test: only with -e onpathTool 1",
+            InstrumentationRegistry.getArguments().getString("onpathTool") == "1")
         val fgS = arg(FG_ARG, 180)
         val bgS = arg(BG_ARG, 90)
         launch {

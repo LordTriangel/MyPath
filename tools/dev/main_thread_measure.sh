@@ -14,7 +14,7 @@ OUT=${OUT:-$HOME/onpath-cells-work/measure/$(date +%Y-%m-%d_%H%M)}; mkdir -p "$O
 emu_lock; emu_up; emu_build; emu_boot_install
 "${A[@]}" logcat -c
 echo "Measuring: $fg s on screen + $bg s left…"
-emu_instrument MainThreadMeasure -e measureSeconds "$fg" -e backgroundSeconds "$bg"; rc=$?
+emu_instrument MainThreadMeasure -e onpathTool 1 -e measureSeconds "$fg" -e backgroundSeconds "$bg"; rc=$?
 "${A[@]}" logcat -d > "$OUT/logcat.txt" 2>&1
 "${A[@]}" logcat -d -s OnPathMeasure:I | sed -E 's/^.*OnPathMeasure: //' | grep -v "^-----" | tee "$OUT/measure.txt"
 echo "Files: $OUT"
