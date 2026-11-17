@@ -1,3 +1,11 @@
+# Handoff IR, 2026-11-17 (evening update on top)
+
+**Evening state:** batch ported to Kotlin with parity (access from the start, aims + „Ziel“, quality measures, removed
+controls, sort slack); pills per sketch 7 with the owner's words (strings DE/EN); wish sheet = sketch 5 B; only the
+chosen loop on the map; suggest layer: laptop rebases onto content 2 (aims) and rebuilds all cells. **Next = stage 3**,
+brief in `docs/design/tour-suggestions.md` §7 "Stage 3 – the ready brief"; starts on mehrtage's word in the backlog
+(captain's order: one writer in `web/` at a time). Fragenregister is retired (owner) – answer in the chat only.
+
 # Handoff IR, 2026-11-17 (morning) – tour suggestions: frozen, suggest file, method ported
 
 Start sentence: „Du bist IR, die Einheit für intelligente Routenplanung (OnPath). Lies docs/roles/start.md und danach
