@@ -104,6 +104,16 @@ fun main() {
             println("plan code, %d points: %d chars bare, %d chars with title + 6 hotel names (%.1f chars per point); limits: points %d, text %d, sync plan %d, blob %d bytes".format(
                 wps.size, bare.length, named.length, bare.length.toDouble() / wps.size, PlanCode.MAX_POINTS, 16_000, 16_000, 24_000))
             println("  decodes again: %s".format(PlanCode.decode(named)?.points?.size))
+            // the whole 7-day tour as stage 1 stores it: days, limits, 6 hotels (name, address, link), a description
+            val nights = idx.zip(hotels).associate { (i, h) ->
+                i to NightMark(Hotel(h, "Hauptstraße 12, 83646 Bad Tölz, Deutschland", "https://www.booking.com/hotel/de/gasthof-beispiel-${i}.de.html"))
+            }
+            val desc = "Sieben Tage mit dem Rad von München nach Venedig: Isar, Achensee, Inn, Brenner, Pustertal, Dolomiten, Piave. " +
+                "Hotels gebucht, Frühstück jeweils ab 7 Uhr. Am Brenner Wintersperre beachten.".repeat(2)
+            val full = PlanCode.encode(SharedPlan(wps, act, 2, emptySet(), emptyMap(), "München – Venezia in 7 Tagen",
+                days = 7, limits = DayLimits(maxTimeMin = 360, maxAscentM = 1200), nights = nights, description = desc))
+            println("  7-day tour (6 hotels with address + link, %d-char description): %d chars, decodes: %s".format(
+                desc.length, full.length, PlanCode.decode(full)?.nights?.size))
             for (n in listOf(100, 200, 500)) {
                 val tl = Geo.length(track)
                 val pts = TrackToPlan.resample(track, tl / (n - 1)).take(n)
