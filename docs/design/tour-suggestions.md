@@ -418,6 +418,9 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   the wish sheet (sketch first – the wish changed since sketch 4), the cards per sketch 4, the calm map, behind a switch
   that is off; hint / reason texts into the strings module (DE/EN); (d) the owner tests (NRW, Fränkische Schweiz),
   deploy on his word. The app (stage 4) after his acceptance of the planner.
+- **Wish sheet (owner 2026-11-17, sketch 5 https://claude.ai/artifact/6NCeiysxvZFTewVh5nhE6K): variant B** – time and
+  ascent each as a range slider with two handles; activity, Ziel chips and Abbrechen · OK as sketched; **no icons or
+  gimmicks** on the activity (no shoe for Wandern – plain labels as the planner has them).
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
