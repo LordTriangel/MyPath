@@ -124,7 +124,7 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
 7. **Selection** – one selection over all cards: our loops and, where official loops are known (the POC page:
    Rheinland-Pfalz, Nordrhein-Westfalen), the official loops in reach that fit the wish (time as for our loops, ascent
    not above the wished maximum), judged with the same yardstick – as a ride from the wished start (owner 2026-11-17:
-   "die Anfahrt einbeziehen"): the cheapest way to the loop's best joining point, once round in its order (either
+   "die Anfahrt einbeziehen"; the POC page – the Kotlin core follows in the batch of FROZEN.md): the cheapest way to the loop's best joining point, once round in its order (either
    direction), home (the same way back allowed, a different one preferred); time, km, ascent and every axis are those
    of the whole ride, the way there treated like any loop's way out. No two
    cards share more than 75 % of the shorter one's way beyond the way out (`select.overlap`; owner 2026-11-16: "60 %
