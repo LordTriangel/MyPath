@@ -310,6 +310,20 @@ class PlanDaysTest {
         assertEquals(e.plan, PlanDays.afterEdit(e.plan.copy(nights = e.plan.nights + (4 to NightMark.OVERNIGHT)), e.plan.points))
     }
 
+    @Test fun brokenInputNeverThrowsAndTheDaysStillAddUp() {
+        val rnd = kotlin.random.Random(5)
+        repeat(500) {
+            val n = rnd.nextInt(0, 30)
+            val l = line(n) { rnd.nextDouble(0.0, 50.0) }
+            val pointAt = IntArray(rnd.nextInt(0, 6)) { rnd.nextInt(-3, n + 4) }
+            val nights = (0 until rnd.nextInt(0, 5)).associate { rnd.nextInt(-1, 7) to NightMark.OVERNIGHT }
+            val limits = if (rnd.nextBoolean()) DayLimits.NONE else DayLimits(rnd.nextInt(1, 100), rnd.nextInt(1, 200))
+            val t = PlanDays.of(l, pointAt, rnd.nextInt(-2, 12), limits, nights)
+            assertEquals(l.distM.last(), t.days.sumOf { it.distanceM }, 1e-6)
+            assertTrue(t.days.all { it.distanceM >= 0 })
+        }
+    }
+
     @Test fun startSetsN() {
         assertEquals(6, PlanDays.start(tour.copy(days = null), 6).days)
         assertEquals(PlanCode.MAX_DAYS, PlanDays.start(tour, 1000).days)

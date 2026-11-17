@@ -142,9 +142,15 @@ object PlanDays {
         return (1 until bounds.size).sumOf { minDays(line, bounds[it - 1], bounds[it], limits) }
     }
 
-    /** Night marks in plan order with their line index (never on the start or the last point). */
-    private fun marksOnLine(pointAt: IntArray, nights: Map<Int, NightMark>, last: Int): List<Pair<Int, Int>> =
-        nights.keys.filter { it > 0 && it < pointAt.lastIndex }.sorted().map { it to pointAt[it].coerceIn(0, last) }
+    /**
+     * Night marks in plan order with their line index (never on the start or the last point); never backwards along the
+     * line, whatever [pointAt] says.
+     */
+    private fun marksOnLine(pointAt: IntArray, nights: Map<Int, NightMark>, last: Int): List<Pair<Int, Int>> {
+        var at = 0
+        return nights.keys.filter { it > 0 && it < pointAt.lastIndex }.sorted()
+            .map { i -> at = maxOf(at, pointAt[i].coerceIn(0, last)); i to at }
+    }
 
     private fun timeOf(line: DayLine, a: Int, b: Int) = line.timeS[b] - line.timeS[a]
     private fun upOf(line: DayLine, a: Int, b: Int) = line.upM[b] - line.upM[a]
