@@ -11,7 +11,12 @@ content 2): test cells first, published to TEST (NRW incl. Hilden / Nordkirchen 
 Fränkische Schweiz / Pottenstein 49.77, 11.41, Mittenwald / Garmisch), tell IR; donald then rebuilds all cells
 (fast lane); (3) deploy the planner whenever its tests are green (`gh workflow run web.yml --ref main -f deploy=true -f quick=true`).
 
-## Work in flight at the end of this session (two agents, worktrees under `.claude/worktrees/`)
+## Done since (2026-11-18 early)
+- **Hold-rule mirror on main and live (e5f82377)**: real paths, simplified rule, one-row place menu, WebPlaceMenuTest 16/16; merged with donald's ui → domain move (engine imports follow); parity registers mehrtage's / IR's shared files; Web planner green, planner deployed. Backlog says „web/ free“ for mehrtage, then IR.
+- **CELL_SCHEMA 9 on main and on TEST** (suggest layer content 2); donald has the publish commands; cell list `tools/dev/areas/owner-test-cells.txt`.
+- Next for the laptop: follow mehrtage's / IR's web merges (parity, check-web, deploy when green); donald's cleanup may move more shared files.
+
+## Work in flight at the end of this session (now done – see above) (two agents, worktrees under `.claude/worktrees/`)
 1. **Hold rule on real paths + one-row place menu + WebPlaceMenuTest** (donald's words 2026-11-17 in the backlog:
    `pathDetours` with leg lengths, `planningHold` simplified (≤ 1.2 → ASK), `planningPlaceMenu(lineDp, d)`, pin menu
    with ONE add row, names from z17 = no code change). Worktree `agent-a0ec544b55a26bdcc`, branch
