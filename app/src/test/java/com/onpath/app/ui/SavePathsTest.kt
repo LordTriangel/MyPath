@@ -51,16 +51,14 @@ class SavePathsTest {
 
     /**
      * Tester review 2026-11-07: the draft is written BEFORE the plan leaves the map – not after a wait of up to 5 s for a
-     * place name in the background (a kill in that window lost the plan). The name follows (RoutesFlowPropertyTest
-     * .theDraftIsWrittenBeforeTheNameAndANameThatNeverComesLosesNothing).
+     * place name in the background (a kill in that window lost the plan). The write, its order and the name that follows
+     * are behaviour tests now (RecentPlansTest.theDraftIsWrittenBeforeThePlanLeavesTheMapAndTheNameFollows,
+     * .aNameThatNeverComesLosesNothing); here only that the view model hands the plan over on the calling thread.
      */
-    @Test fun theDraftIsWrittenBeforeThePlanLeavesTheMap() {
+    @Test fun thePlanIsHandedToZuletztBeforeItLeavesTheMap() {
         val keep = body("private fun keepAsDraft(why: String) {")
-        val write = keep.indexOf("routes.keepDraft(")
-        assertTrue(keep, write >= 0)
-        assertTrue("written before any background work", keep.indexOf("launchSafe") < 0 || write < keep.indexOf("launchSafe"))
-        assertTrue("written before the name wait", write < keep.indexOf("NAME_WAIT_MS"))
-        assertTrue("the place name follows as a rename", keep.contains("routes.renameDraft("))
+        assertTrue(keep, keep.contains("recent.keep("))
+        assertFalse("handed over at once, no background work before it", keep.contains("launch"))
     }
 
     /** Pixel review 2026-11-06: the demo ride ends with its tour – "DEMO" / "Sim" do not stay (DemoLocationTest). */

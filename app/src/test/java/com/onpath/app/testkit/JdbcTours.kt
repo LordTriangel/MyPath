@@ -71,6 +71,18 @@ class JdbcTours(path: String = ":memory:") : AutoCloseable {
 
     fun setDeleted(id: Long, deletedMs: Long?): Boolean { write(); return exec("UPDATE tours SET deleted_at=? WHERE id=?", deletedMs, id) == 1 }
 
+    /** [TourDb.setDraft]: a plan under Zuletzt ↔ a saved route. */
+    fun setDraft(id: Long, draft: Boolean): Boolean { write(); return exec("UPDATE tours SET draft=? WHERE id=?", if (draft) 1 else 0, id) > 0 }
+
+    /** [TourDb.rename]. */
+    fun rename(id: Long, name: String) { write(); exec("UPDATE tours SET name=? WHERE id=?", name, id) }
+
+    /** [TourDb.deleteTour]: the row, its points and its plan copy – gone for good. */
+    fun deleteTour(id: Long) {
+        write()
+        exec("DELETE FROM points WHERE tour_id=?", id); exec("DELETE FROM tours WHERE id=?", id); exec(TourSchema.PLAN_DELETE, id)
+    }
+
     /** [TourDb.finishOtherActive]. */
     fun finishOtherActive(exceptId: Long): Int =
         exec("UPDATE tours SET state='done' WHERE kind=? AND state='active' AND id<>?", TourKind.RECORDED.name, exceptId)
