@@ -105,7 +105,6 @@ import com.onpath.app.domain.plan.LivePlanRows
 import com.onpath.app.domain.plan.RouteBack
 import com.onpath.app.domain.plan.RouteRun
 import com.onpath.app.domain.plan.RoutingSpot
-import com.onpath.app.domain.plan.PlanSession
 import com.onpath.app.domain.tour.QuietGate
 
 /** A track shown on the map (imported GPX, recorded or saved tour). */
@@ -859,11 +858,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var screenRest by mutableStateOf(false)
 
     // --- planning ---
-    val waypoints = mutableStateListOf<GeoPoint>().apply { addAll(prefs.planWaypoints) }
-    /** The plan being edited: points, Undo / Redo, pinned points, the one-point rule's start ([PlanSession]). */
-    private val plan = PlanSession(waypoints, prefs.planPinned)
-    /** Pinned (POI) points, kept by value ([PlanSession.pinned]). */
-    private val pinned: MutableSet<GeoPoint> get() = plan.pinned
+    /**
+     * The plan on the map as one object ([com.onpath.app.ui.plan.PlanDocument], cleanup piece 4): its points, Undo / Redo,
+     * the pinned points and the saved route it belongs to – written to the preferences as it changes, read back at start.
+     */
+    private val plan = com.onpath.app.ui.plan.PlanDocument(com.onpath.app.ui.plan.PrefsPlanStore(prefs))
+    /** The plan's points ([com.onpath.app.ui.plan.PlanDocument.points]). */
+    val waypoints get() = plan.points
+    /** Pinned (POI) points, kept by value ([com.onpath.app.ui.plan.PlanDocument.pinned]). */
+    private val pinned: Set<GeoPoint> get() = plan.pinned
     fun pinnedIndices(): Set<Int> = plan.pinnedIndices()
     /**
      * POI kinds of pinned points (owner 2026-11-10, variant A: the POI symbol stays, a blue ring + badge around it):
@@ -905,10 +908,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
     /** Followed routes replaced by plan edits during the tour (Undo takes them back exactly, Bug 02). */
     private val followHistory = FollowHistory()
-    var canUndo by mutableStateOf(false)
-        private set
-    var canRedo by mutableStateOf(false)
-        private set
+    val canUndo: Boolean get() = plan.canUndo
+    val canRedo: Boolean get() = plan.canRedo
     /**
      * Plan panel size (full / compact / mini / rolled up), kept while the app runs: a plan opens at the summary step
      * (owner 2026-10-31); rolled up by the user it stays rolled up through route updates until opened again.
@@ -1070,20 +1071,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
 
     // --- saved state of the plan (menus / Manage routes) ---
-    /** Name, tour id and points the plan was last saved or loaded as; the plan is unsaved when its points differ. */
-    private var linkName by mutableStateOf(prefs.planSavedName)
-    private var linkId = prefs.planSavedId
-    private var savedPoints by mutableStateOf(prefs.planSavedPoints)
-    /**
-     * The plan still belongs to that saved route (RouteRules.linkedToSaved): after Clear or with every point replaced
-     * it is a new plan – no saved name, Save asks for a new name; Undo back to the old points restores the link.
-     */
-    private val planLinked: Boolean get() = RouteRules.linkedToSaved(waypoints, savedPoints)
+    /** Name, tour id and points the plan was last saved or loaded as ([com.onpath.app.ui.plan.PlanDocument]: stored, linked, unsaved). */
+    private val linkName: String? get() = plan.linkName
+    private val linkId: Long get() = plan.linkId
+    private val savedPoints: List<GeoPoint>? get() = plan.savedPoints
+    /** The plan still belongs to that saved route (after Clear or with every point replaced it is a new plan). */
+    private val planLinked: Boolean get() = plan.linked
     /** Name the plan was saved / loaded as, while it still belongs to that route. */
-    val savedName: String? get() = linkName.takeIf { planLinked }
-    private val savedId: Long get() = if (planLinked) linkId else -1L
+    val savedName: String? get() = plan.savedName
+    private val savedId: Long get() = plan.savedId
     /** The plan has a route worth keeping that differs from the last save / load (RouteRules.isUnsaved). */
-    val planUnsaved: Boolean get() = RouteRules.isUnsaved(waypoints, savedPoints)
+    val planUnsaved: Boolean get() = plan.unsaved
     /** Save's name dialog while open (owner 2026-10-31: Save always asks for the name; [requestSave], [requestCopyRoute]). */
     var saveAsk by mutableStateOf<SaveAsk?>(null)
         private set
@@ -1730,8 +1728,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (WholeRoute.firstRoute(before.size, waypoints.size)) routeEvent(RouteRun.Event.FitNext)
         routingSpot = RoutingSpot.of(before, waypoints)
         cellsForNewPoints(before, waypoints)
-        canUndo = plan.canUndo; canRedo = plan.canRedo
-        prefs.planWaypoints = waypoints.toList()
         prunePinned()
         routeEvent(RouteRun.Event.PlanEdited)
         val split = splitOf(before, waypoints.toList())
@@ -1834,9 +1830,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (back != null) {
             Problems.trace("plan", "Route back to the start: yes – plan = position → start")
             val before = waypoints.toList()
-            waypoints.clear(); waypoints.addAll(back)
+            this.plan.replace(back)
             cellsForNewPoints(before, waypoints)
-            prefs.planWaypoints = waypoints.toList()
             prunePinned()
             routeEvent(RouteRun.Event.PlanEdited)
             recalc()
@@ -1889,7 +1884,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 (if (auto) "only the start this rule put in" else "right where I stand") + ": the plan empties (field bug 2026-11-06)")
             routeBackAsk = false
             plan.empty()
-            prefs.planWaypoints = emptyList()
             return // endGuidanceIfPlanEmpty: the guidance ends, the recording goes on
         }
         val goal = left!!
@@ -1904,14 +1898,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         pendingSplit = null // a whole new plan from here, nothing of it passed
         plan.fromHere(pos, goal)
         cellsForNewPoints(before, waypoints)
-        prefs.planWaypoints = waypoints.toList()
         Problems.trace("plan", "One point left during the tour: plan = position → that point (like Hierhin)")
     }
 
-    /** Forget pinned points that are neither planned nor reachable by undo/redo ([PlanSession.prunePinned]). */
-    private fun prunePinned() {
-        if (plan.prunePinned()) prefs.planPinned = pinned
-    }
+    /** Forget pinned points that are neither planned nor reachable by undo/redo (stored when some went). */
+    private fun prunePinned() = plan.prunePinned()
 
     private fun set(list: List<GeoPoint>) = change { clear(); addAll(list) }
 
@@ -1921,7 +1912,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * @param lineSnapM "on the line" distance, ~24 dp in metres at the current zoom.
      */
     fun addPoint(p: GeoPoint, lineSnapM: Double = 30.0, onPoi: Boolean = false) {
-        if (onPoi) { pinned += p; prefs.planPinned = pinned }
+        if (onPoi) plan.pin(p)
         val ins = insertionFor(p, lineSnapM)
         if (ins.decision.kind == WaypointInsertion.Kind.ON_THE_WAY)
             Problems.trace("plan", "New point on the way there (led to a route never reached): a stop before ①, the tour " +
@@ -2162,7 +2153,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         rememberPlaceName(p, com.onpath.app.search.Place.fromPoi(poi).title())
         rememberPoiKind(p, poi.kind)
         val pin = takePin(poi.lat, poi.lon)
-        pinned += p; prefs.planPinned = pinned
+        plan.pin(p)
         val before = waypoints.size
         if (candidate) fittingPlaceAdd { edit(p) } else edit(p)
         pinTaken = pin?.let { TakenPin(it, p) }
@@ -2301,7 +2292,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         rememberPlaceName(p, com.onpath.app.search.Place.fromPoi(poi).title())
         rememberPoiKind(p, poi.kind)
         val pin = takePin(poi.lat, poi.lon)
-        pinned += p; prefs.planPinned = pinned
+        plan.pin(p)
         change { add(GeoPoint(loc.latitude, loc.longitude)); add(p) }
         pinTaken = pin?.let { TakenPin(it, p) }
         Problems.trace("plan", "Go here from my location: \"${poi.name ?: poi.kind}\" (plan 0 → ${waypoints.size} points)")
@@ -2595,7 +2586,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             when (role) { PlaceRole.START -> startAtPoint(idx); PlaceRole.DESTINATION -> makeDestination(idx); PlaceRole.SMART -> Unit }
             return@fittingPlaceAdd
         }
-        pinned += p; prefs.planPinned = pinned
+        plan.pin(p)
         when (role) {
             // No timed notices (owner rule): the named marker and the new line show what happened.
             PlaceRole.SMART -> addPoint(p, onPoi = true)
@@ -2669,13 +2660,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         routingSpot = RoutingSpot.of(before, prev)
         val split = splitOf(before, prev)
         plan.replace(prev)
-        canUndo = plan.canUndo; canRedo = plan.canRedo
         // the plan an open question was about is gone; one point left where I stand asks nothing (standing on it counts it
         // as passed, so the split says NothingAhead – GitHub run 2026-11-07, as for edits in change())
         routeBackAsk = split == TourSplit.Outcome.NothingAhead && !plan.leftIsHere(myPosition())
         oneLeftGoesFromHere(before)
         closePointMenu("undo / redo"); firstPointMenu = null; holdAddMenu = null; cancelHoldMeasure(what)
-        prefs.planWaypoints = waypoints.toList()
         routeEvent(RouteRun.Event.PlanEdited)
         planChanged()
         endGuidanceIfPlanEmpty()
@@ -3112,15 +3101,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val far = res.far
         if (far.isNotEmpty()) Problems.trace("routing", "Route does not reach point(s) ${far.sorted().joinToString { "${it + 1}" }}")
         val snapped = res.points.takeIf { res.moved } ?: return
-        for (i in snapped.indices) if (snapped[i] != routed[i]) waypoints[i] = snapped[i]
+        plan.moveSnapped(routed, snapped)
         aliasSnappedLegs(routed, snapped, res.activity, res.sac)
         if (routed.size >= 2 && !RouteRules.isUnsaved(routed, savedPoints)) setSaved(linkName, linkId, snapped)
         links.snapped(routed, snapped)
         val moves = WaypointSnap.moves(routed, snapped)
-        plan.snapped(moves)
+        plan.snappedHistory(moves)
         // an open menu follows its point to the snapped position (it must still find it for Delete)
         pointMenuTarget = pointMenuTarget?.afterSnap(moves)
-        prefs.planWaypoints = waypoints.toList()
     }
 
     /**
@@ -3656,8 +3644,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun setSaved(name: String?, id: Long, points: List<GeoPoint>?) {
-        linkName = name; linkId = id; savedPoints = points
-        prefs.planSavedName = name; prefs.planSavedId = id; prefs.planSavedPoints = points
+        plan.setSaved(name, id, points)
         // saved at the tour start / on the way: the tour's copy knows its route and name now
         if (recState.value != null && followFromPlan && followLine != null && !followIsTrack) recopyFollowedPlan()
     }
@@ -4934,7 +4921,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val pts = t.waypoints.map { GeoPoint(it.lat, it.lon) }
                 // stop names and POI pins saved with the plan come back too – the pins
                 // before the points, so the first route already passes them exactly (recalc reads them at once)
-                t.pinned.mapNotNull { pts.getOrNull(it) }.takeIf { it.isNotEmpty() }?.let { pinned += it; prefs.planPinned = pinned }
+                t.pinned.mapNotNull { pts.getOrNull(it) }.takeIf { it.isNotEmpty() }?.let { plan.pin(it) }
                 // during a tour: the loaded route is followed from its point ① (owner 2026-11-03), not from the position
                 loadedOnTheWay = duringTour && recState.value != null
                 // saved routes load without routing again (owner 2026-11-07): its legs from the leg store, else its line
@@ -5251,7 +5238,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         activity = plan.activity; prefs.activity = plan.activity
         sac = plan.sac.coerceIn(1, 5); prefs.sac = sac
         // pins before the points: the first route already passes them exactly (recalc reads them at once)
-        if (load.pinned.isNotEmpty()) { pinned += load.pinned; prefs.planPinned = pinned }
+        if (load.pinned.isNotEmpty()) this.plan.pin(load.pinned)
         keepAsDraft("replaced by a plan link")
         change { clear(); addAll(load.points) }
         load.names.forEach { (p, n) -> rememberPlaceName(p, n) }
@@ -5334,8 +5321,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val pts = stops.map { GeoPoint(it.lat, it.lon) }
             closeShown()
             // pinned route points come back pinned (review routing L1)
-            com.onpath.app.gpx.PlanGpx.pinnedOf(stops).forEach { pinned += pts[it] }
-            prefs.planPinned = pinned
+            plan.pin(com.onpath.app.gpx.PlanGpx.pinnedOf(stops).map { pts[it] })
             keepAsDraft("replaced by a track's plan")
             change { clear(); addAll(pts) }
             stops.forEachIndexed { i, w -> w.name?.let { rememberPlaceName(pts[i], it) } }

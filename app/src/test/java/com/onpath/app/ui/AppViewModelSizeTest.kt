@@ -7,7 +7,7 @@ import java.io.File
 /**
  * The view model only shrinks (code audit 2026-11-12, owner: one slice per round out of AppViewModel after the
  * TourController pattern): this fails above the line count the last slice left. New state and logic go into a state
- * holder of their own (ui/tour/TourController, ui/routes/RoutesState, ui/routes/RecentPlans …), the view model keeps
+ * holder of their own (ui/tour/TourController, ui/routes/RoutesState, ui/routes/RecentPlans, ui/sync/SyncDriver, ui/plan/PlanDocument …), the view model keeps
  * a thin forwarder. Lower [MAX_LINES] after each slice; never raise it to make room.
  */
 class AppViewModelSizeTest {
@@ -20,8 +20,9 @@ class AppViewModelSizeTest {
     private companion object {
         /**
          * After cleanup piece 4: slice 1 (Zuletzt + recycle bin → ui/routes/RecentPlans) 5,970 → 5,900; slice 2 (sync
-         * triggers → ui/sync/SyncDriver, plan links → ui/sync/PlanLinkFlow) → 5,826.
+         * triggers → ui/sync/SyncDriver, plan links → ui/sync/PlanLinkFlow) → 5,826; slice 3 (the plan's points, history,
+         * pins and saved link with their storing → ui/plan/PlanDocument) → 5,812.
          */
-        const val MAX_LINES = 5_826
+        const val MAX_LINES = 5_812
     }
 }

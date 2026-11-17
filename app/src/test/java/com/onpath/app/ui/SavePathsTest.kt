@@ -96,11 +96,17 @@ class SavePathsTest {
         assertTrue(from.contains("change { clear(); addAll(pts) }") && from.contains("change { clear(); addAll(r.points) }"))
     }
 
-    /** Process death / app update mid-plan: every edit writes the points, the next start reads them. */
+    /**
+     * Process death / app update mid-plan: every edit writes the points, the next start reads them – behaviour now
+     * (ui/plan/PlanDocumentTest.everyEditIsStoredAndTheNextStartReadsIt, .everyOtherWayThePointsChangeIsStoredToo,
+     * .theSavedLinkSurvivesTheProcessAndCanBeTakenAway, on the real preferences). Here only the wiring: the view model's
+     * plan is that document on the app's preferences, and every edit goes through it.
+     */
     @Test fun thePlanSurvivesTheProcess() {
-        assertTrue(body("private fun change(").contains("prefs.planWaypoints = waypoints.toList()"))
-        assertTrue(vm.contains("val waypoints = mutableStateListOf<GeoPoint>().apply { addAll(prefs.planWaypoints) }"))
-        assertTrue(vm.contains("private var savedPoints by mutableStateOf(prefs.planSavedPoints)"))
+        assertTrue(vm.contains("private val plan = com.onpath.app.ui.plan.PlanDocument(com.onpath.app.ui.plan.PrefsPlanStore(prefs))"))
+        assertTrue(vm.contains("val waypoints get() = plan.points"))
+        assertTrue(body("private fun change(").contains("plan.edit(block)"))
+        assertFalse("no second place that writes the plan's preferences", vm.contains("prefs.planWaypoints") || vm.contains("prefs.planSavedPoints"))
     }
 
     /** Backups, "Export all" and the browser sync carry saved items only – no plan under Zuletzt (owner 2026-11-06). */
