@@ -1402,13 +1402,22 @@ function keepPlanStats(code: string) {
 }
 /** The plan before the point edit that is being planned now (the long-route question's "Far from your route"). */
 let editBefore: Before | null = null;
+/**
+ * The newest [changed] run: an older run still waiting (its points drawn, the history, the long-route rule) stops when
+ * a newer one started – it would plan the points as they are now, which may be fewer than two (a folder switch or Clear
+ * while it waited: the engine's Planner throws „Failed requirement.“, sync-smoke 2026-11-17) or are planned by the newer
+ * run anyway.
+ */
+let changeRun = 0;
 async function changed() {
+  const run = ++changeRun, stale = () => run !== changeRun;
   // a plan still running for the points before is dropped: the one worker must not hold the next calls behind it
   // (a long plan routes for minutes – client.ts dropPlans stops it, the app's cancelRun)
   engine.dropPlans();
   const before = editBefore; editBefore = null; dismiss('slowplan'); // a new edit answers the time-limit question
   placeCard.planChanged(); // the pin card's "+ Zur Route" / "Hierhin" follows the plan
   await drawPoints();
+  if (stale()) return;
   const few = state.points.length < 2;
   // fewer than two points (Clear route, a point deleted): no route – shown at once; a plan still running in the engine
   // was dropped above (state.latest ignores its answer, as the app cancels it).
@@ -1420,11 +1429,13 @@ async function changed() {
   state.notRouted = false;
   if (few) render();
   const h = JSON.parse(await engine.call('historyState'));
+  if (stale()) return;
   state.canUndo = h.canUndo; state.canRedo = h.canRedo;
   if (few) { render(); return; }
   planGaps.clear(); // the last plan's gaps belong to other points
   // the app's long-route question first (routing/LongRoute): nothing is routed or downloaded until it is answered
   const answer = await longRouteOk(engine, state.points, state.activity, before);
+  if (stale()) return;
   if (answer === 'cancel') { await cancelLongRoute(); cancelLongRouteCamera(); return; }
   if (answer !== 'plan') { await startFresh(answer.fresh); return; }
   await planRun(1);
@@ -1446,6 +1457,8 @@ function askSlowPlan(rounds: number) {
 /** One plan run of the current points with [rounds] time-limit periods (1, more after "Weiter warten"). */
 async function planRun(rounds: number) {
   dismiss('slowplan');
+  // a plan needs two points (the engine's Planner requires them): fewer is no route, never a request
+  if (state.points.length < 2) { problem('plan', `plan run for ${state.points.length} point(s) – nothing to plan`); return; }
   const id = ++state.latest;
   setPlanning(true);
   render();
@@ -1486,7 +1499,8 @@ async function planRun(rounds: number) {
   setPlanning(false);
   if (r.ok && r.plan?.slow) { askSlowPlan(r.plan.slow); render(); return; }
   if (!r.ok || !r.plan || r.plan.failed) {
-    problem('routing', 'plan request failed', r.error ?? r.plan?.detail, 'error'); // plain words for the user, the detail for the diagnostics
+    // with what was asked (points, activity, rounds): the next failure tells which plan it was
+    problem('routing', 'plan request failed', `${r.error ?? r.plan?.detail} – ${routed.length} points ${enc(routed)}, ${state.activity} T${state.sac}, rounds ${rounds}`, 'error'); // plain words for the user, the detail for the diagnostics
     status(t('web_plan_failed'), 'error'); render(); return;
   }
   state.plan = r.plan;

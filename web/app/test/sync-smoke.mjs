@@ -98,6 +98,9 @@ async function saveAs(P, name) {
   await answerSave(P, name);
   await until(P, async (k) => (await window.__sync.list()).length > k, n);
 }
+/** New plan, waited for until the map is empty: it keeps the old plan as Recent first (async) – a link opened before its
+ *  Clear came would be cleared again (sync-smoke 2026-11-17, openRoute timed out). */
+const newPlan = async (P) => { await P.click('#newPlan'); await P.waitForFunction(() => window.__state.points.length === 0, null, { timeout: 30_000 }); };
 const openRoute = async (P, hash) => { await P.evaluate((h) => { location.hash = h; }, hash); await P.waitForFunction(() => document.getElementById('points')?.textContent?.includes('Vellau'), null, { timeout: 30_000 }); };
 /** A row of My routes: where it lies (browser / phone / browser+phone, from the 🖥 📱 symbols), bold, the line below, open. */
 // the saved row (under Saved – a row with an id; the plan on the map is its own Recent row, [liveRow])
@@ -475,7 +478,7 @@ await syncNow(A);
 check(!(await titles(A)).includes('Vom Handy'), 'deleted on the phone → gone in the browser');
 
 // ---- 8. GPX goes with Save ----
-await A.click('#newPlan'); if (await A.locator('dialog.discard[open]').count()) await A.click('#discardOk'); // an empty map: only the track is new
+await newPlan(A); // an empty map: only the track is new
 await A.setInputFiles('#gpxFile', path.join(here, 'fixtures/komoot-hike.gpx'));
 await until(A, async () => (await window.__sync.list()).some((p) => p.kind === 'track'), null, { timeout: 120_000 }).catch(() => {});
 check((await A.evaluate(async () => (await window.__sync.list()).filter((p) => p.kind === 'track').map((p) => p.title))).join() === 'Meran 2000 & Ifinger Hütte', 'an imported GPX is kept in the folder as a track');
@@ -568,7 +571,7 @@ check((await titles(L)).includes('Laptop unsaved') && !(await saveBtn(L)).unsave
 
 // ---- 12. mailbox full (507): Save amber (its tooltip says why), nothing lost ----
 LIMITS.items = 1; // the test's limit in the host
-await L.click('#newPlan'); if (await L.locator('dialog.discard[open]').count()) await L.click('#discardOk');
+await newPlan(L);
 await openRoute(L, '#p=' + CODE); // a new route on the map
 await saveAs(L, 'Neuweg'); // a new item – the host counts items, a rename of one it has is fine
 await L.waitForFunction(() => window.__sync.status.full, null, { timeout: 30_000 }).catch(() => {});
@@ -892,7 +895,7 @@ fl = await fillOf(O);
 check(fl?.text === '200 of 250 tours' && fl.kind === 'warn' && fl.width === '80%', `from 200 (80 %) the fill is amber (${JSON.stringify(fl)})`);
 await seed(50);
 await toursAre(250);
-await O.click('#newPlan'); if (await O.locator('dialog.discard[open]').count()) await O.click('#discardOk');
+await newPlan(O);
 await openRoute(O, '#p=' + CODE);
 await O.waitForFunction(() => document.getElementById('menuSavePlan')?.dataset.state === 'dark', null, { timeout: 60_000 }).catch(() => {});
 await O.click('#menuSavePlan');

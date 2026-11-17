@@ -124,7 +124,7 @@ class Planner(
      * hut, a POI): no there-and-back is trimmed at them.
      */
     fun plan(waypoints: List<GeoPoint>, activity: Activity, sac: Int, pinned: Set<Int> = emptySet()): PlannedRoute {
-        require(waypoints.size >= 2)
+        require(waypoints.size >= 2) { "a plan needs two points, got ${waypoints.size}" }
         if (engine is StraightLineEngine) {
             val r = engine.route(waypoints, activity, sac)
             val legs = (1 until waypoints.size).map { PlannedLeg(listOf(waypoints[it - 1], waypoints[it]), true) }

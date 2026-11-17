@@ -222,6 +222,38 @@ check(errors.length === 0, `no page error (${errors.join(' | ')})`);
   await c.close();
 }
 
+// ---- 8: the points change while a plan is being prepared (sync-smoke 2026-11-17: „Plan request failed
+//      (IllegalArgumentException: Failed requirement.)“) – a plan run that waited (its points drawn, the history, the
+//      long-route rule) while a newer edit left fewer than two points (a folder switch, Clear) must not plan them: the
+//      engine's Planner needs two points. Made certain here: the history answer comes 1.5 s late, the route is planned
+//      again (another activity) and cleared (New plan) meanwhile ----
+{
+  const c = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  const p = await c.newPage();
+  const errs = [];
+  p.on('pageerror', (e) => errs.push(String(e)));
+  p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+  const CODE = 'AQUDAsTcuQTwjYgBqBnjPAIBB1dhYWx3ZWcCBwFWZWxsYXU'; // Hike T3, Meran → Vellau
+  await p.goto(url + 'index.html#p=' + CODE);
+  await p.waitForFunction(() => document.body.dataset.engine === 'ready' && document.querySelector('#summary .big') && document.body.dataset.planning !== '1', null, { timeout: 120_000 });
+  await p.evaluate(() => {
+    const e = window.__engine, call = e.call.bind(e), plan = e.plan.bind(e);
+    window.__planSizes = [];
+    e.plan = (pts, ...a) => { window.__planSizes.push(pts.length); return plan(pts, ...a); };
+    e.call = (fn, ...a) => fn === 'historyState' ? new Promise((ok, no) => setTimeout(() => call(fn, ...a).then(ok, no), 1500)) : call(fn, ...a);
+  });
+  await p.click('#activityChip'); await p.click('[data-act=BIKE_TOURING]');
+  await p.evaluate(() => document.getElementById('newPlan').click());
+  await p.waitForFunction(() => window.__state.points.length === 0, null, { timeout: 10_000 }).catch(() => {});
+  await p.waitForTimeout(4000); // both runs past their late history answer
+  const r = await p.evaluate(() => ({ sizes: window.__planSizes, pts: window.__state.points.length, planning: document.body.dataset.planning === '1',
+    error: document.getElementById('status').classList.contains('error') }));
+  check(r.pts === 0 && r.sizes.every((n) => n >= 2) && !r.planning && !r.error,
+    `points cleared while a plan waited: no plan of fewer than two points, no error (${JSON.stringify(r)})`);
+  check(!errs.some((e) => /Plan request failed|Failed requirement/.test(e)), `no failed plan request (${errs.join(' | ')})`);
+  await c.close();
+}
+
 // ---- 4: no WasmGC ----
 for (const [locale, want] of [['de-DE', 'zu alt'], ['en-US', 'too old']]) {
   const c = await browser.newContext({ locale });
