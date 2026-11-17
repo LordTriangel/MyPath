@@ -55,3 +55,11 @@ class RiskTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DomainRunsUiTests(__import__("unittest").TestCase):
+    def test_a_domain_change_runs_the_ui_tests_and_screenshots(self):
+        import risk_tests
+        pkgs = risk_tests.select(["app/src/main/java/com/onpath/app/domain/PlanGaps.kt"])
+        self.assertIn("domain", pkgs)
+        self.assertIn("ui", pkgs)  # the screens that use the moved rules are tested in ui/

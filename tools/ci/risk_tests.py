@@ -49,6 +49,10 @@ def select(changed):
         m = PKG.match(f)
         if m:
             pkgs.add(m.group(1))
+            if m.group(1) == "domain":
+                # the plan / route rules moved out of ui/ (2026-11-18) still drive the screens: their ui tests and
+                # screenshots stay in ui/ (ScreenshotTest, PlanStatusTest …) – a domain change runs those too
+                pkgs.add("ui")
         elif f.startswith("app/src/main/java/com/onpath/app/") or f.startswith("app/src/test/java/com/onpath/app/"):
             return None  # a file in the root package (MainActivity, OnPathApp …): everything
         elif f.startswith("strings/") or f.startswith("app/src/test/snapshots/") or f.startswith("app/src/main/res/"):
