@@ -3115,8 +3115,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         for (i in snapped.indices) if (snapped[i] != routed[i]) waypoints[i] = snapped[i]
         aliasSnappedLegs(routed, snapped, res.activity, res.sac)
         if (routed.size >= 2 && !RouteRules.isUnsaved(routed, savedPoints)) setSaved(linkName, linkId, snapped)
-        linkTitle?.let { (title, at) -> if (at == routed) linkTitle = title to snapped }
-        linkPoints?.let { at -> if (at.map { it.lat to it.lon } == routed.map { it.lat to it.lon }) linkPoints = snapped }
+        links.snapped(routed, snapped)
         val moves = WaypointSnap.moves(routed, snapped)
         plan.snapped(moves)
         // an open menu follows its point to the snapped position (it must still find it for Delete)
@@ -3881,7 +3880,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      */
     private suspend fun proposeName(pts: List<GeoPoint>, r: PlannedRoute?): String? {
         if (pts.size < 2) return null
-        linkTitle?.let { (title, at) -> if (at == pts) return title }
+        links.title(pts)?.let { return it }
         val line = r?.points?.takeIf { it.size >= 2 } ?: pts
         val startName = stopName(pts.first()); val endName = stopName(pts.last())
         val via = pts.subList(1, pts.size - 1).mapNotNull { stopName(it) }
@@ -5016,89 +5015,56 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /**
      * Saved routes and imported tracks ⇄ the paired browser. Runs in the background (plansync/PlanSync): at start,
      * back in the app, after a change here, when the network is back, about every 15 s while the app stays open on
-     * My routes / Browser sync ([syncPoll]), on pull to refresh in My routes → Planned ([pullSync]) and right away when one of them opens – never during a recording (after the tour).
+     * My routes / Browser sync ([syncDriver]), on pull to refresh in My routes → Planned ([pullSync]) and right away when one of them opens – never during a recording (after the tour).
      */
     val sync = com.onpath.app.plansync.PlanSync(app, com.onpath.app.plansync.DbTourStore(app, db) { a -> planFactors(a) },
         recording = { recState.value != null }, onReport = ::syncReport)
 
-    /** Routes from the browser not opened yet (My routes → Planned: a "New" / "Changed" tag – RouteTag); read once at start. */
-    val syncMarks: kotlinx.coroutines.flow.StateFlow<Map<String, com.onpath.app.plansync.SyncMark>> get() = sync.files.marks.state
-
-    /** Opened (load as plan / open the track): the route's "New from / Changed in the browser" mark goes. */
-    private fun syncMarkSeen(t: Tour) {
-        if (t.uuid.isEmpty() || t.uuid !in syncMarks.value) return
-        viewModelScope.launchSafe("app", "syncMarkSeen", Dispatchers.IO) { sync.files.marks.remove(t.uuid) }
-    }
-
-    /** Sync while the app stays open (owner: automatic like WhatsApp Web): every 15 s, back-off when offline. */
-    private val syncPoll = com.onpath.app.plansync.SyncPoll()
-
-    /** Pull to refresh in My routes → Planned runs: the spinner shows until its pass reports ([syncReport]). */
-    var syncPulling by mutableStateOf(false)
-        private set
-    private var syncPullTimeout: kotlinx.coroutines.Job? = null
-
     /**
-     * My routes → Planned pulled down (owner 2026-11-13, only offered when paired): a pass now, the spinner until it
-     * ends. During a tour or while the server asked for quiet nothing is asked and the spinner stops at once
-     * ([com.onpath.app.plansync.SyncPoll.pullStarts]).
+     * When the sync runs and what follows a pass ([com.onpath.app.ui.sync.SyncDriver], cleanup piece 4): the triggers
+     * while the app is open, pull to refresh, the "New / Changed" marks, a pass's report. The names below forward to it.
      */
-    fun pullSync() {
-        if (!com.onpath.app.plansync.SyncPoll.pullStarts(sync.state.value.paired, recording = recState.value != null,
-                quiet = sync.quiet())) return
-        syncPulling = true
-        syncPoll.requested(android.os.SystemClock.elapsedRealtime())
-        sync.request("pulled", manual = true)
-        // never a spinner that stays: a pass that hangs in the network ends by itself, this is only the net under it
-        syncPullTimeout?.cancel()
-        syncPullTimeout = viewModelScope.launchSafe("app", "pullSync timeout") { delay(PULL_SPIN_MAX_MS); syncPulling = false }
-    }
-
-    init {
-        viewModelScope.launchSafe("app", "start-up work", Dispatchers.IO) { sync.files.marks.all() } // marks.txt → syncMarks (small file, never throws)
-        sync.start()
-        // a tour ended: what waited for it comes now
-        viewModelScope.launchSafe("app", "start-up work") {
-            var was = recState.value != null
-            recState.collect { s -> if (was && s == null) sync.request("tour ended"); was = s != null }
-        }
-        // on screen, paired, no tour, My routes / Browser sync shown (not the Plan map): a pass about every 15 s (SyncPoll)
-        viewModelScope.launchSafe("app", "start-up work") {
-            val screen = androidx.compose.runtime.snapshotFlow {
-                appOnScreen to com.onpath.app.plansync.SyncPoll.routesScreen(routesOpen, showSettings,
-                    settingsPage == SettingsPage.SYNC)
+    private val syncDriver = com.onpath.app.ui.sync.SyncDriver(
+        engine = object : com.onpath.app.ui.sync.SyncEngine {
+            override val state get() = sync.state
+            override val marks get() = sync.files.marks.state
+            override fun loadMarks() { sync.files.marks.all() }
+            override fun markSeen(uuid: String) { sync.files.marks.remove(uuid) }
+            override fun start() { sync.start() }
+            override fun quiet() = sync.quiet()
+            override fun busy() = sync.busy()
+            override fun request(why: String, manual: Boolean) { sync.request(why, manual) }
+            override fun poll(why: String) = sync.poll(why)
+        },
+        host = object : com.onpath.app.ui.sync.SyncHost {
+            override val screen = androidx.compose.runtime.snapshotFlow {
+                appOnScreen to com.onpath.app.plansync.SyncPoll.routesScreen(routesOpen, showSettings, settingsPage == SettingsPage.SYNC)
             }
-            combine(screen, recState, sync.state) { (visible, routesScreen), rec, st ->
-                com.onpath.app.plansync.SyncPoll.wanted(visible, st.paired, recording = rec != null, routesScreen)
-            }.distinctUntilChanged().collectLatest { on ->
-                if (!on) return@collectLatest
-                while (isActive) {
-                    val wait = syncPoll.waitMs(android.os.SystemClock.elapsedRealtime())
-                    when {
-                        wait > 0 -> delay(wait)
-                        sync.poll("poll") -> syncPoll.requested(android.os.SystemClock.elapsedRealtime())
-                        else -> delay(com.onpath.app.plansync.SyncPoll.BUSY_RECHECK_MS) // a pass runs or waits
-                    }
-                }
-            }
-        }
-        // My routes / its Planned tab / Settings → Browser sync opened: pull right away (owner 2026-10-30), debounced
-        viewModelScope.launchSafe("app", "start-up work") {
-            var before = com.onpath.app.plansync.SyncPoll.Shown.OTHER
-            androidx.compose.runtime.snapshotFlow {
+            override val shown = androidx.compose.runtime.snapshotFlow {
                 com.onpath.app.plansync.SyncPoll.shown(appOnScreen, routesOpen, routesTab == RoutesTab.PLANNED, showSettings,
                     settingsPage == SettingsPage.SYNC)
-            }.collect { now ->
-                val why = com.onpath.app.plansync.SyncPoll.opened(before, now)
-                before = now
-                val t = android.os.SystemClock.elapsedRealtime()
-                if (why != null && syncPoll.openDue(t, sync.state.value.paired, recording = recState.value != null, busy = sync.busy())) {
-                    syncPoll.requested(t)
-                    sync.request(why)
-                }
             }
-        }
-    }
+            override fun ended() { sayInfo(Txt.s(Res.string.sync_ended), NoticePlace.SETTINGS) }
+            override fun placesChanged() { savedPlaces = null }
+            override fun toursChanged(toRoute: List<Long>) { refreshTours(); followSyncedSavedPlan(); routeSyncedPlans(toRoute) }
+            override fun newerData(tiles: List<String>) { refreshRoutingTiles(tiles, "a plan from the browser was routed with newer data") }
+        },
+        recording = recState.map { it != null }, isRecording = { recState.value != null },
+        scope = viewModelScope, io = Dispatchers.IO, clock = { android.os.SystemClock.elapsedRealtime() })
+
+    /** Routes from the browser not opened yet (My routes → Planned: a "New" / "Changed" tag – RouteTag); read once at start. */
+    val syncMarks: kotlinx.coroutines.flow.StateFlow<Map<String, com.onpath.app.plansync.SyncMark>> get() = syncDriver.marks
+
+    /** Opened (load as plan / open the track): the route's "New from / Changed in the browser" mark goes. */
+    private fun syncMarkSeen(t: Tour) = syncDriver.markSeen(t.uuid)
+
+    /** Pull to refresh in My routes → Planned runs: the spinner shows until its pass reports. */
+    val syncPulling: Boolean get() = syncDriver.pulling
+
+    /** My routes → Planned pulled down (owner 2026-11-13, only offered when paired): a pass now, the spinner until it ends. */
+    fun pullSync() = syncDriver.pull()
+
+    init { syncDriver.start() }
 
     /** Pairing with a browser: [PairingFlow] (the pairing half of the sync), forwarded member by member. */
     private val pairing by lazy {
@@ -5139,23 +5105,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun unpair() = pairing.unpair()
     private fun receivePairing(secret: ByteArray, via: String) = pairing.receivePairing(secret, via)
 
-    /** A sync pass ended (main thread): new / changed routes into My routes, plans from the browser routed. */
-    private fun syncReport(r: com.onpath.app.plansync.PlanSync.Report) {
-        val res = r.result
-        syncPoll.passEnded(android.os.SystemClock.elapsedRealtime(), com.onpath.app.plansync.SyncPoll.ok(r))
-        if (r.manual) { syncPulling = false; syncPullTimeout?.cancel() } // pull to refresh: its pass ended (or was skipped)
-        if (r.ended) sayInfo(Txt.s(Res.string.sync_ended), NoticePlace.SETTINGS)
-        // Pair during a tour: only the handshake ran – Browser sync / ☰ show "Routes sync after the tour" (State.afterTour)
-        // Zuhause / favourites from the browser: read them again (the place menu and the empty search show them)
-        if (res?.placesChanged == true) savedPlaces = null
-        if (res?.toursChanged == true) {
-            refreshTours()
-            followSyncedSavedPlan()
-            routeSyncedPlans(res.toRoute)
-        }
-        // a plan from the browser was routed with newer routing data than the phone's: get it now, not after 35 days
-        res?.newerData?.takeIf { it.isNotEmpty() }?.let { refreshRoutingTiles(it, "a plan from the browser was routed with newer data") }
-    }
+    /** A sync pass ended (main thread): new / changed routes into My routes, plans from the browser routed ([syncDriver]). */
+    private fun syncReport(r: com.onpath.app.plansync.PlanSync.Report) { syncDriver.onReport(r) }
 
     /**
      * A saved route opened as the plan: when it is a synced plan, the grey line if the browser routed it with another
@@ -5250,58 +5201,47 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------- plan links (A-005: routing/PlanLinks, docs/core-features.md C15) ----------------
 
-    /** Name a plan link brought, for the Save dialog while the plan still has the link's points. */
-    private var linkTitle: Pair<String, List<GeoPoint>>? = null
-    /** The points the last plan link brought (after snapping): while the plan is unchanged, the next link needs no question. */
-    private var linkPoints: List<GeoPoint>? = prefs.planLinkPoints
-        set(v) { field = v; prefs.planLinkPoints = v }
+    /**
+     * Plan links in and out ([com.onpath.app.ui.sync.PlanLinkFlow], cleanup piece 4): a link opened in OnPath, what the
+     * last link brought (its name, its points), a plan sent as a link. [receivePlanLink] … forward to it.
+     */
+    private val links = com.onpath.app.ui.sync.PlanLinkFlow(object : com.onpath.app.ui.sync.PlanLinkHost {
+        override fun backToMap() {
+            routesOpen = false; showSettings = false; offlineResult = null; timeDetails = null; routeDetailsOpen = false; searchOpen = false
+            closeMapOverlays()
+        }
+        override fun sayError(text: String, place: NoticePlace) { this@AppViewModel.sayError(text, place) }
+        override fun receivePairing(secret: ByteArray, via: String) { this@AppViewModel.receivePairing(secret, via) }
+        override fun openSyncSettings() { openSettings(SettingsPage.SYNC) }
+        override suspend fun startModeKnown() {
+            if (!this@AppViewModel.startModeKnown) androidx.compose.runtime.snapshotFlow { this@AppViewModel.startModeKnown }.first { it }
+        }
+        override fun navigating(): Boolean = navigating(recState.value != null)
+        override fun planPoints(): List<GeoPoint> = waypoints.toList()
+        override fun savedPoints(): List<GeoPoint>? = this@AppViewModel.savedPoints
+        override fun open(plan: com.onpath.app.routing.SharedPlan, via: String) { if (shown != null) closeShown(); openSharedPlan(plan, via) }
+        override fun share(link: String, title: String?) {
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, link)
+                title?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
+            }
+            events += UiEvent.Share(Intent.createChooser(send, Txt.s(Res.string.plan_share_plan)))
+        }
+        override var storedLinkPoints: List<GeoPoint>?
+            get() = prefs.planLinkPoints
+            set(v) { prefs.planLinkPoints = v }
+    }, viewModelScope)
 
     /**
      * A plan link opened in OnPath (camera / QR code, a tapped link, shared text, pasted into the search box; [via] for
-     * the log): back to the map in Plan and loaded like a saved route – "Replace current route?" first when the plan has
-     * unsaved changes. During a tour it is not loaded (the followed route stays) and a grey line says so. A broken link
-     * changes nothing and says so in one red line.
+     * the log): back to the map in Plan and loaded like a saved route. During a tour it is not loaded (the followed route
+     * stays) and a line says so. A broken link changes nothing and says so in one red line.
      */
-    fun receivePlanLink(found: com.onpath.app.routing.PlanLinks.Found, via: String) {
-        routesOpen = false; showSettings = false; offlineResult = null; timeDetails = null; routeDetailsOpen = false; searchOpen = false
-        closeMapOverlays()
-        val plan = when (found) {
-            is com.onpath.app.routing.PlanLinks.Found.Broken -> {
-                Problems.warn("plan", "Plan link ($via) could not be read: cut off, damaged or a newer format")
-                sayError(Txt.s(Res.string.msg_plan_link_unreadable), NoticePlace.MAP)
-                return
-            }
-            is com.onpath.app.routing.PlanLinks.Found.Plan -> found.plan
-            // a pairing link of the web planner ("Pair phone" in its header): Settings → Browser sync asks first (A-007)
-            is com.onpath.app.routing.PlanLinks.Found.Pairing -> { receivePairing(found.secret, via); return }
-            is com.onpath.app.routing.PlanLinks.Found.BrokenPairing -> {
-                Problems.warn("sync", "Pairing link ($via) could not be read: cut off or a newer version")
-                openSettings(SettingsPage.SYNC)
-                sayError(Txt.s(Res.string.sync_link_broken), NoticePlace.SETTINGS)
-                return
-            }
-        }
-        viewModelScope.launchSafe("app", "receivePlanLink") {
-            // Cold start: the start mode (Plan / Navigate, an unfinished tour) is decided after a database check
-            if (!startModeKnown) androidx.compose.runtime.snapshotFlow { startModeKnown }.first { it }
-            when (RouteRules.linkOpen(navigating(recState.value != null), waypoints.toList(), savedPoints, plan.points, linkPoints)) {
-                LinkOpen.AFTER_TOUR -> {
-                    Problems.info("plan", "Plan link ($via, ${plan.points.size} points) not opened: a tour is running")
-                    sayError(Txt.s(Res.string.msg_plan_link_after_tour), NoticePlace.MAP)
-                }
-                // the current plan goes under "Zuletzt" (owner 2026-11-06) – no question any more
-                LinkOpen.ASK_FIRST, LinkOpen.NOW -> { if (shown != null) closeShown(); openSharedPlan(plan, via) }
-            }
-        }
-    }
+    fun receivePlanLink(found: com.onpath.app.routing.PlanLinks.Found, via: String) = links.receive(found, via)
 
     /** Text pasted into the search box: a plan link opens the plan (true); anything else is a search (false). */
-    fun pastedPlanLink(text: String): Boolean {
-        val found = com.onpath.app.routing.PlanLinks.fromText(text) ?: return false
-        search.clear()
-        receivePlanLink(found, "pasted")
-        return true
-    }
+    fun pastedPlanLink(text: String): Boolean = links.pasted(text) { search.clear() }
 
     /** Puts a plan from a link into the plan: points, activity, T level, point names, pinned points – a new, unsaved plan. */
     private fun openSharedPlan(plan: com.onpath.app.routing.SharedPlan, via: String = "after asking") {
@@ -5316,8 +5256,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         change { clear(); addAll(load.points) }
         load.names.forEach { (p, n) -> rememberPlaceName(p, n) }
         setSaved(null, -1, null) // not in My routes yet: Save asks for a name
-        linkTitle = plan.title?.let { it to load.points }
-        linkPoints = load.points
+        links.opened(plan.title, load.points)
         Problems.info("plan", "Plan link opened ($via): ${load.points.size} points, ${plan.activity.name}" +
             (if (plan.activity == Activity.HIKE) " T${plan.sac}" else "") + ", ${load.pinned.size} pinned, ${load.names.size} names")
         // the map shows the plan (field A-019: it stayed where it was): its points now, the whole route once computed;
@@ -5338,8 +5277,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (waypoints.size < 2) return
         val pts = waypoints.toList()
         // the route's name: as saved, else the name a link brought while its points are unchanged
-        val title = savedName ?: linkTitle?.takeIf { it.second == pts }?.first
-        sendPlanLink(com.onpath.app.routing.PlanLinks.share(pts, activity, sac, pinnedIndices(), ::stopName, title), pts.size, title)
+        val title = savedName ?: links.title(pts)
+        links.share(com.onpath.app.routing.PlanLinks.share(pts, activity, sac, pinnedIndices(), ::stopName, title), pts.size, title)
     }
 
     /**
@@ -5351,18 +5290,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val pts = t.waypoints.map { GeoPoint(it.lat, it.lon, it.ele) }
         val names = t.waypoints.associate { GeoPoint(it.lat, it.lon, it.ele) to it.name }
         val act = activityOrNull(t.activity) ?: Activity.HIKE
-        sendPlanLink(com.onpath.app.routing.PlanLinks.share(pts, act, t.sac, t.pinned, { names[it] }, t.name), pts.size, t.name)
-    }
-
-    private fun sendPlanLink(plan: com.onpath.app.routing.SharedPlan, count: Int, title: String?) {
-        val link = com.onpath.app.routing.PlanLinks.link(plan)
-        Problems.trace("plan", "Plan shared as a link: $count points, ${link.length} characters")
-        val send = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, link)
-            title?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
-        }
-        events += UiEvent.Share(Intent.createChooser(send, Txt.s(Res.string.plan_share_plan)))
+        links.share(com.onpath.app.routing.PlanLinks.share(pts, act, t.sac, t.pinned, { names[it] }, t.name), pts.size, t.name)
     }
 
     private fun showTrack(s: ShownTrack) {
@@ -5890,8 +5818,6 @@ private const val ARRIVAL_MAX_WAIT_MS = 20_000L
 private const val SCRUB_HOLD_MS = 4000L
 /** Routing data: checked at most this often after a route (ms), and refreshed when older than this (days). */
 private const val ROUTING_CHECK_MS = 12 * 3600_000L
-/** Pull to refresh: the spinner stops after this at the latest. */
-private const val PULL_SPIN_MAX_MS = 30_000L
 private const val ROUTING_MAX_AGE_DAYS = 35
 /** Free look in Navigate ends after walking this far from where the map was turned / moved by hand. */
 private const val FREE_LOOK_BACK_M = 25.0

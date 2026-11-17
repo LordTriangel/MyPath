@@ -18,7 +18,10 @@ class AppViewModelSizeTest {
     }
 
     private companion object {
-        /** After cleanup piece 4, slice 1 (Zuletzt + recycle bin → ui/routes/RecentPlans); 5,970 before. */
-        const val MAX_LINES = 5_900
+        /**
+         * After cleanup piece 4: slice 1 (Zuletzt + recycle bin → ui/routes/RecentPlans) 5,970 → 5,900; slice 2 (sync
+         * triggers → ui/sync/SyncDriver, plan links → ui/sync/PlanLinkFlow) → 5,826.
+         */
+        const val MAX_LINES = 5_826
     }
 }
