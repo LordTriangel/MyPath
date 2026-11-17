@@ -27,17 +27,17 @@ class Land(private val files: SuggestFiles) {
         val sat: IntArray get() = tables()[0]
         val satBuilt: IntArray get() = tables()[1]
         val satWater: IntArray get() = tables()[2]
-        /** rim per square, NaN = not yet computed */
-        private var rims: DoubleArray? = null
+        /** rim per square computed so far (only the squares links lie in – a small map, not one per square) */
+        private var rims: LongDoubleMap? = null
 
         private fun tables(): Array<IntArray> =
             tables ?: arrayOf(sat(NATURE_OR_PROTECTED), sat(SuggestFile.BUILT), sat(SuggestFile.WATER)).also { tables = it }
 
-        fun rimCached(key: Int): Double = rims?.get(key) ?: Double.NaN
+        /** NaN = not yet computed */
+        fun rimCached(key: Int): Double = rims?.getOr(key.toLong(), Double.NaN) ?: Double.NaN
 
         fun rimPut(key: Int, value: Double) {
-            val r = rims ?: DoubleArray(w * h).also { it.fill(Double.NaN); rims = it }
-            r[key] = value
+            (rims ?: LongDoubleMap(1 shl 10).also { rims = it }).put(key.toLong(), value)
         }
 
         /** Gives the tables and the rim cache back (made again when needed, the same values). */

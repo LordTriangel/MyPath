@@ -179,11 +179,17 @@ class NetReader(private val segmentsDir: File) {
 
         init { rc.expctxWay.setDecodeForbidden(true) }  // as NodesCache(…, detailed = true): forbidden ways stay in the data
 
+        // the tile returned last (most lookups are in the same tile as the one before): it is the LRU's most recent
+        // entry already, so answering it without asking the LRU leaves the LRU's order as it is
+        private var lastKey = Long.MIN_VALUE
+        private var lastTile: RawTile? = null
+
         /** The raw tile holding position [ilon] / [ilat]; null when there is no routing data there. */
         fun tile(ilon: Int, ilat: Int): RawTile? {
             val d = degree(ilon / 1_000_000, ilat / 1_000_000) ?: return null
             val key = key(d, ilon, ilat)
-            lru[key]?.let { return it }
+            if (key == lastKey) return lastTile
+            lru[key]?.let { lastKey = key; lastTile = it; return it }
             val t = decode(d.file, (key ushr 32).toInt(), key.toInt(), d.cellsize)
             if (!decodedOnce.add(key)) stats.tilesDecodedAgain++
             stats.tilesDecoded++
@@ -191,6 +197,7 @@ class NetReader(private val segmentsDir: File) {
             bytes += t.bytes
             if (bytes > stats.tileBytesPeak) stats.tileBytesPeak = bytes
             if (bytes > budget) evict(key)
+            lastKey = key; lastTile = t
             return t
         }
 
@@ -217,9 +224,13 @@ class NetReader(private val segmentsDir: File) {
         private fun key(d: Degree, ilon: Int, ilat: Int): Long =
             ((ilon / d.cellsize).toLong() shl 32) or (ilat / d.cellsize).toLong()
 
+        private var lastDegreeKey = Int.MIN_VALUE
+        private var lastDegree: Degree? = null
+
         private fun degree(lonDeg: Int, latDeg: Int): Degree? {
             val key = lonDeg * 1000 + latDeg
-            if (degrees.containsKey(key)) return degrees[key]
+            if (key == lastDegreeKey) return lastDegree
+            if (degrees.containsKey(key)) return degrees[key].also { lastDegreeKey = key; lastDegree = it }
             val name = fileName(lonDeg, latDeg)
             val pf = if (files.containsKey(name)) files[name] else {
                 val file = File(segmentsDir, "$name.rd5")
@@ -231,6 +242,7 @@ class NetReader(private val segmentsDir: File) {
             val f = if (pf == null) null else OsmFile(pf, lonDeg, latDeg, buffers).takeIf { it.hasData() }
             val d = if (f == null || pf == null) null else Degree(f, 1_000_000 / pf.divisor)
             degrees[key] = d
+            lastDegreeKey = key; lastDegree = d
             return d
         }
 
@@ -376,6 +388,7 @@ class NetReader(private val segmentsDir: File) {
 
         fun releaseTiles() {
             lru.clear()
+            lastKey = Long.MIN_VALUE; lastTile = null
             bytes = 0
             pending.release()
             wayByHash.release()

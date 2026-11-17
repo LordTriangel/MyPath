@@ -21,11 +21,15 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
     private val fam = ch.family
     private val Q = S["search"]
     private val form = S["form"]
-    private val asm = LoopAssembly(P.search, P.start, P.cost, P.tree, ch.freeStemM, Q["used"].d, Q["beside_used"].d)
+    /** roads with cars outside towns: a loop that runs along one too long is built once more with them dearer */
+    private val roadside = BooleanArray(net.linkCount) { F.traffic[it] >= 0.45 && !F.built[it] }
+    private val asm = LoopAssembly(P.search, P.start, P.cost, P.tree, ch.freeStemM, Q["used"].d, Q["beside_used"].d,
+        roadside, Q["road_repair"].d)
 
-    /** generate.py `assemble`: the loop's links in walking order, or null; [keep] = aims whose way out and back stays. */
-    fun assemble(points: IntArray, costs: Map<Int, DoubleArray>? = null, keep: Set<Int> = emptySet()): IntArray? =
-        asm.assemble(points, costs, keep)
+    /** generate.py `assemble`: the loop's links in walking order, or null; [keep] = aims whose way out and back stays;
+     *  [calm] = with the roads beside ([roadside]) dearer. */
+    fun assemble(points: IntArray, costs: Map<Int, DoubleArray>? = null, keep: Set<Int> = emptySet(), calm: Boolean = false): IntArray? =
+        asm.assemble(points, costs, keep, calm)
 
     /** generate.py `measure`: the plain measures of a loop from [start] (default the wish's start); null if not closed. */
     fun measure(edges: IntArray, start: Int = P.start, keep: Set<Int> = emptySet()): Candidate? = measure(P, edges, start, keep)
@@ -40,25 +44,14 @@ class Generate(private val P: Place, private val S: SuggestSettings) {
         P.steep.clear()
         // a loop longer than this along a road with cars is built once more without it (wheels since 2026-11-17 too)
         val roadMax = fam["road_repair_m"].d
-        val repair = Q["road_repair"].d
-        fun roadside(e: Int) = F.traffic[e] >= 0.45 && !F.built[e]
-        fun calm(cost: DoubleArray) = DoubleArray(cost.size) { if (roadside(it)) cost[it] * repair else cost[it] }
-        val calmCost = if (roadMax != 0.0) calm(P.cost) else null
         val shortZero = form["short_zero"].d; val longZero = form["long_zero"].d; val maxCross = form["max_cross"].d
 
         fun add(points: IntArray, origin: String, aim: List<String> = emptyList(), costs: Map<Int, DoubleArray>? = null,
                 keep: Set<Int> = emptySet()): Candidate? {
             var edges = assemble(points, costs, keep)
-            if (edges != null && calmCost != null && Score.roadRun(F, edges) > roadMax) {
-                val c = HashMap<Int, DoubleArray>()
-                for (i in 0..points.size) c[i] = calmCost
-                if (costs != null) {
-                    val made = ArrayList<Pair<DoubleArray, DoubleArray>>()  // one calm copy per cost list, not per part
-                    for ((i, cost) in costs) {
-                        c[i] = made.firstOrNull { it.first === cost }?.second ?: calm(cost).also { made.add(cost to it) }
-                    }
-                }
-                edges = assemble(points, c, keep) ?: edges
+            if (edges != null && roadMax != 0.0 && Score.roadRun(F, edges) > roadMax) {
+                // every part with the roads beside dearer (the scaled costs are not copied: NetSearch scales on the way)
+                edges = assemble(points, costs, keep, calm = true) ?: edges
             }
             val key = edges?.let { e -> e.distinct().sorted() }
             val m = if (edges != null && key !in seen) measure(edges, keep = keep) else null

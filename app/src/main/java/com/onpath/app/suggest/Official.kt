@@ -201,10 +201,11 @@ object Official {
         var cur = start
         val s = P.search
         for (w in aims + start) {
-            s.toStop(cur, w, cost)
+            s.toStop(cur, w, cost, withMetres = false)
             if (!s.reached(w)) return null
-            if (w != start && s.metres[w] > 4.0 * SuggestGeo.dist(net.lon(cur), net.lat(cur), net.lon(w), net.lat(w)) + 1000.0) continue
-            for (e in s.path(w)) edges.add(e)
+            val path = s.path(w)
+            if (w != start && s.pathMetres(path) > 4.0 * SuggestGeo.dist(net.lon(cur), net.lat(cur), net.lon(w), net.lat(w)) + 1000.0) continue
+            for (e in path) edges.add(e)
             if (w != start) kept.add(w)
             cur = w
         }

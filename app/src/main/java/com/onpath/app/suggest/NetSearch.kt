@@ -39,9 +39,13 @@ class NetSearch(
     /**
      * Cheapest ways from [src] (net.py `dijkstra`). [pen] = a factor per link for this search only (0 = none – the
      * POC's `pen` dict); [stop] ≥ 0 ends the search when that node is taken; beyond [maxLen] metres a node is not
-     * expanded. Ties are broken by node number, as Python's heap of (cost, node) does.
+     * expanded. Ties are broken by node number, as Python's heap of (cost, node) does. [withMetres] false: [metres]
+     * is not kept (the loop assembly's searches only need the path – [pathMetres] gives a path's metres, the same sum).
+     * [scaleMask] / [scale]: the links of the mask cost [scale] × – as if the cost array were a scaled copy (the copy's
+     * very numbers: cost × scale, then the closed test, then [pen]), without making one.
      */
-    fun run(src: Int, cost: DoubleArray, pen: DoubleArray? = null, stop: Int = -1, maxLen: Double = INF) {
+    fun run(src: Int, cost: DoubleArray, pen: DoubleArray? = null, stop: Int = -1, maxLen: Double = INF, withMetres: Boolean = true,
+            scaleMask: BooleanArray? = null, scale: Double = 1.0) {
         for (i in 0 until touchedN) {
             val v = touched[i]
             dist[v] = INF; metres[v] = 0.0; prevNode[v] = -1; prevLink[v] = -1
@@ -62,13 +66,15 @@ class NetSearch(
             for (p in adjOff[u] until adjOff[u + 1]) {
                 val e = adjLink[p]
                 var c = cost[e]
+                if (scaleMask != null && scaleMask[e]) c *= scale
                 if (c < 0) continue
                 if (pen != null) { val f = pen[e]; if (f != 0.0) c *= f }
                 val v = adjNode[p]
                 val nd = du + c
                 if (nd < dist[v]) {
                     if (dist[v] == INF) touched[touchedN++] = v
-                    dist[v] = nd; prevNode[v] = u; prevLink[v] = e; metres[v] = metres[u] + len[e]
+                    dist[v] = nd; prevNode[v] = u; prevLink[v] = e
+                    if (withMetres) metres[v] = metres[u] + len[e]
                     push(v, nd)
                 }
             }
@@ -78,8 +84,18 @@ class NetSearch(
     /** The full search (every reachable node). */
     fun full(src: Int, cost: DoubleArray) = run(src, cost)
 
-    /** The search that ends at [stop]. */
-    fun toStop(src: Int, stop: Int, cost: DoubleArray, pen: DoubleArray? = null) = run(src, cost, pen, stop = stop)
+    /** The search that ends at [stop]; [withMetres] false: no [metres] (see [run]). */
+    fun toStop(src: Int, stop: Int, cost: DoubleArray, pen: DoubleArray? = null, withMetres: Boolean = true,
+               scaleMask: BooleanArray? = null, scale: Double = 1.0) =
+        run(src, cost, pen, stop = stop, withMetres = withMetres, scaleMask = scaleMask, scale = scale)
+
+    /** Metres along [path] (links in walking order from the source) – what [metres] holds at its end, summed the same
+     *  way (from 0, link by link). */
+    fun pathMetres(path: IntArray): Double {
+        var m = 0.0
+        for (e in path) m += lengths[e]
+        return m
+    }
 
     /** The search that expands no node beyond [maxLen] metres. */
     fun bounded(src: Int, maxLen: Double, cost: DoubleArray, pen: DoubleArray? = null) = run(src, cost, pen, maxLen = maxLen)
@@ -96,13 +112,15 @@ class NetSearch(
         fun path(t: Int): IntArray = path(prevNode, prevLink, t)
     }
 
+    // a 4-ary heap of (cost, node): (cost, node) pairs are unique (a node is pushed again only cheaper), so any heap
+    // takes them out in the same order as Python's heapq – this one with half the levels of a binary heap
     private fun push(v: Int, k: Double) {
         if (heapSize == heapNode.size) {
             heapNode = heapNode.copyOf(heapSize * 2); heapKey = heapKey.copyOf(heapSize * 2)
         }
         var i = heapSize++
         while (i > 0) {
-            val p = (i - 1) shr 1
+            val p = (i - 1) shr 2
             val pk = heapKey[p]
             if (pk < k || (pk == k && heapNode[p] < v)) break
             heapNode[i] = heapNode[p]; heapKey[i] = pk; i = p
@@ -118,20 +136,22 @@ class NetSearch(
         val k = heapKey[heapSize]
         var i = 0
         while (true) {
-            val l = 2 * i + 1
-            if (l >= heapSize) break
-            val r = l + 1
-            val m = if (r < heapSize && less(r, l)) r else l
-            val mk = heapKey[m]
-            if (mk > k || (mk == k && heapNode[m] > v)) break
-            heapNode[i] = heapNode[m]; heapKey[i] = mk; i = m
+            val c = 4 * i + 1
+            if (c >= heapSize) break
+            var m = c
+            var mk = heapKey[c]
+            var mn = heapNode[c]
+            val end = minOf(c + 4, heapSize)
+            for (j in c + 1 until end) {
+                val jk = heapKey[j]
+                if (jk < mk || (jk == mk && heapNode[j] < mn)) { m = j; mk = jk; mn = heapNode[j] }
+            }
+            if (mk > k || (mk == k && mn > v)) break
+            heapNode[i] = mn; heapKey[i] = mk; i = m
         }
         heapNode[i] = v; heapKey[i] = k
         return top
     }
-
-    private fun less(a: Int, b: Int): Boolean =
-        heapKey[a] < heapKey[b] || (heapKey[a] == heapKey[b] && heapNode[a] < heapNode[b])
 
     companion object {
         const val INF = Double.POSITIVE_INFINITY
@@ -223,6 +243,9 @@ class LoopAssembly(
     private val freeStemM: Double,
     private val used: Double,
     private val besideUsed: Double,
+    /** the links a [calm] assembly makes dearer ([calmScale] ×): roads with cars outside towns */
+    private val calmMask: BooleanArray? = null,
+    private val calmScale: Double = 1.0,
 ) {
     private val net = search.net
     private val pen = DoubleArray(net.linkCount)
@@ -230,9 +253,10 @@ class LoopAssembly(
 
     /**
      * → the loop's links in walking order, or null. [costs] = other costs for some parts (index into points + home);
-     * [keep] = nodes (aims) whose way out and back stays in the loop (the last stretch up to a summit).
+     * [keep] = nodes (aims) whose way out and back stays in the loop (the last stretch up to a summit). [calm]: every
+     * part on its cost with the [calmMask] links [calmScale] × dearer (generate.py's rebuild without the road).
      */
-    fun assemble(points: IntArray, costs: Map<Int, DoubleArray>? = null, keep: Set<Int> = emptySet()): IntArray? {
+    fun assemble(points: IntArray, costs: Map<Int, DoubleArray>? = null, keep: Set<Int> = emptySet(), calm: Boolean = false): IntArray? {
         var penN = 0
         try {
             val edges = ArrayList<Int>()
@@ -241,8 +265,9 @@ class LoopAssembly(
             for (i in 0..points.size) {
                 val w = if (i < points.size) points[i] else start
                 val c = costs?.get(i) ?: cost
-                val leg: IntArray? = if (i == 0 && c === cost) fromStart.path(w) else {
-                    search.toStop(cur, w, c, pen)
+                val leg: IntArray? = if (i == 0 && c === cost && !calm) fromStart.path(w) else {
+                    if (calm) search.toStop(cur, w, c, pen, withMetres = false, scaleMask = calmMask, scale = calmScale)
+                    else search.toStop(cur, w, c, pen, withMetres = false)
                     if (search.reached(w)) search.path(w) else null
                 }
                 if (leg == null || (leg.isEmpty() && w != cur)) return null

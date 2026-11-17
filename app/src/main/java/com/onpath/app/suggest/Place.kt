@@ -270,9 +270,8 @@ class Place(
             val n = values.size
             if (n == 0) return 0.0
             val step = maxOf(1, n / 30000)
-            val idx = (0 until n step step).sortedWith { a, b ->
-                val c = values[a].compareTo(values[b]); if (c != 0) c else metres[a].compareTo(metres[b])
-            }
+            val idx = IntArray((n + step - 1) / step) { it * step }
+            stableSort(idx) { a, b -> val c = values[a].compareTo(values[b]); if (c != 0) c else metres[a].compareTo(metres[b]) }
             var total = 0.0
             for (i in idx) total += metres[i]
             val want = q * total
@@ -282,6 +281,28 @@ class Place(
                 if (acc >= want) return values[i]
             }
             return values[idx.last()]
+        }
+
+        /** A stable merge sort of ints (the order Kotlin's sortedWith gives – a stable sort's result is unique –
+         *  without a boxed list). */
+        inline fun stableSort(a: IntArray, cmp: (Int, Int) -> Int) {
+            var src = a
+            var dst = IntArray(a.size)
+            var width = 1
+            while (width < a.size) {
+                var lo = 0
+                while (lo < a.size) {
+                    val mid = minOf(lo + width, a.size); val hi = minOf(lo + 2 * width, a.size)
+                    var i = lo; var j = mid; var k = lo
+                    while (i < mid && j < hi) dst[k++] = if (cmp(src[j], src[i]) < 0) src[j++] else src[i++]
+                    while (i < mid) dst[k++] = src[i++]
+                    while (j < hi) dst[k++] = src[j++]
+                    lo = hi
+                }
+                val t = src; src = dst; dst = t
+                width *= 2
+            }
+            if (src !== a) src.copyInto(a)
         }
     }
 

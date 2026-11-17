@@ -84,12 +84,15 @@ internal class LongDoubleMap(expected: Int = 1024) {
         mask = cap - 1
     }
 
-    operator fun get(key: Long): Double {
+    operator fun get(key: Long): Double = getOr(key, 0.0)
+
+    /** The value of [key], [missing] when it has none. */
+    fun getOr(key: Long, missing: Double): Double {
         var i = hash(key) and mask
         while (true) {
             val k = keys[i]
             if (k == key) return vals[i]
-            if (k == EMPTY) return 0.0
+            if (k == EMPTY) return missing
             i = (i + 1) and mask
         }
     }
