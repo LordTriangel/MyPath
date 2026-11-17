@@ -515,6 +515,54 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   judging 0.1), 15 loops, 5 cards; the browser's resident memory grew by ~300 MB (hike, first run, routing data
   included) and ~610 MB (bike 3 h, first run; +300 MB on the second) – the rd5 parts are held twice in the worker
   (the engine's part bytes + the written rd5), as for routing.
+- **Stage 4 app – the part without UI (IR 2026-11-18, branch `wip/ir-2026-11-18-app-suggest-core`; nothing calls it
+  yet):** shared core `suggest/SuggestCards.kt` (in `app/web-shared-files.txt`): `SuggestAsk` (the wish as app and
+  planner ask it: point, `Activity`, T level, hours from–to, ascent from–to, Ziel → `Wish`), `SuggestCards.of(result)` →
+  light `SuggestCard`s (id, title, badge, km on the signed loop, km, h, ascent, text line, pills, the line as lon / lat
+  pairs; `points()` → GeoPoints) holding nothing of the network or the place, `SuggestPills` (the sketch-7 pills, moved
+  from `WebSuggest`; the planner's JSON is unchanged). `TourSuggester.suggest(…, check)`: a check point between the
+  phases. App side `suggest/app/`: `SuggestService` (plain JVM: `need(ask)` → rd5 part keys + cells; `suggest(ask,
+  check)` → routing parts missing → `routingToLoad`, no run; no way near the start / any failure → `noData` + the "none"
+  note, reported; else the cards, `mapUpdating` and `cellsToFetch` = the cells in reach whose suggest file is missing
+  or older than content 2; each cell's file read once per run and dropped with it), `SuggestRunner` (`suspend
+  suggest(ask)` on `Dispatchers.Default`, one run at a time, a newer wish cancels the running one at its next phase),
+  `SuggestFetch` (fetches only a cell's `suggest.bin` from the current manifest – size + sha256 – for cells installed
+  without it; `NOT_ON_SERVER` when the server's cell is older than schema 9), `AppSuggest` (Android glue: one runner per
+  process; DataFiles' segments, `RoutingDataLoader.missing`, the store's suggest files, `assets/suggest/settings.json`,
+  its own copy of the shipped profiles in `filesDir/suggest/profiles`). `CellStore` now keeps a cell's `suggest.bin` as
+  `<dataDir>/suggest/<cell>.bin` (installed after the generation, deleted with the cell, like the addresses); a cell
+  installed before this (or by a released app) has none → `cellsToFetch`. `assets/suggest/settings.json` is a copy of
+  `tools/suggest-poc/settings.json` (a test fails when they differ – copy it). Tests: `SuggestServiceTest` (real Hilden
+  run → light cards; a cell without its file → `mapUpdating` + that cell; routing missing → `routingToLoad`; no data →
+  no crash; the check stops a run; a newer wish cancels the running one, never two at once; the fetch takes only
+  `suggest.bin`), `CellStoreTest.theSuggestFileIsKeptPerCellBesideTheStore`, the planner's `WebSuggestTest`.
+- **Stage 4 UI – what is left** (starts when donald writes „app open for phone work“; the words are in
+  `strings_suggest.xml` already, `suggest_ui_*`, the planner's `web/app/src/suggest.ts` is the model):
+  1. *Switch:* a developer setting „Tourvorschläge (Test)“, off by default (`data/AppSettings` + Diagnostics →
+     Developer tools), as the planner's `?debug` switch.
+  2. *Entry „Rundtour von hier“* below „Hier starten“ wherever it appears: `ui/MapOverlays.kt` `FirstPointMenu` (the
+     first tap into an empty plan, `startHere` row ~l. 437) and the place / POI menu (`PoiMenu` → `PinMenuItems.of` in
+     `domain/PinMenuPlace.kt`, row `START_HERE`: add a row `ROUND_TRIP` right after it, only when the switch is on and the
+     plan is empty). Tap → `AppViewModel.openSuggestWish(p)` (new).
+  3. *Wish sheet, sketch 5 B:* a new `ui/SuggestSheet.kt` – activity labels without icons (the plan's activity), two
+     range sliders (time, ascent), Ziel chips (Gipfel · Wasser · Aussicht · Einkehr · Kultur, several or none),
+     Abbrechen · OK; OK → `SuggestAsk`.
+  4. *Run:* in `AppViewModel` one `Job` per wish: `viewModelScope.launch { val need = AppSuggest.service(ctx).need(ask);
+     mapData.routingData.ensure(need.routingParts)` (as `planFromShownNow` does) `; val r = AppSuggest.runner(ctx).suggest(ask) }`
+     – a new wish just launches again (the runner cancels the old). `r.routingToLoad` → the wait card „Wegedaten werden
+     geladen“ and retry when `AppRouting` says installed; `r.cellsToFetch` → `AppSuggest.fetch(ctx)?.fetch(cells)` on
+     `Dispatchers.IO` (Wi-Fi rule: the setting's, the files are ~0.3 MB), then run again once; `NOT_ON_SERVER` stays
+     „Die Karte wird hier gerade aktualisiert“ (the note is in `r.notes`).
+  5. *Wait card, then the cards (sketches 4 A + 7)* in the plan sheet (`ui/PlanPanel.kt` area): title, badge
+     „Ausgeschildert · <badge>“, km · h · ↑ m, „davon <loopKm> km auf dem Rundweg“, the text line (full on the chosen
+     card), pills `SuggestPill` (green / yellow by `strength`, three intensities by `level`, at most 2 + 2 – already cut).
+  6. *Map:* only the chosen card's loop (`card.points()`) as one source / layer in `map/MapController` (like the
+     `gpx-track` line; one line style for all), the camera fits it; nothing faint for the others.
+  7. *„Übernehmen“* → a normal plan: as `AppViewModel.planFromShownNow` with `card.points()` as the track
+     (`TrackToPlan.fit` on `backgroundRouting`, round trip since first = last; `keepAsDraft`, `change { clear();
+     addAll(points) }`), then the suggestion view closes.
+  8. *Tests:* a VM test with a fake runner (wish → cards → take → plan points), screenshot tests of the sheet and a card
+     (DE / EN / large), an E2E on the emulator with the Hilden test cell.
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one

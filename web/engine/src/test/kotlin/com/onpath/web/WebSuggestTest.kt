@@ -3,6 +3,7 @@ package com.onpath.web
 import com.onpath.app.suggest.Candidate
 import com.onpath.app.suggest.Character
 import com.onpath.app.suggest.Land
+import com.onpath.app.suggest.SuggestPills
 import com.onpath.app.suggest.SuggestSettings
 import com.onpath.app.suggest.Wish
 import com.onpath.strings.Txt
@@ -89,22 +90,22 @@ class WebSuggestTest {
         val weak = cand(doubleArrayOf(0.4, 0.5, 0.5, 0.45, 1.0), ascent = 520, hours = 3.6, road = 450, town = 35, cross = 1,
             ground = intArrayOf(70, 10, 10, 10))
         val list = listOf(best, mid, weak)
-        val pb = WebSuggest.pills(best, list, ch)
+        val pb = SuggestPills.pills(best, list, ch)
         assertEquals(2, pb.size) // only the two strongest strengths
         assertTrue(pb.all { it.cls.startsWith("g") })
         assertEquals("grün", pb[0].text) // the farthest above the mean first
-        assertTrue(WebSuggest.pills(mid, list, ch).isEmpty()) // in the middle of the list: nothing stands out
-        val pw = WebSuggest.pills(weak, list, ch)
+        assertTrue(SuggestPills.pills(mid, list, ch).isEmpty()) // in the middle of the list: nothing stands out
+        val pw = SuggestPills.pills(weak, list, ch)
         assertEquals(listOf("↑ 520 m – mehr als geplant", "36 min länger als geplant"), pw.map { it.text }) // a missed wish first
         assertTrue(pw.all { it.cls.startsWith("y") })
         assertEquals("y2", pw[0].cls) // 120 m over: clear (50 … 150)
         // alike on every axis: no pills at all
         val same = listOf(cand(doubleArrayOf(0.8, 0.8, 0.8, 0.8, 1.0)), cand(doubleArrayOf(0.82, 0.79, 0.8, 0.81, 1.0)))
-        assertTrue(WebSuggest.pills(same[0], same, ch).isEmpty())
+        assertTrue(SuggestPills.pills(same[0], same, ch).isEmpty())
         // a weak Weg says why: here the asphalt
         val paved = cand(doubleArrayOf(0.8, 0.8, 0.3, 0.8, 1.0), ground = intArrayOf(80, 10, 5, 5))
         val ok = listOf(paved, cand(doubleArrayOf(0.8, 0.8, 0.9, 0.8, 1.0)), cand(doubleArrayOf(0.8, 0.8, 0.85, 0.8, 1.0)))
-        assertEquals(listOf("viel Asphalt"), WebSuggest.pills(paved, ok, ch).map { it.text })
+        assertEquals(listOf("viel Asphalt"), SuggestPills.pills(paved, ok, ch).map { it.text })
     }
 
     @Test fun aRealRunGivesCardsWithLoops() {
