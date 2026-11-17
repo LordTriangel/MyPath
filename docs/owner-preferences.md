@@ -16,12 +16,8 @@ Shared by every session (donald, laptop, captain, cloud-web). Product rules (UX,
   its number alone. Numbers stay in the backlog and commit messages for the sessions; the owner may answer
   with a word ("Startknopf: A").
 - **Planner deploys in the test phase** (owner 2026-11-06): the planner goes online right after the affected local tests – GitHub's full run continues behind it; a red run is fixed and deployed again (`docs/roles/cloud-plan.md`).
-- **Fragenregister** (owner 2026-11-06): every question the owner asks a session in its chat goes onto the page
-  https://claude.ai/artifact/MyNqN2MaaxNzrex7wVccwX (`ArtifactData`, collection `fragen`), so no answer gets lost in the
-  scroll. When the question comes: `set` doc `<unit>-<YYYYMMDD>-<n>` with `sitzung` (your unit), `frage` (short, his words),
-  `gefragt_am` (ISO UTC), `status` `in_arbeit` (or `beantwortet` at once), `arbeit` (one line: what you are doing),
-  `gelesen` false. When answered: `update` (pass `if_version`) `status` `beantwortet`, `antwort` (2–5 plain lines, the
-  details stay in the chat), `beantwortet_am`, `arbeit` removed. Small talk and "ok / ja" are not questions.
+- **No Fragenregister any more** (owner 2026-11-17: „brauchen wir nicht mehr“): the page is not written any more; answer in the chat only.
+- **The owner does not relay between sessions** (owner 2026-11-17): a word for the captain goes into the backlog under "For the captain" (`← [role] …`) – the captain reads it whenever the owner next writes to it; never ask the owner to pass a message on.
 - Plain words, short updates, outcome first. No diffs or file dumps in the terminal; quiet tool calls, one-line results.
 - Never name internals toward the owner as product words ("cells", "routing data") – it's "map areas", "the map".
 - Komoot is the UX reference (the owner is a long-time Komoot user).

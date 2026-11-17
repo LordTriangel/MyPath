@@ -29,7 +29,6 @@ the phone → simple. Requirements with stable IDs: `docs/requirements.md` (new 
   APKs or `local.properties`.
 - Ask the owner in your own chat (rules: `docs/owner-preferences.md`); still open when you stop → `docs/backlog.md`
   "Waiting for the owner". The owner's word to all = a line in the backlog's "For the roles".
-- Every question the owner asks you in the chat goes into his Fragenregister page, with your answer under it
-  (how: `docs/owner-preferences.md` "Fragenregister").
+- A word for the captain → backlog "For the captain" (`← [role] …`); never ask the owner to pass it on.
 - Sub-agents that edit files work in their own git worktree; the main session merges, pushes and holds the claim.
 - Work longer than ~2 minutes runs in a background agent; the chat stays responsive.
