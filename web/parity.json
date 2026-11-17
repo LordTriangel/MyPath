@@ -461,7 +461,7 @@
     {
       "app": "app/src/main/java/com/onpath/app/poi/PoiTap.kt",
       "why": "how a tap / hold finds the POI under the finger (app: ShownPois, read once per camera stop – MapLibre Native's queryRenderedFeatures waits for its render thread; web: main.ts poiAt asks GL JS at the click, p50 0.1 ms in Köln, no render thread)",
-      "blob": "285b2151f9dca6f9b73a5c10272e3703218f5c22"
+      "blob": "b77dd5d805096db3ab351ef87a0f90bf820e866d"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/PlanPanel.kt",
@@ -922,7 +922,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/ui/MapGestures.kt": {
-      "blob": "cab756365f83f34a496c1a17ec5ca361577f6040",
+      "blob": "2659eb9e24539b4616dc3447c6f0852c7639a7f6",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/poi/GoogleMapsLink.kt": {
@@ -943,7 +943,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/ui/PlaceAddMenu.kt": {
-      "blob": "87c34afaa20165df8a357c6f548284e264ac9cdd",
+      "blob": "8322e14a9382e04e70cebf5257f702b2fb3b3f9e",
       "perf": [
         "var detour = Double.MAX_VALUE"
       ]
@@ -1251,7 +1251,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/NetSearch.kt": {
-      "blob": "c2c24b630aa49704467de76e5649c1d29e8c4afa",
+      "blob": "181b4a8f7ca4522c8748cb0a548c36c5d5db6730",
       "perf": [
         "* expanded. Ties are broken by node number, as Python's heap of (cost, node) does."
       ]
@@ -1264,6 +1264,82 @@
         "// snap points within MAX_SNAP_M in one pass and fail fast (before any search) when a point",
         "kv[\"waypointCatchingRange\"] = MAX_SNAP_M.toInt().toString()",
         "// above the limit = forbidden (profile). Preferred = the limit but at most T3: a marked T2/T3 trail beats the"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/suggest/SuggestFile.kt": {
+      "blob": "63fcd83b7dc7fab6aac3723af4669f05a99c3a03",
+      "perf": []
+    },
+    "app/src/main/java/com/onpath/app/suggest/SuggestSettings.kt": {
+      "blob": "84e4e9e3365b7cc9c62e69fbef2797b669d06c9c",
+      "perf": []
+    },
+    "app/src/main/java/com/onpath/app/suggest/SuggestGeo.kt": {
+      "blob": "be2aaa10375f58fa912be6338ffe2906d7f5e901",
+      "perf": []
+    },
+    "app/src/main/java/com/onpath/app/suggest/PyIntSet.kt": {
+      "blob": "93e2cf16b5d0686ffa47c5a57aae23647bc6acd2",
+      "perf": []
+    },
+    "app/src/main/java/com/onpath/app/suggest/Character.kt": {
+      "blob": "a1791b470b366c0290dcf5e28136845f5df4642f",
+      "perf": []
+    },
+    "app/src/main/java/com/onpath/app/suggest/Land.kt": {
+      "blob": "ac80aa01dcec1e7dda8adf3ed84de23bd5b50719",
+      "perf": []
+    },
+    "app/src/main/java/com/onpath/app/suggest/Named.kt": {
+      "blob": "ede0c52c142f5cf5e4e6c434dcd38d808ce719c4",
+      "perf": [
+        "class DoubleList(capacity: Int = 64) {",
+        "private var a = DoubleArray(capacity)"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/suggest/Facts.kt": {
+      "blob": "c8186c481f00d47afc803c39ba09731a0b8603b0",
+      "perf": []
+    },
+    "app/src/main/java/com/onpath/app/suggest/Place.kt": {
+      "blob": "b44535df40b84059b0ee2fe11385d82f8bdf88e0",
+      "perf": [
+        "/** loops that fit but climb more than wished (generate.pool) */"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/suggest/Candidate.kt": {
+      "blob": "d4c95f0a7e45631588289809f3c1afd94f828205",
+      "perf": [
+        "* One loop of the pool – ours or an official signed loop laid onto the network – with everything the judging, the"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/suggest/Generate.kt": {
+      "blob": "6dde65ab19d7b1d8b573dd112bdbe133946885cf",
+      "perf": [
+        "* Building loops – one pool, one assembly routine (the POC's `generate.py`). Every loop is a list of turning points",
+        "/** generate.py `pool`: all loops worth judging; loops that fit but climb more than wished go to [Place.steep]. */",
+        "fun pool(): List<Candidate> {",
+        "var w = Double.MAX_VALUE; var s = Double.MAX_VALUE; var e = -Double.MAX_VALUE; var n = -Double.MAX_VALUE"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/suggest/Official.kt": {
+      "blob": "db0e44ca5ed30d8d32e5fa013dee465ea1673a68",
+      "perf": [
+        "var fd = Double.MAX_VALUE"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/suggest/Score.kt": {
+      "blob": "59d53e11a7ff6f821a133aa4f46662455ebe4d11",
+      "perf": [
+        "if (s.length > 40 && \" · \" in s) s = s.split(\" · \", limit = 2)[1]"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/suggest/TourSuggester.kt": {
+      "blob": "20b00f952a57f75cc1f6e15f1d5a006315197963",
+      "perf": [
+        "/** What one wish gave: the shown suggestions first (in list order), then the rest of the pool by points. */",
+        "var cands = Generate(P, S).pool()",
+        "cands = Generate(P, S).pool()"
       ]
     },
     "app/src/test/java/com/onpath/app/routing/OfflineCorridorTest.kt": {
@@ -1286,7 +1362,7 @@
       ]
     },
     "app/src/test/java/com/onpath/app/ui/MapGesturesTest.kt": {
-      "blob": "120fb04ec98bf2228c132e7759cbba209e689476",
+      "blob": "e06e13938d08bc7ecc748e728dadc0e0b171d8e3",
       "perf": []
     },
     "app/src/test/java/com/onpath/app/ui/RouteWarningsTest.kt": {
@@ -1294,7 +1370,7 @@
       "perf": []
     },
     "app/src/test/java/com/onpath/app/ui/PlaceAddMenuTest.kt": {
-      "blob": "5c279cecb9a7b6b723e24a0d5c0eb9e379d9f52b",
+      "blob": "3922daf1e18a7ce11032d68084f71cee09bb6d45",
       "perf": []
     },
     "app/src/test/java/com/onpath/app/ui/LocateDistanceTest.kt": {
