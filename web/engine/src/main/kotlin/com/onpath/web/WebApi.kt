@@ -543,38 +543,130 @@ object Engine {
 
     /** The point menu's entries ([MapGestures.pointMenu]) as JSON names: MAKE_START, LOOP_START, GOOGLE, DELETE. */
     /**
-     * A held place's add entries – the app's PlaceAddMenu (owner 2026-11-07 / 2026-11-15): `{"main":[…],"more":[],"stop":i}`, items
-     * START_HERE / GO_HERE / SET_DESTINATION / ADD_STOP / NEW_DESTINATION; [stop] = where „Als Zwischenstopp“ puts it
-     * (WaypointInsertion stopOnly: the best place on the route, never behind the goal); [keepOld] = whether „Als neues Ziel“
-     * keeps the old goal as the last stop ([PlaceAddMenu.keepsOldGoal], owner 2026-11-14 „beim Planen anhängen, unterwegs
-     * ersetzen“). The planner has no tour: the route ahead is the whole plan, and the new goal always appends.
+     * A held place's add entries – the app's PlaceAddMenu (owner 2026-11-07 / 2026-11-15 / 2026-11-17): `{"main":[…],"more":[],
+     * "stop":i,"why":…}`, items START_HERE / GO_HERE / SET_DESTINATION / ADD_STOP / NEW_DESTINATION; [stop] = where
+     * „Einfügen“ puts it (WaypointInsertion stopOnly: the best place on the route, never behind the goal); [keepOld] =
+     * whether „Neues Ziel“ keeps the old goal as the last stop ([PlaceAddMenu.keepsOldGoal], owner 2026-11-14 „beim Planen
+     * anhängen, unterwegs ersetzen“). The planner has no tour: the route ahead is the whole plan, the new goal appends.
+     * While planning (2+ points, no round trip) the rows are decided as a hold on the empty map – the app's openPoiMenu /
+     * PlaceMenuMeasure (owner 2026-11-17: „wenn ich da nicht einfügen muss, dann braucht das auch im Menü nicht angezeigt zu
+     * werden“): [PlaceAddMenu.planningPlaceMenu] with the place's distance to the drawn line ([lineSnapM] = 24 dp in metres)
+     * and, off the line, the detours on the real paths for [activity] / [sac] ([measurePaths]; [activity] "" = straight
+     * lines only – a caller that wants [stop] alone). One row in a clear case, both in doubt.
      */
-    fun placeMenu(points: String, lat: Double, lon: Double, roundTrip: Boolean): String {
+    fun placeMenu(points: String, lat: Double, lon: Double, roundTrip: Boolean, lineSnapM: Double = 30.0,
+                  activity: String = "", sac: Int = 2): String {
+        val pam = com.onpath.app.ui.PlaceAddMenu
         val w = parsePoints(points)
         val p = GeoPoint(lat, lon)
-        // while planning the same decision as a plain hold (the shorter detour first – one rule everywhere, the app's
-        // AppViewModel.placeMenu, owner 2026-11-15); a round trip keeps the zone
-        val d = if (roundTrip) null else com.onpath.app.ui.PlaceAddMenu.detours(w, p)
-        val m = if (d != null) com.onpath.app.ui.PlaceAddMenu.planningMenu(d)
-        else com.onpath.app.ui.PlaceAddMenu.menu(w.size, touring = false,
-            zone = if (w.size < 2) null else com.onpath.app.ui.PlaceAddMenu.zone(w, p, loop = roundTrip))
-        val stop = if (w.size < 2) w.size else WaypointInsertion.decide(w, p, lastPlanFor(w)?.points, 30.0, stopOnly = true).index
+        val route = lastPlanFor(w)?.points
+        var why = ""
+        val m = if (!roundTrip && w.size >= 2) {
+            val lineDp = lineDp(w, p, route, lineSnapM)
+            val straight = pam.detours(w, p)!!
+            val act = activityOrNull(activity)
+            if (pam.planningHold(lineDp, straight) == com.onpath.app.ui.PlaceAddMenu.HoldAction.ON_LINE || act == null) {
+                why = "line ${lineDp.toInt()} dp, straight: insert +${straight.insertM.toInt()} m, append ${straight.appendM.toInt()} m"
+                pam.planningPlaceMenu(lineDp, straight)
+            } else {
+                val o = measurePaths(w, p, straight, act, sac)
+                why = "line ${lineDp.toInt()} dp, ${o.describe()}"
+                pam.planningPlaceMenu(lineDp, o.detours)
+            }
+        } else pam.menu(w.size, touring = false, zone = if (w.size < 2) null else pam.zone(w, p, loop = roundTrip))
+        val stop = if (w.size < 2) w.size else WaypointInsertion.decide(w, p, route, 30.0, stopOnly = true).index
         fun list(items: List<com.onpath.app.ui.PlaceAddMenu.Item>) = items.joinToString(",", "[", "]") { str(it.name) }
-        val keepOld = com.onpath.app.ui.PlaceAddMenu.keepsOldGoal(touring = false)
-        // "more" stays empty (owner 2026-11-15: both entries always in "main", the likelier first) – kept for the planner's reader
-        return "{\"main\":" + list(m.main) + ",\"more\":[],\"stop\":" + stop + ",\"keepOld\":" + keepOld + "}"
+        val keepOld = pam.keepsOldGoal(touring = false)
+        // "more" stays empty (owner 2026-11-15: every entry in "main") – kept for the planner's reader
+        return "{\"main\":" + list(m.main) + ",\"more\":[],\"stop\":" + stop + ",\"keepOld\":" + keepOld + ",\"why\":" + str(why) + "}"
+    }
+
+    /** How far [p] is from the drawn line in dp ([lineSnapM] = metres in 24 dp): the last route for [w], else the straight legs. */
+    private fun lineDp(w: List<GeoPoint>, p: GeoPoint, route: List<GeoPoint>?, lineSnapM: Double): Double {
+        val mPerDp = lineSnapM / com.onpath.app.ui.PlaceAddMenu.LINE_SNAP_DP
+        return Geo.distanceToLine(p, route?.takeIf { it.size >= 2 } ?: w) / mPerDp
+    }
+
+    /** The whole measure of a hold on the paths (the app's HoldPaths.TIMEOUT_MS, owner ~1.5 s): after it the straight lines decide. */
+    internal const val HOLD_PATHS_MS = 1_500L
+
+    /** What [measurePaths] found: the detours on the paths, or the straight ones after [failure] (the app's HoldPaths.Outcome). */
+    internal class Measured(val detours: com.onpath.app.ui.PlaceAddMenu.Detours, val onPaths: Boolean, val ms: Long, val failure: String? = null) {
+        /** For the trace: "paths: insert +X m, append Y m (Z ms)" or "paths failed: … – straight lines" (HoldPaths' words). */
+        fun describe(): String =
+            if (onPaths) "paths: insert +${detours.insertM.toInt()} m" +
+                (detours.earlyInsertM?.let { " (earlier legs +${it.toInt()} m)" } ?: "") +
+                ", append ${detours.appendM.toInt()} m ($ms ms)"
+            else "paths failed: $failure ($ms ms) – straight lines"
     }
 
     /**
-     * A click (the app's hold) on the empty map in Plan – the app's AppViewModel.holdOnMap (F-PLAN-15, owner 2026-11-15 /
-     * 2026-11-16). `{"action":"ADD","index":i}` = the point goes in at [i] at once; `{"action":"ASK","main":[…],"stop":i}` =
-     * the small menu „Einfügen“ / „Neues Ziel“ ([main] in the app's order, the cheaper first; [stop] = where „Einfügen“ puts
-     * it, never behind the goal). Fewer than 2 points: the smart insertion; a round trip: the zone decides
-     * ([PlaceAddMenu.asksOnHold]); planning: [PlaceAddMenu.planningHold] – on the line ([lineSnapM] = 24 dp on screen in
-     * metres) the smart insertion, appending much cheaper the new goal (appended), inserting much cheaper a stop, similar
-     * ones ask. [why] goes to the diagnostics.
+     * The detours of [p] beside the plan [w] (2+) on the real paths (owner 2026-11-17 „Always real paths“ – the app's
+     * HoldPaths + AppViewModel.routedLength): [PlaceAddMenu.pathDetours] with each length from the [legCache], else one leg
+     * by the [Planner] (as a plan run routes it – then in the cache for the plan run after the decision); a straight leg
+     * (no routing data, no way near the spot, an island) is a failure. At most [limitMs] in all: every router request gets
+     * only the time left (the worker has one thread – no [RouteCancel] can come from outside, so the time left is the cap),
+     * then the [straight] lines decide. Never throws.
      */
-    fun holdOnMap(points: String, lat: Double, lon: Double, roundTrip: Boolean, lineSnapM: Double): String {
+    internal fun measurePaths(w: List<GeoPoint>, p: GeoPoint, straight: com.onpath.app.ui.PlaceAddMenu.Detours, act: Activity,
+                              sac: Int, limitMs: Long = HOLD_PATHS_MS): Measured {
+        val t0 = System.currentTimeMillis()
+        val deadline = t0 + limitMs
+        val cancel = com.onpath.app.routing.RouteCancel()
+        return try {
+            val eng = engine()
+            val capped = object : com.onpath.app.routing.RoutingEngine {
+                override fun route(waypoints: List<GeoPoint>, activity: Activity, sacLimit: Int) =
+                    route(waypoints, activity, sacLimit, com.onpath.app.routing.RouteLimits(limitMs, cancel))
+                override fun route(waypoints: List<GeoPoint>, activity: Activity, sacLimit: Int,
+                                   limits: com.onpath.app.routing.RouteLimits): com.onpath.app.routing.RouteResult {
+                    val left = deadline - System.currentTimeMillis()
+                    if (left <= 0) {
+                        cancel.cancel()
+                        throw RoutingException("measure over its time limit", timedOut = true)
+                    }
+                    return eng.route(waypoints, activity, sacLimit,
+                        com.onpath.app.routing.RouteLimits(minOf(limits.timeoutMs, left), cancel, limits.rounds))
+                }
+            }
+            val d = com.onpath.app.ui.PlaceAddMenu.pathDetours(w, p, straight) { a, b ->
+                if (System.currentTimeMillis() >= deadline) {
+                    cancel.cancel()
+                    throw RoutingException("measure over its time limit", timedOut = true)
+                }
+                val m = legCache.lookup(a, b, act, sac)?.leg?.distanceM ?: run {
+                    val r = Planner(capped, cancel, legs = legCache).plan(listOf(a, b), act, sac)
+                    if (r.legs.any { it.straight }) throw RoutingException(r.error ?: "no route for the leg")
+                    r.distanceM
+                }
+                if (!m.isFinite() || m < 0) throw RoutingException("no length ($m)")
+                m
+            }
+            Measured(d, true, System.currentTimeMillis() - t0)
+        } catch (e: Exception) {
+            val ms = System.currentTimeMillis() - t0
+            // expected: no routing data / no way near the spot / an island / the time limit → info; anything else is a bug → warn
+            val why = if (e !is RoutingException) "engine error"
+                else if (e.timedOut || cancel.isCancelled || ms >= limitMs) "timeout after $limitMs ms" else e.kind.name.lowercase()
+            if (e is RoutingException) Problems.info("plan", "Hold beside the plan: paths not measured ($why) – straight lines", e)
+            else Problems.warn("plan", "Hold beside the plan: measuring the paths failed – straight lines", e)
+            Measured(straight, false, ms, why)
+        }
+    }
+
+    /**
+     * A click (the app's hold) on the empty map in Plan – the app's AppViewModel.holdOnMap / measureHold (F-PLAN-15, owner
+     * 2026-11-15 / 2026-11-17). `{"action":"ADD","index":i}` = the point goes in at [i] at once;
+     * `{"action":"ASK","main":[…],"stop":i}` = the small menu „Einfügen“ / „Neues Ziel“ ([main] in the app's order, the
+     * cheaper first; [stop] = where „Einfügen“ puts it, never behind the goal). Fewer than 2 points: the smart insertion; a
+     * round trip: the zone decides ([PlaceAddMenu.asksOnHold]); planning: [PlaceAddMenu.planningHold] – on the line
+     * ([lineSnapM] = 24 dp on screen in metres) the smart insertion; else appending and inserting on the real paths for
+     * [activity] / [sac] ([measurePaths], at most ~1.5 s, straight lines on any failure; owner „Always real paths“): the
+     * shorter at once (appending → the new goal, inserting → a stop), within 20 % of each other → ask. [why] goes to the
+     * diagnostics.
+     */
+    fun holdOnMap(points: String, lat: Double, lon: Double, roundTrip: Boolean, lineSnapM: Double, activity: String = "",
+                  sac: Int = 2): String {
         val pam = com.onpath.app.ui.PlaceAddMenu
         val w = parsePoints(points)
         val p = GeoPoint(lat, lon)
@@ -592,18 +684,25 @@ object Engine {
             return if (!pam.asksOnHold(zone)) add(smart(), "clear case $zone: set at once")
             else ask(pam.menu(n, touring = false, zone = zone), "in doubt (zone $zone, $n points)")
         }
-        // planning: „Die App nimmt, was den kürzeren Umweg macht; sind beide ähnlich, fragt sie.“
-        val mPerDp = lineSnapM / pam.LINE_SNAP_DP
-        val line = route?.takeIf { it.size >= 2 } ?: w
-        val lineDp = Geo.distanceToLine(p, line) / mPerDp
-        val d = pam.detours(w, p)!!
-        val why = "line ${lineDp.toInt()} dp, insert +${d.insertM.toInt()} m, append ${d.appendM.toInt()} m, $n points"
+        // planning: „die kürzere gewinnt; nur fast gleich → fragen“ – on the line at once, else on the real paths
+        val lineDp = lineDp(w, p, route, lineSnapM)
+        val straight = pam.detours(w, p)!!
+        if (pam.planningHold(lineDp, straight) == com.onpath.app.ui.PlaceAddMenu.HoldAction.ON_LINE)
+            return add(smart(), "on the line, set at once (line ${lineDp.toInt()} dp, $n points)")
+        val act = activityOrNull(activity)
+        val o = if (act != null) measurePaths(w, p, straight, act, sac) else Measured(straight, false, 0, "no activity")
+        val d = o.detours
+        val why = "line ${lineDp.toInt()} dp, ${o.describe()}" +
+            (if (o.onPaths) "; straight +${straight.insertM.toInt()} / ${straight.appendM.toInt()} m" else
+                ", insert +${d.insertM.toInt()} m" + (d.earlyInsertM?.let { " (earlier legs +${it.toInt()} m)" } ?: "") +
+                    ", append ${d.appendM.toInt()} m") + ", $n points"
+        Problems.trace("plan", "Hold beside the plan: $why")
         return when (pam.planningHold(lineDp, d)) {
-            com.onpath.app.ui.PlaceAddMenu.HoldAction.ON_LINE -> add(smart(), "on the line, set at once ($why)")
-            com.onpath.app.ui.PlaceAddMenu.HoldAction.NEW_GOAL -> add(n, "appending is much shorter, the new goal at once ($why)")
+            com.onpath.app.ui.PlaceAddMenu.HoldAction.ON_LINE -> add(smart(), "on the line, set at once ($why)") // not reached: on the line is set before measuring
+            com.onpath.app.ui.PlaceAddMenu.HoldAction.NEW_GOAL -> add(n, "appending clearly shorter, the new goal at once ($why)")
             com.onpath.app.ui.PlaceAddMenu.HoldAction.STOP ->
                 add(WaypointInsertion.decide(w, p, route, lineSnapM, stopOnly = true).index.coerceIn(0, n),
-                    "inserting is much shorter, a stop at once ($why)")
+                    "inserting clearly shorter, a stop at once ($why)")
             com.onpath.app.ui.PlaceAddMenu.HoldAction.ASK -> ask(pam.planningMenu(d), "in doubt ($why)")
         }
     }
@@ -752,9 +851,10 @@ external fun planProgress(text: String)
 @JSExport fun rows(points: String, names: String): String = Engine.rows(points, names)
 
 @JSExport fun placePreview(points: String, lat: Double, lon: Double): String = Engine.placePreview(points, lat, lon)
-@JSExport fun placeMenu(points: String, lat: Double, lon: Double, roundTrip: Boolean): String = Engine.placeMenu(points, lat, lon, roundTrip)
-@JSExport fun holdOnMap(points: String, lat: Double, lon: Double, roundTrip: Boolean, lineSnapM: Double): String =
-    Engine.holdOnMap(points, lat, lon, roundTrip, lineSnapM)
+@JSExport fun placeMenu(points: String, lat: Double, lon: Double, roundTrip: Boolean, lineSnapM: Double, activity: String, sac: Int): String =
+    Engine.placeMenu(points, lat, lon, roundTrip, lineSnapM, activity, sac)
+@JSExport fun holdOnMap(points: String, lat: Double, lon: Double, roundTrip: Boolean, lineSnapM: Double, activity: String, sac: Int): String =
+    Engine.holdOnMap(points, lat, lon, roundTrip, lineSnapM, activity, sac)
 @JSExport fun placeBeside(ax: Double, ay: Double, w: Int, h: Int, left: Int, top: Int, right: Int, bottom: Int, gap: Int, column: Int): String =
     Engine.placeBeside(ax, ay, w, h, left, top, right, bottom, gap, column)
 @JSExport fun locateLabel(located: Boolean, lat: Double, lon: Double, south: Double, west: Double, north: Double, east: Double): String = Engine.locateLabel(located, lat, lon, south, west, north, east)

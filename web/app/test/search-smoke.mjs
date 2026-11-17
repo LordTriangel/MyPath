@@ -97,18 +97,22 @@ console.log('points:', pts.replace(/\s+/g, ' '));
 check(/Vellau/.test(pts) && /Ifinger/.test(pts), 'found places are named stops in the Points list');
 check((await page.evaluate(() => location.hash)).length > 10, 'plan with pinned, named places in the link');
 check(/Vellau/.test(pts.split(/Ifinger/)[0] ?? ''), 'the second place became the destination (after the start)');
-// a start and a destination: a third place gets both „Einfügen“ / „Neues Ziel“ (the app's PlaceAddMenu, owner 2026-11-15:
-// both always, one line each, the likelier first and tinted, nothing under „⋯ Mehr“), then Google, Remove pin last
+// a start and a destination: a third place gets „Einfügen“ / „Neues Ziel“ (the app's PlaceAddMenu, owner 2026-11-15 /
+// 2026-11-17: the matching one, one line each, nothing under „⋯ Mehr“), then Google, Remove pin last
 const strongRows = (sel) => page.$$eval(sel, (b) => b.filter((x) => x.classList.contains('strong')).map((x) => x.querySelector('.txt > span')?.textContent?.trim() ?? ''));
 const oneLine = (sel) => page.$$eval(sel, (b) => b.every((x) => x.querySelectorAll('.txt > span').length === 1));
 const PIN_BUTTONS = '.holdpopup.pinmenu .pointmenu button, #placecard.pinmenucard .pointmenu button';
 await pickFirst('Meran');
 rows = await menuRows();
 console.log('third place:', rows.join(' · '), '– tinted:', await strongRows(PIN_BUTTONS));
-check(['Insert|New destination', 'New destination|Insert'].includes(rows.slice(0, 2).join('|')) && rows.slice(2).join('|') === 'Add to favourites|Set as home|Open in Google Maps|Remove pin',
-  `two points: "Insert" and "New destination" (either first), Google, Remove pin last, no More (${rows.join(' · ')})`);
-check((await strongRows(PIN_BUTTONS)).join('|') === rows[0] && await oneLine(PIN_BUTTONS),
-  `the likelier row first and the only one tinted, every row one line (${(await strongRows(PIN_BUTTONS)).join()})`);
+// while planning (owner 2026-11-17): only the matching row in a clear case – Meran lies beside the leg, „Insert“ alone –
+// both only when near equal (the likelier first and tinted)
+const addRows = rows.slice(0, rows.indexOf('Add to favourites'));
+check(['Insert', 'New destination', 'Insert|New destination', 'New destination|Insert'].includes(addRows.join('|'))
+  && rows.slice(addRows.length).join('|') === 'Add to favourites|Set as home|Open in Google Maps|Remove pin',
+  `two points: the matching add row ("Insert" / "New destination", both when near equal), Google, Remove pin last, no More (${rows.join(' · ')})`);
+check((await strongRows(PIN_BUTTONS)).join('|') === (addRows.length === 2 ? addRows[0] : '') && await oneLine(PIN_BUTTONS),
+  `one add row untinted, two: the likelier first and the only one tinted; every row one line (${(await strongRows(PIN_BUTTONS)).join()})`);
 check(!rows.some((r) => /Add as a stop|Make it the destination|Add as new destination|^More$/.test(r)), 'none of the old words');
 await page.keyboard.press('Escape');
 check(await page.locator('.holdpopup.pinmenu').count() === 0 && await page.isVisible('.candidate'), 'Escape closes the menu, the pin stays');
@@ -144,7 +148,7 @@ await page.click('#saveCancel');
 // A POI in view, away from the markers (a marker opens its own menu) and from an open menu or card (a click there is the menu's;
 // the found place's menu with the kept-place rows is a card at the bottom where the big profile leaves too little room;
 // the big profile itself lies over the map).
-const findPoi = () => page.waitForFunction(() => {
+const findPoi = (skip = []) => page.waitForFunction((skip) => {
   const map = window.__map;
   if (!map.loaded() || map.isMoving()) return null;
   const layers = map.getStyle().layers.filter((l) => l.id.startsWith('poi-') && !l.id.endsWith('-name')).map((l) => l.id);
@@ -152,7 +156,7 @@ const findPoi = () => page.waitForFunction(() => {
   const pins = [...document.querySelectorAll('.pin, .candidate')].map((e) => e.getBoundingClientRect()), cr = c.getBoundingClientRect();
   const menus = [...document.querySelectorAll('.maplibregl-popup, .pinchip, #placecard:not([hidden]), #bigProfile:not([hidden])')].map((e) => e.getBoundingClientRect());
   const fs = map.queryRenderedFeatures([[w * 0.35, h * 0.1], [w * 0.95, h * 0.9]], { layers }).filter((f) => {
-    if (f.geometry.type !== 'Point' || !f.properties?.kind || f.properties.kind === 'bus' || !f.properties.name) return false;
+    if (f.geometry.type !== 'Point' || !f.properties?.kind || f.properties.kind === 'bus' || !f.properties.name || skip.includes(String(f.properties.name))) return false;
     const p = map.project(f.geometry.coordinates), x = cr.x + p.x, y = cr.y + p.y;
     // its point in the box too: on a slow machine the rendered features can still hold the last placement's symbols, whose
     // point is far off this view (throttled: „Meran“ at -1282,1286 – the click went beside the page)
@@ -163,7 +167,7 @@ const findPoi = () => page.waitForFunction(() => {
   if (!fs.length) return null;
   const p = map.project(fs[0].geometry.coordinates);
   return { name: String(fs[0].properties.name), x: p.x, y: p.y };
-}, null, { timeout: 60_000, polling: 500 }).then((h) => h.jsonValue());
+}, skip, { timeout: 60_000, polling: 500 }).then((h) => h.jsonValue());
 const menuHead = () => page.textContent('.holdpopup:not(.pinmenu) .menuhead').catch(() => '');
 
 // A click on a POI with the found place's menu open shows the POI at once – its menu in place of the closed one, no
@@ -204,20 +208,33 @@ await page.waitForTimeout(300);
 
 // A POI's menu → „Neues Ziel“ / "New destination" (the app 0.17.10, PlaceAddMenu.keepsOldGoal, owner 2026-11-14 „beim
 // Planen anhängen, unterwegs ersetzen“): the planner has no tours – it always appends, the old goal stays as stop 2 and
-// the place becomes the destination. Both rows always (owner 2026-11-15), the likelier first and tinted.
+// the place becomes the destination. While planning (owner 2026-11-17, the hold's rule on the paths): only the matching
+// row in a clear case (untinted – nothing to choose between), both only when near equal, the cheaper first and tinted.
 const rowNames = () => page.$$eval('#points li .txt > span:first-child', (s) => s.map((x) => x.textContent));
 const before = await rowNames();
-const poi = await findPoi();
-console.log('POI for a new destination:', poi);
 const mapBox = await page.locator('#map canvas').first().boundingBox();
-await page.mouse.click(mapBox.x + poi.x, mapBox.y + poi.y);
-await page.waitForSelector('.pointmenu', { timeout: 15_000 });
 const POI_BUTTONS = '.holdpopup:not(.pinmenu) .pointmenu button';
-const poiRows = await page.$$eval(POI_BUTTONS, (b) => b.map((x) => x.querySelector('.txt > span')?.textContent?.trim() ?? ''));
-console.log('POI menu:', poiRows.join(' · '), '– tinted:', await strongRows(POI_BUTTONS));
-check(['Insert|New destination', 'New destination|Insert'].includes(poiRows.slice(0, 2).join('|')) && poiRows.slice(2).join('|') === 'Add to favourites|Set as home|Open in Google Maps'
-  && (await strongRows(POI_BUTTONS)).join('|') === poiRows[0] && await oneLine(POI_BUTTONS),
-  `a POI's menu: "Insert" and "New destination", the likelier first and tinted, Google, no More (${poiRows.join(' · ')})`);
+// a POI whose menu offers „New destination“ (one where only „Insert“ fits is skipped – the next one in view)
+let poi = null, poiRows = [], tinted = [];
+for (const tried = []; tried.length < 6;) {
+  const p = await findPoi(tried);
+  await page.mouse.click(mapBox.x + p.x, mapBox.y + p.y);
+  await page.waitForSelector('.pointmenu', { timeout: 15_000 });
+  const rows = await page.$$eval(POI_BUTTONS, (b) => b.map((x) => x.querySelector('.txt > span')?.textContent?.trim() ?? ''));
+  const strong = await strongRows(POI_BUTTONS), one = await oneLine(POI_BUTTONS);
+  const add = rows.slice(0, rows.indexOf('Add to favourites'));
+  console.log('POI menu:', p.name, '–', rows.join(' · '), '– tinted:', strong);
+  check(['Insert', 'New destination', 'Insert|New destination', 'New destination|Insert'].includes(add.join('|'))
+    && rows.slice(add.length).join('|') === 'Add to favourites|Set as home|Open in Google Maps'
+    && strong.join('|') === (add.length === 2 ? add[0] : '') && one,
+    `a POI's menu: one add row in a clear case (untinted), both when near equal (the cheaper first and tinted), Google, no More (${rows.join(' · ')})`);
+  if (add.includes('New destination')) { poi = p; poiRows = rows; tinted = strong; break; }
+  tried.push(p.name);
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+}
+check(!!poi, `a POI whose menu offers "New destination" found (${poi?.name})`);
+console.log('POI for a new destination:', poi, poiRows.join(' · '), tinted);
 await page.locator('.pointmenu button', { hasText: 'New destination' }).first().click();
 await page.waitForFunction(() => document.querySelectorAll('#points li').length === 3, null, { timeout: 15_000 }).catch(() => {});
 const after = await rowNames();

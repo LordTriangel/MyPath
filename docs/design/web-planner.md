@@ -1273,3 +1273,30 @@ e72fb540 / c543cd5a, 21c0eac1, 725b68e9 / 6ba34792, 21dcc5f5 / de1afd21, 870bff0
 - Tests: `WebPlaceMenuTest` (each band, the place menu's order, placeBeside), parity-smoke 11 (on the line, straight on
   past the goal, beside the leg, the menu both ways with the ring, a click elsewhere, Insert / New destination; red on
   the old page), poipin-smoke (d) (a bare name → „New plan“, not the POI's menu; red on the old page).
+
+## 34. The hold on real paths, the one-row place menu, POI names from z17 (laptop, 2026-11-17 – app 5023929d / 0323af76, 451526ee, fddb4c2d, 475a7268 / d91d04d2, F-PLAN-15, C19)
+
+- **The rule** (owner 2026-11-17 21:40: „die echte Routendifferenz … die kürzere gewinnt; nur fast gleich → fragen“):
+  `PlaceAddMenu.planningHold` – on the line (24 px) → into that leg; else the longer of appending / inserting at most
+  1.2 × the shorter → the small menu, the cheaper first; else the shorter at once (appending → the new goal, inserting →
+  a stop). The bands of §33 are gone.
+- **On the real paths** (owner „Always real paths“): off the line `WebApi.holdOnMap` measures with
+  `PlaceAddMenu.pathDetours` – each length from the engine's leg cache, else a `Planner` run of the two points (a straight
+  leg = failure; the leg stays in the cache for the plan run after the decision) – the app's HoldPaths + routedLength in
+  `Engine.measurePaths`. At most ~1.5 s in all: the worker has one thread, so every router request gets only the time
+  left (a wrapping RoutingEngine with a `RouteCancel`); a timeout, no routing data or any error → the straight lines
+  decide (never an error). The why („paths: insert +X m, append Y m (Z ms)“ / „paths failed: …“) goes to the engine's
+  trace. The page passes the plan's activity and T level; while the engine measures, the app's turning RoutingRing shows
+  on the spot after 400 ms (`main.ts measuringRing`, `.measurering`). A click during the measure waits in `pressInOrder`
+  and is decided after it, on the plan it left. Measured in Meran: 70–420 ms a hold.
+- **A held place's menu while planning** (owner „wenn ich da nicht einfügen muss, dann braucht das auch im Menü nicht
+  angezeigt zu werden“): `WebApi.placeMenu` → `PlaceAddMenu.planningPlaceMenu(lineDp, d)` on the same paths (the app's
+  PlaceMenuMeasure) – one row in a clear case (untinted), both only when near equal. The page passes `lineSnapM`; callers
+  that only want `stop` pass no activity (straight lines, no routing). POI menu, pin menu and the bottom card take one row.
+- **POI names from z17** (app 475a7268): the planner copies `style/f2/onpath.json` – the `poi-<x>-named` layers (icon +
+  name in one symbol) are symbol layers for `poiAt`, a hit only within the icon's reach; a click or the pointer on the
+  name beside it is a plain map click / no hand.
+- Tests: `WebPlaceMenuTest` (the rule's cases incl. near equal → ask, the one-row place menu, the path fallback),
+  parity-smoke 11 (two spots in Meran where straight lines and paths disagree: straight „stop“ → paths „new goal“, straight
+  „new goal“ → paths ask), edit-smoke (a 3rd click near equal both ways), search-smoke / import-smoke (one add row),
+  poipin-smoke (d) (at z17.5 the name beside its icon: no hand, a plain map click).

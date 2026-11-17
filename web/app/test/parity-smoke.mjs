@@ -118,10 +118,11 @@ await page.waitForFunction(() => Math.abs(window.__map.getBearing()) < 0.5, null
 check(Math.abs(await page.evaluate(() => window.__map.getBearing())) < 0.5, 'compass click: north up');
 
 // 5. point menu on a middle point says what Start here removes; Delete via the Points list ✕
-// a third point: both detours similar there – the hold menu asks (the app's hold rule, section 11); its first row
+// a third point: the hold rule on the real paths decides (section 11) – set at once, or the hold menu asks: its first row
 await clickAt(11.1500, 46.6950);
-await page.waitForSelector('.holdaddpopup button', { timeout: 15_000 });
-await page.click('.holdaddpopup button:first-of-type');
+await page.waitForFunction(() => document.querySelectorAll('.pin').length === 3 || document.querySelector('.holdaddpopup button'), null, { timeout: 15_000 });
+if (await page.$('.holdaddpopup button')) await page.click('.holdaddpopup button:first-of-type');
+await waitPins(3);
 await planned();
 await page.locator('.pin').nth(1).click();
 await page.waitForSelector('.pointmenu');
@@ -443,10 +444,12 @@ await page.waitForSelector('#paceRow [data-pace]', { timeout: 60_000 }).catch(()
 const afterReload = await page.evaluate(() => [localStorage.getItem('onpath.hikePaceLevel'), document.getElementById('paceRow')?.outerHTML.slice(0, 300), document.getElementById('status').textContent]);
 check(await page.getAttribute('#paceRow [data-pace=FIT]', 'aria-checked').catch(() => null) === 'true', 'pace remembered after a reload (Fit)' + (afterReload[1] ? '' : ' – no pace section'));
 
-// 11. a click on the empty map with 2+ points (the app's hold rule while planning, F-PLAN-15 with the band of 2026-11-16 –
-// PlaceAddMenu.planningHold, in the engine): on the line → into that leg; appending at most half of inserting (straight on
-// past the goal) → the new goal; inserting at most half of appending → a stop; else the small menu „Einfügen“ / „Neues
-// Ziel“ beside a ring at the spot, the cheaper first and tinted; a click elsewhere adds nothing
+// 11. a click on the empty map with 2+ points (the app's hold rule while planning, F-PLAN-15 – owner 2026-11-17 21:40 „die
+// echte Routendifferenz … die kürzere gewinnt; nur fast gleich → fragen“ – PlaceAddMenu.planningHold on the real paths,
+// in the engine): on the line → into that leg; else appending and inserting measured on the paths: the clearly shorter
+// at once (the new goal / a stop), within 20 % of each other the small menu „Einfügen“ / „Neues Ziel“ beside a ring at
+// the spot, the cheaper first and tinted; a click elsewhere adds nothing. Spots where the straight lines say otherwise
+// show the paths decide (red on a page that decides on straight lines)
 {
   const hp = await ctx.newPage();
   hp.on('pageerror', (e) => errors.push(String(e)));
@@ -511,31 +514,33 @@ check(await page.getAttribute('#paceRow [data-pace=FIT]', 'aria-checked').catch(
   check(!a0 && p0.length === 3 && Math.hypot(p0[1][0] - onLine[1], p0[1][1] - onLine[0]) < 1e-4, `hold rule: a click on the line goes into the leg at once (no menu) (${a0} ${JSON.stringify(p0)} ${JSON.stringify(onLine)})`);
   await hp.keyboard.press('Escape'); await back();
 
-  // straight on past the goal: appending is half of inserting → the new goal at once. Start and goal are pinned (not
-  // snapped to the ways) on one meridian; „straight on“ is exact only there (the triangle inequality: anywhere else
-  // inserting is less than twice appending – it asks), so the click goes to a pixel of the map's middle column whose
-  // spot the engine calls straight on (the rule's numbers: WebPlaceMenuTest; here the click's way to the plan)
   const [sA, sB] = await pts();
-  await hp.evaluate(([la, lo]) => window.__map.jumpTo({ center: [lo, la] }), [46.671, LON]);
-  await still(); await hp.waitForTimeout(200);
-  const ahead = await hp.evaluate(async ([a, b]) => {
-    const m = window.__map, w = m.getCanvas().clientWidth, h = m.getCanvas().clientHeight;
-    const plan = [a, b].map((p) => `${p[0].toFixed(6)},${p[1].toFixed(6)}`).join(';');
-    for (const x of [Math.floor(w / 2), Math.ceil(w / 2)]) {
-      for (let y = Math.round(h / 2) - 60; y < h / 2 + 60; y++) {
-        const ll = m.unproject([x, y]);
-        const r = JSON.parse(await window.__engine.call('holdOnMap', plan, ll.lat, ll.lng, false, 1));
-        if (r.action === 'ADD' && r.index === 2) return [x, y, ll.lat, ll.lng];
-      }
-    }
-    return null;
-  }, [sA, sB]);
-  check(!!ahead, 'hold rule: a pixel straight on past the goal is set as the new goal at once (engine)');
-  if (ahead) await hp.mouse.click(canvas.x + ahead[0], canvas.y + ahead[1]);
+  const plan = [sA, sB].map((p) => `${p[0].toFixed(6)},${p[1].toFixed(6)}`).join(';');
+  /** The engine's answer for [spot]: on the paths (HIKE T2, the plan's) or – activity '' – on straight lines only. */
+  const engineSays = (spot, act) => hp.evaluate(async ([pl, la, lo, a]) => {
+    const r = JSON.parse(await window.__engine.call('holdOnMap', pl, la, lo, false, 30, a, a ? 2 : 0));
+    return r.action === 'ADD' ? 'ADD' + r.index : 'ASK ' + r.main.join('/');
+  }, [plan, spot[0], spot[1], act]);
+
+  // straight on past the goal: appending clearly shorter → the new goal at once
+  const ahead = [46.671, LON];
+  await clickCentred(ahead);
   await count(3);
   const p1 = await pts();
-  check(!!ahead && !(await asked(500)) && p1.length === 3 && nearSnap(p1[2], [ahead[2], ahead[3]]) && near(p1[1], sB),
-    `hold rule: a click straight on past the goal → the new goal at once, appended (${JSON.stringify(p1)} ${JSON.stringify(ahead)})`);
+  check(!(await asked(500)) && p1.length === 3 && nearSnap(p1[2], ahead) && near(p1[1], sB),
+    `hold rule: a click straight on past the goal → the new goal at once, appended (${JSON.stringify(p1)})`);
+  await back();
+
+  // behind the start, beside it: on straight lines inserting is cheaper (+261 m vs 506 m – a stop), on the paths there is
+  // no short way into the leg (+1.0 km vs 0.64 km) → the paths decide: the new goal at once, appended
+  const behind = [46.662, LON - 0.005];
+  const [bStraight, bPaths] = [await engineSays(behind, ''), await engineSays(behind, 'HIKE')];
+  check(bStraight === 'ADD1' && bPaths === 'ADD2', `hold rule data: straight lines say a stop, the paths the new goal (${bStraight} / ${bPaths})`);
+  await clickCentred(behind);
+  await count(3);
+  const p5 = await pts();
+  check(!(await asked(500)) && p5.length === 3 && nearSnap(p5[2], behind) && near(p5[1], sB),
+    `hold rule on the paths: where the straight lines say „stop“ but the paths „new goal“, it is appended (${JSON.stringify(p5)})`);
   await back();
 
   // beside the leg's middle, off the line: inserting is far cheaper → a stop at once
@@ -561,12 +566,15 @@ check(await page.getAttribute('#paceRow [data-pace=FIT]', 'aria-checked').catch(
       free: !!rc && (rc[0] < box.left || rc[0] > box.right || rc[1] < box.top || rc[1] > box.bottom) };
   });
 
-  // beside the goal, a little on: both similar, appending cheaper → the menu, „New destination“ first and tinted
-  const besideGoal = [46.667, LON + 0.004];
+  // beside the goal: on straight lines appending is clearly shorter (+386 m vs 254 m – the new goal at once), on the paths
+  // the two are near equal (+465 m vs 397 m) → the menu, „New destination“ first and tinted
+  const besideGoal = [46.666, LON + 0.003];
+  const [gStraight, gPaths] = [await engineSays(besideGoal, ''), await engineSays(besideGoal, 'HIKE')];
+  check(gStraight === 'ADD2' && gPaths === 'ASK NEW_DESTINATION/ADD_STOP', `hold rule data: straight lines say the new goal, the paths ask (${gStraight} / ${gPaths})`);
   const q1 = await clickCentred(besideGoal);
   const m1 = await asked() ? await holdMenuNow() : null;
   check(m1 && m1.rows.join('|') === 'New destination|Insert' && m1.strong.join() === 'true,false' && m1.head === 'none',
-    `hold rule: similar detours ask – New destination first and the only tinted row, no title (${JSON.stringify(m1)})`);
+    `hold rule on the paths: near equal detours ask – New destination first and the only tinted row, no title (${JSON.stringify(m1)})`);
   check(m1 && m1.free && Math.abs(m1.ring[0] - (canvas.x + q1[0])) < 2 && Math.abs(m1.ring[1] - (canvas.y + q1[1])) < 2,
     'hold rule: a ring marks the spot, the menu beside it (never over it)');
   // a click elsewhere: closed, nothing added
@@ -583,7 +591,8 @@ check(await page.getAttribute('#paceRow [data-pace=FIT]', 'aria-checked').catch(
   check(p3.length === 3 && nearSnap(p3[1], besideGoal), `hold menu: Insert puts the spot between start and goal (${JSON.stringify(p3)})`);
   await back();
 
-  // nearer the start than the goal, far out: inserting a little cheaper → the menu, „Insert“ first and tinted
+  // nearer the start than the goal, far out: inserting a little shorter on the paths (+765 m vs 835 m) → the menu,
+  // „Insert“ first and tinted
   const farOut = [46.663, LON + 0.00785];
   await clickCentred(farOut);
   const m2 = await asked() ? await holdMenuNow() : null;

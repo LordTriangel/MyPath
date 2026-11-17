@@ -17,17 +17,25 @@ class WebPlaceMenuTest {
     @Test fun onePointSetsTheDestination() =
         assertTrue(Engine.placeMenu("46.67,11.16", 46.68, 11.20, false).startsWith("{\"main\":[\"SET_DESTINATION\"]"))
 
+    // owner 2026-11-17 („wenn ich da nicht einfügen muss, dann braucht das auch im Menü nicht angezeigt zu werden“): a
+    // place on the line offers only „Einfügen“ (PlaceAddMenu.planningPlaceMenu) – nothing under „⋯ Mehr“
     @Test fun aPlaceOnTheWayIsAStopFirstAndGoesBetween() {
         val m = Engine.placeMenu(ab, 46.6702, 11.2100, false)
-        // owner 2026-11-15: both always, the likelier first – nothing under „⋯ Mehr“
-        assertTrue(m, m.startsWith("{\"main\":[\"ADD_STOP\",\"NEW_DESTINATION\"]"))
+        assertTrue(m, m.startsWith("{\"main\":[\"ADD_STOP\"]"))
         assertTrue(m, m.contains("\"more\":[]"))
         assertEquals(m, 1, Regex("\"stop\":(\\d+)").find(m)!!.groupValues[1].toInt())
     }
 
+    // straight on far past the goal: appending (~26 km) is clearly shorter than inserting (~52 km) → only „Neues Ziel“
     @Test fun aPlaceFarPastTheGoalIsTheNewGoal() {
         val m = Engine.placeMenu(ab, 46.6700, 11.6000, false)
-        assertTrue(m, m.startsWith("{\"main\":[\"NEW_DESTINATION\",\"ADD_STOP\"]"))
+        assertTrue(m, m.startsWith("{\"main\":[\"NEW_DESTINATION\"]"))
+    }
+
+    // a round trip keeps the zone: both rows (the loop is never dropped by one tap)
+    @Test fun aRoundTripPlaceMenuKeepsBothRows() {
+        val m = Engine.placeMenu("46.6700,11.1600;46.6800,11.2000;46.6700,11.1600", 46.6900, 11.2200, true)
+        assertTrue(m, Regex("\"main\":\\[\"(ADD_STOP|NEW_DESTINATION)\",\"(ADD_STOP|NEW_DESTINATION)\"]").containsMatchIn(m))
     }
 
     // „Als neues Ziel“ in the planner (no tour) keeps the old goal as the last stop – PlaceAddMenu.keepsOldGoal (owner 2026-11-14)
@@ -36,7 +44,9 @@ class WebPlaceMenuTest {
         assertTrue(m, m.contains("\"keepOld\":true"))
     }
 
-    // ---- a click on the empty map with 2+ points (the app's holdOnMap, F-PLAN-15 with the band of 2026-11-16) ----
+    // ---- a click on the empty map with 2+ points (the app's holdOnMap, F-PLAN-15; owner 2026-11-17 21:40: „die kürzere
+    // gewinnt; nur fast gleich → fragen“ – PlaceAddMenu.planningHold, SIMILAR 1.2). Without an activity the engine keeps
+    // the straight lines (the numbers below); with one it measures the paths first (holdOnPathsFallsBackToStraightLines) ----
     private val ns = "46.6000,11.2000;46.7000,11.2000" // A → B, ~11 km north, on a meridian
     private fun action(j: String) = Regex("\"action\":\"(\\w+)\"").find(j)!!.groupValues[1]
     private fun index(j: String) = Regex("\"index\":(-?\\d+)").find(j)!!.groupValues[1].toInt()
@@ -46,23 +56,43 @@ class WebPlaceMenuTest {
         assertEquals(j, "ADD", action(j)); assertEquals(j, 1, index(j))
     }
 
-    // straight on past the goal: appending is half of inserting → the new goal, appended (PlaceAddMenuTest beyondTheGoal…)
+    // straight on past the goal: appending (~3.3 km) is clearly shorter than inserting (~6.7 km) → the new goal, appended
     @Test fun straightOnPastTheGoalIsTheNewGoalAtOnce() {
         val j = Engine.holdOnMap(ns, 46.7300, 11.2000, false, 24.0)
         assertEquals(j, "ADD", action(j)); assertEquals(j, 2, index(j))
+        assertTrue(j, j.contains("appending clearly shorter"))
     }
 
     @Test fun besideTheMiddleIsAStopAtOnce() {
         val j = Engine.holdOnMap(ns, 46.6500, 11.2100, false, 24.0) // ~760 m east of the middle: insert ~100 m, append ~5.6 km
         assertEquals(j, "ADD", action(j)); assertEquals(j, 1, index(j))
+        assertTrue(j, j.contains("inserting clearly shorter"))
     }
 
-    // beside the goal, a little on: both detours similar → the menu, „Neues Ziel“ first (the cheaper)
+    // beside the goal, a little on: inserting ~1.5 km, appending ~0.94 km – more than 1.2× apart → the new goal at once
+    // (since 2026-11-17 21:40; under the band before it asked)
     @Test fun besideTheGoalAsksTheCheaperFirst() {
         val j = Engine.holdOnMap(ns, 46.7050, 11.2100, false, 24.0)
+        assertEquals(j, "ADD", action(j)); assertEquals(j, 2, index(j))
+        assertTrue(j, j.contains("appending clearly shorter"))
+    }
+
+    // near equal (inserting ~1.20 km, appending ~1.14 km: within 1.2×) → the menu, the cheaper („Neues Ziel“) first
+    @Test fun nearEqualDetoursAskTheCheaperFirst() {
+        val j = Engine.holdOnMap(ns, 46.7000, 11.2150, false, 24.0)
         assertEquals(j, "ASK", action(j))
         assertTrue(j, j.contains("\"main\":[\"NEW_DESTINATION\",\"ADD_STOP\"]"))
         assertTrue(j, j.contains("\"stop\":1"))
+    }
+
+    // „Always real paths“ (owner 2026-11-17): with an activity the engine measures on the paths first; no routing data
+    // here → the straight lines decide, the same answer, and the why says so (never an error)
+    @Test fun holdOnPathsFallsBackToStraightLines() {
+        val j = Engine.holdOnMap(ns, 46.6500, 11.2100, false, 24.0, "HIKE", 2)
+        assertEquals(j, "ADD", action(j)); assertEquals(j, 1, index(j))
+        assertTrue(j, j.contains("paths failed"))
+        val m = Engine.placeMenu(ns, 46.7300, 11.2000, false, 24.0, "HIKE", 2)
+        assertTrue(m, m.startsWith("{\"main\":[\"NEW_DESTINATION\"]"))
     }
 
     @Test fun fewerThanTwoPointsIsTheSmartInsertion() {
@@ -70,10 +100,12 @@ class WebPlaceMenuTest {
         assertEquals(j, "ADD", action(j)); assertEquals(j, 1, index(j))
     }
 
-    // the place menu while planning orders by the same detours (AppViewModel.placeMenu → PlaceAddMenu.planningMenu)
+    // the place menu while planning = the hold's decision (AppViewModel.placeMenu → PlaceAddMenu.planningPlaceMenu): one
+    // row in a clear case, both (the cheaper first) only when near equal
     @Test fun placeMenuWhilePlanningOrdersByTheDetours() {
-        assertTrue(Engine.placeMenu(ns, 46.7050, 11.2100, false).startsWith("{\"main\":[\"NEW_DESTINATION\",\"ADD_STOP\"]"))
-        assertTrue(Engine.placeMenu(ns, 46.6500, 11.2100, false).startsWith("{\"main\":[\"ADD_STOP\",\"NEW_DESTINATION\"]"))
+        assertTrue(Engine.placeMenu(ns, 46.7050, 11.2100, false).startsWith("{\"main\":[\"NEW_DESTINATION\"]"))
+        assertTrue(Engine.placeMenu(ns, 46.6500, 11.2100, false).startsWith("{\"main\":[\"ADD_STOP\"]"))
+        assertTrue(Engine.placeMenu(ns, 46.7000, 11.2150, false).startsWith("{\"main\":[\"NEW_DESTINATION\",\"ADD_STOP\"]"))
     }
 
     @Test fun theHoldMenuGoesBesideTheSpot() {

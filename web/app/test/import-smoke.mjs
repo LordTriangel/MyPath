@@ -181,9 +181,11 @@ check(await pins() === 1 && (await summaryText()).includes('1 point · Algund') 
 await page.goto(url + 'index.html#p=' + CODE);
 await planned();
 await toHilden();
-await hildenAs('Insert'); // far past the goal: „Neues Ziel“ first and tinted, „Einfügen“ right under it (owner 2026-11-15)
-check(hildenRows.slice(0, 2).join('|') === '*New destination|Insert' && !hildenRows.includes('More'),
-  `far past the goal: "New destination" first and tinted, "Insert" under it, no More (${hildenRows.join(' · ')})`);
+// far past the goal: appending is clearly shorter – only „Neues Ziel“, untinted (nothing to choose between; owner
+// 2026-11-17 „wenn ich da nicht einfügen muss, dann braucht das auch im Menü nicht angezeigt zu werden“)
+await hildenAs('New destination');
+check(hildenRows[0] === 'New destination' && !hildenRows.includes('Insert') && !hildenRows.includes('More'),
+  `far past the goal: only "New destination", not tinted, no Insert, no More (${hildenRows.join(' · ')})`);
 await page.waitForSelector('dialog.longroute.far', { timeout: 30_000 });
 const farRoute = (await page.textContent('dialog.longroute')).replace(/\s+/g, ' ').trim();
 check(/Your route near Vellau is about \d+ (hours|days) on foot from here\./.test(farRoute), `a far route: "${farRoute}"`);

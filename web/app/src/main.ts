@@ -873,23 +873,54 @@ function poiAt(pt: maplibregl.Point): MapGeoJSONFeature | null {
 /** A hold's answer from the engine (WebApi.holdOnMap = the app's AppViewModel.holdOnMap). */
 type HoldAnswer = { action: 'ADD'; index: number; why: string } | { action: 'ASK'; main: string[]; stop: number; why: string };
 
-/** The engine's answer for a click at [at] with the points as they are now; [lineSnapM] = 24 px on screen in metres. */
+/**
+ * The engine's answer for a click at [at] with the points as they are now; [lineSnapM] = 24 px on screen in metres. Off
+ * the line the engine measures appending and inserting on the real paths for the plan's activity (owner 2026-11-17
+ * „Always real paths“, at most ~1.5 s, straight lines on any failure) – in the worker, the page stays free.
+ */
 async function holdAnswer(at: maplibregl.LngLat, lineSnapM: number): Promise<HoldAnswer> {
-  return JSON.parse(await engine.call('holdOnMap', enc(state.points), at.lat, at.lng, state.roundTrip, lineSnapM)) as HoldAnswer;
+  return JSON.parse(await engine.call('holdOnMap', enc(state.points), at.lat, at.lng, state.roundTrip, lineSnapM,
+    state.activity, state.sac)) as HoldAnswer;
+}
+
+/** 24 px on screen at [lat] in metres – the app's LINE_SNAP_DP („on the line“). */
+function lineSnapAt(lat: number): number {
+  return 24 * 40075016 * Math.cos((lat * Math.PI) / 180) / (512 * 2 ** map.getZoom());
 }
 
 /**
- * A click (the app's hold) on the empty map or the line – the app's holdOnMap (F-PLAN-15, owner 2026-11-15 / 2026-11-16:
- * „Die App nimmt, was den kürzeren Umweg macht; sind beide ähnlich, fragt sie.“): fewer than 2 points or on the line →
- * where WaypointInsertion puts it; appending at most half of inserting → the new goal; inserting at most half of
- * appending → a stop; else the small menu „Einfügen“ / „Neues Ziel“ beside a ring at the spot (holdAddMenu).
+ * The turning ring on a held spot while the engine measures its paths (the app's RoutingRing for vm.holdMeasuring,
+ * MapOverlays); returns its remover. Shown only after the app's RoutingSpot.DELAY_MS – a quick measure shows nothing.
+ */
+const MEASURE_RING_DELAY_MS = 400;
+function measuringRing(at: maplibregl.LngLat): () => void {
+  let marker: maplibregl.Marker | null = null;
+  const timer = window.setTimeout(() => {
+    // the turning ring inside a still box: MapLibre places a marker by its element's own transform
+    const box = document.createElement('div'), ring = document.createElement('div');
+    box.style.pointerEvents = 'none';
+    ring.className = 'measurering';
+    box.appendChild(ring);
+    marker = new maplibregl.Marker({ element: box }).setLngLat(at).addTo(map);
+  }, MEASURE_RING_DELAY_MS);
+  return () => { clearTimeout(timer); marker?.remove(); };
+}
+
+/**
+ * A click (the app's hold) on the empty map or the line – the app's holdOnMap (F-PLAN-15, owner 2026-11-17 21:40: „die
+ * echte Routendifferenz … die kürzere gewinnt; nur fast gleich → fragen“): fewer than 2 points or on the line → where
+ * WaypointInsertion puts it; else appending and inserting measured on the real paths (a turning ring meanwhile): the
+ * clearly shorter at once (the new goal / a stop), within 20 % of each other the small menu „Einfügen“ / „Neues Ziel“
+ * beside a ring at the spot (holdAddMenu). The next click waits for this one's answer (pressInOrder).
  */
 function addPoint(at: maplibregl.LngLat) {
   // ~24 px on screen = "clicked on the line" (the phone uses 24 dp)
-  const mPerPx = 40075016 * Math.cos((at.lat * Math.PI) / 180) / (512 * 2 ** map.getZoom());
+  const snap = lineSnapAt(at.lat);
   return queueEdit(async () => {
-    const a = await holdAnswer(at, 24 * mPerPx);
-    if (a.action === 'ASK') { holdAddMenu(at, a, 24 * mPerPx); return null; }
+    const done = state.points.length >= 2 && !state.roundTrip ? measuringRing(at) : () => {};
+    let a: HoldAnswer;
+    try { a = await holdAnswer(at, snap); } finally { done(); }
+    if (a.action === 'ASK') { holdAddMenu(at, a, snap); return null; }
     const pts = state.points.slice(), meta = state.meta.slice();
     const i = Math.max(0, Math.min(a.index, pts.length));
     pts.splice(i, 0, [at.lat, at.lng]); meta.splice(i, 0, { pinned: false });
@@ -976,7 +1007,7 @@ function menuRoom(x: number): { top: number; bottom: number } {
 async function holdAnswerStop(at: maplibregl.LngLat, lineSnapM: number): Promise<number> {
   const a = await holdAnswer(at, lineSnapM);
   return a.action === 'ASK' ? a.stop
-    : (JSON.parse(await engine.call('placeMenu', enc(state.points), at.lat, at.lng, state.roundTrip)) as { stop: number }).stop;
+    : (JSON.parse(await engine.call('placeMenu', enc(state.points), at.lat, at.lng, state.roundTrip, lineSnapM, '', 0)) as { stop: number }).stop;
 }
 
 const position = new Position(map, () => { renderFabs(); locateNotice(); void updateLocateLabel(); });
@@ -1078,15 +1109,17 @@ async function poiMenu(f: MapGeoJSONFeature) {
 
 /**
  * The rows of a held place's menu (the app's PoiMenu + PinMenuItems): its head, the add entries (the app's PlaceAddMenu,
- * owner 2026-11-07 / 2026-11-15: with 2+ points always „Einfügen“ and „Neues Ziel“, one line each, the likelier one first
- * and tinted – nothing behind „⋯ Mehr“ any more) and Google. [pin] = the found place's pin (search.ts, owner 2026-11-13): an
- * add is a place from the search – the new route is fitted (fitAfterPlace) and a Cancel of the long-route question
- * brings the pin back (TakenPin).
+ * owner 2026-11-07 / 2026-11-15 / 2026-11-17: one line each, nothing behind „⋯ Mehr“; while planning only the matching row
+ * in a clear case – „Einfügen“ on the line or when inserting is clearly shorter on the paths, „Neues Ziel“ when appending
+ * is – and both, the cheaper first and tinted, only when near equal: the rows a hold on the place gives, the app's
+ * PlaceMenuMeasure) and Google. [pin] = the found place's pin (search.ts, owner 2026-11-13): an add is a place from the
+ * search – the new route is fitted (fitAfterPlace) and a Cancel of the long-route question brings the pin back (TakenPin).
  */
 async function placeRows(hit: Hit, info: { title: string; sub: string; color: string; google?: string }, pin: boolean):
   Promise<PinRows> {
   const { lat, lon } = hit;
-  const pm = JSON.parse(await engine.call('placeMenu', enc(state.points), lat, lon, state.roundTrip)) as { main: string[]; stop: number; keepOld?: boolean };
+  const pm = JSON.parse(await engine.call('placeMenu', enc(state.points), lat, lon, state.roundTrip, lineSnapAt(lat),
+    state.activity, state.sac)) as { main: string[]; stop: number; keepOld?: boolean };
   const p: LatLon = [Number(lat.toFixed(6)), Number(lon.toFixed(6))];
   /** Before an add from the pin: TakenPin + fit the new route (the old place card's host.add). */
   const fromPin = () => { if (pin) { pinTaken = { hit, at: p, plan: null }; placeFit = true; } };
@@ -1151,7 +1184,7 @@ async function addPlaceAt(h: Hit, index: number) {
   await queueEdit(async () => {
     // the points changed while waiting (an edit before this one): where the stop goes, worked out again
     const stop = state.points === asked ? index
-      : (JSON.parse(await engine.call('placeMenu', enc(state.points), p[0], p[1], state.roundTrip)) as { stop: number }).stop;
+      : (JSON.parse(await engine.call('placeMenu', enc(state.points), p[0], p[1], state.roundTrip, lineSnapAt(p[0]), '', 0)) as { stop: number }).stop;
     const pts = state.points.slice(), meta = state.meta.slice();
     const at = Math.max(0, Math.min(stop, pts.length));
     pts.splice(at, 0, p); meta.splice(at, 0, { pinned: true, name: h.title, kind: h.kind });
