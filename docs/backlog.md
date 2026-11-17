@@ -467,7 +467,7 @@ and the commit history.
 - **AGP 9.4.1 upgrade** – later, when the owner says so.
 
 ## Later
-- **Multi-day tours – concept only, nothing built (owner 2026-11-16: „plan mit tagesenden, noch nichts bauen – erst weiter überlegen“):** round 2 (2026-11-17): one plan + number of days + Übernachtung (blue) / Hotel (green), grey proposals worked out; guided way in, GPX-Track trim + append, saves itself; the phone picks a day. State, architecture and build stages 0–5: `docs/design/multi-day-tours.md`. Open with the owner: rest days / base-camp out?, when the phone loads the maps; floating by itself or after a question?; **the UI is a separate round with the owner** (topics: §10, first the tour overview per day with ascent) before stage 2. Discussion closed for now (owner: „da sind wir fertig“) – start nothing until he comes back to it. Touches shared code (`PlanCode`, `PlanEdits`) → laptop.
+- **Multi-day tours – concept complete, nothing built (owner 2026-11-17: every open point decided, „ansonsten haben wir alles“):** one plan + number of days + limits per day; Übernachtung (blue moon) / Hotel (green bed), grey moons worked out; way in ☰ → Mehrtagestour planen (GPX-Track laden / gespeicherte Route, „Noch etwas anhängen“); saving as every plan; the phone asks for maps at the first opening and picks a day. `docs/design/multi-day-tours.md`, sketches rounds 1–3 linked there (§10). Next: stage 0 (measure München–Venedig) when the owner says go. Touches shared code (`PlanCode`, `PlanEdits`) → laptop.
 - **Plan sheet "a third lower"** – reached only ~23 % (d2885035); more needs touch targets smaller than 48 dp, owner
   said no (2026-10-31).
 - **(optional) Gradle shared remote build cache** (e.g. a GCS bucket) for donald + CI + cloud sessions.

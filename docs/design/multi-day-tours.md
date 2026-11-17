@@ -1,6 +1,6 @@
-# Multi-day tours – concept (owner discussion 2026-11-16, round 2 on 2026-11-17)
+# Multi-day tours – concept (owner discussion 2026-11-16, rounds 2–3 and all open points decided 2026-11-17)
 
-Status: **concept, nothing built.** The owner chose the base model and said "noch nichts bauen – erst weiter
+Status: **concept complete, nothing built** (2026-11-17: every open point decided; owner: „ansonsten haben wir alles“). The owner chose the base model and said "noch nichts bauen – erst weiter
 überlegen". This page is the agreed state and the build order for the day the owner says go. Before any UI is built:
 a sketch of the exact picture and his yes (owner rule).
 
@@ -12,18 +12,18 @@ a sketch of the exact picture and his yes (owner rule).
 | 2 | The route **leads to the hotel**; the detour counts. | "Punkt 1 stimme ich dir zu" |
 | 3 | On the phone the user **always picks the day** himself. No guessing from the position – a break, a day by train, a skipped day need no rule. | "Einen Tag werden wir immer auswählen" |
 | 4 | **Planned in the browser planner first**, then sent to the phone. No multi-day planning on the phone in the first version. | "erstmal nur auf dem Planer im Netz" |
-| 5 | The phone should load **all maps of the tour**; the right moment is open (§7). | "sollte es schon alle Karten runterladen. Die Frage ist, wann?" |
+| 5 | The phone loads **all maps of the tour** – it asks **once, when the tour is first opened**, with the size (§7). | 2026-11-17: „Beim ersten Öffnen fragen“ |
 | 6 | Multi-day tours often start from a **downloaded GPX track**: trim start and end, make a route from it, glue several together. | "GPX zuschneiden macht Sinn … Zusammensetzen finde ich auch gut" (2026-11-17) |
 | 7 | Gluing is only gluing – **the joint is nothing special**; the days are set afterwards. | "warum die Nahtstelle ein Tagesende werden soll, verstehe ich nicht" |
 | 8 | **The number of days is set once** (and can be changed); after that the user only adds and removes overnight stops – no "split into days" tool, no "split / join day", no fine-tuning page. | "im Prinzip muss ich nur ein einziges Mal die Anzahl der Tage festlegen" |
-| 9 | **Three states, one colour each:** very light grey bed = nothing decided (the app's proposal, orientation only) · blue bed = **Übernachtung** (I sleep here) · green bed = **Hotel** (booked, name / address stored, the route goes exactly there). | "Grau heißt, ich habe noch nichts. Blau … Übernachtung festgelegt. Grün … Hotel gebucht." |
+| 9 | **Three states, one colour each, and the shape says it too** (round 3, variant A): very light grey **moon** = night not decided (the app's proposal, orientation only) · blue **moon** = **Übernachtung** (I sleep here) · green **bed** = **Hotel** (booked, name / address stored, the route goes exactly there). | "Grau heißt, ich habe noch nichts. Blau … Übernachtung festgelegt. Grün … Hotel gebucht." · symbol 2026-11-17: „A · Mond → Bett“ |
 | 10 | **Saving as for every plan** – "Speichern" as today, unsaved work stays under "Zuletzt"; nothing special. | 2026-11-17 late: "das muss konsistent sein zu einem normalen Tourenplan … es ist ja auch eine normale Tour" (replaces his earlier "sofort gespeichert") |
 | 11 | The way in must **guide** the user: where do I start, what do I do next (load a GPX track, open or plan a route → set the days). | "das Menü, wie ich in diese Mehrtagesplanung reinkomme" |
 | 12 | Words: **GPX-Track** (glossary: "Track" only for GPX), **Übernachtung**, **Hotel**. | "Spur war nicht vereinbart" |
 | 13 | Little effort, robust, extendable later. | |
 
-Left out of the first version (my reading, to confirm): rest days / several nights at one place, and day trips from
-one base.
+Left out of the first version (owner 2026-11-17: „Beide draußen“): rest days / several nights at one place, and day
+trips from one base.
 
 **Limits per day stay** (owner 2026-11-17: "Natürlich bleiben die Grenzen pro Tag"): at most time and ascent per day,
 set in the days box under the number of days. Two jobs: (1) they propose the number of days ("mindestens 6 Tage"),
@@ -51,11 +51,11 @@ Rules (each is one undo step, then saved):
 | R1 Übernachtung added | N stays. One grey proposal fewer; the others spread again. No grey one left → N + 1 (said in one line). |
 | R2 Übernachtung removed | N stays. A grey proposal comes back; spread again. |
 | R3 Hotel added to an Übernachtung | Blue → green; the point moves to the hotel, the route leads there. |
-| R4 Hotel removed | Green → blue at the place on the route nearest the hotel (the night stays planned, only the hotel is gone). |
+| R4 Hotel removed | Green → blue at the place on the route nearest the hotel (the night stays planned, only the hotel is gone). Owner 2026-11-17: „Nacht bleibt, wird blau“. |
 | R5 N changed (− / +) | Only grey proposals come or go. "−" with no grey left: not possible ("Erst eine Übernachtung entfernen"). |
 | R6 Route changed (another pass, a point moved) | Grey proposals spread again; Übernachtung and Hotel stay where they are. |
 | R8 A day above a limit | Its row turns orange with the value that is too high; nothing moves by itself. Fix: + a day, or move / add an Übernachtung. |
-| R7 A grey proposal dragged (proposal, owner to confirm) | It becomes a blue Übernachtung where it is dropped – R1 at that place. |
+| R7 A grey proposal dragged (owner 2026-11-17: „Wird dort blau“) | It becomes a blue Übernachtung where it is dropped – R1 at that place. |
 
 ## 3. The flows
 
@@ -111,7 +111,7 @@ Every row is solved with R1–R7; none needs another tool.
 | J | One day more / fewer | − / + at "6 Tage" | grey ones come or go (R5). |
 | K | Every night decided and one more stop wanted | tap the route → Übernachtung hier | N + 1, said in one line (R1). |
 | L | Another pass on day 4 | edit the route as always | grey ones even out; the user's beds stay (R6). |
-| M | A day ends at a grey proposal and I want it 10 km later | drag the grey bed | it becomes blue there (R7, to confirm). |
+| M | A day ends at a grey proposal and I want it 10 km later | drag the grey moon | it becomes blue there (R7). |
 | N | A point of the route that is an Übernachtung is deleted | ✕ on that point | = Übernachtung entfernen; with a hotel it asks first. |
 | O | On the way: not reached the day's end, or rode on | phone: pick the day or "Tag 3–4" | followed from where I am. |
 | P | On the way: new hotel | later stage: share to OnPath | as E. |
@@ -150,7 +150,7 @@ What stays untouched: recording, the route line, the mailbox server, the map fil
   needed.
 - An imported track as a sync item is thinned to 16 KB – fine for looking, another reason the tour travels as a plan.
 
-## 7. Maps on the phone – when (recommendation, owner to decide)
+## 7. Maps on the phone – when (owner 2026-11-17: ask at the first opening)
 
 Not silently on arrival: a 7-day tour can be gigabytes, possibly on mobile data.
 
@@ -178,11 +178,10 @@ phone, day trips from one base.
 
 ## 9. Open points for the owner
 
-1. Rest days and base-camp tours – both out of version 1?
-2. §7: the moment for the map download.
-3. R4: "Hotel entfernen" keeps the night (blue) – or should the whole night go (grey)?
-4. R7: dragging a grey bed makes it a blue Übernachtung there?
-5. Symbols (round 3): A moon → bed (recommended), B flag → bed, C bed → bed with ✓. Colours stay grey / blue / green.
+None (2026-11-17). Decided: Hotel entfernen → the night stays blue (R4); a dragged grey moon becomes blue (R7); maps:
+ask at the first opening (§7); rest days and base-camp tours out of version 1; symbol A (moon → bed). The words
+"bed" in §2–§4 mean the day-end symbol: moon for grey / blue, bed for the hotel.
+Next: stage 0 (measure) when the owner says go.
 
 ## 10. UI rounds
 
