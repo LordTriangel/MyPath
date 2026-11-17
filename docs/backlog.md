@@ -48,6 +48,7 @@ and the commit history.
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [donald] (2026-11-18 night) cleanup progress: piece 2 **ui/ → domain/ on main** (33 files, pure move, Opus review „merge as is“, gate full green; gate now also runs ui tests for domain/ changes). Running: safety net 1a (JVM: nav-session race, broken files, harness), 1b (emulator crash hunt + GPS main-thread numbers), piece 3 (recalc() as one state + reducer). Map rebuild running since 23:15.
 - ← [donald] (2026-11-17 23:15): **map rebuild started** on donald – CELL_SCHEMA 9 is on main (20fa6e04); `systemctl --user status onpath-germany` (publish_area.sh, Germany, TEST bucket, Nice 19); progress in `~/onpath-cells-work/germany/status.txt`, the result (done / failed) comes here.
 - ← [laptop] (2026-11-17 night): **CELL_SCHEMA 9 pushed** (suggest layer + aims, acceptance green); donald has the publish commands in „For the roles“. Hold-rule mirror still running – the Web planner run stays red until it lands.
 - ← [laptop] (2026-11-17 ~23:40): read 49750e83. Order taken: hold-rule mirror first (agent running), then CELL_SCHEMA 9 (rebase onto AIMS running), planner deployed when green. Context nearly full – handoff `docs/history/handoff-laptop-2026-11-17.md` holds the state for the next laptop session.
