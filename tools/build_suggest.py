@@ -18,6 +18,8 @@ What goes in (raw classes and lines, no scores – the method's numbers stay in 
   heights   terrain.pmtiles z12 (Terrarium WebP, needs Pillow) at the grid's squares  (was land.py heights)
   named     signed routes (overlays `routes` + `routelines`, trail names), lake shores (base `water` + `water_name`),
             sights (pois.geojson)                                            (was named.py read_cell)
+  aims      more turning points for the tour suggestions' "Ziel": named peaks with height (base `mountain_peak`),
+            places to eat (hut, restaurant, café), named springs, museums (pois.geojson)
   loops     signed routes that are closed loops, in walking order, from the OSM cut (needs pyosmium) – only the loops
             this cell holds most of                                          (was official.py extract)
 The POC modules import these functions; nothing here is written twice.
@@ -243,6 +245,40 @@ def named(overlays_path, base_path, pois_path, x, y):
     return out
 
 
+AIM_POIS = {"hut": "hut", "restaurant": "restaurant", "cafe": "cafe", "spring": "spring", "museum": "museum"}
+
+
+def aims(base_path, pois_path, x, y):
+    """One cell -> [{kind, name, p, ele}]: what a loop can aim at beyond the sights (SIGHT_KINDS) – named peaks with
+    their height (base.pmtiles `mountain_peak`, every zoom up to 14: a lower zoom keeps only the higher ranks), and from
+    pois.geojson named huts, restaurants, cafés, springs, museums. Only things with a name: an aim names the card."""
+    out, seen = [], set()
+    ba, box = pmt.PMTiles(base_path), cell_bbox(x, y)
+    for z in (12, 13, 14):
+        for t in pmt.tiles_of_cell(x, y, z):
+            raw = ba.tile(*t)
+            for f in pmt.layers(raw, {"mountain_peak"}, *t).get("mountain_peak", []) if raw else []:
+                tg = f["tags"]
+                if tg.get("class") not in ("peak", "volcano") or not tg.get("name") or not f["parts"]:
+                    continue
+                p = f["parts"][0][0]
+                key = (tg["name"], round(p[0], 3), round(p[1], 3))
+                if key in seen or not (box[0] <= p[0] < box[2] and box[1] <= p[1] < box[3]):
+                    continue
+                seen.add(key)
+                out.append({"kind": "peak", "name": tg["name"], "p": [round(p[0], 6), round(p[1], 6)],
+                            "ele": int(tg.get("ele") or 0)})
+    if pois_path and os.path.isfile(pois_path):
+        with open(pois_path, encoding="utf-8") as f:
+            for ft in json.load(f).get("features", []):
+                pr = ft["properties"]
+                if pr.get("kind") in AIM_POIS and pr.get("name"):
+                    q = ft["geometry"]["coordinates"]
+                    out.append({"kind": AIM_POIS[pr["kind"]], "name": pr["name"], "p": [round(q[0], 6), round(q[1], 6)],
+                                "ele": int(pr.get("ele") or 0)})
+    return out
+
+
 # ---------------------------------------------------------------- signed loops (the OSM cut, pyosmium)
 
 KINDS = {"hiking": "hike", "foot": "hike", "bicycle": "bicycle", "mtb": "mtb"}
@@ -410,6 +446,7 @@ def build(x, y, base, overlays, pois=None, terrain=None, osm=None, ids=None, dat
     d = grid(base, x, y)
     d["heights"] = heights(terrain, d["w"], d["h"], d["west"], d["north"]) if terrain and os.path.isfile(terrain) else None
     d.update(named(overlays, base, pois, x, y))
+    d["aims"] = aims(base, pois, x, y)
     d["loops"], d["osm_date"] = None, date or ""
     if osm:
         d["loops"] = loops(osm, only_cell=(x, y), ids=renumbered(ids) if ids else None, log=log)
@@ -437,8 +474,9 @@ def sizes(paths):
             p, len(data), d["version"], d["content"], d["x"], d["y"], d["w"], d["h"], d["osm_date"] or "–"))
         for tag, raw, packed in SF.sections(data):
             print("  %s %9d -> %7d" % (tag, raw, packed))
-        print("  %d protected areas, %d places, %d routes, %d lakes, %d sights, loops: %s, heights: %s" % (
+        print("  %d protected areas, %d places, %d routes, %d lakes, %d sights, %s aims, loops: %s, heights: %s" % (
             len(d["labels"]) - 1, len(d["places"]), len(d["routes"]), len(d["lakes"]), len(d["sights"]),
+            "–" if d["aims"] is None else len(d["aims"]),
             "–" if d["loops"] is None else len(d["loops"]), "yes" if d["heights"] else "no"))
 
 

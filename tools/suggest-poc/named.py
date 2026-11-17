@@ -4,14 +4,15 @@ The same files the phone has (cells.py fetches them): overlays.pmtiles layer `ro
 net 4 international … 2 regional) and, where a cell has it, `routelines` (every signed route relation whole, also a
 local one on the ways of a bigger one – every cell from schema 8; an older cell has only `routes`), `trailnames` (local
 circular walks, promenades, Waalwege), base.pmtiles `water` + `water_name`, pois.geojson (sights: viewpoints, castles,
-ruins, chapels, caves, waterfalls). Read once per map area, kept as attr-v7.json beside it.
+ruins, chapels, caves, waterfalls) and the aims a loop can turn at (`build_suggest.aims`: named peaks with height,
+huts, restaurants, cafés, springs, museums). Read once per map area, kept as attr-v8.json beside it.
 """
 import json
 import os
 import re
 
 import cells as CE
-from build_suggest import label, named as _named
+from build_suggest import aims as _aims, label, named as _named
 from net import dist
 
 NET = {4: "i", 3: "n", 2: "r", 1: "l"}
@@ -22,19 +23,24 @@ _mem = {}
 
 
 def read_cell(x, y):
-    """One map area -> {routes: [{kind, label, net, lines, trail}], lakes: [{name, lines}], sights: [{name, what, p}]}:
-    from the cell's suggest file where it has one, else from its tiles (kept as attr-v7.json beside them)."""
+    """One map area -> {routes: [{kind, label, net, lines, trail}], lakes: [{name, lines}], sights: [{name, what, p}],
+    aims: [{kind, name, p, ele}]}: from the cell's suggest file where it has one (an older file without aims: the aims
+    from the tiles, where the cell has them), else from its tiles (kept as attr-v8.json beside them)."""
     words = lambda sights: [{"name": s["name"] or SIGHTS[s["kind"]], "what": SIGHTS[s["kind"]], "p": s["p"]} for s in sights]
     sf = CE.suggest(x, y)
-    if sf:
-        return {"routes": sf["routes"], "lakes": sf["lakes"], "sights": words(sf["sights"])}
     d = CE.folder(x, y)
-    cache = os.path.join(d, "attr-v7.json")
+    if sf:
+        aims = sf.get("aims")
+        if aims is None and os.path.isfile(os.path.join(d, "base.pmtiles")):
+            aims = _aims(os.path.join(d, "base.pmtiles"), os.path.join(d, "pois.geojson"), x, y)
+        return {"routes": sf["routes"], "lakes": sf["lakes"], "sights": words(sf["sights"]), "aims": aims or []}
+    cache = os.path.join(d, "attr-v8.json")
     if os.path.isfile(cache):
         with open(cache, encoding="utf-8") as f:
             return json.load(f)
     got = _named(os.path.join(d, "overlays.pmtiles"), os.path.join(d, "base.pmtiles"), os.path.join(d, "pois.geojson"), x, y)
-    out = {"routes": got["routes"], "lakes": got["lakes"], "sights": words(got["sights"])}
+    out = {"routes": got["routes"], "lakes": got["lakes"], "sights": words(got["sights"]),
+           "aims": _aims(os.path.join(d, "base.pmtiles"), os.path.join(d, "pois.geojson"), x, y)}
     tmp = "%s.%d" % (cache, os.getpid())  # written whole, then moved: runs side by side must never read half a file
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False)
@@ -55,7 +61,7 @@ def _dense(lines, step=25.0):
 def _merged(cells, bike):
     key = (tuple(cells), bike)
     if key not in _mem:
-        routes, lakes, sights = {}, {}, []
+        routes, lakes, sights, aims = {}, {}, [], []
         for c in cells:
             if not CE.usable(*c):
                 continue
@@ -68,16 +74,18 @@ def _merged(cells, bike):
             for lk in d["lakes"]:
                 lakes.setdefault(lk["name"], []).extend(lk["lines"])
             sights += d["sights"]
+            aims += d.get("aims", [])
         real = [k.lower() for k, g in routes.items() if not g["trail"]]
         for k in [k for k, g in routes.items() if g["trail"] and any(k.lower() in r for r in real)]:
             del routes[k]  # a trail label that only repeats a real route
-        _mem[key] = (routes, lakes, sights)
+        _mem[key] = (routes, lakes, sights, aims)
     return _mem[key]
 
 
 def load(start, reach_m, bike, ranks):
-    """The named things within reach_m of the start: [{kind: route | lake | sight, name, rank 0..1, dense: points}]."""
-    routes, lakes, sights = _merged(CE.cells_for(start[0], start[1], reach_m), bike)
+    """The named things within reach_m of the start: [{kind: route | lake | sight | aim, name, rank 0..1, dense: points}]
+    (an aim: what = peak / hut / restaurant / cafe / spring / museum, ele = its height or 0)."""
+    routes, lakes, sights, aims = _merged(CE.cells_for(start[0], start[1], reach_m), bike)
     out = []
     for name, g in routes.items():
         near = [p for p in _dense(g["lines"]) if dist(start, p) <= reach_m]
@@ -89,6 +97,8 @@ def load(start, reach_m, bike, ranks):
             out.append({"kind": "lake", "name": name, "rank": 1.0, "dense": near})
     out += [{"kind": "sight", "name": v["name"], "what": v["what"], "rank": 1.0, "dense": [v["p"]]} for v in sights
             if dist(start, v["p"]) <= reach_m]
+    out += [{"kind": "aim", "name": a["name"], "what": a["kind"], "ele": a["ele"], "rank": 1.0, "dense": [a["p"]]} for a in aims
+            if dist(start, a["p"]) <= reach_m]
     return out
 
 
@@ -111,6 +121,8 @@ class Index:
     def __init__(self, things):
         self.things, self.cells = things, {}
         for i, a in enumerate(things):
+            if a["kind"] == "aim":
+                continue  # an aim is a turning point (generate.aims), not a fact of the ways near it
             pad = 2 if a["kind"] == "lake" else 0
             for p in a["dense"]:
                 cx, cy = int(p[0] / self.CX), int(p[1] / self.CY)

@@ -30,6 +30,9 @@ point = zz lon, zz lat in 1e-6 degrees; line = uv count, first point absolute, t
         (pieces, unordered: for "this way is on the Neandertalweg" and for following a line)
   LAKE  uv count; each: str name, uv lines, lines (the shore inside this cell)
   SGHT  uv count; each: u8 kind (index into SIGHT_KINDS), str name ("" = unnamed), point
+  AIMS  uv count; each: u8 kind (index into AIM_KINDS), str name, point, zz height in metres (0 = unknown) – named peaks
+        (base `mountain_peak`), huts, restaurants, cafés, springs, museums: the tour suggestions' "Ziel" beyond the
+        sights (content 2; a file without it is older – the reader reads the aims from the tiles or has none)
   LOOP  uv count; each: uv OSM relation id, u8 kind (0 hike, 1 bicycle, 2 mtb), u8 T level (1–6, the hardest
         sac_scale on it), uv parking (metres from the start to the nearest parking place + 1; 0 = none within 300 m),
         uv length in centimetres, uv ascent in metres + 1 (0 = unknown: the loop leaves this cell's heights), str name,
@@ -43,12 +46,13 @@ from array import array
 
 MAGIC = b"OPSG"
 FORMAT_VERSION = 1
-CONTENT = 1  # the producer's class lists / rules (build_suggest.py); a reader may ask for a minimum
+CONTENT = 2  # the producer's class lists / rules (build_suggest.py); a reader may ask for a minimum
 NO_HEIGHT = -32768
 NATURE, PROTECTED, BUILT, WATER, WOOD = 1, 2, 4, 8, 16
 HAS_HEIGHTS, HAS_ROUTELINES, HAS_LOOPS = 1, 2, 4
 PLACE_CLASSES = ("city", "town", "village", "suburb", "hamlet", "quarter", "neighbourhood")
 SIGHT_KINDS = ("viewpoint", "castle", "ruins", "chapel", "cave", "waterfall")
+AIM_KINDS = ("peak", "hut", "restaurant", "cafe", "spring", "museum")
 ROUTE_KINDS = ("hike", "bike", "mtb")
 LOOP_KINDS = ("hike", "bicycle", "mtb")
 NAME = "suggest.bin"
@@ -166,6 +170,15 @@ def pack(d):
         x.text(s["name"])
         x.point(s["p"])
     sec.append((b"SGHT", x.b))
+    if d.get("aims") is not None:
+        x = _W()
+        x.uv(len(d["aims"]))
+        for a in d["aims"]:
+            x.u8(AIM_KINDS.index(a["kind"]))
+            x.text(a["name"])
+            x.point(a["p"])
+            x.zz(int(a.get("ele") or 0))
+        sec.append((b"AIMS", x.b))
     if d.get("loops") is not None:
         x = _W()
         x.uv(len(d["loops"]))
@@ -241,7 +254,7 @@ def version_of(path):
 def unpack(data):
     """The file's bytes -> {version, content, flags, x, y, w, h, west, north, dlon, dlat, osm_date, grid, area, labels,
     heights (array 'h' or None), places [[name, lon, lat, class]], routes [{kind, label, net, trail, lines}],
-    lakes [{name, lines}], sights [{kind, name, p}], loops [{id, kind, t, parking_m, m, ascent, name, ref, network,
+    lakes [{name, lines}], sights [{kind, name, p}], aims [{kind, name, p, ele}] or None (an older file), loops [{id, kind, t, parking_m, m, ascent, name, ref, network,
     coords}] or None (built without the OSM extract)}. Raises NotASuggestFile for anything else or a newer format."""
     if len(data) < 8 or data[:4] != MAGIC:
         raise NotASuggestFile("no suggest file")
@@ -249,7 +262,7 @@ def unpack(data):
     if version > FORMAT_VERSION:
         raise NotASuggestFile("suggest file of a newer format (%d > %d)" % (version, FORMAT_VERSION))
     body = zlib.decompress(data[8:])
-    d = {"version": version, "heights": None, "loops": None, "places": [], "routes": [], "lakes": [], "sights": [],
+    d = {"version": version, "heights": None, "loops": None, "aims": None, "places": [], "routes": [], "lakes": [], "sights": [],
          "labels": [""]}
     i = 0
     while i + 8 <= len(body):
@@ -297,6 +310,11 @@ def unpack(data):
             for _ in range(r.uv()):
                 kind, nm, q = SIGHT_KINDS[r.u8()], r.text(), r.point()
                 d["sights"].append({"kind": kind, "name": nm, "p": [q[0] / E6, q[1] / E6]})
+        elif tag == b"AIMS":
+            d["aims"] = []
+            for _ in range(r.uv()):
+                kind, nm, q = AIM_KINDS[r.u8()], r.text(), r.point()
+                d["aims"].append({"kind": kind, "name": nm, "p": [q[0] / E6, q[1] / E6], "ele": r.zz()})
         elif tag == b"LOOP":
             d["loops"] = []
             for _ in range(r.uv()):
@@ -336,6 +354,8 @@ def selftest():
          "routes": [{"kind": "mtb", "label": "X30 · Neandertalweg", "net": 2, "trail": True,
                      "lines": [[[6.9, 51.1], [6.900001, 51.099999], [-0.5, -70.25]]]}],
          "lakes": [{"name": "Elbsee", "lines": []}], "sights": [{"kind": "ruins", "name": "", "p": [6.99385, 51.11678]}],
+         "aims": [{"kind": "peak", "name": "Hoher Kranzberg", "p": [11.233, 47.4561], "ele": 1391},
+                  {"kind": "cafe", "name": "Café", "p": [6.9, 51.1], "ele": 0}],
          "loops": [{"id": 12290089, "kind": "bicycle", "t": 3, "parking_m": None, "m": 17641.237, "ascent": 0.0,
                     "name": "Rund um Haßloch", "ref": "RH", "network": "lcn",
                     "coords": [[6.9, 51.1], [6.91, 51.1], [6.9, 51.1]]},
@@ -344,7 +364,7 @@ def selftest():
     data = pack(d)
     u = unpack(data)
     for k in ("x", "y", "w", "h", "west", "north", "dlon", "dlat", "grid", "area", "labels", "places", "osm_date",
-              "lakes", "sights", "routes"):
+              "lakes", "sights", "routes", "aims"):
         assert u[k] == d[k], k
     assert u["heights"] == H and u["version"] == FORMAT_VERSION and u["content"] == CONTENT
     assert u["flags"] == HAS_HEIGHTS | HAS_ROUTELINES | HAS_LOOPS
@@ -356,6 +376,7 @@ def selftest():
     body = zlib.decompress(data[8:]) + b"NEW!" + struct.pack("<I", 3) + b"abc"
     assert unpack(data[:8] + zlib.compress(body))["loops"] == u["loops"]
     assert unpack(pack(dict(d, loops=None, heights=None)))["loops"] is None
+    assert unpack(pack(dict(d, aims=None)))["aims"] is None  # an older file: no aims section
     try:
         unpack(MAGIC + struct.pack("<HH", FORMAT_VERSION + 1, 0) + data[8:])
         raise AssertionError("a newer format must be refused")

@@ -11,6 +11,7 @@
     same for every loop from here, so it is left out of the scores and of "is this the same loop?".
 Pure except for the place names of unnamed areas (land.place_near).
 """
+import aims
 import land
 from net import dijkstra, direction, dist, INF
 
@@ -53,11 +54,16 @@ class Place:
         # --- absolute values per way
         v = self.v = {a: [0.0] * n for a in AXES}
         w_water, w_other = (1.0, 0.4) if ch.water else (0.6, 1.0)
+        W = S["quality"]["width"]
+        width = (W["path"], W["track"], W["rough_track"], W["wide"])
         for ei in ok:
-            # an open edge with a view is nature too: leaving the forest for it costs nothing
-            v["natur"][ei] = max((1 - ch.depth) * F.green[ei] + ch.depth * F.depth[ei], P["rim_natur"] * F.rim[ei])
+            # an open edge with a view and a natural shore (quality trails: "Ränder – Waldrand, Ufer") are nature too
+            v["natur"][ei] = max((1 - ch.depth) * F.green[ei] + ch.depth * F.depth[ei], P["rim_natur"] * F.rim[ei],
+                                 P["water_natur"] * F.water[ei] * (not F.built[ei]))
             v["ruhe"][ei] = 1.0 - max(F.traffic[ei], 0.6 * F.built[ei], 0.5 * F.noise[ei])
-            v["weg"][ei] = 1.0 if (F.rail[ei] and ch.bike) else ch.ground[F.ground[ei]]
+            # on foot a narrow path is worth more than a wide track of the same ground (quality trails)
+            v["weg"][ei] = 1.0 if (F.rail[ei] and ch.bike) else \
+                (1.0 - ch.path) * ch.ground[F.ground[ei]] + ch.path * width[F.width[ei]]
             tip = max([tips.get(F.areas[F.area[ei]], 0.0)] + [tips.get(things[i]["name"], 0.0) for i in F.named[ei]])
             other = max(F.signed[ei] * ch.signed, 0.9 * (F.rail[ei] and ch.bike), 0.6 * (F.area[ei] > 0), tip,
                         P["rim"] * F.rim[ei], P["sight"] * F.sight[ei])
@@ -107,6 +113,8 @@ class Place:
         core = [ei for ei in reach if self.core(ei)] or reach
         self.top = {a: max(quantile([(v[a][ei], F.ln[ei]) for ei in core], P["top"][a]) + S["form"]["ring"] * (a == "besonderes"),
                            self.low[a] + P["min_span"]) for a in AXES}
+        # --- what a loop can lead to: summits, lakes, viewpoints, huts, castles … (aims.py)
+        self.aims = aims.find(self, S)
 
     def rel(self, axis, value):
         """An absolute value on this place's yardstick: 0 = poor here, 1 = as good as it gets here."""
