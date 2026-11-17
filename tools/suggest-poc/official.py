@@ -27,6 +27,7 @@ import cells as CE
 import suggest as S
 from build_suggest import loops as osm_loops, square as cell, squares_around as around
 from character import Character, wish as make_wish
+from generate import assemble, measure
 from net import climb, dijkstra, dist, load, path, runs_along, INF
 
 OUT = os.path.join(S.DATA, "official-compare")
@@ -76,14 +77,12 @@ def covered(pts, other):
     return sum(1 for p in pts if any(dist(p, q) <= NEAR for q in around(grid, p, NEAR))) / max(1, len(pts))
 
 
-def lay_on(net, ok, coords, start=None):
-    """The official loop on our way network: edges that run along it are cheap, others dear; the loop goes from `start`
-    (default: our start) through a point every ~200 m of it and home. -> edges in walking order, or None."""
-    start = net.start if start is None else start
+def trail(net, ok, coords):
+    """The official loop on our way network: the cost of laying it on (edges that run along it cheap, others dear), the
+    edges along it, and its turning points – the nodes of the ways along it in the loop's order, one per ~200 m."""
     pts = dense(coords)
     on = runs_along(net, pts, [ei for ei in range(len(net.edges)) if ok[ei]], NEAR)
     cost = [(e[2] if ei in on else 25.0 * e[2]) if ok[ei] else -1.0 for ei, e in enumerate(net.edges)]
-    # turning points: the nodes of the ways along it, in the order of the official loop, one per ~200 m
     igrid, index = {}, {}
     for i, p in enumerate(pts):
         igrid.setdefault(cell(p, NEAR), []).append(i)
@@ -93,12 +92,23 @@ def lay_on(net, ok, coords, start=None):
             i = min(around(igrid, p, NEAR), key=lambda i: dist(p, pts[i]), default=None)
             if i is not None and dist(p, pts[i]) <= NEAR:
                 index[v] = i
+    return cost, on, index
+
+
+def thin(index, start=None):
+    """One turning point per ~200 m of the loop, in its order (not `start`)."""
     aims, last = [], -99
     for v in sorted(index, key=index.get):
         if index[v] - last >= 20 and v != start:
             aims.append(v)
             last = index[v]
-    edges, cur = [], start
+    return aims
+
+
+def follow(net, cost, start, aims):
+    """From `start` through the turning points and home on the laid-on cost; a point our network reaches only by a long
+    detour (a piece of the loop missing on our map) is skipped. -> (edges in walking order, the points kept) or None."""
+    edges, cur, kept = [], start, []
     for w in aims + [start]:
         d, prev, pe, ln = dijkstra(net, cur, cost, stop=w)
         if d[w] == INF:
@@ -106,11 +116,21 @@ def lay_on(net, ok, coords, start=None):
         if w != start and ln[w] > 4.0 * dist(net.nodes[cur], net.nodes[w]) + 1000.0:
             continue  # our network lacks a piece of it here: skip this point rather than walk a long detour
         edges += path(prev, pe, w)
+        kept += [w] * (w != start)
         cur = w
     out = []  # a step to a turning point and straight back is not part of it
     for ei in edges:
         out.pop() if out and out[-1] == ei else out.append(ei)
-    return out
+    return out, kept
+
+
+def lay_on(net, ok, coords, start=None):
+    """The official loop on our way network: edges that run along it are cheap, others dear; the loop goes from `start`
+    (default: our start) through a point every ~200 m of it and home. -> edges in walking order, or None."""
+    start = net.start if start is None else start
+    cost, _, index = trail(net, ok, coords)
+    r = follow(net, cost, start, thin(index, start))
+    return r and r[0]
 
 
 def nodes_of(net, edges, start=None):
@@ -170,8 +190,13 @@ def badge(loop):
 
 def near(wish, S):
     """extra(P) for suggest(): the official loops whose every point lies inside the loaded network and that are of the
-    wish's kind (on foot: hiking loops; by bike: cycling loops, MTB loops for mtb), laid onto our network from their
-    own start (the parking place) – to be shown beside ours."""
+    wish's kind (on foot: hiking loops; by bike: cycling loops, MTB loops for mtb), each as a ride FROM the wished start
+    (owner 2026-11-17: the wished start is where one starts): the cheapest way to the loop's best joining point (its
+    turning point cheapest to reach by our search cost, not necessarily its parking place), once round in its own
+    order (either direction, the shorter kept; a ride meeting its own way more than allowed is dropped, as our own
+    loops are), home from there – `assemble` with the loop's turning points, the loop's
+    parts on the laid-on cost, the way there and home as for our own loops (the same way back allowed, a different one
+    preferred: its stem is judged like any loop's way out). Time, km, ascent and axes are those of the whole ride."""
     kinds = {"hike": ("hike",), "bike": ("bicycle",), "gravel": ("bicycle", "mtb"), "mtb": ("mtb", "bicycle")}[wish["activity"]]
     start = wish["start"]
 
@@ -181,12 +206,27 @@ def near(wish, S):
         for lp in loops_in_reach(start, reach):
             if lp.get("kind", "hike") not in kinds or not all(dist(start, p) <= reach for p in lp["coords"][::5]):
                 continue
-            first = min(range(len(P.net.nodes)), key=lambda v: dist(P.net.nodes[v], lp["coords"][0]))
-            edges = lay_on(P.net, P.F.ok, lp["coords"], first)
-            if edges and covered(dense(lp["coords"]), line_of(P.net, edges, first)) >= 0.8:
-                out.append({"edges": edges, "start": first, "origin": "offiziell", "aim": [lp["name"]], "show": True,
-                            "official": {"name": lp["name"], "badge": badge(lp), "parking": lp["parking"], "p": lp["coords"][0], "osm": lp["id"],
-                                         "start_km": round(dist(start, lp["coords"][0]) / 1000.0, 1)}})
+            cost, on, index = trail(P.net, P.F.ok, lp["coords"])
+            seq = [v for v in thin(index) if P.d0[v] < INF]
+            if len(seq) < 3:
+                continue
+            j = min(range(len(seq)), key=lambda k: P.d0[seq[k]])  # the best joining point
+            r = follow(P.net, cost, seq[j], seq[j + 1:] + seq[:j])
+            if not r or len(r[1]) < 2:
+                continue
+            best = None
+            for kept in (r[1], r[1][::-1]):  # round in the loop's order, either direction
+                points = [seq[j]] + kept + [seq[j]]
+                edges = assemble(P, S, points, {i: cost for i in range(1, len(points))})
+                m = measure(P, edges) if edges else None
+                # like our own loops: a ride that meets its own way more often than allowed is not offered
+                if m and m["cross"] <= S["form"]["max_cross"] and (best is None or m["m"] < best["m"]):
+                    best = m
+            best = best and best["edges"]
+            if best and covered(dense(lp["coords"]), line_of(P.net, best)) >= 0.8:
+                out.append({"edges": best, "origin": "offiziell", "aim": [lp["name"]], "show": True,
+                            "official": {"name": lp["name"], "badge": badge(lp), "osm": lp["id"],
+                                         "loop_km": round(sum(P.F.ln[e] for e in best if e in on) / 1000.0, 1)}})
         return out
     return extra
 

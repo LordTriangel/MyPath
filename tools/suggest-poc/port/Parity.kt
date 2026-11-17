@@ -11,6 +11,7 @@ import com.onpath.app.suggest.NetSource
 import com.onpath.app.suggest.ReaderNetSource
 import com.onpath.app.suggest.SuggestFile
 import com.onpath.app.suggest.SuggestFiles
+import com.onpath.app.suggest.SuggestGeo
 import com.onpath.app.suggest.SuggestResult
 import com.onpath.app.suggest.SuggestSettings
 import com.onpath.app.suggest.TourSuggester
@@ -108,7 +109,8 @@ private fun f(x: Double) = String.format(Locale.ROOT, "%.1f", x)
 
 /** cases.py `view`: the shown suggestions as small records. */
 class View(val name: String, val km: Double, val up: Int, val forest: Int, val town: Int, val road: Int, val cross: Int,
-           val doubled: Int, val named: Map<String, Double>, val reserves: Int, val dir: String, val hints: List<String>)
+           val doubled: Int, val named: Map<String, Double>, val reserves: Int, val dir: String, val hints: List<String>,
+           val hours: Double, val official: Boolean, val fromM: Double)
 
 private val DIRS = listOf("N", "NO", "O", "SO", "S", "SW", "W", "NW")
 private val WORD_DIR = mapOf("Norden" to "N", "Nordosten" to "NO", "Osten" to "O", "Südosten" to "SO", "Süden" to "S",
@@ -119,7 +121,8 @@ fun view(r: SuggestResult): List<View> = r.shown.map { c ->
     val named = LinkedHashMap<String, Double>()
     for (row in n.reserves + n.lakes + n.known) named[row.first] = (named[row.first] ?: 0.0) + row.second
     View(c.name, n.km, n.ascent, n.forestPct, n.townPct, n.roadLongestM, n.selfCross, n.doubledPct, named, n.reserves.size,
-        c.bearing, c.hints)
+        c.bearing, c.hints, n.hours, c.official != null,
+        SuggestGeo.dist(r.net.lon(c.nodes[0]), r.net.lat(c.nodes[0]), r.ch.wish.lon, r.ch.wish.lat))
 }
 
 fun km(v: View, vararg words: String) = v.named.entries.filter { (k, _) -> words.any { k.lowercase().contains(it.lowercase()) } }.sumOf { it.value }
@@ -167,6 +170,9 @@ val CASES: Map<String, List<Pair<String, (List<View>, List<String>) -> Boolean>>
     "dhuenn-rad-350" to listOf(
         "keine Karte über 350 m ohne Hinweis" to { s, _ -> s.all { it.up <= 350 || it.hints.any { h -> "mehr als gewünscht" in h } } },
         "geht es hier nicht so flach, sagt der Lauf es" to { s, notes -> s.all { it.up <= 350 } || notes.any { "Höhenmetern" in it } }),
+    "nordkirchen-rad-kurz" to listOf(
+        "jede Karte fährt am Startpunkt los, die ganze Fahrt in der gewünschten Zeit" to { s, _ -> s.all { it.fromM <= 300 && it.hours <= 1.1 * 2 } },
+        "mindestens eine eigene Runde" to { s, _ -> s.any { !it.official } }),
     "meran-steil" to listOf("erste Runde 500–900 m" to { s, _ -> s[0].up in 500..900 }),
 )
 val EVERY: List<Pair<String, (List<View>, List<String>) -> Boolean>> = listOf(
@@ -211,7 +217,11 @@ fun main(args: Array<String>) {
         for (c in refC) {
             val k = keyRef(c["coords"])
             val m = kt[k]
-            if (m == null) { refOnly.merge(c["origin"].s, 1, Int::plus); continue }
+            if (m == null) {
+                refOnly.merge(c["origin"].s, 1, Int::plus)
+                if (System.getenv("PARITY_VERBOSE") != null && c["origin"].s == "offiziell") println("    ref only: ${c["official"]["name"].s} ${f(c["m"].d)} m")
+                continue
+            }
             matched.add(k)
             same++
             val d = Math.abs(m.score - c["score"].d)
@@ -221,7 +231,10 @@ fun main(args: Array<String>) {
                 println("    ${c["origin"].s} ref ${c["score"].d} kt ${m.score} axes ref ${c["axes"].v} kt ${m.axes.toList()} raw ref ${c["raw"].v} kt ${m.raw.toList()}")
             }
         }
-        for ((k, c) in kt) if (k !in matched) ktOnly.merge(c.origin, 1, Int::plus)
+        for ((k, c) in kt) if (k !in matched) {
+            ktOnly.merge(c.origin, 1, Int::plus)
+            if (System.getenv("PARITY_VERBOSE") != null && c.official != null) println("    kt only: ${c.official!!.name} ${f(c.m)} m")
+        }
         val refShown = refC.filter { it["chosen"].v == true }.map { (it["name"].v as? String) ?: "" }
         val ktShown = r.shown.map { it.name }
         val sameChoice = refShown == ktShown

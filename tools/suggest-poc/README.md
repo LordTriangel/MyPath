@@ -200,9 +200,10 @@ paved; ours stay in the forest (76 %) – the owner's road rule, not a gap to cl
   pictures (Dhrontalsperre, Moselhang), not more.
 
 **The page** (`serve.py`): with "ausgeschilderte Rundwege" (on by default) up to three official loops that lie in reach
-and fit the wish join the list as cards ("Ausgeschildert · Traumpfad", start distance, parking; the text line is our
+and fit the wish join the list as cards ("Ausgeschildert · Traumpfad", "davon x km auf dem Rundweg" – since 2026-11-17 an
+official loop is a ride from the wished start: to its best joining point, round, home; the text line is our
 own, generated from what the loop passes – no OSM / operator descriptions, owner 2026-11-16); they are chosen in one selection with ours (no two cards share more than 75 % of their way; official + 5 points between similar ones, 2026-11-16); one line style on the
-map, the chosen loop blue, the others a breath, a fine line to the chosen official loop's parking place. It knows
+map, the chosen loop blue, the others a breath. It knows
 official loops only where `official-compare/loops*.json` exists – today Rheinland-Pfalz and Nordrhein-Westfalen.
 
 Data and results outside git: `~/onpath-suggest-poc/official-compare/` (`loops.json`, `compare-<label>-<set>-*.json`,

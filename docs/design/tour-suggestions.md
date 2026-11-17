@@ -123,7 +123,10 @@ tags) and the map areas (see 4). All numbers are in `tools/suggest-poc/settings.
    on wheels the road rule beats the bonus; on foot such a loop is out anyway); Form from the ranges, the share walked twice and a meeting; points = weighted mean.
 7. **Selection** – one selection over all cards: our loops and, where official loops are known (the POC page:
    Rheinland-Pfalz, Nordrhein-Westfalen), the official loops in reach that fit the wish (time as for our loops, ascent
-   not above the wished maximum), judged with the same yardstick (from their own start, the parking place). No two
+   not above the wished maximum), judged with the same yardstick – as a ride from the wished start (owner 2026-11-17:
+   "die Anfahrt einbeziehen"; the POC page – the Kotlin core follows in the batch of FROZEN.md): the cheapest way to the loop's best joining point, once round in its order (either
+   direction), home (the same way back allowed, a different one preferred); time, km, ascent and every axis are those
+   of the whole ride, the way there treated like any loop's way out. No two
    cards share more than 75 % of the shorter one's way beyond the way out (`select.overlap`; owner 2026-11-16: "60 %
    … vielleicht 75 %"); an official loop gets + 5 points in the selection only, so between two similar loops the
    official one wins unless it is clearly worse (owner: the official loops are generally good). The best first; with
@@ -383,7 +386,9 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   only as a breath, barely visible (owner 2026-11-15: "nur quasi als Hauch … die Karte muss ruhig sein"). Of an own loop and an official one that share more
   than 75 % only one is shown, the official one unless clearly worse (§3.7) – no "deckt sich mit unserem Vorschlag" note (owner: "was bringt das dem Benutzer?").
   The short text per card (built in the POC page 2026-11-15): one line, full on the chosen card; official loops get
-  the same generated line as ours from what the loop passes (2026-11-16: no OSM descriptions any more – copyright). On the map a fine line from the start to the chosen official loop's parking place.
+  the same generated line as ours from what the loop passes (2026-11-16: no OSM descriptions any more – copyright). The card
+  says how much of the ride is on the signed loop ("davon 24 km auf dem Rundweg"); the line on the map is the whole ride from
+  the start (2026-11-17: no start distance, no parking line any more).
 - Where the entry appears (owner 2026-11-15: "wenn ‚Von hier starten' kommt, dann kann auch ‚Rundtour von hier' kommen"):
   wherever a menu offers "Hier starten" – the first tap into an empty plan, the menu of a place / map symbol – it
   also offers "Rundtour von hier"; no extra rule of its own.
