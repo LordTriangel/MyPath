@@ -459,6 +459,20 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   Belag) · viele Highlights / wenig Grün · lauter · wenige Highlights; no Form pill; a weak Weg names its cause (most
   above the list's mean): viel Asphalt · breite Forstwege · holprig (Rad: holpriger Belag · viel Schotter, `numbers`
   ground / `track_pct`); hints „… als geplant“, „25 % im Ort“, „Stück doppelt“, „450 m an der Straße“, „kreuzt sich“.
+- **Stage 3 – the ready brief (IR 2026-11-17; starts on mehrtage's word in the backlog, merged one after the other
+  with mehrtage's `WebApi` exports):** inputs on main – core `suggest/TourSuggester` (parity 83/83), strings
+  `strings_suggest.xml` (pill words, hints), sketches 4 (cards), 5 B (wish: activity labels without icons, two range
+  sliders, Ziel chips, Abbrechen · OK), 7 (pills: ≤ 2 green + ≤ 2 yellow, words as in §7), only the chosen card's loop on
+  the map; the framework branch `wip/donald-2026-11-14-planner-suggest-remote` is 300+ commits behind – take its ideas
+  (switch, test setting, wait card), not its code. Steps: (1) `WebApi.suggest(wish)` in its own file, run in the
+  engine worker, the cell's `suggest.bin` + rd5 fetched like the router's data; answer with cards (loop line, km, h,
+  ascent, pills, title, text line) and `mapUpdating`; (2) measure in Chrome / Firefox: hike 2 h, bike 3 h (Zons) –
+  time and memory; bike 3 h peaks at 256 MB on the desktop JVM, so measure before the UI; (3) „Rundtour von hier“
+  wherever „Hier starten“ appears, the wish sheet, the wait card, the cards in the plan sheet, „Übernehmen“ → a normal
+  plan; switch off by default (`?debug` test setting as on the framework branch); (4) tests: the web engine's JVM test
+  runs `TourSuggester` on a fixture; a planner smoke for the flow; (5) the owner tests in NRW / Fränkische Schweiz /
+  Mittenwald, deploy on his word. Needs the content-2 suggest files in the test cells (laptop) – without them the
+  planner says „Karte wird aktualisiert“.
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
