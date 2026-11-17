@@ -16,7 +16,7 @@ import com.onpath.app.routing.Activity
 import com.onpath.app.recording.DemoLocation
 import com.onpath.app.recording.RecordingService
 import com.onpath.app.routing.GeoPoint
-import com.onpath.app.ui.AppMode
+import com.onpath.app.domain.AppMode
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
