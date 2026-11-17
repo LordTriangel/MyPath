@@ -6,6 +6,7 @@ import com.onpath.strings.Txt
 import com.onpath.strings.plan_sheet_bigger
 import com.onpath.strings.plan_sheet_smaller
 import java.util.regex.Pattern
+import kotlin.math.abs
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.uiautomator.By
 import com.onpath.app.routing.GeoPoint
@@ -145,14 +146,35 @@ class CorePointsListE2ETest : E2EBase() {
             com.onpath.app.data.Geo.distance(points()[0], before[0]) < 1_000 }
     }
 
+    /** The newest "Sheet let go at …" line of the events trace (StepSheet's release, `SheetDrag.describe`), or null. */
+    private fun lastRelease() = com.onpath.app.debug.Problems.events()
+        .firstOrNull { it.area == "sheet" && it.message.startsWith("Sheet let go at") }
+
+    /**
+     * The sheet's step heights in px as the app has them now (rolled up / summary / profile / points), from its own
+     * release line "Sheet let go at 770 px (steps 436 / 602 / 938 / 1682 px, 0 px/s) → step 2" – no fixed screen size
+     * in the test. There is a line after every swipe, so call it after one.
+     */
+    private fun stepHeights(): List<Int> {
+        val line = lastRelease()?.message ?: throw AssertionError("no \"Sheet let go at\" line yet – ${state()}")
+        val steps = Regex("""\(steps ([0-9 /]+) px""").find(line)?.groupValues?.get(1)
+            ?.split("/")?.map { it.trim().toInt() }
+        assertTrue("four ascending step heights in \"$line\"",
+            steps != null && steps.size == PlanSize.entries.size && steps.zipWithNext().all { (a, b) -> a < b })
+        return steps!!
+    }
+
     /**
      * The sheet follows a slow drag of its handle and settles at the nearest step (no jumping) – summary (where a plan
      * opens, owner 2026-10-31) → rolled up (swipe down) → summary → profile → points → profile.
      *
-     * Swipe lengths: on the CI emulator (4–15 frames/s) the sheet moves only 0.69–0.80 of the injected finger travel
-     * (StepSheet's "Sheet let go at …" lines; steps 536 / 938 / 1602 px high). So every swipe that must stop at a middle
-     * step lands well inside it for any ratio from about 0.45 to 1.2, and swipes to an end step go far (the sheet only
-     * rubber-bands there).
+     * Swipe lengths come from the app's real step heights ([stepHeights]), not from the screen: the heights change
+     * with the layout (2026-11-18: 436 / 602 / 938 / 1682 px, where the old fixed fractions of the map height let the
+     * sheet go at 768–776 px, on the 770 px midpoint between summary and profile – red 2 of 3 runs). The sheet does not
+     * move exactly with the injected finger: 0.69–0.80 of its travel on the CI emulator (4–15 frames/s), about 1.0 on
+     * donald's. A swipe to a middle step must leave the sheet between the midpoint before that step and the midpoint
+     * behind it; the finger travels to 60 % of that window, which fits any ratio from about 0.55 to 1.3. Swipes to an
+     * end step go far (the sheet only rubber-bands there).
      */
     @Test fun swipeTheSheetHalfFullHalf() {
         startPlanWithTwoPoints()
@@ -161,42 +183,59 @@ class CorePointsListE2ETest : E2EBase() {
         waitUntil("summary step") { size() == PlanSize.MINI }
         val (_, h) = mapSize()
         fun handle() = sheetHandle().visibleCenter
+        /** Drags the handle [dy] px (down = positive), kept on the screen; returns after the sheet's release line. */
         fun dragHandle(dy: Int) {
+            val before = lastRelease()
             val c = handle()
+            val toY = (c.y + dy).coerceIn(device.displayHeight / 20, device.displayHeight * 19 / 20)
             val path = ArrayList<Point>()
             val steps = 25
-            for (k in 0..steps) path += Point(c.x, c.y + dy * k / steps)
-            repeat(4) { path += Point(c.x, c.y + dy) }  // stop before letting go: no fling, the distance decides
+            for (k in 0..steps) path += Point(c.x, c.y + (toY - c.y) * k / steps)
+            repeat(4) { path += Point(c.x, toY) }  // stop before letting go: no fling, the distance decides
             device.swipe(path.toTypedArray(), 6)
+            waitUntil("the sheet's release line after a swipe of $dy px") { lastRelease() !== before }
         }
-        // rolled up: the lowest step, so a long swipe only rubber-bands
+        /**
+         * Finger travel (px, down = positive) from the step [from] to its neighbour [to]: a middle step → 60 % into the
+         * window between the two midpoints around it; an end step → 1.5 × the gap (rubber band).
+         */
+        fun travel(from: PlanSize, to: PlanSize): Int {
+            val hs = stepHeights()
+            val up = to.step > from.step
+            val beyond = to.step + if (up) 1 else -1
+            val gap = abs(hs[to.step] - hs[from.step])
+            val d = if (beyond !in hs.indices) gap * 1.5f else {
+                val near = gap / 2f                                                   // midpoint from ↔ to
+                val far = gap + abs(hs[beyond] - hs[to.step]) / 2f                    // midpoint to ↔ the step behind it
+                near + (far - near) * 0.6f
+            }
+            return if (up) -d.toInt() else d.toInt()
+        }
+        // rolled up: the lowest step, so a long swipe only rubber-bands (no step heights known yet: this release
+        // writes the first line)
         dragHandle((h * 0.3f).toInt())
         waitForSize("rolled up after a swipe down", PlanSize.COLLAPSED)
         Thread.sleep(600)
-        // the summary again: about the height the summary is above the rolled-up row
-        dragHandle(-(h * 0.15f).toInt())
+        // the summary again: past the midpoint to it, well before the midpoint summary ↔ profile
+        dragHandle(travel(PlanSize.COLLAPSED, PlanSize.MINI))
         waitForSize("summary after a swipe up", PlanSize.MINI)
         Thread.sleep(600)
         // first swipe up: the profile, not yet the points
-        dragHandle(-(h * 0.2f).toInt())
+        dragHandle(travel(PlanSize.MINI, PlanSize.COMPACT))
         waitForSize("profile step after the first swipe up", PlanSize.COMPACT)
-        // where the handle rests at the profile step: the swipe back down from the points aims there (see below)
-        val profileY = handle().y
         assertNotNull("profile shown", findFresh(By.desc("Elevation profile"), 5_000))
         assertTrue("no points list in the profile step", goneFresh(By.descStartsWith("Delete point"), 3_000))
         Thread.sleep(600)
-        // second swipe up: the points – the top step, so a long swipe only rubber-bands (25 % needed a ratio ≥ 0.57)
-        dragHandle(-(h * 0.35f).toInt())
+        // second swipe up: the points – the top step, so a long swipe only rubber-bands
+        dragHandle(travel(PlanSize.COMPACT, PlanSize.FULL))
         waitForSize("full sheet after the second swipe up", PlanSize.FULL)
         if (findFresh(By.descStartsWith("Delete point"), 10_000) == null) {
             shot("no-points-full")
             throw AssertionError("points shown – UiAutomator sees: ${seenDescriptions()} – ${state()}")
         }
         Thread.sleep(600)
-        // swipe down to a little past where the profile step rests (110 % of the measured gap): with the sheet moving
-        // 0.47–1.2 of the finger it stops nearer the profile than the points (above the midpoint) and than the small step
-        val fullY = handle().y
-        dragHandle(((profileY - fullY) * 1.1f).toInt())
+        // swipe down to the profile: nearer to it than to the points (above the midpoint) and than to the summary
+        dragHandle(travel(PlanSize.FULL, PlanSize.COMPACT))
         waitForSize("half sheet after a swipe down", PlanSize.COMPACT)
         // the list leaves with the sheet's animation: wait until it is gone (a single look can find a stale node)
         if (!goneFresh(By.descStartsWith("Delete point"), 8_000)) {
