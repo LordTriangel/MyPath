@@ -1,5 +1,19 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.LocateDistance
+import com.onpath.app.domain.NewPlanNote
+import com.onpath.app.domain.NotRouted
+import com.onpath.app.domain.OfflineReady
+import com.onpath.app.domain.PlaceAddMenu
+import com.onpath.app.domain.PlanGap
+import com.onpath.app.domain.PlanGaps
+import com.onpath.app.domain.RouteMenuState
+import com.onpath.app.domain.RouteRules
+import com.onpath.app.domain.RouteSpot
+import com.onpath.app.domain.RouteWarnings
+import com.onpath.app.domain.RoutesTab
+import com.onpath.app.domain.SaveAsk
+import com.onpath.app.domain.SpotKind
 import com.onpath.strings.*
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.outlined.Info
@@ -1400,14 +1414,14 @@ class ScreenshotTest {
     @Test fun routesSortedByLength() = paparazzi.snapshot {
         previewLines(sortList)
         OnPathTheme { RoutesScreen(sortList, {}, {}, {}, {}, {},
-            initialSort = com.onpath.app.ui.routes.RouteSort.Choice(com.onpath.app.ui.routes.RouteSort.Key.LENGTH)) }
+            initialSort = com.onpath.app.domain.routes.RouteSort.Choice(com.onpath.app.domain.routes.RouteSort.Key.LENGTH)) }
     }
 
     /** The same turned round (a second tap on "Länge"): the shortest first, the arrow up. */
     fun routesSortedShortestFirst() = paparazzi.snapshot {
         previewLines(sortList)
         OnPathTheme { RoutesScreen(sortList, {}, {}, {}, {}, {},
-            initialSort = com.onpath.app.ui.routes.RouteSort.Choice(com.onpath.app.ui.routes.RouteSort.Key.LENGTH, biggestFirst = false)) }
+            initialSort = com.onpath.app.domain.routes.RouteSort.Choice(com.onpath.app.domain.routes.RouteSort.Key.LENGTH, biggestFirst = false)) }
     }
 
     /**

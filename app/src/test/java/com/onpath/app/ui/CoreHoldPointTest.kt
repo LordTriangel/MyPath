@@ -1,9 +1,10 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.MapGestures
 import com.onpath.app.routing.GeoPoint
-import com.onpath.app.ui.MapGestures.Action
-import com.onpath.app.ui.MapGestures.PointAction
-import com.onpath.app.ui.MapGestures.Press
+import com.onpath.app.domain.MapGestures.Action
+import com.onpath.app.domain.MapGestures.PointAction
+import com.onpath.app.domain.MapGestures.Press
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test

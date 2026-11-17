@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.RouteRules
 import com.onpath.app.routing.GeoPoint
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

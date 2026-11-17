@@ -8,6 +8,8 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import com.onpath.app.debug.Problems
+import com.onpath.app.domain.MapGestures
+import com.onpath.app.domain.PlanHaptics
 
 /**
  * Plays a map-hold vibration ([MapGestures.Buzz], rules in [PlanHaptics]) – the one place the plan vibrates.

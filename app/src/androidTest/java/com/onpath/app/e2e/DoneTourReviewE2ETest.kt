@@ -6,7 +6,7 @@ import androidx.test.uiautomator.By
 import com.onpath.app.data.TourDb
 import com.onpath.app.data.TourKind
 import com.onpath.app.gpx.TrackPoint
-import com.onpath.app.ui.RoutesTab
+import com.onpath.app.domain.RoutesTab
 import com.onpath.strings.Res
 import com.onpath.strings.Txt
 import com.onpath.strings.common_export_gpx

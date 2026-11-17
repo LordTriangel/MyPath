@@ -3,10 +3,10 @@ package com.onpath.app.routing
 import com.onpath.app.debug.Problems
 import com.onpath.app.time.Factors
 import com.onpath.app.time.TimeEstimate
-import com.onpath.app.ui.PlanGap
-import com.onpath.app.ui.PlanGaps
-import com.onpath.app.ui.RouteSpot
-import com.onpath.app.ui.RouteWarnings
+import com.onpath.app.domain.PlanGap
+import com.onpath.app.domain.PlanGaps
+import com.onpath.app.domain.RouteSpot
+import com.onpath.app.domain.RouteWarnings
 
 /**
  * Everything the plan sheet shows for one set of plan points, worked out in ONE place (owner rule: routes, stops,

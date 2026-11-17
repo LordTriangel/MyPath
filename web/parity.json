@@ -10,7 +10,7 @@
         "web/app/src/routefilter.ts",
         "web/app/src/style.css"
       ],
-      "blob": "b55a1476b69442bd3a8196dd87e0644e95483330"
+      "blob": "e83d911072ff4ee42346b80b34f1bf9c5c534df9"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapOverlays.kt",
@@ -20,15 +20,15 @@
         "web/app/src/menus.ts",
         "web/app/src/search.ts"
       ],
-      "blob": "7608b662a791c2005d530cbba5b323d81a85e9c0"
+      "blob": "b8f3d17c6438f5150f5c811937447ade84252504"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/PlanStatus.kt",
+      "app": "app/src/main/java/com/onpath/app/domain/PlanStatus.kt",
       "what": "noRouteLine texts (Hold → Click)",
       "web": [
         "web/app/src/main.ts"
       ],
-      "blob": "87e855a5fe5f4b517037f3d6bbcd3d5d8a05b8b2"
+      "blob": "230f50bc58e0782e343bc85de8a3c9a93eba67bb"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/search/SearchSession.kt",
@@ -57,12 +57,12 @@
       "blob": "7301c5f0ca06814840aa55f5d45fd83bdf5bcc94"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/RouteRules.kt",
+      "app": "app/src/main/java/com/onpath/app/domain/RouteRules.kt",
       "what": "saveMode (OVERWRITE / NEW_ROUTE: Save at once, \"wie Word\") – the names are shared now (routing/PlanNames.kt, engine planNewRouteName / planCopyName)",
       "web": [
         "web/app/src/plans.ts"
       ],
-      "blob": "a91224b99dddc09ceb44c9fbbeb491078dd639d3"
+      "blob": "dc214084f5459728120102bf608f4cab07859f7b"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapFooter.kt",
@@ -98,7 +98,7 @@
         "web/app/src/gpximport.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "ca54dc9b4cd635efcf3d9339708e3cecc8611229"
+      "blob": "670388bffe1bf73774083698fe22fef8d27a9fab"
     },
     {
       "app": "app/src/main/java/com/onpath/app/poi/PinnedPoiKinds.kt",
@@ -148,7 +148,7 @@
       "web": [
         "web/app/src/profile.ts"
       ],
-      "blob": "1e9ad42575f16ba103796ee2ae99bf46766ab9a8"
+      "blob": "779ccbaab4470a8f2fcfb5a4ee95f7f999fcdce7"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/TourBar.kt",
@@ -160,7 +160,7 @@
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/AppViewModel.kt",
-      "what": "recalc long-route ask / answerLongRoute / cancelRun; importGpx (its note is the shared GpxData.skippedNote), planFromShown; withModelTime; addPlace; poiAsNewDestination (appends while planning – PlaceAddMenu.keepsOldGoal; the planner has no tour, main.ts placeAsNewDestination); requestSave; suggestName; pinnedPoiKinds / refreshPinnedKinds; holdOnMap / measureHold (F-PLAN-15: on the line / new goal / stop at once, else the hold menu – PlaceAddMenu.planningHold on the real paths, the engine's WebApi.holdOnMap + measurePaths = HoldPaths + routedLength, ~1.5 s, straight lines on failure; a round trip by the zone) and placeMenu while planning = PlaceAddMenu.planningPlaceMenu (WebApi.placeMenu, measured on the paths like PlaceMenuMeasure); holdAsStop / holdAsNewDestination (main.ts holdAddMenu); keepPlaces / placesChanged = the kept-places sync (keptplaces.ts / sync.ts); the done tours' Ø speed is not in the planner (no recorded tours)",
+      "what": "recalc long-route ask / answerLongRoute / cancelRun; importGpx (its note is the shared GpxData.skippedNote), planFromShown; withModelTime; addPlace; poiAsNewDestination (appends while planning – PlaceAddMenu.keepsOldGoal; the planner has no tour, main.ts placeAsNewDestination); requestSave; suggestName; pinnedPoiKinds / refreshPinnedKinds; holdOnMap (F-PLAN-15: on the line / new goal / stop at once, else the hold menu – PlaceAddMenu.planningHold, the engine's WebApi.holdOnMap; a round trip by the zone) and placeMenu while planning = PlaceAddMenu.planningMenu (WebApi.placeMenu); holdAsStop / holdAsNewDestination (main.ts holdAddMenu); keepPlaces / placesChanged = the kept-places sync (keptplaces.ts / sync.ts); the done tours' Ø speed is not in the planner (no recorded tours)",
       "web": [
         "web/app/src/main.ts",
         "web/app/src/longroute.ts",
@@ -170,7 +170,7 @@
         "web/app/src/plans.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "f2ef199a1dcd127be19094a18ef771fa20d5772b"
+      "blob": "83bbebf89fc1d03a1a19cb998d6bb80d46b00384"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -187,7 +187,7 @@
         "web/app/src/main.ts",
         "web/app/src/sortable.ts"
       ],
-      "blob": "1eb653e553ff14dd9ffbe0ef8519821cc67fad00"
+      "blob": "e44231289894461b09788538d6dc70ddd17ae988"
     },
     {
       "app": "app/src/main/java/com/onpath/app/debug/Problems.kt",
@@ -294,15 +294,15 @@
       "web": [
         "web/app/src/main.ts"
       ],
-      "blob": "c57eea88bfc4e65164827d7c2ac3645597a53124"
+      "blob": "ff02f7b3a4db84e9777523963d8b04501810fbd9"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/routes/RouteSort.kt",
+      "app": "app/src/main/java/com/onpath/app/domain/routes/RouteSort.kt",
       "what": "Meine Touren's order: keys and their order, tap rule, ties (newest, then id), encode / decode (web: localStorage onpath.routesSort; a row without numbers goes last)",
       "web": [
         "web/app/src/routesort.ts"
       ],
-      "blob": "51ec77c817abfa77d779151a336724e3f3c01248"
+      "blob": "088806ada7877188bbe747d1b8d9e3e55c0cf969"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/routes/RouteSortChips.kt",
@@ -312,15 +312,15 @@
         "web/app/src/plans.ts",
         "web/app/src/style.css"
       ],
-      "blob": "9a49e953af08f3c6d6ceb687c9eae36390dbd034"
+      "blob": "534a18d1117d673ae6e21b12a8529245cfa6e36a"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/RoutesTab.kt",
+      "app": "app/src/main/java/com/onpath/app/domain/RoutesTab.kt",
       "what": "search (every word in the name, case / accents / ß folded)",
       "web": [
         "web/app/src/plans.ts"
       ],
-      "blob": "5ee4c46447ad47e0ce91f5a74eb151e90882cbff"
+      "blob": "4d4409dc64ad66fa6fd75a3af5919f1696670876"
     },
     {
       "app": "app/src/main/java/com/onpath/app/domain/plan/LivePlan.kt",
@@ -339,7 +339,7 @@
         "web/app/src/main.ts",
         "web/app/src/plans.ts"
       ],
-      "blob": "1fda7c4c2bdef0e0f6c8a743dee06bf7c1427ced"
+      "blob": "99beddb6c557e0d55a10ea46998ce23421650f1f"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/routes/RouteThumbImages.kt",
@@ -356,7 +356,7 @@
       "web": [
         "web/app/src/routethumbs.ts"
       ],
-      "blob": "4b007e68ef923800c2b013ed9c0d336ed4536380"
+      "blob": "00e202992efdf084baf32331be339364ada8b4de"
     },
     {
       "app": "app/src/main/java/com/onpath/app/map/ThumbMaker.kt",
@@ -375,13 +375,13 @@
       "blob": "3504e3b4fcc8c32723da715c05609b7966487e6c"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/routes/RoundTrip.kt",
+      "app": "app/src/main/java/com/onpath/app/domain/routes/RoundTrip.kt",
       "what": "„↻ Rundtour“: a plan = PlanEdits.isRoundTrip on its points; a track = the guess from its line (RouteNamer.LOOP_M / OUT_M)",
       "web": [
         "web/engine/src/main/kotlin/com/onpath/web/WebSync.kt",
         "web/app/src/routefilter.ts"
       ],
-      "blob": "2269e2c01c15f2c3af95409864273c26f7d45124"
+      "blob": "f1b5d1b2fe4cef5d7e6879649ada57234fdd4de4"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/routes/ActivityFilter.kt",
@@ -390,7 +390,7 @@
         "web/app/src/routefilter.ts",
         "web/app/src/plans.ts"
       ],
-      "blob": "5154e78389808a8a62352d1d9191e5cdf137b76d"
+      "blob": "5b63b871edb789399b9cc8b1bf5c0a3f4639d6bd"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/routes/Favourites.kt",
@@ -411,13 +411,13 @@
       "blob": "8cf36ab390dde82bfaf06cd5bf93499d1c6db016"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/PinMenuPlace.kt",
+      "app": "app/src/main/java/com/onpath/app/domain/PinMenuPlace.kt",
       "what": "the found place's menu (app 6714ad6f, owner 2026-11-13 „A mit Ausweich B“): PinMenuPlace.decide / cardPan (above the pin, the map moved down; under it; else a card at the bottom), PinMenuItems.of (the rows' order, Remove pin last; no „⋯ Mehr“ since 2026-11-15); FAVOURITE / HOME after the route rows (keep, owner 2026-11-15 „Orte merken“)",
       "web": [
         "web/app/src/pinmenu.ts",
         "web/app/src/search.ts"
       ],
-      "blob": "122ab021ff7cc7f71f06ff2f1f2e54f1ae508dda"
+      "blob": "3e354ee8b3de7be2c6d79aefda49f5814188f41d"
     },
     {
       "app": "app/src/main/java/com/onpath/app/cells/PoiDensity.kt",
@@ -466,17 +466,17 @@
     {
       "app": "app/src/main/java/com/onpath/app/ui/PlanPanel.kt",
       "why": "plan sheet layout and actions",
-      "blob": "8d28e35d177be1f1247afaa69a331df186e13434"
+      "blob": "210e188d6f3e8398eab33c2cde52bcff62f9131b"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapScreen.kt",
       "why": "plan screen wiring, dialogs",
-      "blob": "8b3b96b26f2ca935590587eb21f348905ba534f2"
+      "blob": "5649a16b6d754879dc4103fbdc2494674a98650c"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/PlanGuidance.kt",
+      "app": "app/src/main/java/com/onpath/app/domain/PlanGuidance.kt",
       "why": "plan ⇄ navigation (web: plan only)",
-      "blob": "915b3bc54fc191669a0c5ef2ba1b6fd947ef6365"
+      "blob": "a2155713c9b5e2283f7a2b7db81034f5c488f8c5"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Notices.kt",
@@ -486,7 +486,7 @@
     {
       "app": "app/src/main/java/com/onpath/app/ui/RouteSpotsList.kt",
       "why": "On this route list",
-      "blob": "7ab7b7f94075ffb74411bd12d389442355018dbd"
+      "blob": "d38cb1c58a0c5e3756fdf32c81127ed7c158ac48"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/RouteBreakdown.kt",
@@ -499,9 +499,9 @@
       "blob": "82cabf5a76b5d8bf569ec38e1928c2a4ee55dfd0"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/PointsDeleteGuard.kt",
+      "app": "app/src/main/java/com/onpath/app/domain/PointsDeleteGuard.kt",
       "why": "safe ✕ in the Points list",
-      "blob": "5a043aee7afb08d6878e4ce78622646c11a55a7d"
+      "blob": "2e4ab495820704eb57fe8b33a93fb3732dcaedad"
     },
     {
       "app": "app/src/main/java/com/onpath/app/routing/PlanLinks.kt",
@@ -946,16 +946,16 @@
       "blob": "28c0deaf625bcf21c802b26874984d224b44170e",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/ui/PlanState.kt": {
-      "blob": "a35397cc4b63c331f6e6fdab0b6e4e347db3f170",
+    "app/src/main/java/com/onpath/app/domain/PlanState.kt": {
+      "blob": "9605a5157a2962e28e3a2026d278fc892a78038f",
       "perf": [
         "class PlanHistory(private val limit: Int = 100) {",
         "if (undo.size > limit) undo.removeFirst()",
         "undo.clear(); undo.addAll(undoSteps.takeLast(limit)); redo.clear(); redo.addAll(redoSteps)"
       ]
     },
-    "app/src/main/java/com/onpath/app/ui/MapGestures.kt": {
-      "blob": "2659eb9e24539b4616dc3447c6f0852c7639a7f6",
+    "app/src/main/java/com/onpath/app/domain/MapGestures.kt": {
+      "blob": "60a525dad678d4bee79f0498af6d20e51d3ec383",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/poi/GoogleMapsLink.kt": {
@@ -964,8 +964,8 @@
         "val path = title.trim().replace(' ', '_').split('#', limit = 2).let { parts ->"
       ]
     },
-    "app/src/main/java/com/onpath/app/ui/RouteWarnings.kt": {
-      "blob": "ccba0c37fe575459f2671e64ef8465201b624035",
+    "app/src/main/java/com/onpath/app/domain/RouteWarnings.kt": {
+      "blob": "d1af9e57296b94b6c090bf7ede4d43a248fa23db",
       "perf": [
         "const val MAX_ITEMS = 3",
         "steepPercent(activity)?.let { limit ->",
@@ -975,15 +975,15 @@
         "return items.take(MAX_ITEMS).joinToString(\" · \") + if (more > 0) \" +$more\" else \"\""
       ]
     },
-    "app/src/main/java/com/onpath/app/ui/PlaceAddMenu.kt": {
-      "blob": "0584b48dcb205d009f8c2202359977544783b18c",
+    "app/src/main/java/com/onpath/app/domain/PlaceAddMenu.kt": {
+      "blob": "89f8e61d89ed0043c7925f6a0f3bba8849757dbc",
       "perf": [
         "var insert = Double.MAX_VALUE",
         "var detour = Double.MAX_VALUE"
       ]
     },
-    "app/src/main/java/com/onpath/app/ui/LocateDistance.kt": {
-      "blob": "ae4776613340e33d78c91c688cde2eaa8efe0b94",
+    "app/src/main/java/com/onpath/app/domain/LocateDistance.kt": {
+      "blob": "a4fb4972052cf96e2dec5d5af6cdf29bc5b0cad0",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/gpx/GpxModel.kt": {
@@ -1130,18 +1130,18 @@
       "blob": "34084104a7bf35caac8aa4fa2ceb5d6dfbbee16d",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/ui/PlanStatus.kt": {
-      "blob": "87e855a5fe5f4b517037f3d6bbcd3d5d8a05b8b2",
+    "app/src/main/java/com/onpath/app/domain/PlanStatus.kt": {
+      "blob": "230f50bc58e0782e343bc85de8a3c9a93eba67bb",
       "perf": [
         "* route. Keeps the highest value it gave – a new search inside the same leg (a retry) or a leg from the cache never"
       ]
     },
-    "app/src/main/java/com/onpath/app/ui/PlanGaps.kt": {
-      "blob": "77533931de50e2846030e22908aeffeee811bb0b",
+    "app/src/main/java/com/onpath/app/domain/PlanGaps.kt": {
+      "blob": "77cbe65a8797a5fd8481dbf7a1aa36774b1ccd49",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/routing/PlanReach.kt": {
-      "blob": "625278794eb50c42ba10a59d720d9c2ecd4848da",
+      "blob": "835ceac3782bf6d1d4ad9767192d756a924db5d8",
       "perf": [
         "const val TRY_TIMEOUT_MS = 5_000L",
         "eng.route(ask, a, level, RouteLimits(TRY_TIMEOUT_MS, cancel))"
@@ -1210,7 +1210,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/routing/PlanResult.kt": {
-      "blob": "45c8ade9fe11dc54066c79e05a21cf961cbcd905",
+      "blob": "2dfaad9e0739c2a172d6417608895a50f7d4922f",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/routing/ProfileData.kt": {
@@ -1423,26 +1423,26 @@
       "blob": "13ccd938f2b655255ab60abd32825cf294ba5eda",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/ui/PlanStateTest.kt": {
-      "blob": "470956145d4d7023eb94ea46c11ec9324045d03c",
+    "app/src/test/java/com/onpath/app/domain/PlanStateTest.kt": {
+      "blob": "164c2ee5e836d2733d23318ec4b3cd6a5ef154be",
       "perf": [
         "val h = PlanHistory(limit = 3)"
       ]
     },
-    "app/src/test/java/com/onpath/app/ui/MapGesturesTest.kt": {
-      "blob": "e06e13938d08bc7ecc748e728dadc0e0b171d8e3",
+    "app/src/test/java/com/onpath/app/domain/MapGesturesTest.kt": {
+      "blob": "06cacfd27837e9f3eeccf54894ce34ce8cdc82b8",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/ui/RouteWarningsTest.kt": {
-      "blob": "9a19b9ce42f104c0dd71793efb69e36b34326aea",
+    "app/src/test/java/com/onpath/app/domain/RouteWarningsTest.kt": {
+      "blob": "af8aa9327ce8b66fd076dc5bc278b0f5dec0b6eb",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/ui/PlaceAddMenuTest.kt": {
-      "blob": "87ece57b0024b8e7fad4adb56d1fe11f958e6566",
+    "app/src/test/java/com/onpath/app/domain/PlaceAddMenuTest.kt": {
+      "blob": "d5eb155a169f997b4b5f8d07da5a44168ce109ec",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/ui/LocateDistanceTest.kt": {
-      "blob": "28c8a0fd2427c06d0de87c6046f33fd25f596a33",
+    "app/src/test/java/com/onpath/app/domain/LocateDistanceTest.kt": {
+      "blob": "b3bd3558a5d98f651ee57116bc5c7696f65a5cdd",
       "perf": []
     },
     "app/src/test/java/com/onpath/app/sync/SyncCryptoTest.kt": {
@@ -1484,8 +1484,8 @@
         "assertTrue(r.calls <= TrackToPlan.MAX_CALLS)"
       ]
     },
-    "app/src/test/java/com/onpath/app/ui/PlanGapsTest.kt": {
-      "blob": "9dfbd677f0d44579eb5d1413f26bdcb75281c8d2",
+    "app/src/test/java/com/onpath/app/domain/PlanGapsTest.kt": {
+      "blob": "fdafb86c7803f98f2c2ffa308bdec0e60b8219fd",
       "perf": []
     },
     "app/src/test/java/com/onpath/app/sync/SyncTrackTest.kt": {
@@ -1523,7 +1523,7 @@
       ]
     },
     "app/src/test/java/com/onpath/app/routing/PlanResultTest.kt": {
-      "blob": "71e69fc5770d3774f9fa7064f096cf14e4b5ae1d",
+      "blob": "f8ceb20079564e9119999ef312bb9653b639f626",
       "perf": []
     },
     "app/src/test/java/com/onpath/app/gpx/PlanGpxTest.kt": {
@@ -1531,7 +1531,7 @@
       "perf": []
     },
     "app/src/test/java/com/onpath/app/routing/PlanPointsTest.kt": {
-      "blob": "dee7172ab8a07c3ce24d8a3c92c2684ee8f20bfa",
+      "blob": "edd44f389fbee0d04843e6f543aeae7b1e7145dc",
       "perf": []
     },
     "app/src/test/java/com/onpath/app/data/RoutingDataNoticeTest.kt": {

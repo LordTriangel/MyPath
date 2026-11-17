@@ -4,7 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import com.onpath.app.debug.Problems
 import com.onpath.app.routing.GeoPoint
-import com.onpath.app.ui.OverviewRegion
+import com.onpath.app.domain.OverviewRegion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.withLock

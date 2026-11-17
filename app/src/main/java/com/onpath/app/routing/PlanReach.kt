@@ -2,8 +2,8 @@ package com.onpath.app.routing
 
 import com.onpath.app.data.Geo
 import com.onpath.app.debug.Problems
-import com.onpath.app.ui.PlanGap
-import com.onpath.app.ui.PlanGaps
+import com.onpath.app.domain.PlanGap
+import com.onpath.app.domain.PlanGaps
 
 /**
  * What reaches a plan point the route does not reach (owner 2026-11-07, Pixel "Meran → Mutkopf": at Hike T1 the line

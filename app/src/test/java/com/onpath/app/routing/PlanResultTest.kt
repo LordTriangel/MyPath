@@ -2,8 +2,8 @@ package com.onpath.app.routing
 
 import com.onpath.app.time.Factors
 import com.onpath.app.time.TimeEstimate
-import com.onpath.app.ui.PlanGaps
-import com.onpath.app.ui.RouteWarnings
+import com.onpath.app.domain.PlanGaps
+import com.onpath.app.domain.RouteWarnings
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

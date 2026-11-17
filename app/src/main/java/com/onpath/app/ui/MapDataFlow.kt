@@ -10,6 +10,9 @@ import com.onpath.app.data.DataFiles
 import com.onpath.app.data.RoutingDataNotice
 import com.onpath.app.data.TourDb
 import com.onpath.app.debug.Problems
+import com.onpath.app.domain.AppMode
+import com.onpath.app.domain.LoadSmoother
+import com.onpath.app.domain.OfflineReady
 import com.onpath.app.recording.LocationTracker
 import com.onpath.app.recording.RecState
 import com.onpath.app.routing.GeoPoint

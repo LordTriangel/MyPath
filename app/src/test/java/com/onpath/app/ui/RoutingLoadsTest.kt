@@ -2,6 +2,7 @@ package com.onpath.app.ui
 
 import com.onpath.app.data.RoutingDataLoader
 import com.onpath.app.data.RoutingDataLoader.Phase
+import com.onpath.app.domain.AppMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

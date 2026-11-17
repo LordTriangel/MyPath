@@ -1,6 +1,7 @@
 ---
 paths:
   - "app/src/main/java/com/onpath/app/ui/**"
+  - "app/src/main/java/com/onpath/app/domain/**"
   - "app/src/test/java/com/onpath/app/ui/**"
   - "app/src/test/snapshots/**"
   - "strings/**"

@@ -1,8 +1,8 @@
 package com.onpath.app.routing
 
 import com.onpath.app.data.Geo
-import com.onpath.app.ui.PlanHistory
-import com.onpath.app.ui.RouteRequests
+import com.onpath.app.domain.PlanHistory
+import com.onpath.app.domain.RouteRequests
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

@@ -232,8 +232,8 @@ environment?"
 | Navigate, recording, saved routes, offline maps, settings, haptics, Route details screen, time details | app | – | not a planner's job / later |
 
 New engine exports: `historyRecord/Step/State`, `gesture`, `pointMenu`, `fromMeBlocked`, `googleMaps`, `poiMenu`, `gpx`,
-`activities`; the plan answer carries `texts`, `because`, `warning`, `spots`. Compiled in place: `ui/PlanState.kt`,
-`ui/MapGestures.kt`, `ui/RouteWarnings.kt`, `poi/GoogleMapsLink.kt`, `gpx/GpxModel.kt`, `gpx/GpxWriter.kt`,
+`activities`; the plan answer carries `texts`, `because`, `warning`, `spots`. Compiled in place: `domain/PlanState.kt`,
+`domain/MapGestures.kt`, `domain/RouteWarnings.kt`, `poi/GoogleMapsLink.kt`, `gpx/GpxModel.kt`, `gpx/GpxWriter.kt`,
 `gpx/SportType.kt`, `data/LastActivity.kt`. Shells (web build only): `recording/GpsStatus` (the enum lives in the
 Android file `LocationTracker.kt`), `android.content.Intent`/`ActivityNotFoundException`, `android.net.Uri`,
 `android.app.Activity`, and a Context with `startActivity` (replaces the JVM test stub's in this build). The app's

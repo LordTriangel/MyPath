@@ -39,14 +39,14 @@ Search mockups: `docs/ux-search-proposals.md` (proposal C's "Add to route" card 
    app is back at the start as after "✕ Neu planen" (empty plan, the guide; the plan stays in My routes, Undo brings it).
 4. **Navigate without a route** = free recording (position + track only).
 5. **App start:** opens in Plan; if a tour is still running (e.g. after a phone restart) it opens in Navigate.
-   In Plan the map centres once on the position (`ui/StartCamera.kt`): a fresh fix at once, else after 4 s the last
+   In Plan the map centres once on the position (`domain/StartCamera.kt`): a fresh fix at once, else after 4 s the last
    known position, else the saved camera stays (a fix within 60 s still centres). Once the user moved the map it
    never jumps. No following – the map stays where the user pans it.
 6. Off-route warning only in Navigate (settings).
 7. **After End tour:** "Tour saved" (Done / GPX / Delete); Delete asks "Delete “Name”?" first (stays until answered,
    Cancel goes back to "Tour saved").
 
-## Menus (owner spec, rules in `ui/RouteRules.kt`)
+## Menus (owner spec, rules in `domain/RouteRules.kt`)
 Disabled items stay visible, greyed – nothing appears or vanishes by surprise. "Navigating" = Navigate mode or a
 tour recording (also while looking at Plan during a tour).
 
@@ -135,7 +135,7 @@ undo step. Tracks open next to the plan without asking.
   (MapLibre COMPASS render mode; direction = compass standing, GPS bearing moving – `map/HeadingEngine`); grey when stale.
 - One primary action per mode: Plan → "Los geht’s · ‹Ziel›" (owner 2026-11-02; "Aufnahme starten" without a route), Navigate → slide "Stop" (back to Plan).
 
-## Plan gestures (owner spec, `ui/MapGestures.kt`)
+## Plan gestures (owner spec, `domain/MapGestures.kt`)
 **Hold only.** A hold is ≥ 0.3 s (`HOLD_MS`) with a ring filling under the finger; the vibration comes the moment
 the ring is full (not on release). A longer press is the same as a hold. Quick taps never change anything, and
 nothing is dragged any more (points and the route line can't be moved by dragging).

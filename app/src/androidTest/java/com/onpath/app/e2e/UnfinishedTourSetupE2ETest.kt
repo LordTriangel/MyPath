@@ -10,7 +10,7 @@ import com.onpath.app.gpx.TrackPoint
 import com.onpath.app.recording.RecordingService
 import com.onpath.app.setup.CheckId
 import com.onpath.app.setup.Felt
-import com.onpath.app.ui.AppMode
+import com.onpath.app.domain.AppMode
 import com.onpath.strings.Res
 import com.onpath.strings.Txt
 import com.onpath.strings.routes_unfinished_continue

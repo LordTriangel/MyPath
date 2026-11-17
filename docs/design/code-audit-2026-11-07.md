@@ -87,7 +87,7 @@ It replaces the 13 `runCatching { X.valueOf(..) }` copies in:
 - `ui/TourBar.kt:72` `TourRunningBar`, and with it `TourControls`, `tourStatusText`, `TourStatus` :349, `TourStatusRow`
   :370, `TourPauseEnd`, `continueLabel` (frames `endTourConfirm`, `planMenuNavigating`; `ActivityLabelsTest`)
 - `ui/Panels.kt:192` `MapPlaceholder`: move it to test sources (6 test files use it)
-- `ui/RouteRules.kt:107` `saveAtHand`: obsolete since Zuletzt, no unsaved state
+- `domain/RouteRules.kt:107` `saveAtHand`: obsolete since Zuletzt, no unsaved state
 - `AppViewModel.sharePlan` :4079: verify whether the UI calls it via a method reference. If not, delete it.
 
 The following test-only helpers are fine because they are tested pure rules: `DiskIndex.allPlaces`,
@@ -261,7 +261,7 @@ Also remove them from `tools/i18n/meta/*.json`. Re-run the scan after pkg-all: S
    - `web/parity.json` mirrors may turn red; the shared files compile in the engine, so run `node web/parity/check.mjs`
      and the engine build.
 3. **Dead code + strings (owns:** `ui/SlideToUnlock.kt`, `ui/TourBar.kt`, `ui/RouteDialogs.kt` (DecisionDialog),
-   `ui/Panels.kt` (MapPlaceholder → test), `ui/Theme.kt` (ActionStop), `search/DiskIndex.kt`, `ui/RouteRules.kt`
+   `ui/Panels.kt` (MapPlaceholder → test), `ui/Theme.kt` (ActionStop), `search/DiskIndex.kt`, `domain/RouteRules.kt`
    (saveAtHand), `poi/Poi.kt`, `poi/PoiKinds.kt`, `search/Place.kt`, `ui/PlanPanel.kt` (PlanCalculating.shows), the
    strings XML + i18n meta, and the tests/screenshots that only keep those alive**)**. Also AppViewModel `wholeRouteShown`
    / `sharePlan` and RecordingService `screenLocked` – leave those two lines to packages 4 / 1.

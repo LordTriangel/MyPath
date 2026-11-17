@@ -2,9 +2,9 @@ package com.onpath.app.domain.plan
 
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.PlanEdits
-import com.onpath.app.ui.PlanAutoSave
-import com.onpath.app.ui.PlanGuidance
-import com.onpath.app.ui.RouteRequests
+import com.onpath.app.domain.PlanAutoSave
+import com.onpath.app.domain.PlanGuidance
+import com.onpath.app.domain.RouteRequests
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

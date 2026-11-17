@@ -105,7 +105,7 @@ jerkiness comes from four other things:
 - **Effort:** S · **Risk:** low.
 
 ### A14 · LOW – Haptics feel buzzy and are used in only two places
-- **Where:** `ui/MapGestures.kt:98-101` (30 ms waveforms), `ui/MapHost.kt:210-221` (raw `Vibrator`). Nothing else in
+- **Where:** `domain/MapGestures.kt:98-101` (30 ms waveforms), `ui/MapHost.kt:210-221` (raw `Vibrator`). Nothing else in
   the UI gives haptics (searched `performHapticFeedback` / `vibrate`).
 - **Fix:**
   - On API 30+, use `VibrationEffect.startComposition().addPrimitive(PRIMITIVE_CLICK)` for a hold, and two clicks

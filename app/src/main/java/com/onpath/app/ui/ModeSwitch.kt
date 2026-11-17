@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalView
 import com.onpath.app.debug.FrameJankMeter
 import com.onpath.app.debug.Problems
+import com.onpath.app.domain.AppMode
 
 /**
  * Plan ⇄ Navigate transition (owner): the leaving controls slide out at the edges and fade, the new ones slide in, in

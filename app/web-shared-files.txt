@@ -52,13 +52,13 @@ poi/PoiKinds.kt
 search/RouteNamer.kt
 poi/PoiFilter.kt
 # page parity with the phone (docs/design/web-planner.md §11): undo / redo, hold and point menus, Google link-out
-ui/PlanState.kt
-ui/MapGestures.kt
+domain/PlanState.kt
+domain/MapGestures.kt
 poi/GoogleMapsLink.kt
-ui/RouteWarnings.kt
+domain/RouteWarnings.kt
 # a held place's add entries („Als Zwischenstopp“ / „Als neues Ziel“) and the locate distance off the map (owner 2026-11-07)
-ui/PlaceAddMenu.kt
-ui/LocateDistance.kt
+domain/PlaceAddMenu.kt
+domain/LocateDistance.kt
 gpx/GpxModel.kt
 gpx/GpxWriter.kt
 gpx/SportType.kt
@@ -76,8 +76,8 @@ sync/PlaceSync.kt
 sync/SyncRound.kt
 # long-route question (web-planner.md §15): the app's LongRoute rule and plan status texts
 routing/LongRoute.kt
-ui/PlanStatus.kt
-ui/PlanGaps.kt
+domain/PlanStatus.kt
+domain/PlanGaps.kt
 # what reaches a stop the route does not reach ("② erst ab T2 erreichbar", owner 2026-11-07) – PlanGaps.reachText reads it
 routing/PlanReach.kt
 # GPX import (web-planner.md §15): the app's tolerant parser (SAX → onpathweb stand-ins in Wasm), track → plan, time
@@ -145,18 +145,18 @@ routing/PlanCodeTest.kt
 routing/PlanCodeDaysTest.kt
 routing/PlanDaysTest.kt
 routing/PlanMarksFollowTest.kt
-ui/PlanStateTest.kt
-ui/MapGesturesTest.kt
-ui/RouteWarningsTest.kt
-ui/PlaceAddMenuTest.kt
-ui/LocateDistanceTest.kt
+domain/PlanStateTest.kt
+domain/MapGesturesTest.kt
+domain/RouteWarningsTest.kt
+domain/PlaceAddMenuTest.kt
+domain/LocateDistanceTest.kt
 sync/SyncCryptoTest.kt
 sync/PlanSyncTest.kt
 routing/LongRouteTest.kt
 gpx/GpxParserTest.kt
 gpx/SportTypeTest.kt
 routing/TrackToPlanTest.kt
-ui/PlanGapsTest.kt
+domain/PlanGapsTest.kt
 # plan-sync track items (SyncItem.TRACK, TrackCode frozen bytes) + the fake mailbox it runs against
 sync/SyncTrackTest.kt
 # kept places in the sync: item kind 5 / field 11, the merge, PlaceSync export / import (web-sync.md §5.4)

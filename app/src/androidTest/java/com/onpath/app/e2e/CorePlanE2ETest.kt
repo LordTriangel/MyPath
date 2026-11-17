@@ -196,7 +196,7 @@ class CorePlanE2ETest : E2EBase() {
         val older = insert("E2E older route", 0.003, now)
         var newer = -1L
         try {
-            scenario.onActivity { a -> vm(a).routesTab = com.onpath.app.ui.RoutesTab.PLANNED; vm(a).openRoutes() }
+            scenario.onActivity { a -> vm(a).routesTab = com.onpath.app.domain.RoutesTab.PLANNED; vm(a).openRoutes() }
             assertNotNull("the older route in My routes", findFresh(By.text("E2E older route"), 8_000))
             newer = insert("E2E newer route", 0.006, now + 1_000)
             scenario.onActivity { a -> vm(a).refreshTours() }
@@ -236,7 +236,7 @@ class CorePlanE2ETest : E2EBase() {
         waitUntil("cleared at once, no question", 5_000) { var n = -1; scenario.onActivity { a -> n = vm(a).waypoints.size }; n == 0 }
         before = emptyList()
         try {
-            scenario.onActivity { a -> vm(a).routesTab = com.onpath.app.ui.RoutesTab.PLANNED; vm(a).openRoutes() }
+            scenario.onActivity { a -> vm(a).routesTab = com.onpath.app.domain.RoutesTab.PLANNED; vm(a).openRoutes() }
             val row = findFresh(By.text(name), 8_000)
             assertNotNull("the saved route in My routes", row)
             // every row that opens the overview carries the preview tile with its badge ("Übersicht vergrößern");
@@ -313,7 +313,7 @@ class CorePlanE2ETest : E2EBase() {
         val id = db.insertTour(com.onpath.app.data.TourKind.PLANNED, name, com.onpath.app.routing.Activity.HIKE.name, 2, 380.0, 0.0, 0.0,
             300.0, listOf(pts.map { com.onpath.app.gpx.TrackPoint(it.lat, it.lon) }), pts)
         try {
-            scenario.onActivity { a -> vm(a).routesTab = com.onpath.app.ui.RoutesTab.PLANNED; vm(a).openRoutes() }
+            scenario.onActivity { a -> vm(a).routesTab = com.onpath.app.domain.RoutesTab.PLANNED; vm(a).openRoutes() }
             findFresh(By.text(name), 8_000)!!.click()
             val go = findFresh(By.text(Txt.s(Res.string.plan_bar_go)), 8_000)
             assertNotNull("the overview offers \"Los geht's\" – ${state()}", go)
@@ -336,7 +336,7 @@ class CorePlanE2ETest : E2EBase() {
                 var ok = false
                 scenario.onActivity { a ->
                     val v = vm(a)
-                    ok = v.mode == com.onpath.app.ui.AppMode.NAVIGATE && v.waypoints.toList() == loaded && !v.routesOpen &&
+                    ok = v.mode == com.onpath.app.domain.AppMode.NAVIGATE && v.waypoints.toList() == loaded && !v.routesOpen &&
                         v.followLine != null && v.recState.value?.nav != null
                 }
                 ok
@@ -462,7 +462,7 @@ class CorePlanE2ETest : E2EBase() {
         waitUntil("the map is empty", 10_000) { waypointCount() == 0 }
         val db = com.onpath.app.data.TourDb.get(androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().targetContext)
         try {
-            scenario.onActivity { a -> vm(a).routesTab = com.onpath.app.ui.RoutesTab.PLANNED; vm(a).openRoutes() }
+            scenario.onActivity { a -> vm(a).routesTab = com.onpath.app.domain.RoutesTab.PLANNED; vm(a).openRoutes() }
             findFresh(By.text(name), 8_000)!!.click()
             val plan = findFresh(By.text(Txt.s(Res.string.routes_overview_plan)), 8_000)
             assertNotNull("the overview with \"Planen\" – ${state()}", plan)

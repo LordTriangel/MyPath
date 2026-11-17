@@ -86,7 +86,7 @@ fun main() {
         for (act in acts) for ((a, b) in pairs) {
             msgs = emptyList()
             val r = try { eng.route(listOf(a, b), act, 3) } catch (e: RoutingException) { continue }
-            val spots = com.onpath.app.ui.RouteWarnings.detect(r.points, act, 3)
+            val spots = com.onpath.app.domain.RouteWarnings.detect(r.points, act, 3)
             for (k in spots.map { it.kind.name }.toSet() + (if (spots.isEmpty()) emptySet() else setOf("(any line)")))
                 shown.getOrPut(k) { HashMap() }.merge(act, 1, Int::plus)
             total.merge(act, 1, Int::plus)

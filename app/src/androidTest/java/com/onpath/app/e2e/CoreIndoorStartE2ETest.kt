@@ -5,7 +5,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
 import com.onpath.app.data.Geo
 import com.onpath.app.data.TourDb
-import com.onpath.app.ui.AppMode
+import com.onpath.app.domain.AppMode
 import org.junit.After
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

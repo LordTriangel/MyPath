@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.domain.AppMode
 import com.onpath.app.recording.GpsStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

@@ -2,7 +2,7 @@ package com.onpath.app.routing
 
 import com.onpath.app.routing.WaypointInsertion.Kind
 import com.onpath.app.search.AddPreview
-import com.onpath.app.ui.MapGestures
+import com.onpath.app.domain.MapGestures
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
