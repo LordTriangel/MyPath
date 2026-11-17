@@ -69,27 +69,24 @@ class Facts(val net: WayNet, index: Named.Index, K: SuggestSettings.J, bike: Boo
         val bigWater = K["big_water"].d
         // the land grids, grid by grid: per link the grid it is read in (Land.gridAt in link order, as the POC moves
         // from grid to grid), then each grid's links together – only one grid's tables are in memory at a time
-        val gridNo = IntArray(n) { -1 }
+        val gridNo = SmallInts(n)  // 0 = none, else the grid's number + 1
         val grids = ArrayList<Land.Grid>()
         val gridIds = java.util.IdentityHashMap<Land.Grid, Int>()
         for (e in 0 until n) {
             if (!ok[e]) continue
             val mid = mid(e)
             val g = land.gridAt(mid[0], mid[1]) ?: continue
-            gridNo[e] = gridIds.getOrPut(g) { grids.add(g); grids.size - 1 }
+            gridNo[e] = gridIds.getOrPut(g) { grids.add(g); grids.size }
         }
         val wet = ByteArray(n)  // bit 0: water within 90 m > 4 %, bit 1: within 300 m ≥ big_water
-        val areaName = arrayOfNulls<String>(n)
-        val byGrid = IntArray(grids.size + 1)
-        for (e in 0 until n) if (gridNo[e] >= 0) byGrid[gridNo[e] + 1]++
-        for (i in 0 until grids.size) byGrid[i + 1] += byGrid[i]
-        val order = IntArray(byGrid[grids.size])
-        val fill = byGrid.copyOf(grids.size)
-        for (e in 0 until n) if (gridNo[e] >= 0) order[fill[gridNo[e]]++] = e
+        // the protected area's name per link, numbered as met here (numbered again in link order below)
+        val areaOf = SmallInts(n)
+        val areaNames = arrayListOf("")
+        val areaSeen = HashMap<String, Int>()
         for (i in 0 until grids.size) {
             val g = grids[i]
-            for (k in byGrid[i] until byGrid[i + 1]) {
-                val e = order[k]
+            for (e in 0 until n) {
+                if (gridNo[e] != i + 1) continue
                 val mid = mid(e)
                 val around = land.around(g, mid[0], mid[1])
                 built[e] = around.built >= 0.5
@@ -97,7 +94,7 @@ class Facts(val net: WayNet, index: Named.Index, K: SuggestSettings.J, bike: Boo
                 depth[e] = 0.5 * (around.n300 + around.n900)
                 rim[e] = land.rim(g, mid[0], mid[1], rimFrom, rimFull, rimReach)
                 wet[e] = ((if (around.w90 > 0.04) 1 else 0) or (if (around.w300 >= bigWater) 2 else 0)).toByte()
-                if (around.area.isNotEmpty()) areaName[e] = around.area
+                if (around.area.isNotEmpty()) areaOf[e] = areaSeen.getOrPut(around.area) { areaNames.add(around.area); areaNames.size - 1 }
             }
             g.release()
         }
@@ -128,8 +125,8 @@ class Facts(val net: WayNet, index: Named.Index, K: SuggestSettings.J, bike: Boo
             // one array for the many links with the same things as the link before (most have none)
             if (hits.isEmpty()) hits = EMPTY else if (hits.contentEquals(lastHits)) hits = lastHits else lastHits = hits
             named[e] = hits
-            val nm = areaName[e]
-            if (nm != null) {
+            if (areaOf[e] != 0) {
+                val nm = areaNames[areaOf[e]]
                 area[e] = areaIndex.getOrPut(nm) { areas.add(nm); areas.size - 1 }
             }
         }

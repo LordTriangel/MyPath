@@ -266,11 +266,17 @@ class Place(
          * place.py `quantile`: length-weighted quantile of (value, metres) over [edges] – every k-th of them (a sample
          * of at most ~30 000), sorted by value then metres.
          */
-        fun quantileOf(values: DoubleArray, metres: DoubleArray, q: Double): Double {
-            val n = values.size
+        fun quantileOf(values: DoubleArray, metres: DoubleArray, q: Double): Double =
+            quantileOf(values.size, { values[it] }, { metres[it] }, q)
+
+        /** [quantileOf] of n entries given by index – only the sampled ones are read (no arrays of all n). */
+        inline fun quantileOf(n: Int, valueAt: (Int) -> Double, metresAt: (Int) -> Double, q: Double): Double {
             if (n == 0) return 0.0
             val step = maxOf(1, n / 30000)
-            val idx = IntArray((n + step - 1) / step) { it * step }
+            val m = (n + step - 1) / step
+            val values = DoubleArray(m) { valueAt(it * step) }
+            val metres = DoubleArray(m) { metresAt(it * step) }
+            val idx = IntArray(m) { it }
             stableSort(idx) { a, b -> val c = values[a].compareTo(values[b]); if (c != 0) c else metres[a].compareTo(metres[b]) }
             var total = 0.0
             for (i in idx) total += metres[i]
@@ -316,9 +322,9 @@ class Place(
     }
 
     private fun quantile(edges: IntArray, value: DoubleArray, q: Double): Double =
-        quantileOf(DoubleArray(edges.size) { value[edges[it]] }, DoubleArray(edges.size) { F.ln[edges[it]] }, q)
+        quantileOf(edges.size, { value[edges[it]] }, { F.ln[edges[it]] }, q)
 
     /** [quantile] of axis [a]'s values ([value]). */
     private fun quantile(edges: IntArray, a: Int, q: Double): Double =
-        quantileOf(DoubleArray(edges.size) { value(a, edges[it]) }, DoubleArray(edges.size) { F.ln[edges[it]] }, q)
+        quantileOf(edges.size, { value(a, edges[it]) }, { F.ln[edges[it]] }, q)
 }
