@@ -13,6 +13,9 @@ import org.junit.Test
  * decides first. Continue is never held; after Save / Delete a new tour starts again.
  */
 class UnfinishedStartGuardTest {
+    /** TourController holds Compose state: each test writes it in a snapshot of its own (OwnComposeSnapshot says why). */
+    @get:org.junit.Rule val composeState = com.onpath.app.testkit.OwnComposeSnapshot()
+
 
     private class Recorder : TourRecorder {
         var starts = 0

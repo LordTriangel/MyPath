@@ -36,6 +36,9 @@ import kotlin.random.Random
  * A failing flow prints its seed and steps, so it can be replayed.
  */
 class TourFlowPropertyTest {
+    /** TourController holds Compose state: each test writes it in a snapshot of its own (OwnComposeSnapshot says why). */
+    @get:org.junit.Rule val composeState = com.onpath.app.testkit.OwnComposeSnapshot()
+
 
     private enum class Op { START, PAUSE, RESUME, EDIT, UNDO, REDO, ASK_END, PRESS, ARRIVE, ARRIVAL_KEEP, LEAVE_ARRIVAL, RESTART, UNFINISHED, NEW_PLAN, WALK, GAP, RIDE, UNDO_SHORT }
     private enum class Press { SAVE, DELETE, KEEP }
