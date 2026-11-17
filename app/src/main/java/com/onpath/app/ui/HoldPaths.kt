@@ -88,9 +88,10 @@ class HoldPaths(
                 result.isSuccess -> Outcome(result.getOrThrow(), true, ms)
                 else -> {
                     val e = result.exceptionOrNull()
-                    val why = if (e is RoutingException) "${e.kind.name.lowercase()}: ${e.message}" else "${e?.javaClass?.simpleName}: ${e?.message}"
+                    // the kind only in the trace; the exception itself goes to the problem log
+                    val why = if (e is RoutingException) e.kind.name.lowercase() else "engine error"
                     // expected: no routing data / no way near the spot / an island → info; anything else is a bug → warn
-                    if (e is RoutingException) Problems.info("plan", "Hold beside the plan: paths not measured ($why) – straight lines")
+                    if (e is RoutingException) Problems.info("plan", "Hold beside the plan: paths not measured ($why) – straight lines", e)
                     else Problems.warn("plan", "Hold beside the plan: measuring the paths failed – straight lines", e)
                     Outcome(straight, false, ms, why)
                 }

@@ -1242,6 +1242,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * running plan run makes the measure wait, at most its time limit, then the straight lines decide).
      */
     private val holdRouting = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    /** The measure of a hold beside the plan ([measureHold]); above the init blocks that can reach it. */
+    private val holdPaths by lazy { HoldPaths(viewModelScope, holdRouting) }
     @Volatile private var engine: RoutingEngine? = null
 
     /** The router (on [routingDispatcher]); only a real one is kept, so a failed start is retried next time. */
@@ -2015,8 +2017,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         holdAddMenu = HoldAdd(p, menu, lineSnapM)
         Problems.trace("plan", "Hold on the map: asks ${menu.main.joinToString(" / ")}")
     }
-
-    private val holdPaths by lazy { HoldPaths(viewModelScope, holdRouting) }
 
     /** A hold beside the plan being measured on the paths ([measureHold]): the spot, a ring turns on it; null = none. */
     var holdMeasuring by mutableStateOf<GeoPoint?>(null)
