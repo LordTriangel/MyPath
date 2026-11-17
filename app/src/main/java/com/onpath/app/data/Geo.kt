@@ -149,20 +149,30 @@ object Geo {
      * sheet's numbers. Navigate's "remaining ascent" uses the same, so the number does not jump at Start (review routing
      * M1). [climb] stays for recorded GPS tracks.
      */
-    fun routeClimb(eles: List<Double?>, filterM: Double = 10.0): Pair<Double, Double> {
+    fun routeClimb(eles: List<Double?>, filterM: Double = 10.0): Pair<Double, Double> =
+        routeClimbAlong(eles, filterM).let { (up, down) -> (up.lastOrNull() ?: 0.0) to (down.lastOrNull() ?: 0.0) }
+
+    /**
+     * [routeClimb] counted up to each point: ascent and descent from the start to point i (same size as [eles]) – the
+     * days of a multi-day tour add up to the plan's total (routing/PlanDays).
+     */
+    fun routeClimbAlong(eles: List<Double?>, filterM: Double = 10.0): Pair<DoubleArray, DoubleArray> {
+        val ups = DoubleArray(eles.size); val downs = DoubleArray(eles.size)
         var up = 0.0; var down = 0.0; var bufUp = 0.0; var bufDown = 0.0
         var last: Double? = null
-        for (e in eles) {
-            if (e == null) continue
-            val prev = last
-            if (prev != null) {
-                bufUp += e - prev; bufDown += prev - e
-                if (bufUp > filterM) { up += bufUp - filterM; bufUp = filterM } else if (bufUp < 0.0) bufUp = 0.0
-                if (bufDown > filterM) { down += bufDown - filterM; bufDown = filterM } else if (bufDown < 0.0) bufDown = 0.0
+        for ((i, e) in eles.withIndex()) {
+            if (e != null) {
+                val prev = last
+                if (prev != null) {
+                    bufUp += e - prev; bufDown += prev - e
+                    if (bufUp > filterM) { up += bufUp - filterM; bufUp = filterM } else if (bufUp < 0.0) bufUp = 0.0
+                    if (bufDown > filterM) { down += bufDown - filterM; bufDown = filterM } else if (bufDown < 0.0) bufDown = 0.0
+                }
+                last = e
             }
-            last = e
+            ups[i] = up; downs[i] = down
         }
-        return up to down
+        return ups to downs
     }
 
     /** Ascent/descent with a hysteresis threshold so GPS/DEM noise does not inflate totals. */

@@ -103,6 +103,42 @@ object PlanEdits {
         return w.take(start) + rotated + rotated.first()
     }
 
+    /**
+     * A per-point attribute by index ([SharedPlan.pinned], [SharedPlan.names], [SharedPlan.nights] – owner 2026-11-17:
+     * the night mark is the third and travels the same way) after any edit [before] → [after]: it follows its point by
+     * value, as the app and the web page keep pins and names; a point that is there twice (a round trip's closing point)
+     * by order. A deleted point's attribute goes, a new point has none. [keepMoved]: with the same number of points, a
+     * point whose value changed in place (a drag, the router's snapping) keeps it – for night marks; a dragged point is no
+     * longer pinned or named (as in the app and the planner).
+     */
+    fun <T> follow(before: List<GeoPoint>, after: List<GeoPoint>, attrs: Map<Int, T>, keepMoved: Boolean = false): Map<Int, T> {
+        if (attrs.isEmpty()) return attrs
+        val src = sources(before, after, keepMoved)
+        val out = HashMap<Int, T>()
+        for (j in after.indices) { val i = src[j]; if (i >= 0) attrs[i]?.let { out[j] = it } }
+        return out
+    }
+
+    /** [follow] for a set of indices (the pinned points). */
+    fun follow(before: List<GeoPoint>, after: List<GeoPoint>, indices: Set<Int>, keepMoved: Boolean = false): Set<Int> {
+        if (indices.isEmpty()) return indices
+        val src = sources(before, after, keepMoved)
+        return after.indices.filter { src[it] >= 0 && src[it] in indices }.toSet()
+    }
+
+    /** For each point of [after] the index it had in [before], or -1 for a new point. */
+    private fun sources(before: List<GeoPoint>, after: List<GeoPoint>, keepMoved: Boolean): IntArray {
+        val left = HashMap<GeoPoint, ArrayDeque<Int>>()
+        before.forEachIndexed { i, p -> left.getOrPut(p) { ArrayDeque() }.addLast(i) }
+        val src = IntArray(after.size) { j -> left[after[j]]?.removeFirstOrNull() ?: -1 }
+        if (keepMoved && before.size == after.size) {
+            // moved in place: the new value was nowhere before and the old one is nowhere now
+            val was = before.toHashSet(); val now = after.toHashSet()
+            for (j in after.indices) if (src[j] < 0 && after[j] !in was && before[j] !in now) src[j] = j
+        }
+        return src
+    }
+
     fun replace(w: List<GeoPoint>, index: Int, p: GeoPoint): List<GeoPoint> =
         if (index !in w.indices) w else w.toMutableList().also { it[index] = p }
 

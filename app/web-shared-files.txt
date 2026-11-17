@@ -33,6 +33,7 @@ time/PaceModel.kt
 time/RouteTimes.kt
 routing/PlanCode.kt
 routing/PlanPoints.kt
+routing/PlanDays.kt
 # search (docs/design/web-planner.md §10): the app's index, ranking and Photon parsing
 search/Place.kt
 search/SearchText.kt
@@ -138,6 +139,8 @@ suggest/TourSuggester.kt
 routing/OfflineCorridorTest.kt
 routing/PlanCodeTest.kt
 routing/PlanCodeDaysTest.kt
+routing/PlanDaysTest.kt
+routing/PlanMarksFollowTest.kt
 ui/PlanStateTest.kt
 ui/MapGesturesTest.kt
 ui/RouteWarningsTest.kt
