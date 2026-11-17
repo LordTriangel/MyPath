@@ -111,11 +111,7 @@ class NavSessionStoreTest {
     // meanwhile": the service writes a re-route only over its own session) ---
 
     /** What the service does with a session whose line / fields changed: true = written. */
-    private fun serviceWrites(store: NavSessionStore, s: NavSession): Boolean {
-        if (!NavSession.mayOverwrite(store.tokenOnDisk(s.token), s.token)) return false
-        store.save(s)
-        return true
-    }
+    private fun serviceWrites(store: NavSessionStore, s: NavSession): Boolean = store.saveIfMine(s)
 
     /** The service's navigator takes a found way back ("Take new route"): the session line changes, the token stays. */
     private fun rerouted(s: NavSession): NavSession {
@@ -196,6 +192,60 @@ class NavSessionStoreTest {
         val proposed = NavSessionStore(f).load()
         f.delete()
         assertNotNull(proposed); assertNull(NavSessionStore(f).load())
+    }
+
+    // --- (c2) the same two writers on two threads: the service's "is the file still mine?" and its write are one
+    // step ([NavSessionStore.saveIfMine]). Today both run on the main thread (the view model's saves and
+    // RecordingService.handle), so nothing can come between them; the cleanup moves the recording off the main thread –
+    // then only this keeps a re-route of the old line from landing on the app's newer session. ---
+
+    /** A tour with a long line (~3000 points): reading and writing it takes long enough for the other thread to cut in. */
+    private fun longTour(n: Int) = NavSession.start(NavKind.PLAN, "tour$n", Activity.HIKE, 3,
+        line(0.0 to 0.0, 30_000.0 to 0.0), listOf(pt(0.0, 0.0), pt(30_000.0, 0.0))).copy(token = n.toLong(), reached = true)
+
+    /** Runs the app's [appWrites] and the service's re-route of the session it loaded at the same moment, [rounds] times. */
+    private fun race(rounds: Int, appWrites: (NavSessionStore, Int) -> Unit, check: (round: Int, wrote: Boolean) -> Unit) {
+        val app = NavSessionStore(file); val service = NavSessionStore(file)
+        val pool = Executors.newFixedThreadPool(2)
+        try {
+            repeat(rounds) { r ->
+                app.save(longTour(2 * r + 1))                     // the tour runs
+                val running = service.load()!!                    // the service follows it …
+                val re = running.copy(current = running.original.reversed(), version = running.version + 1) // … and re-routes
+                val go = java.util.concurrent.CyclicBarrier(2)
+                val a = pool.submit { go.await(); appWrites(app, r) }
+                val s = pool.submit<Boolean> { go.await(); service.saveIfMine(re) }
+                a.get(60, TimeUnit.SECONDS)
+                check(r, s.get(60, TimeUnit.SECONDS))
+            }
+        } finally { pool.shutdownNow() }
+    }
+
+    @Test fun aReRouteRacingTheAppsNewSessionOnAnotherThreadNeverWins() {
+        val stale = ArrayList<Int>()
+        race(300, { app, r -> app.save(longTour(2 * r + 2)) }) { r, _ ->
+            // the service first: its re-route is replaced by the app's session; the app first: the re-route is dropped
+            val onDisk = NavSessionStore(file).load()
+            if (onDisk?.token != (2 * r + 2).toLong() || onDisk.rerouted) stale += r
+        }
+        assertEquals("rounds in which the old line's re-route was written over the app's new session", emptyList<Int>(), stale)
+    }
+
+    @Test fun aReRouteRacingTheEndOfGuidanceOnAnotherThreadNeverBringsTheFileBack() {
+        val back = ArrayList<Int>()
+        race(300, { app, _ -> app.save(null) }) { r, _ -> if (file.exists()) back += r }
+        assertEquals("rounds in which the removed route came back", emptyList<Int>(), back)
+    }
+
+    @Test fun saveIfMineSaysWhetherTheSessionWasStillTheFiles() {
+        val app = NavSessionStore(file); val service = NavSessionStore(file)
+        app.save(tour(1, 1))
+        val running = service.load()!!
+        assertTrue(service.saveIfMine(rerouted(running)))
+        assertTrue(NavSessionStore(file).load()!!.rerouted)
+        app.save(tour(1, 2))
+        assertFalse(service.saveIfMine(rerouted(running)))
+        assertFalse(NavSessionStore(file).load()!!.rerouted)
     }
 
     // --- (d) broken files ---

@@ -992,21 +992,20 @@ class RecordingService : Service() {
         }
         if (step.cancelJob) cancelReroute()
         step.job?.let { startReroute(it) }
-        // the app chose a new line meanwhile (its FOLLOW_CHANGED is on the way): this result belongs to the old session
-        if ((step.lineChanged || step.sessionChanged) &&
-            !NavSession.mayOverwrite(sessionStore.tokenOnDisk(nav.session.token), nav.session.token)) {
+        // the session is written before the new line is shown (crash recovery R-07) – unless the app chose a new line
+        // meanwhile (its FOLLOW_CHANGED is on the way): then this result belongs to the old session. Look and write
+        // are one step (NavSessionStore.saveIfMine).
+        if ((step.lineChanged || step.sessionChanged) && !sessionStore.saveIfMine(nav.session)) {
             Problems.trace("navigation", "Re-route result of an older line dropped: the app follows a new line")
             loadFollow()
             publish(force = true)
             return
         }
         if (step.lineChanged) {
-            // written before the new line is shown (crash recovery R-07)
-            sessionStore.save(nav.session)
             Prefs(this).saveFollow(follow?.first ?: nav.session.name, nav.session.active)
             follow = (follow?.first ?: nav.session.name) to nav.session.active
             timeLine()
-        } else if (step.sessionChanged) sessionStore.save(nav.session)
+        }
         if (step.activityChanged && tourId >= 0) {
             // the tour is now recorded as the new activity; the app follows via RecState.nav.session
             try { db.updateActivity(tourId, nav.session.activity.name, nav.session.sac) } catch (e: Exception) {
