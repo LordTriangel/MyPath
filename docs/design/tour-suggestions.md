@@ -423,6 +423,10 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   gimmicks** on the activity (no shoe for Wandern – plain labels as the planner has them).
 - **Map with the cards (owner 2026-11-17, replaces "the others as a breath"):** only the chosen card's loop is on the
   map; no faint other loops – one looks at the cards one after the other, that is faster.
+- **The five values on a card (owner 2026-11-17, sketch 6 https://claude.ai/artifact/K1TGQdADQCYNREbbafoYWR variant B,
+  refined):** no bars; only the biggest standouts within the shown list as pills – strengths light green, weaknesses
+  light yellow, three intensities by how far it stands out; at most a few per card. Exact picture: sketch 7 (pending
+  his yes).
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
