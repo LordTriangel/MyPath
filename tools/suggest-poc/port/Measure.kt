@@ -39,5 +39,9 @@ fun main(args: Array<String>) {
         println(String.format(Locale.ROOT, "%s run %d: %.2f s, heap peak %.0f MB, %d loops, %d cards: %s · %s", args[0], k, secs,
             pools.sumOf { it.peakUsage.used } / 1048576.0, r.candidates.size, r.shown.size, r.shown.firstOrNull()?.name ?: "–",
             r.times.mapValues { String.format(Locale.ROOT, "%.2f", it.value) }))
+        if (k == runs && System.getenv("MEASURE_CARDS") != null) {  // the cards' words (SUGGEST_LANG=en: the English ones)
+            for (n in r.notes) println("  note: $n")
+            for (c in r.shown) println("  ${c.name} · ${c.bearing}\n    ${c.reasons.joinToString(" · ")}\n    ${c.line}\n    ${c.hints.joinToString(" · ")} | ${c.why}")
+        }
     }
 }
