@@ -60,9 +60,11 @@ class NetReader(private val segmentsDir: File) {
         var tileBytesPeak = 0L
         var nodesDecoded = 0L
         var wayKinds = 0
+        /** reverse texts BRouter made (the others are put together from the forward text, Tiles.reverseText) */
+        var reverseTexts = 0
         var ms = 0L
         override fun toString() = "tiles $tilesDecoded (again $tilesDecodedAgain), raw tiles peak ${tileBytesPeak / 1_000_000} MB, " +
-            "nodes decoded $nodesDecoded, way kinds $wayKinds, $ms ms"
+            "nodes decoded $nodesDecoded, way kinds $wayKinds (reverse texts $reverseTexts), $ms ms"
     }
 
     class ReadException(message: String, cause: Throwable? = null) : Exception(message, cause)
@@ -177,11 +179,17 @@ class NetReader(private val segmentsDir: File) {
 
         init { rc.expctxWay.setDecodeForbidden(true) }  // as NodesCache(…, detailed = true): forbidden ways stay in the data
 
+        // the tile returned last (most lookups are in the same tile as the one before): it is the LRU's most recent
+        // entry already, so answering it without asking the LRU leaves the LRU's order as it is
+        private var lastKey = Long.MIN_VALUE
+        private var lastTile: RawTile? = null
+
         /** The raw tile holding position [ilon] / [ilat]; null when there is no routing data there. */
         fun tile(ilon: Int, ilat: Int): RawTile? {
             val d = degree(ilon / 1_000_000, ilat / 1_000_000) ?: return null
             val key = key(d, ilon, ilat)
-            lru[key]?.let { return it }
+            if (key == lastKey) return lastTile
+            lru[key]?.let { lastKey = key; lastTile = it; return it }
             val t = decode(d.file, (key ushr 32).toInt(), key.toInt(), d.cellsize)
             if (!decodedOnce.add(key)) stats.tilesDecodedAgain++
             stats.tilesDecoded++
@@ -189,6 +197,7 @@ class NetReader(private val segmentsDir: File) {
             bytes += t.bytes
             if (bytes > stats.tileBytesPeak) stats.tileBytesPeak = bytes
             if (bytes > budget) evict(key)
+            lastKey = key; lastTile = t
             return t
         }
 
@@ -215,9 +224,13 @@ class NetReader(private val segmentsDir: File) {
         private fun key(d: Degree, ilon: Int, ilat: Int): Long =
             ((ilon / d.cellsize).toLong() shl 32) or (ilat / d.cellsize).toLong()
 
+        private var lastDegreeKey = Int.MIN_VALUE
+        private var lastDegree: Degree? = null
+
         private fun degree(lonDeg: Int, latDeg: Int): Degree? {
             val key = lonDeg * 1000 + latDeg
-            if (degrees.containsKey(key)) return degrees[key]
+            if (key == lastDegreeKey) return lastDegree
+            if (degrees.containsKey(key)) return degrees[key].also { lastDegreeKey = key; lastDegree = it }
             val name = fileName(lonDeg, latDeg)
             val pf = if (files.containsKey(name)) files[name] else {
                 val file = File(segmentsDir, "$name.rd5")
@@ -229,6 +242,7 @@ class NetReader(private val segmentsDir: File) {
             val f = if (pf == null) null else OsmFile(pf, lonDeg, latDeg, buffers).takeIf { it.hasData() }
             val d = if (f == null || pf == null) null else Degree(f, 1_000_000 / pf.divisor)
             degrees[key] = d
+            lastDegreeKey = key; lastDegree = d
             return d
         }
 
@@ -315,13 +329,42 @@ class NetReader(private val segmentsDir: File) {
             val cb = way.costfactor
             val grantB = way.nodeAccessGranted != 0f
             val textF = way.getKeyValueDescription(false, desc)
-            val textB = way.getKeyValueDescription(true, desc)
             val k = kinds.add(cf, cb, textF)
             if (k >= kindBits.size) { kindBits = kindBits.copyOf(kindBits.size * 2); wayCheck = wayCheck.copyOf(kindBits.size) }
+            // the reverse text only where the coarse filter reads it
+            val skipB = coarse.skip != null && skips(reverseText(desc, textF))
             kindBits[k] = (if (grantF) 1 else 0) or (if (grantB) 2 else 0) or
-                (if (skips(textF)) 4 else 0) or (if (skips(textB)) 8 else 0)
+                (if (skips(textF)) 4 else 0) or (if (skipB) 8 else 0)
             return k
         }
+
+        // BRouter's text of a description read against its direction differs from the forward text only in the first
+        // lookup (BExpressionContext.decode sets lookup 0, "reversedirection", and nothing else): the reverse text is
+        // that lookup's token in front of the forward text. Checked on the first kinds against BRouter's own text
+        // (else every reverse text is BRouter's) – one text per way kind instead of two.
+        private var reverseHead: String? = null
+        private var reverseChecked = 0
+        private var reverseOwn = false
+
+        private fun reverseText(desc: ByteArray, textF: String): String {
+            val head = reverseHead
+            if (reverseOwn || head == null || reverseChecked < 8) {
+                val real = rc.expctxWay.getKeyValueDescription(true, desc)
+                stats.reverseTexts++
+                if (!reverseOwn) {
+                    if (head == null) {
+                        if (textF.isNotEmpty() && real.length > textF.length && real.endsWith(" $textF")) {
+                            reverseHead = real.substring(0, real.length - textF.length - 1)
+                        } else if (textF.isNotEmpty()) reverseOwn = true
+                    } else if (real != joined(head, textF)) reverseOwn = true
+                    reverseChecked++
+                }
+                return real
+            }
+            return joined(head, textF)
+        }
+
+        private fun joined(head: String, textF: String) = if (textF.isEmpty()) head else "$head $textF"
 
         private fun skips(text: String): Boolean {
             val skip = coarse.skip ?: return false
@@ -345,6 +388,7 @@ class NetReader(private val segmentsDir: File) {
 
         fun releaseTiles() {
             lru.clear()
+            lastKey = Long.MIN_VALUE; lastTile = null
             bytes = 0
             pending.release()
             wayByHash.release()

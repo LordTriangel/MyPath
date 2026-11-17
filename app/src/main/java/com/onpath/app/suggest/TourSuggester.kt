@@ -114,6 +114,7 @@ object TourSuggester {
         if (shown.isEmpty()) notes.add(SuggestText.noteNone())
         else if (shown.maxOf { it.up } < ch.up[0]) notes.add(SuggestText.noteLessAscent())
         lap("judging")
+        search.release()  // the result keeps the network and the place, not the searches' work arrays
         val rest = every.filter { !it.chosen }.sortedBy { -it.score }
         return SuggestResult(ch, net, P, notes, shown + rest, times, updating)
     }
