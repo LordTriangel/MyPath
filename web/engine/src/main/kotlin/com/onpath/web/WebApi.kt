@@ -1006,5 +1006,8 @@ external fun planProgress(text: String)
 @JSExport fun activityLayers(activity: String, sac: Int, layerIds: String): String =
     com.onpath.app.map.ActivityLayers.toJson(Activity.valueOf(activity), sac, layerIds.split(',').filter { it.isNotEmpty() })
 
+// round-trip suggestions (WebSuggest.kt, docs/design/tour-suggestions.md §7 stage 3): op need | run, the wish as JSON
+@JSExport fun suggest(op: String, json: String): String = WebSuggest.call(op, json)
+
 fun main() {}
 
