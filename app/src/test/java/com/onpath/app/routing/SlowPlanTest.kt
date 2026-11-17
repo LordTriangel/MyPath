@@ -65,14 +65,21 @@ class SlowPlanTest {
 
     @Test fun theAppAsksOnlyInPlanAndCancelIsTheUsualCancel() {
         val vm = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
-        assertTrue(vm.contains("val askAtLimit = mode == AppMode.PLAN"))
+        // only a run started in Plan asks; Cancel is the usual Cancel; "Weiter warten" runs again for the same cause with
+        // one more period and a new run starts at one period: the route run's rules (RouteRunTest
+        // aRunForNavigateKeepsTheStraightLegsAtTheTimeLimit, cancelOfWeiterWartenIsTheUsualCancel,
+        // weiterWartenRunsAgainWithOneMorePeriodAndANewRunStartsAtOneAgain) – here: the view model asks them and obeys
+        val recalc = vm.substringAfter("private fun recalc() {").substringBefore("routeJob = viewModelScope.launch")
+        assertTrue(recalc.contains("RouteRun.Event.Recalc(pts, act, planMode = mode == AppMode.PLAN,"))
+        assertTrue(recalc.contains("val gen = start.gen; val rounds = start.rounds; val askAtLimit = start.askAtLimit"))
         assertTrue(vm.contains("Planner(eng, cancel, askAtLimit = askAtLimit, rounds = rounds, legs = legCache"))
+        assertTrue(vm.contains("routeEvent(RouteRun.Event.TimeLimit(gen, it.rounds))"))
         val answer = vm.substringAfter("fun answerSlowPlan(").substringBefore("\n    }\n")
-        assertTrue(answer, answer.contains("if (next == null) { planRounds = 1; cancelRun(NotRouted.STOPPED); return }"))
-        // "Weiter warten" runs again for the same cause: RunCause.again (PlanStatusTest.eachTriggerSetsTheCauseOfTheNextRun)
-        assertTrue(answer, answer.contains("runCauses.again()") && answer.contains("recalc()"))
-        val recalc = vm.substringAfter("private fun recalc() {").substringBefore("val rounds = planRounds")
-        assertTrue("a new run starts at one period", recalc.contains("if (!keepRounds) planRounds = 1"))
+        assertTrue(answer, answer.contains("val effects = routeEvent(RouteRun.Event.SlowAnswer(answer))") && answer.contains("perform(effects)"))
+        val perform = vm.substringAfter("private fun perform(").substringBefore("\n    }\n")
+        assertTrue(perform, perform.contains("is RouteRun.Effect.Cancel -> cancelRun(fx.why)"))
+        // RunCause.again (PlanStatusTest.eachTriggerSetsTheCauseOfTheNextRun)
+        assertTrue(perform, perform.contains("is RouteRun.Effect.Rerun -> { if (fx.sameCause) runCauses.again(); recalc() }"))
         val screen = File("src/main/java/com/onpath/app/ui/MapScreen.kt").readText()
         assertTrue(screen.contains("vm.slowPlanAsk?.let { slowPlanMessage(onAnswer = vm::answerSlowPlan) }"))
     }
