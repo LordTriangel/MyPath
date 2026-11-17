@@ -11,7 +11,8 @@ import org.junit.runner.RunWith
 /**
  * Not a test of the app: prepares the emulator for a monkey crash hunt (night job 2026-11-12). Leaves behind a clean
  * app with the tiny map package (+ the real routing data when pushed), a saved three-point plan in Meran and the
- * developer tools unlocked (Demo location). The hunt then starts the app by hand, rides the demo and runs `monkey`.
+ * developer tools unlocked (Demo location). `tools/dev/crash_hunt.sh` runs it, then starts the Demo tour through the UI and
+ * runs `monkey`.
  */
 @RunWith(AndroidJUnit4::class)
 class CrashHuntSetup : E2EBase() {
