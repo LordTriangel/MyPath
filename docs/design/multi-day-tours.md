@@ -168,7 +168,7 @@ phone, day trips from one base.
 
 ## 10. UI – a separate round with the owner (2026-11-16: "über die UI reden wir noch einmal separat")
 
-Nothing here is designed yet. The topics to bring to that round, with sketches (at most three variants, his yes before
+Round 1 (2026-11-17, a rough journey sketch, not a design): https://claude.ai/artifact/TdtKJFYzsmyQKJFTWSuCR1 – 11 steps from the GPX in the planner to riding day 4 on the phone, with the tour overview as step 6. The topics to bring to that round, with sketches (at most three variants, his yes before
 any build):
 
 1. **Tour overview in the plan** (owner 2026-11-16: "eine schöne Routenübersicht über die einzelnen Tage und
