@@ -61,14 +61,17 @@ Rules (each is one undo step, then saved):
 
 ### Browser planner (where the tour is made)
 
-1. **The way in.** ☰ → "Mehrtagestour planen". A short guide panel with two steps:
-   **1 · Route** – "GPX-Track laden", "Gespeicherte Route öffnen" or "Selbst planen";
+1. **The way in.** ☰ → "Mehrtagestour planen". A short guide panel with two steps (owner 2026-11-17, round 3: no
+   "Selbst planen" – who plans himself saves the route and opens it here):
+   **1 · Route** – "GPX-Track laden" (with the line "Anfang und Ende kannst du danach zuschneiden") or "Gespeicherte
+   Route öffnen". Once the first route is there, step 1 shows it with ✓ and below it **"Noch etwas anhängen:"** with
+   the same two ways – that is where gluing comes, no menu item of its own;
    **2 · Tage** – "Weiter: Tage festlegen" (active once there is a route).
    The same "Als Mehrtagestour planen" sits in the ⋯ menu of any plan on the map, so a long route planned the normal
    way gets there too.
 2. **Trim (new).** On a loaded GPX track: two handles, start and end, on the line and in the height profile; the part
    outside is grey. "Route daraus planen" takes only the part between them. The file is not changed.
-3. **Glue (new).** With a route already there, the GPX-Track panel offers "An die Route anhängen": the trimmed track's
+3. **Glue (new).** A GPX-Track loaded under "Noch etwas anhängen" offers "An die Route anhängen" after trimming: the trimmed track's
    route goes behind the last point. The joint is a normal point. If the track runs the other way (its end is nearer),
    it is turned round. The guide panel stays at step 1 until "Weiter: Tage festlegen".
 4. **Days.** One small box, everything under each other: name (proposal "München – Venedig"), limits per day (time,
@@ -96,7 +99,8 @@ Every row is solved with R1–R7; none needs another tool.
 | # | Situation | What the user does | Result |
 | --- | --- | --- | --- |
 | A | Start from a downloaded GPX track | Mehrtagestour planen → GPX-Track laden → trim → Route daraus planen → Weiter: Tage festlegen → 6 → Fertig | 5 grey beds, 6 day rows. |
-| B | Start from two tracks (München–Brenner, Brenner–Venedig) | as A, the second track: An die Route anhängen | one route; days set afterwards. |
+| A2 | Planned the route myself | plan as always → Speichern → Mehrtagestour planen → Gespeicherte Route öffnen (or ⋯ → Als Mehrtagestour planen) | as A from step 2. |
+| B | Start from two tracks (München–Brenner, Brenner–Venedig) | as A, then in step 1 „Noch etwas anhängen“ → GPX-Track laden → trim → An die Route anhängen | one route; days set afterwards. |
 | C | Start from a route planned normally | ⋯ → Als Mehrtagestour planen | straight to the days box. |
 | D | I know where I sleep on night 2, not the hotel yet | tap the route there → Übernachtung hier | blue bed; days 1–2 and 3–6 even out (R1). |
 | E | Hotel booked | its blue bed → Hotel hinterlegen → search or paste the link | green bed at the hotel, the route goes there (R3). |
@@ -178,11 +182,15 @@ phone, day trips from one base.
 2. §7: the moment for the map download.
 3. R4: "Hotel entfernen" keeps the night (blue) – or should the whole night go (grey)?
 4. R7: dragging a grey bed makes it a blue Übernachtung there?
+5. Symbols (round 3): A moon → bed (recommended), B flag → bed, C bed → bed with ✓. Colours stay grey / blue / green.
 
 ## 10. UI rounds
 
 - Round 1 (2026-11-17): https://claude.ai/artifact/TdtKJFYzsmyQKJFTWSuCR1 – owner: way in missing, "Spur" wrong, joint
   no day end, no tabs in the days box, no fine-tuning page, the three bed colours, saving by itself (§1 #7–#12).
 - Round 2 (2026-11-17): https://claude.ai/artifact/XUY1sgh15wLP8CLBZFujqc – the round-2 model of §2 and the way in.
+  Owner: days box, overview, Übernachtung menus "okay"; way in with two ways only; when does gluing come; symbols?
+- Round 3 (2026-11-17): https://claude.ai/artifact/G6py3AKgGsNnaQjT7jLFMk – the way in (two ways, "Noch etwas anhängen"), three
+  symbol variants. Owner: "ansonsten haben wir alles" – next is trying it out on a real tour.
 
 Before any build: his yes to the exact picture.
