@@ -793,6 +793,10 @@ class CoreFieldE2ETest : E2EBase() {
     /**
      * A tour following a plan changed on the way (owner 2026-11-06: "Los geht's" saved the two-point plan – a third point
      * set during the tour makes it unsaved again – it goes under Zuletzt when it leaves the map). Returns the planned route saved at the start.
+     *
+     * The third point is a stop: on a tour a hold in doubt asks „Einfügen“ / „Neues Ziel“ (owner 2026-11-15, F-PLAN-15 –
+     * the zone; here GOAL_FIRST), and „Neues Ziel“ replaces the goal on a tour (owner 2026-11-14, `keepsOldGoal`) – the
+     * plan would stay at two points. This fixture needs a third point, so it takes „Einfügen“ itself, not the likelier row.
      */
     private fun tourWithAnUnsavedPlan(): Long {
         val planId = startOnANewPlan()
@@ -800,7 +804,8 @@ class CoreFieldE2ETest : E2EBase() {
         scenario.onActivity { vm(it).switchToPlan() }
         waitUntil("back in Plan", 10_000) { mode() == AppMode.PLAN }
         val (w, h) = mapSize()
-        hold(w * 0.50f, h * 0.62f)
+        hold(w * 0.50f, h * 0.62f, takeAddMenu = false)
+        scenario.onActivity { vm(it).holdAsStop() } // only when it asks; a clear case was set at once
         waitUntil("a third point set on the way", 10_000) { waypointCount() == 3 }
         routeSettled()
         var unsaved = false
