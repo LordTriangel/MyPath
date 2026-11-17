@@ -156,7 +156,7 @@ object Score {
             stemM = c.stemM.toInt(), reserves = top("reserves", 0.8), known = top("known", 0.8), lakes = top("lakes", 0.4),
             rimKm = SuggestGeo.pyRound(sum { F.rim[it] >= 0.5 } / 1000.0, 1),
             sights = sights.map { it.what to it.name }.take(6),
-            pathPct = pct { F.width[it] == 0 }, variety = c.variety, aims = c.reached,
+            pathPct = pct { F.width[it] == 0 }, variety = c.variety, aims = c.reached, trackPct = pct { F.width[it] == 1 },
         )
     }
 
