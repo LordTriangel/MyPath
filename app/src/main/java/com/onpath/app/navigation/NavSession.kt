@@ -137,6 +137,12 @@ class NavSessionStore(private val file: File) {
         Unit
     }
 
+    /** [block] as one step among every store of this file in the process ([FollowStore]: the session and the line together). */
+    internal fun <T> locked(block: () -> T): T = synchronized(lock, block)
+
+    /** Removes the file without a word (a hand-over file that was taken). */
+    internal fun delete() { file.delete() }
+
     fun load(): NavSession? = try {
         if (!file.isFile) null else fromJson(JSONObject(file.readText()))
     } catch (e: Exception) {

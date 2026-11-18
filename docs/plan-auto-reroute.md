@@ -266,7 +266,7 @@ event), and detection with a window is cheaper than today's whole-line scan, so 
 
 ### 7.2 Data flow
 - "Start navigation" / "Continue navigation" (ViewModel) writes a **`nav-session.json`** (atomic tmp + rename, like
-  `Prefs.saveFollow`) with the original line and the stops, and sends `ACTION_FOLLOW_CHANGED`. `follow.json` stays as
+  `follow.json`; both through `navigation/FollowStore`) with the original line and the stops, and sends `ACTION_FOLLOW_CHANGED` (`RecordingClient.followChanged`). `follow.json` stays as
   the "current line" for backwards compatibility (old sessions load as TRACK without stops).
 - On a re-route the service writes the new current line to `follow.json` + session, and publishes it in `RecState`
   (new fields: `navLine`, `navLineVersion`, `originalLine`, `reroute: RerouteUi?`). The ViewModel collects

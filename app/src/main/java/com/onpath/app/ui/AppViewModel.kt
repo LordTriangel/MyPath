@@ -62,10 +62,12 @@ import com.onpath.app.recording.LocationTracker
 import com.onpath.app.navigation.NavKind
 import com.onpath.app.navigation.NavLine
 import com.onpath.app.navigation.NavSession
-import com.onpath.app.navigation.NavSessionStore
+import com.onpath.app.navigation.FollowStore
 import com.onpath.app.navigation.TourSplit
 import com.onpath.app.recording.RecState
+import com.onpath.app.recording.RecordingClient
 import com.onpath.app.recording.RecordingService
+import com.onpath.app.recording.ServiceRecordingClient
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.EngineProvider
 import com.onpath.app.routing.GeoPoint
@@ -192,22 +194,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      */
     val blockingMissing: List<DataFiles.Check> get() = DataFiles.blocking(missing, overviewBundled, cells.downloadsAvailable)
 
+    /** Everything the app asks of the recording service and reads from it (the typed contract, cleanup piece 5). */
+    private val recording: RecordingClient = ServiceRecordingClient(app)
+
     // --- the tour's lifecycle state (audit package 4 stage 2: a focused state holder, the VM forwards) ---
     /** End sheet, arrival box, saved box, interrupted tour, "Neuer Plan" line – see [TourController]. */
-    val tour = com.onpath.app.ui.tour.TourController(
-        object : com.onpath.app.ui.tour.TourRecorder {
-            override fun start(activity: String, sac: Int) = RecordingService.send(getApplication(), RecordingService.ACTION_START) {
-                putExtra(RecordingService.EXTRA_ACTIVITY, activity)
-                putExtra(RecordingService.EXTRA_SAC, sac)
-            }
-            override fun continueTour(tourId: Long) = RecordingService.send(getApplication(), RecordingService.ACTION_START) {
-                putExtra(RecordingService.EXTRA_CONTINUE_ID, tourId)
-            }
-            override fun pause(pause: Boolean) =
-                RecordingService.send(getApplication(), if (pause) RecordingService.ACTION_PAUSE else RecordingService.ACTION_RESUME)
-            override fun stop() = RecordingService.send(getApplication(), RecordingService.ACTION_STOP)
-        },
-    )
+    val tour = com.onpath.app.ui.tour.TourController(com.onpath.app.ui.tour.tourRecorder(recording))
 
     // --- screens and mode ---
     // messages (declared before routesOpen / showSettings, whose setters clear their lines) – see [say]
@@ -1121,17 +1113,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var routesProblem by mutableStateOf<String?>(null)
 
     // --- shown track / follow ---
+    /** `nav-session.json` + `follow.json`, shared with the service: the app's writes are one locked step each ([FollowStore]). */
+    private val followStore = FollowStore(app.filesDir)
     var shown by mutableStateOf<ShownTrack?>(null)
         private set
-    var followName by mutableStateOf(prefs.loadFollow()?.first)
+    var followName by mutableStateOf(followStore.loadLine()?.first)
         private set
     /** Line currently followed (drawn on the map while browsing); after a re-route the new line (from the service). */
-    var followLine by mutableStateOf(prefs.loadFollow()?.second)
+    var followLine by mutableStateOf(followStore.loadLine()?.second)
         private set
-    /** Navigation session file shared with the service (re-routing, docs/plan-auto-reroute.md). */
-    private val navStore = NavSessionStore(java.io.File(app.filesDir, NavSession.FILE))
     /** The followed line as it was started (plan/track) – re-routing never changes it. */
-    private var followOriginal: List<GeoPoint>? = navStore.load()?.original ?: followLine
+    private var followOriginal: List<GeoPoint>? = followStore.loadSession()?.original ?: followLine
     /** Last navigation line version seen from the service. */
     private var navVersion = -1
 
@@ -1264,7 +1256,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var events = mutableStateListOf<UiEvent>()
         private set
 
-    val recState: StateFlow<RecState?> = RecordingService.state
+    val recState: StateFlow<RecState?> = recording.state
 
     /**
      * The copy of the followed plan kept with the recorded tour (owner 2026-11-07, [TourPlanCopy]): written on one serial
@@ -1449,18 +1441,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         // Set directly (enter() touches properties declared below); the check after the DB read
         // calls enter() and so also tells a running service which mode we are in.
-        if (RecordingService.state.value != null) mode = AppMode.NAVIGATE
+        if (recording.state.value != null) mode = AppMode.NAVIGATE
         // no new tour until this check has decided (TourController.canStartNew); cleared whatever happens – a stuck
         // flag would refuse every tour for good
         tour.unfinishedPending = true
         viewModelScope.launchSafe("app", "start-up work", Dispatchers.IO) {
             try {
                 val active = db.findActiveRecording()
-                val start = AppMode.onStart(RecordingService.state.value != null, active != null)
+                val start = AppMode.onStart(recording.state.value != null, active != null)
                 withContext(Dispatchers.Main) { enter(start); startModeKnown = true }
-                if (active != null && RecordingService.state.value == null) {
+                if (active != null && recording.state.value == null) {
                     delay(1500) // the service may be restarting by itself (sticky)
-                    if (RecordingService.state.value == null) {
+                    if (recording.state.value == null) {
                         // drawn behind the question, so the user sees which tour it is (field bug 2026-10-31: empty map)
                         val line = runCatching { db.loadSegments(active.id).map { seg -> seg.map { GeoPoint(it.lat, it.lon) } } }
                             .onFailure { Problems.warn("db", "Track of the unfinished tour could not be read – not drawn", it) }
@@ -1474,15 +1466,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         // The service stopped by itself (permission gone, foreground refused, database broken): say why, in the app too.
         viewModelScope.launchSafe("app", "start-up work") {
-            RecordingService.startFailed.collect { why ->
-                if (why != null) { RecordingService.startFailed.value = null; sayError(why, NoticePlace.BACKGROUND); if (mode == AppMode.NAVIGATE) enter(AppMode.PLAN) }
+            recording.startFailed.collect { why ->
+                if (why != null) { recording.startFailedSeen(); sayError(why, NoticePlace.BACKGROUND); if (mode == AppMode.NAVIGATE) enter(AppMode.PLAN) }
             }
         }
         // Re-routing (service): follow the line the service navigates now (new route taken / original again).
         viewModelScope.launchSafe("app", "start-up work") {
             var saveFailedShown = false
             var recordingSeen: Long? = null
-            RecordingService.state.collect { st ->
+            recording.state.collect { st ->
                 if (st?.tourId != recordingSeen) {
                     followHistory.clear() // Undo brings back a followed route only within its own tour
                     if (st != null) Problems.trace("tour", "Tour ${st.tourId} recording (plan ${waypoints.size} points, " +
@@ -1501,9 +1493,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
         viewModelScope.launchSafe("app", "start-up work") {
-            RecordingService.finished.collect { id ->
+            recording.finished.collect { id ->
                 if (id != null) {
-                    RecordingService.finished.value = null
+                    recording.finishedSeen()
                     val done = withContext(Dispatchers.IO) { db.getTour(id) }
                     // Löschen chosen → the bin; else a short recording (owner 2026-11-12: never got away from its start,
                     // no ride part) → the bin with the box "Kurze Aufzeichnung" and Rückgängig; else the saved box.
@@ -1524,7 +1516,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                             tour.showFinished(done, withContext(Dispatchers.IO) { done?.let { tourTimes(it) } })
                             done?.let { nameRecordedTour(it) }
                             // "Split into two tours": the parts after the rides get a place name too
-                            val parts = RecordingService.finishedParts; RecordingService.finishedParts = emptyList()
+                            val parts = recording.takeFinishedParts()
                             parts.forEach { p -> withContext(Dispatchers.IO) { db.getTour(p) }?.let { nameRecordedTour(it) } }
                         }
                     }
@@ -1742,7 +1734,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         settings = s; prefs.settings = s
         cells.wifiOnly = s.mapsWifiOnly
         if (paceChanged) retime()
-        if (recState.value != null) RecordingService.send(getApplication(), RecordingService.ACTION_SETTINGS)
+        if (recState.value != null) recording.settingsChanged()
     }
 
     /**
@@ -1781,9 +1773,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** A tour event for the spoken directions (the service says it when they are on). */
     private fun sayEvent(what: String) {
-        if (recState.value != null) RecordingService.send(getApplication(), RecordingService.ACTION_SAY) {
-            putExtra(RecordingService.EXTRA_SAY, what)
-        }
+        if (recState.value != null) recording.say(what)
     }
 
     /** Current position (the map's GPS), else the tour's last recorded point; null without either. */
@@ -3972,9 +3962,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // Navigate → Plan (also the end of a tour): the plan in front, not the position (owner 2026-11-06, PlanCamera)
         if (m == AppMode.PLAN && was == AppMode.NAVIGATE && waypoints.isNotEmpty())
             showPlanWhole(if (recState.value == null) PlanCamera.Moment.TOUR_END else PlanCamera.Moment.FROM_NAVIGATE)
-        if (recState.value != null) RecordingService.send(getApplication(), RecordingService.ACTION_NAVIGATING) {
-            putExtra(RecordingService.EXTRA_ON, m == AppMode.NAVIGATE)
-        }
+        if (recState.value != null) recording.navigating(m == AppMode.NAVIGATE)
     }
 
     /**
@@ -4005,7 +3993,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // permission or a broken database must not leave the user in Navigate with nothing being recorded.
         startJob?.cancel()
         startJob = viewModelScope.launchSafe("app", "startNavigation") {
-            val started = withTimeoutOrNull(START_TIMEOUT_MS) { RecordingService.state.filterNotNull().first() } != null
+            val started = withTimeoutOrNull(START_TIMEOUT_MS) { recording.state.filterNotNull().first() } != null
             if (started) enter(AppMode.NAVIGATE)
             else if (errorCard == null) sayError(Txt.s(Res.string.msg_recording_not_started), NoticePlace.MAP)
         }
@@ -4118,43 +4106,29 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         gpxLine(mode == AppMode.NAVIGATE, shown?.segments, followLine).look
 
     private fun checkNow() {
-        if (recState.value != null && followLine != null) RecordingService.send(getApplication(), RecordingService.ACTION_CHECK_NOW)
+        if (recState.value != null && followLine != null) recording.checkNow()
     }
 
     /** Off-route question in Navigate: take the new route the service found. */
-    fun takeNewRoute(questionId: Int) = RecordingService.send(getApplication(), RecordingService.ACTION_TAKE_ROUTE) {
-        putExtra(RecordingService.EXTRA_QUESTION, questionId)
-    }
+    fun takeNewRoute(questionId: Int) = recording.takeRoute(questionId)
 
     /** "Off route – re-plan?" in Navigate – Yes: take the new route via the stop in question. */
-    fun takeViaRoute(questionId: Int) = RecordingService.send(getApplication(), RecordingService.ACTION_TAKE_VIA) {
-        putExtra(RecordingService.EXTRA_QUESTION, questionId)
-    }
+    fun takeViaRoute(questionId: Int) = recording.takeVia(questionId)
 
     /** Off-route question in Navigate: keep following the original route. */
-    fun keepOriginalRoute(questionId: Int) = RecordingService.send(getApplication(), RecordingService.ACTION_KEEP_ROUTE) {
-        putExtra(RecordingService.EXTRA_QUESTION, questionId)
-    }
+    fun keepOriginalRoute(questionId: Int) = recording.keepRoute(questionId)
 
     /** "Route starts 31 km away" (never on the route yet) – Guide me: a route from here via the start and all points. */
-    fun leadToStart(questionId: Int) = RecordingService.send(getApplication(), RecordingService.ACTION_LEAD_THERE) {
-        putExtra(RecordingService.EXTRA_QUESTION, questionId)
-    }
+    fun leadToStart(questionId: Int) = recording.leadThere(questionId)
 
     /** "Route starts 31 km away" – Just record: quiet until the route is reached. */
-    fun justRecord(questionId: Int) = RecordingService.send(getApplication(), RecordingService.ACTION_JUST_RECORD) {
-        putExtra(RecordingService.EXTRA_QUESTION, questionId)
-    }
+    fun justRecord(questionId: Int) = recording.justRecord(questionId)
 
     /** "Du stehst mitten auf der Route" – Hier einsteigen: start here, the points before count as passed (owner 2026-11-03). */
-    fun joinHere(questionId: Int) = RecordingService.send(getApplication(), RecordingService.ACTION_JOIN_HERE) {
-        putExtra(RecordingService.EXTRA_QUESTION, questionId)
-    }
+    fun joinHere(questionId: Int) = recording.joinHere(questionId)
 
     /** OK on "No way to the route found – recording continues". */
-    fun leadFailedOk(questionId: Int) = RecordingService.send(getApplication(), RecordingService.ACTION_LEAD_FAILED_OK) {
-        putExtra(RecordingService.EXTRA_QUESTION, questionId)
-    }
+    fun leadFailedOk(questionId: Int) = recording.leadFailedOk(questionId)
 
     // ---------------- activity check while navigating (owner: a wrong activity is a disaster) ----------------
 
@@ -4350,9 +4324,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     pinned = left.indices.filter { left[it].pinned }.map { it + here }.toSet())
             } else NavSession.start(session.kind, session.name, a, fit.sac, fit.line)
         }.onFailure { Problems.error("navigation", "Proposed route for the new activity could not be started", it) }.getOrNull() ?: return
-        val app = getApplication<Application>()
-        NavSessionStore(File(app.filesDir, com.onpath.app.navigation.ActivityCheck.PROPOSAL_FILE)).save(proposed)
-        RecordingService.send(app, RecordingService.ACTION_PROPOSE_SWITCH) { putExtra(RecordingService.EXTRA_TIME_S, fit.timeS) }
+        followStore.propose(proposed)
+        recording.proposeSwitch(fit.timeS)
         // chosen in Plan during the tour: the Take new route / Keep question is asked in Navigate
         if (mode == AppMode.PLAN) enter(AppMode.NAVIGATE)
     }
@@ -4621,8 +4594,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         // a new version: the service and the junction cues re-read the line
         val session = s.copy(version = maxOf(s.version, versionNow) + 1, token = newSessionToken())
         guidanceEndedByEmptyPlan = false
-        navStore.save(session)
-        prefs.saveFollow(session.name, session.active)
+        followStore.appFollows(session, session.name, session.active)
         followName = session.name
         followLine = session.active
         followOriginal = session.original
@@ -4633,7 +4605,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         copyFollowedPlan(session.activity, session.sac)
         Problems.trace("tour", "The tour follows \"${session.name}\" again as before the edit (${session.stops.size} points" +
             (if (session.rerouted) ", " + (if (session.lead && !session.reached) "way there" else "new route") + " kept" else "") + ")")
-        RecordingService.send(getApplication(), RecordingService.ACTION_FOLLOW_CHANGED)
+        recording.followChanged()
     }
 
     /**
@@ -4752,17 +4724,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 .copy(token = newSessionToken(), version = (recState.value?.nav?.version ?: navVersion).coerceAtLeast(0) + 1,
                     firstNumber = firstNumber.coerceAtLeast(1))
         }.onFailure { Problems.error("navigation", "Navigation session could not be started; following without it", it) }.getOrNull()
-        navStore.save(session)
-        prefs.saveFollow(name, points)
+        followStore.appFollows(session, name, points)
         followName = name
         followLine = points
         followOriginal = points
         planBaseline = null
         followIsTrack = isTrack; prefs.followIsTrack = isTrack
         planAtTrackFollow = null
-        if (recState.value != null) RecordingService.send(getApplication(), RecordingService.ACTION_FOLLOW_CHANGED) {
-            putExtra(RecordingService.EXTRA_CHECK_NOW, checkNow)
-        }
+        if (recState.value != null) recording.followChanged(checkNow)
     }
 
     /** A token no earlier session of this install had (time-based, strictly increasing). */
@@ -4776,13 +4745,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         guidanceEndedByEmptyPlan = false
         followIsTrack = false; prefs.followIsTrack = false
         planAtTrackFollow = null
-        prefs.saveFollow("", null)
-        navStore.save(null)
+        followStore.appEnds()
         followName = null
         followLine = null
         followOriginal = null
         planBaseline = null
-        if (recState.value != null) RecordingService.send(getApplication(), RecordingService.ACTION_FOLLOW_CHANGED)
+        if (recState.value != null) recording.followChanged()
     }
 
     fun startRecording() {

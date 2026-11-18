@@ -19,8 +19,9 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 /**
- * `nav-session.json` has two writers in one process: the app (`AppViewModel.navStore` – start / change / end of what
- * is followed) and the service (`RecordingService.sessionStore` – re-routes, reached, visited stops). Code audit
+ * `nav-session.json` has two writers in one process: the app (the view model – start / change / end of what
+ * is followed) and the service (re-routes, reached, visited stops); since cleanup piece 5 both through `FollowStore`
+ * (FollowStoreTest: the session and `follow.json` together). Code audit
  * 2026-11-12 suspected torn or lost sessions. Safety net: many writers / a reader during a write never see half a
  * file; the real call orders (edit during a tour, guidance ended, service without a file, restart) keep the newer
  * session; a missing / empty / torn / garbage file loads as "no session", never an exception.

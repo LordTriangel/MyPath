@@ -31,7 +31,7 @@ class ShortRecordingBoxTest {
         assertTrue(check.contains("t.rides?.recorded?.distanceM ?: t.distanceM"))
         assertTrue(check.contains("rides = t.rides?.rides?.isNotEmpty() == true"))
         assertTrue("a read that fails keeps the tour", check.contains(".getOrDefault(false)"))
-        val finished = vm.substringAfter("RecordingService.finished.collect { id ->").substringBefore("fun initialCamera()")
+        val finished = vm.substringAfter("recording.finished.collect { id ->").substringBefore("fun initialCamera()")
         assertTrue("the tour is read once, before the decision", finished.indexOf("val done = withContext(Dispatchers.IO) { db.getTour(id) }") < finished.indexOf("tour.finishedOutcome("))
         assertTrue("the bin write's result decides box or saved box", finished.contains("tour.afterShortBin(done, binned = ok,"))
         // the saved path is as before: place names for the tour and the split parts

@@ -5,15 +5,12 @@ import com.onpath.app.debug.Problems
 import com.onpath.app.gpx.GpxWaypoint
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.GeoPoint
-import org.json.JSONArray
 import java.io.File
 
 /** Small persisted settings and the auto-saved current plan (R-08). */
 class Prefs internal constructor(private val sp: android.content.SharedPreferences, filesDir: File) {
     constructor(context: Context) : this(
         context.applicationContext.getSharedPreferences("onpath", Context.MODE_PRIVATE), context.applicationContext.filesDir)
-
-    private val followFile = File(filesDir, "follow.json")
 
     // ---- small app state, all in this one place (review Arch 11: written around Prefs before) ----
 
@@ -328,28 +325,4 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
     var followIsTrack: Boolean
         get() = sp.getBoolean("followIsTrack", false)
         set(v) = sp.edit().putBoolean("followIsTrack", v).apply()
-
-    /** The line being followed (off-route warning); stored in a file so the service can reload it. */
-    fun saveFollow(name: String, points: List<GeoPoint>?) {
-        try {
-            if (points == null) { followFile.delete(); return }
-            val arr = JSONArray()
-            val ele = JSONArray()
-            points.forEach { arr.put(it.lat); arr.put(it.lon); ele.put(it.ele ?: org.json.JSONObject.NULL) }
-            AtomicFiles.writeText(followFile, org.json.JSONObject().put("name", name).put("pts", arr).put("ele", ele).toString(),
-                File(followFile.path + ".tmp"))
-        } catch (e: Exception) { Problems.error("data", "Followed line not saved – lost after a restart", e) }
-    }
-
-    fun loadFollow(): Pair<String, List<GeoPoint>>? = try {
-        if (!followFile.exists()) null else {
-            val o = org.json.JSONObject(followFile.readText())
-            val a = o.getJSONArray("pts")
-            val e = o.optJSONArray("ele") // optional (older files lack it): elevation per point for "remaining ascent"
-            o.getString("name") to (0 until a.length() / 2).map {
-                val h = e?.takeIf { arr -> it < arr.length() && !arr.isNull(it) }?.optDouble(it)
-                GeoPoint(a.getDouble(it * 2), a.getDouble(it * 2 + 1), h?.takeIf { v -> !v.isNaN() })
-            }
-        }
-    } catch (e: Exception) { Problems.warn("data", "Saved followed line unreadable, not restored", e); null }
 }

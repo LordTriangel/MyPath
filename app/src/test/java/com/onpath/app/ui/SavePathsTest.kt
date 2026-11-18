@@ -33,7 +33,7 @@ class SavePathsTest {
      * .arrivalEndTourBringsTheStartScreen).
      */
     @Test fun theEndOfATourGoesBackToTheStartTheNeuPlanenWay() {
-        val finished = vm.substringAfter("RecordingService.finished.collect { id ->").substringBefore("fun initialCamera()")
+        val finished = vm.substringAfter("recording.finished.collect { id ->").substringBefore("fun initialCamera()")
         assertTrue(finished, finished.contains("afterTourEnded()"))
         // after the tour bookkeeping (saved box / bin, the list refreshed, Plan entered) – never before the tour is stored
         assertTrue(finished.indexOf("refreshTours()") < finished.indexOf("afterTourEnded()"))
@@ -63,7 +63,7 @@ class SavePathsTest {
 
     /** Pixel review 2026-11-06: the demo ride ends with its tour – "DEMO" / "Sim" do not stay (DemoLocationTest). */
     @Test fun theDemoRideEndsWithTheTour() {
-        val finished = vm.substringAfter("RecordingService.finished.collect { id ->").substringBefore("fun initialCamera()")
+        val finished = vm.substringAfter("recording.finished.collect { id ->").substringBefore("fun initialCamera()")
         assertTrue(finished, finished.contains("DemoLocation.endWithTour()"))
     }
 

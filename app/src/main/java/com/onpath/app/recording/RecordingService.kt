@@ -36,7 +36,7 @@ import com.onpath.app.debug.Problems
 import com.onpath.app.navigation.NavKind
 import com.onpath.app.navigation.NavPrompt
 import com.onpath.app.navigation.NavSession
-import com.onpath.app.navigation.NavSessionStore
+import com.onpath.app.navigation.FollowStore
 import com.onpath.app.navigation.NavState
 import com.onpath.app.navigation.NavText
 import com.onpath.app.navigation.Navigator
@@ -255,7 +255,8 @@ class RecordingService : Service() {
     private var voiceFixAgeMs = 0L
     private var voiceHere: GeoPoint? = null
     private var voiceHeading: Double? = null
-    private val sessionStore by lazy { NavSessionStore(File(filesDir, NavSession.FILE)) }
+    /** `nav-session.json` + `follow.json`: every write of the service goes through it ([FollowStore]). */
+    private val followStore by lazy { FollowStore(filesDir) }
     private val routeExec = Executors.newSingleThreadExecutor()
     private val routeDispatcher = routeExec.asCoroutineDispatcher()
     private var engine: RoutingEngine? = null
@@ -393,9 +394,7 @@ class RecordingService : Service() {
             }
             ACTION_PROPOSE_SWITCH -> {
                 // activity check sheet: the app routed the rest for another activity and wrote it to a file
-                val f = File(filesDir, com.onpath.app.navigation.ActivityCheck.PROPOSAL_FILE)
-                val proposed = NavSessionStore(f).load()
-                f.delete()
+                val proposed = followStore.takeProposal()
                 if (proposed != null) navigator?.let { handle(it.proposeSwitch(proposed, intent.getDoubleExtra(EXTRA_TIME_S, 0.0))) }
                 return START_STICKY
             }
@@ -921,9 +920,11 @@ class RecordingService : Service() {
 
     private fun loadFollowUnguarded() {
         cancelReroute()
-        follow = Prefs(this).loadFollow()
+        // the line and the session in one look (FollowStore): never the line of one session with the stops of another
+        val onDisk = followStore.load()
+        follow = onDisk.follow
         val line = follow?.second?.takeIf { it.size >= 2 }
-        val stored = sessionStore.load()
+        val stored = onDisk.session
         val old = navigator
         var session = when {
             line == null -> null
@@ -941,7 +942,7 @@ class RecordingService : Service() {
         if (session != null) {
             val carried = NavSession.afterPlanEdit(old?.session, session)
             // its token is the file's (read just above): written unless the app wrote a newer session meanwhile (a guard)
-            if (carried != session) { session = carried; sessionStore.saveIfMine(carried) }
+            if (carried != session) { session = carried; followStore.serviceSaves(carried) }
         }
         // the walking direction carries over to the new line (plan edited mid-walk: the way back of a round trip)
         navigator = session?.let { Navigator(it).apply { setNavigating(navigatingApplied); old?.let { o -> detector.adoptHeading(o.detector) } } }
@@ -995,16 +996,18 @@ class RecordingService : Service() {
         step.job?.let { startReroute(it) }
         // the session is written before the new line is shown (crash recovery R-07) – unless the app chose a new line
         // meanwhile (its FOLLOW_CHANGED is on the way): then this result belongs to the old session. Look and write
-        // are one step (NavSessionStore.saveIfMine – a guard: today both writers run on this main thread anyway).
-        if ((step.lineChanged || step.sessionChanged) && !sessionStore.saveIfMine(nav.session)) {
+        // are one step, and with a changed line its follow.json too (FollowStore.serviceSaves – a guard: today both
+        // writers run on this main thread anyway).
+        val lineName = follow?.first ?: nav.session.name
+        if ((step.lineChanged || step.sessionChanged) &&
+            !followStore.serviceSaves(nav.session, lineAs = if (step.lineChanged) lineName else null)) {
             Problems.trace("navigation", "Re-route result of an older line dropped: the app follows a new line")
             loadFollow()
             publish(force = true)
             return
         }
         if (step.lineChanged) {
-            Prefs(this).saveFollow(follow?.first ?: nav.session.name, nav.session.active)
-            follow = (follow?.first ?: nav.session.name) to nav.session.active
+            follow = lineName to nav.session.active
             timeLine()
         }
         if (step.activityChanged && tourId >= 0) {
@@ -1304,23 +1307,23 @@ class RecordingService : Service() {
             // never on the route yet (owner 2026-10-31): a calm question – no sound, no vibration, no popup
             if (!pr.offRoute) b.setSilent(true).setPriority(NotificationCompat.PRIORITY_DEFAULT)
             if (pr is NavPrompt.FarStart && !pr.searching) {
-                b.addAction(0, NavText.LEAD, actionIntent(ACTION_LEAD_THERE, 13) { putExtra(EXTRA_QUESTION, pr.id) })
-                b.addAction(0, NavText.JUST_RECORD, actionIntent(ACTION_JUST_RECORD, 14) { putExtra(EXTRA_QUESTION, pr.id) })
+                b.addAction(0, NavText.LEAD, actionIntent(RecordingCommand.leadThere(pr.id), 13))
+                b.addAction(0, NavText.JUST_RECORD, actionIntent(RecordingCommand.justRecord(pr.id), 14))
             } else if (pr is NavPrompt.MidStart && !pr.searching) {
                 // "Zu ① führen" / "Hier einsteigen" (owner 2026-11-03), answerable on the lock screen like the far start
-                b.addAction(0, NavText.MID_LEAD, actionIntent(ACTION_LEAD_THERE, 16) { putExtra(EXTRA_QUESTION, pr.id) })
-                b.addAction(0, NavText.MID_JOIN, actionIntent(ACTION_JOIN_HERE, 17) { putExtra(EXTRA_QUESTION, pr.id) })
+                b.addAction(0, NavText.MID_LEAD, actionIntent(RecordingCommand.leadThere(pr.id), 16))
+                b.addAction(0, NavText.MID_JOIN, actionIntent(RecordingCommand.joinHere(pr.id), 17))
             } else if (pr is NavPrompt.LeadFailed) {
-                b.addAction(0, Txt.s(Res.string.common_ok), actionIntent(ACTION_LEAD_FAILED_OK, 15) { putExtra(EXTRA_QUESTION, pr.id) })
+                b.addAction(0, Txt.s(Res.string.common_ok), actionIntent(RecordingCommand.leadFailedOk(pr.id), 15))
             } else if (pr is NavPrompt.Question && pr.via != null) {
                 // New route (via the stop) · Without stop · Keep original (one question shape, owner 2026-11-01). Three actions
                 // share one row and Android cuts long labels: the short skip label, the text names the stop.
-                b.addAction(0, NavText.TAKE, actionIntent(ACTION_TAKE_VIA, 12) { putExtra(EXTRA_QUESTION, pr.id) })
-                b.addAction(0, NavText.SKIP_SHORT, actionIntent(ACTION_TAKE_ROUTE, 10) { putExtra(EXTRA_QUESTION, pr.id) })
-                b.addAction(0, NavText.KEEP, actionIntent(ACTION_KEEP_ROUTE, 11) { putExtra(EXTRA_QUESTION, pr.id) })
+                b.addAction(0, NavText.TAKE, actionIntent(RecordingCommand.takeVia(pr.id), 12))
+                b.addAction(0, NavText.SKIP_SHORT, actionIntent(RecordingCommand.takeRoute(pr.id), 10))
+                b.addAction(0, NavText.KEEP, actionIntent(RecordingCommand.keepRoute(pr.id), 11))
             } else if (pr is NavPrompt.Question) {
-                b.addAction(0, NavText.TAKE, actionIntent(ACTION_TAKE_ROUTE, 10) { putExtra(EXTRA_QUESTION, pr.id) })
-                b.addAction(0, NavText.KEEP, actionIntent(ACTION_KEEP_ROUTE, 11) { putExtra(EXTRA_QUESTION, pr.id) })
+                b.addAction(0, NavText.TAKE, actionIntent(RecordingCommand.takeRoute(pr.id), 10))
+                b.addAction(0, NavText.KEEP, actionIntent(RecordingCommand.keepRoute(pr.id), 11))
             }
             nm().notify(ALERT_ID, b.build())
         } catch (e: SecurityException) {
@@ -1343,7 +1346,7 @@ class RecordingService : Service() {
                 .setOngoing(true)
                 .setOnlyAlertOnce(true)
                 .setContentIntent(openAppIntent())
-                .addAction(0, Txt.s(Res.string.common_resume), actionIntent(ACTION_RESUME, 2))
+                .addAction(0, Txt.s(Res.string.common_resume), actionIntent(RecordingCommand.resume, 2))
             nm().notify(PAUSE_ALERT_ID, b.build())
         } catch (e: SecurityException) {
             Problems.warn("recording", "Paused-but-moving reminder refused (notification permission?)", e)
@@ -1395,7 +1398,7 @@ class RecordingService : Service() {
             val parts = com.onpath.app.rides.RideApply.finish(com.onpath.app.rides.TourDbRides(db), tourId,
                 com.onpath.app.rides.TourStats(distance, ascent, descent, elapsedS.toDouble()), System.currentTimeMillis(),
                 timeActivity())
-            finishedParts = parts
+            _finishedParts = parts
             // GPX copy in Documents/OnPath (backup/Backups): on its own thread, never holds up the end of the tour
             com.onpath.app.backup.Backups.tourChanged(this, tourId)
             parts.forEach { com.onpath.app.backup.Backups.tourChanged(this, it) }
@@ -1581,8 +1584,8 @@ class RecordingService : Service() {
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 
-    private fun actionIntent(action: String, code: Int, extras: Intent.() -> Unit = {}): PendingIntent = PendingIntent.getService(
-        this, code, Intent(this, RecordingService::class.java).setAction(action).apply(extras),
+    private fun actionIntent(command: RecordingCommand, code: Int): PendingIntent = PendingIntent.getService(
+        this, code, command.intent(this),
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
     )
 
@@ -1652,8 +1655,8 @@ class RecordingService : Service() {
                 .setStyle(NotificationCompat.BigTextStyle().bigText(n.text + "\n" +
                     Txt.s(Res.string.nav_notif_recorded, Format.distance(distance), Format.clock(elapsedS))))
         }
-        if (paused) b.addAction(0, Txt.s(Res.string.common_resume), actionIntent(ACTION_RESUME, 2))
-        else b.addAction(0, Txt.s(Res.string.nav_pause), actionIntent(ACTION_PAUSE, 1))
+        if (paused) b.addAction(0, Txt.s(Res.string.common_resume), actionIntent(RecordingCommand.resume, 2))
+        else b.addAction(0, Txt.s(Res.string.nav_pause), actionIntent(RecordingCommand.pause, 1))
         // No "Stop & save" here (owner: ending a tour must be deliberate) – one tap on the lock screen or
         // in the pocket would end the recording. Ending is in the app, with a question first.
         return b.build()
@@ -1725,13 +1728,19 @@ class RecordingService : Service() {
         private val _state = MutableStateFlow<RecState?>(null)
         val state: StateFlow<RecState?> = _state
         private val _finished = MutableStateFlow<Long?>(null)
-        /** Id of the last tour stopped (UI shows a summary, then clears it). */
-        val finished: MutableStateFlow<Long?> = _finished
+        /** Id of the last tour stopped (the app shows a summary, then says [finishedSeen]). */
+        val finished: StateFlow<Long?> = _finished
         /** Tours split off the last stopped tour ("Split into two tours"); set before [finished]. */
-        @Volatile var finishedParts: List<Long> = emptyList()
+        @Volatile private var _finishedParts: List<Long> = emptyList()
         private val _startFailed = MutableStateFlow<String?>(null)
-        /** Why the service stopped by itself (plain text; the app shows it and clears it). */
-        val startFailed: MutableStateFlow<String?> = _startFailed
+        /** Why the service stopped by itself (plain text; the app shows it and says [startFailedSeen]). */
+        val startFailed: StateFlow<String?> = _startFailed
+
+        // The app's side of the three values above goes through RecordingClient; they are written only in this file.
+        internal fun finishedSeen() { _finished.value = null }
+        internal fun startFailedSeen() { _startFailed.value = null }
+        /** The split-off tours of the last stopped tour, handed out once. */
+        internal fun takeFinishedParts(): List<Long> = _finishedParts.also { _finishedParts = emptyList() }
 
         fun createChannels(context: Context) {
             if (Build.VERSION.SDK_INT < 26) return
@@ -1764,8 +1773,13 @@ class RecordingService : Service() {
             )
         }
 
-        fun send(context: Context, action: String, configure: Intent.() -> Unit = {}) {
-            val i = Intent(context, RecordingService::class.java).setAction(action).apply(configure)
+        /** The app sends through [RecordingClient] (typed commands); this plain form is for the E2E tests. */
+        fun send(context: Context, action: String, configure: Intent.() -> Unit = {}) =
+            deliver(context, action, Intent(context, RecordingService::class.java).setAction(action).apply(configure))
+
+        internal fun send(context: Context, command: RecordingCommand) = deliver(context, command.action, command.intent(context))
+
+        private fun deliver(context: Context, action: String, i: Intent) {
             try {
                 if (action == ACTION_START) ContextCompat.startForegroundService(context, i)
                 else context.startService(i)
