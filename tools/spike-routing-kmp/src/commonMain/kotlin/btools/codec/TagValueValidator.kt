@@ -13,5 +13,5 @@ interface TagValueValidator {
 
     fun setDecodeForbidden(decodeForbidden: Boolean)
 
-    fun checkStartWay(ab: ByteArray): Boolean
+    fun checkStartWay(ab: ByteArray?): Boolean
 }

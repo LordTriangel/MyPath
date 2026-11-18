@@ -137,22 +137,22 @@ abstract class OsmPath : OsmLinkHolder {
     val isReverse = link.isReverse(sourceNode!!)
 
     // evaluate the way tags
-    rc.expctxWay.evaluate(rc.inverseDirection xor isReverse, description)
+    rc.expctxWay!!.evaluate(rc.inverseDirection xor isReverse, description)
 
     // and check if is useful
     if (rc.ai != null && rc.ai!!.polygon!!.isWithin(lon1, lat1)) {
-      rc.ai!!.checkAreaInfo(rc.expctxWay, ele1.toDouble() / 4.0, description)
+      rc.ai!!.checkAreaInfo(rc.expctxWay!!, ele1.toDouble() / 4.0, description)
     }
 
     // calculate the costfactor inputs
-    val costfactor: Float = rc.expctxWay.getCostfactor()
-    val isTrafficBackbone = cost == 0 && rc.expctxWay.getIsTrafficBackbone() > 0.0f
+    val costfactor: Float = rc.expctxWay!!.getCostfactor()
+    val isTrafficBackbone = cost == 0 && rc.expctxWay!!.getIsTrafficBackbone() > 0.0f
     val lastpriorityclassifier = priorityclassifier
-    priorityclassifier = rc.expctxWay.getPriorityClassifier().toInt()
+    priorityclassifier = rc.expctxWay!!.getPriorityClassifier().toInt()
 
     // *** add initial cost if the classifier changed
-    val newClassifier: Float = rc.expctxWay.getInitialClassifier()
-    val newInitialCost: Float = rc.expctxWay.getInitialcost()
+    val newClassifier: Float = rc.expctxWay!!.getInitialClassifier()
+    val newInitialCost: Float = rc.expctxWay!!.getInitialcost()
     val classifierDiff: Float = newClassifier - lastClassifier
     if (newClassifier.toDouble() != 0.0 && lastClassifier.toDouble() != 0.0 && (classifierDiff.toDouble() > 0.0005 || classifierDiff.toDouble() < -0.0005)) {
       val initialcost: Float = if (rc.inverseDirection) lastInitialCost else newInitialCost
@@ -171,7 +171,7 @@ abstract class OsmPath : OsmLinkHolder {
     lastInitialCost = newInitialCost
 
     // *** destination logic: no destination access in between
-    val classifiermask = rc.expctxWay.getClassifierMask().toInt()
+    val classifiermask = rc.expctxWay!!.getClassifierMask().toInt()
     val newDestination = (classifiermask and 64) != 0
     val oldDestination = getBit(IS_ON_DESTINATION_BIT)
     if (getBit(PATH_START_BIT)) {
@@ -324,7 +324,7 @@ abstract class OsmPath : OsmLinkHolder {
         message!!.lon = lon2
         message!!.lat = lat2
         message!!.ele = originEle2
-        message!!.wayKeyValues = rc.expctxWay.getKeyValueDescription(isReverse, description)
+        message!!.wayKeyValues = rc.expctxWay!!.getKeyValueDescription(isReverse, description)
       }
 
       if (stopAtEndpoint) {

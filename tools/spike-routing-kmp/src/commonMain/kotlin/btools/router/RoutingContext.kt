@@ -27,7 +27,7 @@ class RoutingContext {
     return if (alternativeIdx < min) min else (if (alternativeIdx > max) max else alternativeIdx)
   }
 
-  var alternativeIdx = 0
+  private var alternativeIdx = 0
   var localFunction: String? = null
   var profileTimestamp: Long = 0
 
@@ -92,7 +92,7 @@ class RoutingContext {
   }
 
   fun initModel() {
-    pm!!.init(expctxWay, expctxNode, keyValues)
+    pm!!.init(expctxWay!!, expctxNode!!, keyValues)
   }
 
   fun getKeyValueChecksum(): Long {

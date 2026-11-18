@@ -25,8 +25,8 @@ class AreaInfo(dir: Int) {
     val test = elevStart - elev
     if (kotlin.math.abs(test) < 50) elev50++
 
-    val ld2: IntArray = expctxWay.createNewLookupData()
-    expctxWay.decode(ld2, false, ab)
+    val ld2: IntArray = expctxWay!!.createNewLookupData()!!
+    expctxWay!!.decode(ld2, false, ab)
 
     if (numForest != -1 && ld2[numForest] > 1) {
       greenWays++

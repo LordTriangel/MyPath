@@ -50,12 +50,12 @@ class RoutingEngine(
 
   private var MAX_DYNAMIC_RANGE = 60000
 
-  var foundTrack = OsmTrack()
+  private var foundTrack = OsmTrack()
   private var foundRawTrack: OsmTrack? = null
   private var alternativeIndex = 0
 
   var outputMessage: String? = null
-  var errorMessage: String? = null
+  private var errorMessage: String? = null
 
   private var terminated = false // PORT-NOTE was volatile, no threads now
 
@@ -592,7 +592,7 @@ class RoutingEngine(
     totaltrack.params = routingContext.keyValues
 
     if (routingContext.poipoints != null)
-      totaltrack.pois = routingContext.poipoints!!
+      totaltrack.pois = ArrayList(routingContext.poipoints!!)
 
     return totaltrack
   }
@@ -1372,7 +1372,7 @@ class RoutingEngine(
     }
     val maxmem = routingContext.memoryclass * 1024L * 1024L // in MB
 
-    nodesCache = NodesCache(segmentDir, routingContext.expctxWay, routingContext.forceSecondaryData, maxmem, nodesCache, detailed)
+    nodesCache = NodesCache(segmentDir, routingContext.expctxWay!!, routingContext.forceSecondaryData, maxmem, nodesCache, detailed)
     islandNodePairs.clearTempPairs()
   }
 
@@ -1569,7 +1569,7 @@ class RoutingEngine(
         continue
       }
 
-      if (directWeaving && nodesCache!!.hasHollowLinkTargets(path.getTargetNode())) {
+      if (directWeaving && nodesCache!!.hasHollowLinkTargets(path.getTargetNode()!!)) {
         // PORT-NOTE memory: memory-bounds control flow kept as is (nodesMap.isInMemoryBounds uses the memoryclass budget)
         if (!memoryPanicMode) {
           if (!nodesCache!!.nodesMap!!.isInMemoryBounds(openSet.getSize(), false)) {
@@ -1580,7 +1580,7 @@ class RoutingEngine(
             while (true) {
               val p3 = openSet.popLowestKeyValue()
               if (p3 == null) break
-              if (p3.airdistance != -1 && nodesCache!!.nodesMap!!.canEscape(p3.getTargetNode())) {
+              if (p3.airdistance != -1 && nodesCache!!.nodesMap!!.canEscape(p3.getTargetNode()!!)) {
                 openBorderList.add(p3)
               }
             }
@@ -1630,9 +1630,9 @@ class RoutingEngine(
       nodesVisited++
       linksProcessed++
 
-      val currentLink = path.getLink()
-      val sourceNode = path.getSourceNode()
-      val currentNode = path.getTargetNode()
+      val currentLink = path.getLink()!!
+      val sourceNode = path.getSourceNode()!!
+      val currentNode = path.getTargetNode()!!
 
       if (currentLink.isLinkUnused()) {
         continue

@@ -51,7 +51,7 @@ class OsmTrack {
     nodes.add(0, node)
   }
 
-  fun registerDetourForId(id: Long, detour: OsmPathElement) {
+  fun registerDetourForId(id: Long, detour: OsmPathElement?) {
     if (detourMap == null) {
       detourMap = CompactLongMap()
     }

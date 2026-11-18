@@ -40,23 +40,23 @@ class StdPath : OsmPath() {
 
   override fun processWaySection(rc: RoutingContext, distance: Double, delta_h: Double, elevation: Double, angle: Double, cosangle: Double, isStartpoint: Boolean, nsection: Int, lastpriorityclassifier: Int): Double {
     // calculate the costfactor inputs
-    val turncostbase: Float = rc.expctxWay.getTurncost()
-    val uphillcutoff: Float = rc.expctxWay.getUphillcutoff() * 10000
-    val downhillcutoff: Float = rc.expctxWay.getDownhillcutoff() * 10000
-    val uphillmaxslope: Float = rc.expctxWay.getUphillmaxslope() * 10000
-    val downhillmaxslope: Float = rc.expctxWay.getDownhillmaxslope() * 10000
-    var cfup: Float = rc.expctxWay.getUphillCostfactor()
-    var cfdown: Float = rc.expctxWay.getDownhillCostfactor()
-    val cf: Float = rc.expctxWay.getCostfactor()
+    val turncostbase: Float = rc.expctxWay!!.getTurncost()
+    val uphillcutoff: Float = rc.expctxWay!!.getUphillcutoff() * 10000
+    val downhillcutoff: Float = rc.expctxWay!!.getDownhillcutoff() * 10000
+    val uphillmaxslope: Float = rc.expctxWay!!.getUphillmaxslope() * 10000
+    val downhillmaxslope: Float = rc.expctxWay!!.getDownhillmaxslope() * 10000
+    var cfup: Float = rc.expctxWay!!.getUphillCostfactor()
+    var cfdown: Float = rc.expctxWay!!.getDownhillCostfactor()
+    val cf: Float = rc.expctxWay!!.getCostfactor()
     cfup = if (cfup == 0.0f) cf else cfup
     cfdown = if (cfdown == 0.0f) cf else cfdown
 
-    downhillcostdiv = rc.expctxWay.getDownhillcost().toInt()
+    downhillcostdiv = rc.expctxWay!!.getDownhillcost().toInt()
     if (downhillcostdiv > 0) {
       downhillcostdiv = 1000000 / downhillcostdiv
     }
 
-    var downhillmaxslopecostdiv = rc.expctxWay.getDownhillmaxslopecost().toInt()
+    var downhillmaxslopecostdiv = rc.expctxWay!!.getDownhillmaxslopecost().toInt()
     if (downhillmaxslopecostdiv > 0) {
       downhillmaxslopecostdiv = 1000000 / downhillmaxslopecostdiv
     } else {
@@ -64,12 +64,12 @@ class StdPath : OsmPath() {
       downhillmaxslopecostdiv = downhillcostdiv
     }
 
-    uphillcostdiv = rc.expctxWay.getUphillcost().toInt()
+    uphillcostdiv = rc.expctxWay!!.getUphillcost().toInt()
     if (uphillcostdiv > 0) {
       uphillcostdiv = 1000000 / uphillcostdiv
     }
 
-    var uphillmaxslopecostdiv = rc.expctxWay.getUphillmaxslopecost().toInt()
+    var uphillmaxslopecostdiv = rc.expctxWay!!.getUphillmaxslopecost().toInt()
     if (uphillmaxslopecostdiv > 0) {
       uphillmaxslopecostdiv = 1000000 / uphillmaxslopecostdiv
     } else {
@@ -82,7 +82,7 @@ class StdPath : OsmPath() {
     // penalty for turning angle
     var turncost = ((1.0 - cosangle) * turncostbase.toDouble() + 0.2).toInt() // e.g. turncost=90 -> 90 degree = 90m penalty
 
-    val newPrio = rc.expctxWay.getPriorityClassifier().toInt()
+    val newPrio = rc.expctxWay!!.getPriorityClassifier().toInt()
     val oldPrio = lastpriorityclassifier
 
     if (rc.bikeMode) {
@@ -92,8 +92,8 @@ class StdPath : OsmPath() {
       if (rc.consider_crossing && oldPrio > 0 && nsection == 0 && angle < 0 && oldPrio >= rc.crossing_Prio_H && newPrio <= rc.crossing_Prio_L) {
         var class_index = 0
         if (sourceNode!!.nodeDescription != null) {
-          val nodeAccessGranted = rc.expctxWay.getNodeAccessGranted().toDouble() != 0.0
-          val node_tags: String = rc.expctxNode.getKeyValueDescription(nodeAccessGranted, sourceNode!!.nodeDescription!!)
+          val nodeAccessGranted = rc.expctxWay!!.getNodeAccessGranted().toDouble() != 0.0
+          val node_tags: String = rc.expctxNode!!.getKeyValueDescription(nodeAccessGranted, sourceNode!!.nodeDescription!!)
           class_index = node_tags.indexOf("estimated_crossing_class=")
           if (class_index > -1) {
             val crossing_class: String = node_tags.substring(class_index + 25, class_index + 26)
@@ -115,8 +115,8 @@ class StdPath : OsmPath() {
       if (rc.consider_crossing && oldPrio > 0 && nsection == 0 && angle > 0 && oldPrio >= rc.crossing_Prio_H && newPrio <= rc.crossing_Prio_L) {
         var class_index = 0
         if (sourceNode!!.nodeDescription != null) {
-          val nodeAccessGranted = rc.expctxWay.getNodeAccessGranted().toDouble() != 0.0
-          val node_tags: String = rc.expctxNode.getKeyValueDescription(nodeAccessGranted, sourceNode!!.nodeDescription!!)
+          val nodeAccessGranted = rc.expctxWay!!.getNodeAccessGranted().toDouble() != 0.0
+          val node_tags: String = rc.expctxNode!!.getKeyValueDescription(nodeAccessGranted, sourceNode!!.nodeDescription!!)
           class_index = node_tags.indexOf("estimated_crossing_class=")
           if (class_index > -1) {
             val crossing_class: String = node_tags.substring(class_index + 25, class_index + 26)
@@ -229,15 +229,15 @@ class StdPath : OsmPath() {
   override fun processTargetNode(rc: RoutingContext): Double {
     // finally add node-costs for target node
     if (targetNode!!.nodeDescription != null) {
-      val nodeAccessGranted = rc.expctxWay.getNodeAccessGranted().toDouble() != 0.0
-      rc.expctxNode.evaluate(nodeAccessGranted, targetNode!!.nodeDescription!!)
-      val initialcost: Float = rc.expctxNode.getInitialcost()
+      val nodeAccessGranted = rc.expctxWay!!.getNodeAccessGranted().toDouble() != 0.0
+      rc.expctxNode!!.evaluate(nodeAccessGranted, targetNode!!.nodeDescription!!)
+      val initialcost: Float = rc.expctxNode!!.getInitialcost()
       if (initialcost.toDouble() >= 1000000.0) {
         return -1.0
       }
       if (message != null) {
         message!!.linknodecost += initialcost.toInt()
-        message!!.nodeKeyValues = rc.expctxNode.getKeyValueDescription(nodeAccessGranted, targetNode!!.nodeDescription!!)
+        message!!.nodeKeyValues = rc.expctxNode!!.getKeyValueDescription(nodeAccessGranted, targetNode!!.nodeDescription!!)
       }
       return initialcost.toDouble()
     }
@@ -290,7 +290,7 @@ class StdPath : OsmPath() {
     val incline = calcIncline(dist)
 
     var maxSpeed: Double = rc.maxSpeed
-    val speedLimit: Double = (rc.expctxWay.getMaxspeed() / 3.6f).toDouble()
+    val speedLimit: Double = (rc.expctxWay!!.getMaxspeed() / 3.6f).toDouble()
     if (speedLimit > 0) {
       maxSpeed = minOf(maxSpeed, speedLimit)
     }

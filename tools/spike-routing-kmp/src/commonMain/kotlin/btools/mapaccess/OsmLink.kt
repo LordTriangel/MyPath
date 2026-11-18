@@ -28,7 +28,7 @@ open class OsmLink() {
     private var reverselinkholder: OsmLinkHolder? = null
     private var firstlinkholder: OsmLinkHolder? = null
 
-    constructor(source: OsmNode, target: OsmNode) : this() {
+    constructor(source: OsmNode?, target: OsmNode?) : this() {
         n1 = source
         n2 = target
     }

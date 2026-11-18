@@ -10,7 +10,7 @@ import btools.mapaccess.OsmNode
 import btools.util.CheapRuler
 import kotlin.math.sqrt
 
-class OsmNodeNamed : OsmNode {
+open class OsmNodeNamed : OsmNode {
   var name: String? = null
   var radius = 0.0 // radius of nogopoint (in meters)
   var nogoWeight = 0.0 // weight for nogopoint

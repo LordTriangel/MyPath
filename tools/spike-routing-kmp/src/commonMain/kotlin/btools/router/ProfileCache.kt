@@ -88,7 +88,7 @@ class ProfileCache {
 
       rc.expctxWay = BExpressionContextWay(rc.memoryclass * 512, meta)
       rc.expctxNode = BExpressionContextNode(0, meta)
-      rc.expctxNode!!.setForeignContext(rc.expctxWay)
+      rc.expctxNode!!.setForeignContext(rc.expctxWay!!)
 
       meta.readMetaData(lookupFile)
 
