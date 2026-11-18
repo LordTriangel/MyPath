@@ -7,7 +7,6 @@ import com.onpath.app.domain.OfflineReady
 import com.onpath.app.domain.PlaceAddMenu
 import com.onpath.app.domain.PlanGap
 import com.onpath.app.domain.PlanGaps
-import com.onpath.app.domain.RouteMenuState
 import com.onpath.app.domain.RouteRules
 import com.onpath.app.domain.RouteSpot
 import com.onpath.app.domain.RouteWarnings
@@ -25,7 +24,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
@@ -473,94 +471,6 @@ class ScreenshotTest {
     @Test fun routeDetailsTechnique() = paparazzi.snapshot { OnPathTheme { RouteDetailsScreen(t3Route, Activity.HIKE, onBack = {}) } }
 
     @Test fun planTechniqueBadge() = paparazzi.snapshot { Frame { PlanPanel(planWithPoints(PlanSize.COMPACT, r = t3Route), PlanCallbacks()) } }
-
-    /** Drop-down menus are popups (not drawn by Paparazzi): draw their items where the menu opens. */
-    @Composable
-    private fun MenuCard(modifier: Modifier, items: @Composable () -> Unit) {
-        androidx.compose.material3.Surface(modifier.width(260.dp), shape = androidx.compose.material3.MaterialTheme.shapes.extraSmall,
-            color = androidx.compose.material3.MaterialTheme.colorScheme.surfaceContainer, shadowElevation = 3.dp) {
-            Column(Modifier.padding(vertical = 8.dp)) { items() }
-        }
-    }
-
-    @Composable
-    private fun TopMenu(state: RouteMenuState, phoneSetup: Boolean = false, sync: (() -> SyncMenuUi)? = null,
-                        unsaved: Boolean = false, newPlan: Boolean = state.save, record: Boolean = true,
-                        bottom: @Composable () -> Unit) {
-        Box(Modifier.fillMaxSize()) {
-            // [sync] is built inside the composition: its texts follow the test's language
-            // Save route is the top item whenever there is a plan; [unsaved] = the "Nicht gespeichert ›" sign
-            val menu = PlanMenu(state, onUpdates = {}, onPairBrowser = {}, onPhoneSetup = if (phoneSetup) ({}) else null, onHelp = {},
-                sync = sync?.invoke() ?: SyncMenuUi(), onSaveRoute = if (state.save) ({}) else null,
-                // owner 2026-11-06: "Neu planen" with a plan, "Nur aufzeichnen" while no tour runs
-                onNewPlan = if (newPlan) ({}) else null, onRecordWithoutPlan = if (record) ({}) else null)
-            Frame(menu = menu) { bottom() }
-            OnPathTheme { MenuCard(Modifier.align(Alignment.TopEnd).padding(top = 92.dp, end = 12.dp)) {
-                PlanMenuItems(menu) {}
-            } }
-        }
-    }
-
-    /** ☰ with a route planned: My routes on, Start recording greyed. */
-    fun planMenuOpen() = paparazzi.snapshot {
-        TopMenu(RouteRules.menu(hasRoute = true, pointCount = 3, savedCount = 3, navigating = false, recording = false)) {
-            PlanPanel(planUi(), PlanCallbacks())
-        }
-    }
-
-    /** ☰ while the plan has unsaved changes: "Save route" on top (the one Save); the sign beside the label, no dot on ☰. */
-    fun planMenuUnsaved() = paparazzi.snapshot {
-        TopMenu(RouteRules.menu(hasRoute = true, pointCount = 3, savedCount = 3, navigating = false, recording = false), unsaved = true) {
-            PlanPanel(planUi().copy(unsaved = true), PlanCallbacks())
-        }
-    }
-
-    /** ☰ while a tour needs something from the phone (location off …): red "Phone setup" first (owner 2026-10-30). */
-    fun planMenuPhoneSetup() = paparazzi.snapshot {
-        TopMenu(RouteRules.menu(hasRoute = true, pointCount = 3, savedCount = 3, navigating = false, recording = false), phoneSetup = true) {
-            PlanPanel(planUi(), PlanCallbacks())
-        }
-    }
-
-    private val syncNow = 1_761_150_000_000L
-    private val paired = com.onpath.app.plansync.PlanSync.State(paired = true, peer = "Chrome on Linux", lastOkMs = syncNow - 60_000,
-        sinceMs = syncNow - 86_400_000, checkedMs = syncNow - 60_000)
-
-    /** ☰ paired with a browser (owner 2026-10-30): "Paired with browser ✓" + "Pixel 8 ↔ Chrome on Linux · synced 1 min ago". */
-    fun planMenuSyncPaired() = paparazzi.snapshot {
-        TopMenu(RouteRules.menu(hasRoute = true, pointCount = 3, savedCount = 3, navigating = false, recording = false),
-            sync = { SyncMenuUi.of(paired, "Pixel 8", syncNow) }) { PlanPanel(planUi(), PlanCallbacks()) }
-    }
-
-    /** ☰ with a sync problem worth a look (mailbox full): amber dot on ☰, the item amber with the reason. */
-    fun planMenuSyncProblem() = paparazzi.snapshot {
-        TopMenu(RouteRules.menu(hasRoute = true, pointCount = 3, savedCount = 3, navigating = false, recording = false),
-            sync = { SyncMenuUi.of(paired.copy(problem = com.onpath.app.plansync.PlanSync.Problem.Refused(507, "full")), "Pixel 8", syncNow) }) {
-            PlanPanel(planUi(), PlanCallbacks())
-        }
-    }
-
-    /** ☰ when the browser unpaired itself (field bug 2026-10-31): "Pair with browser" + grey "Unpaired in the browser", no dot. */
-    fun planMenuSyncUnpairedInBrowser() = paparazzi.snapshot {
-        TopMenu(RouteRules.menu(hasRoute = true, pointCount = 3, savedCount = 3, navigating = false, recording = false),
-            sync = { SyncMenuUi.of(paired.copy(peer = null, browser = com.onpath.app.plansync.BrowserLink.UNPAIRED), "Pixel 8", syncNow) }) {
-            PlanPanel(planUi(), PlanCallbacks())
-        }
-    }
-
-    /** ☰ on an empty plan: My routes and Start recording on. */
-    @Test fun planMenuEmpty() = paparazzi.snapshot {
-        TopMenu(RouteRules.menu(hasRoute = false, pointCount = 0, savedCount = 0, navigating = false, recording = false)) {
-            PlanPanel(planUi(n = 0, r = null), PlanCallbacks())
-        }
-    }
-
-    /** ☰ while a tour runs (looked at from Plan): Start recording greyed. */
-    @Test fun planMenuNavigating() = paparazzi.snapshot {
-        TopMenu(RouteRules.menu(hasRoute = true, pointCount = 3, savedCount = 3, navigating = true, recording = true), record = false) {
-            PlanPanel(planUi(tourRunning = true), PlanCallbacks())
-        }
-    }
 
     /**
      * The plan during a tour, profile step (owner 2026-11-05, R5): plan row ✕ Neu planen · ⇅ Umkehren · ↻ Rundtour, the

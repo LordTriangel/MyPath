@@ -90,7 +90,7 @@ Keep the column right: a new snapshot test for a screen of a step → add its na
 | --- | --- | --- | --- | --- | --- |
 | C01 | `C01-web-handy-fenster` | the Phone window, not paired, "Wie funktioniert das?" open | web-handy · route-planen (koppeln) | – | `plans.ts` (`phoneDialog`) |
 | C02 | `C02-web-koppel-code` | "Handy verbinden": QR (blurred), the way in the app, check digits | web-koppeln · route-planen (koppeln) | – | `plans.ts` (`pairDialog`) |
-| C03 | `C03-handy-menue-koppeln` | app ☰ open: "Mit Browser koppeln" | app-koppeln · route-planen (koppeln) | `planMenuOpen` | `ui/PlanTopBar.kt` |
+| C03 | `C03-handy-menue-koppeln` | app ☰ open: "Mit Browser koppeln" | app-koppeln · route-planen (koppeln) | `planMenuStates` `plan` | `ui/PlanTopBar.kt` |
 | C04 | `C04-handy-pruefziffern` | "Mit diesem Browser verbinden? Prüfe: …" · Verbinden | – | `settingsSyncAsk` | `ui/SyncSettings.kt` |
 | C05 | `C05-handy-verbunden` | paired: what you save in the browser comes to the phone | app-verbunden · route-planen (koppeln) | `planPairedNote` | `ui/SyncSettings.kt`, plan note |
 | C06 | `C06-web-aufs-handy-sichern` | browser paired: phone name + dot, "Aufs Handy sichern" → "✓ Auf dem Handy" | – | – | `main.ts` (header), `plans.ts` |
