@@ -13,6 +13,7 @@ routing/OfflineCorridor.kt
 routing/BRouterWayStats.kt
 routing/WaypointSnap.kt
 routing/BRouterEngine.kt
+routing/RouterRules.kt
 routing/StraightLineEngine.kt
 routing/RouteTimeLimit.kt
 routing/TurnDetector.kt
