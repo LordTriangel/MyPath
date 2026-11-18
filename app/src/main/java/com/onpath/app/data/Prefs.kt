@@ -349,9 +349,12 @@ class Prefs internal constructor(private val sp: SharedPreferences, filesDir: Fi
         get() = sp.getBoolean("devToolsUnlocked", false)
         set(v) = sp.edit().putBoolean("devToolsUnlocked", v).apply()
 
-    /** Developer tools → „Tourvorschläge (Test)“ (docs/design/tour-suggestions.md §7 stage 4): off by default. */
+    /**
+     * Developer tools → „Tourvorschläge“ (docs/design/tour-suggestions.md §7 stage 4): on by default since 2026-11-18
+     * (owner: on for everyone with the card row); the switch stays as an off-switch.
+     */
     var suggestTest: Boolean
-        get() = sp.getBoolean("suggestTest", false)
+        get() = sp.getBoolean("suggestTest", true)
         set(v) = sp.edit().putBoolean("suggestTest", v).apply()
 
     /** Last visit to Settings → Diagnostics (ms): newer serious problems colour its list line red (owner). */

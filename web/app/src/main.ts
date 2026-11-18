@@ -285,7 +285,7 @@ const cells = new Cells(params.get('data') ?? base + 'data/');
 const mapFolder = params.get('data') ?? base + 'map/'; // folder mode only
 if (useCells) maplibregl.addProtocol('cell', cells.protocol);
 installDiag(DEBUG); // the problem log, window.__diag(), ?debug → "Copy diagnostics" (diag.ts)
-installSuggestSwitch(DEBUG); // ?debug → „Tourvorschläge (Test)“: the switch of the round-trip suggestions (suggest.ts); off = nothing
+installSuggestSwitch(DEBUG); // ?debug → „Tourvorschläge: an / aus“: the off-switch of the round-trip suggestions (suggest.ts); off = nothing
 watchVersion(); // a newer planner deployed while this tab is open: one box "New version of the planner" [Reload] (version.ts)
 addDiagSection(() => `build: ${BUILD}`);
 const baseStyle = await loadStyle();
@@ -769,7 +769,7 @@ sortable($('points'), (from, to) => applyEdit('move', from, to));
 
 // ---- presses on the map: a click is the app's hold (MapGestures.decide, in the engine) ----
 let menu: maplibregl.Popup | null = null;
-/** Round-trip suggestions (suggest.ts) – null unless the test switch is on (set up at the end of this file). */
+/** Round-trip suggestions (suggest.ts) – on by default, null when the ?debug switch turned them off (set up at the end of this file). */
 let suggestUi: SuggestUi | null = null;
 let placeCard: PlaceCard = { close: () => {}, isOpen: () => false, removePin: () => {}, planChanged: () => {}, showPin: () => {}, hasPin: () => false }; // the search's place card (set up below)
 function closeMenu() { menu?.remove(); menu = null; }
@@ -1132,7 +1132,8 @@ async function firstPointMenu(at: maplibregl.LngLat) {
     { icon: 'tripOrigin', label: t('plan_start_here'), act: () => commit([p], [{ pinned: false }]) },
     await goHereItem(() => fromMe(p, { pinned: false })),
   ];
-  openMenu(at, suggestUi ? suggestUi.withRow(items, 0, p) : items, `<b>${escapeHtml(t('plan_new_route'))}</b>`);
+  // „Rundtour von hier“ only for the very first point (owner 2026-11-18): never once the plan has a point
+  openMenu(at, suggestUi && !state.points.length ? suggestUi.withRow(items, 0, p) : items, `<b>${escapeHtml(t('plan_new_route'))}</b>`);
 }
 
 /**
@@ -1216,7 +1217,8 @@ async function placeRows(hit: Hit, info: { title: string; sub: string; color: st
   const main = await Promise.all(pm.main.map(row));
   // a multi-day tour: a found place can be the hotel of a night (scenario F) – the nearest day end is offered
   if (multiDay?.isTour && pm.main.length) main.push({ icon: 'bed', label: t('days_hotel_for_tour'), key: 'HOTEL', act: () => { void multiDay?.hotelForTour(hit); } });
-  return { head, main: suggestUi ? suggestUi.withRow(main, pm.main.indexOf('START_HERE'), p, info.title) : main, keep: await keepRows(hit.code), google: googleRow };
+  // „Rundtour von hier“ only while the plan is empty (owner 2026-11-18: only when setting the very first point)
+  return { head, main: suggestUi && !state.points.length ? suggestUi.withRow(main, pm.main.indexOf('START_HERE'), p, info.title) : main, keep: await keepRows(hit.code), google: googleRow };
 }
 
 // ---- kept places (owner 2026-11-15, „Orte merken“ – the app's b2504c3d, F-PLAN-14; keptplaces.ts) ----
@@ -2719,7 +2721,7 @@ new ResizeObserver(() => {
 addEventListener('resize', placeUndoPill);
 changed();
 
-// ---- round-trip suggestions (suggest.ts, docs/design/tour-suggestions.md §7 stage 3) – only with the test switch on ----
+// ---- round-trip suggestions (suggest.ts, docs/design/tour-suggestions.md §7 stage 3) – on unless the ?debug switch turned them off ----
 if (suggestOn()) {
   try {
     suggestUi = setupSuggest({

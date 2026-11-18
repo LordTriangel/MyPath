@@ -1,10 +1,11 @@
-// Round-trip suggestions in the planner (suggest.ts, WebSuggest.kt; docs/design/tour-suggestions.md §7 stage 3): with
-// the switch off nothing changes (no „Rundtour von hier“); on (the ?debug test setting) the first tap's menu has the row
-// right below „Hier starten“ → the wish (activity, two range sliders, five Ziel chips, Abbrechen · OK) → the wait →
-// cards (badge, km · h · ↑, at most 2 green + 2 yellow pills) side by side in one row along the map's bottom edge
-// (sketch 8: the side panel stays the plan) with only the chosen loop on the map → „Übernehmen“ = a normal round-trip
-// plan. On a phone width: one card in front, the next looking in, a swipe chooses the card it rests on. German and English words. Needs E5_N50.rd5 (Hilden) and the cells' suggest files
-// (<dir>/10-x-y/suggest.bin, content 2) – skipped without them (says so).
+// Round-trip suggestions in the planner (suggest.ts, WebSuggest.kt; docs/design/tour-suggestions.md §7 stage 3): on by
+// default since 2026-11-18 (owner); with the ?debug off-switch nothing changes (no „Rundtour von hier“). On: the first
+// tap's menu has the row right below „Hier starten“ → the wish (activity, two range sliders, five Ziel chips,
+// Abbrechen · OK) → the wait → cards (badge, km · h · ↑, at most 2 green + 2 yellow pills) side by side in one row along
+// the map's bottom edge (sketch 8: the side panel stays the plan) with only the chosen loop on the map → „Übernehmen“ =
+// a normal round-trip plan. On a phone width: one card in front, the next looking in, a swipe chooses the card it rests
+// on. German and English words. Needs E5_N50.rd5 (Hilden) and the cells' suggest files (<dir>/10-x-y/suggest.bin,
+// content 2) – skipped without them (says so).
 // Usage: node test/suggest-smoke.mjs [segmentsDir] [suggestFilesDir]
 import fs from 'node:fs';
 import os from 'node:os';
@@ -37,7 +38,8 @@ const check = (ok, what) => { console.log((ok ? 'ok   ' : 'FAIL ') + what); if (
 
 async function open(lang, on, viewport = { width: 1280, height: 860 }) {
   const ctx = await browser.newContext({ viewport });
-  if (on) await ctx.addInitScript(() => { try { localStorage.setItem('onpath.suggestTest', '1'); } catch { /* expected: no storage */ } });
+  // on by default since 2026-11-18 (owner); off only through the ?debug setting ('0')
+  if (!on) await ctx.addInitScript(() => { try { localStorage.setItem('onpath.suggestTest', '0'); } catch { /* expected: no storage */ } });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -57,7 +59,7 @@ async function firstMenu(page) {
 }
 
 try {
-  // ---- switched off (the default): the planner as before ----
+  // ---- switched off (the ?debug off-switch): the planner as before ----
   {
     const { ctx, page } = await open('de', false);
     const rows = await firstMenu(page);
@@ -136,6 +138,16 @@ try {
     const st = await page.evaluate(() => ({ n: window.__state.points.length, round: window.__state.roundTrip,
       first: window.__state.points[0], last: window.__state.points[window.__state.points.length - 1] }));
     check(planned && st.round, `„Übernehmen“ → a normal round-trip plan (${st.n} points, round trip ${st.round})`);
+    // the plan has points now: „Rundtour von hier“ never again (owner 2026-11-18: only for the very first point)
+    {
+      const p = await page.evaluate(([la, lo]) => { const q = window.__map.project([lo + 0.01, la + 0.006]), r = window.__map.getCanvas().getBoundingClientRect(); return [q.x + r.x, q.y + r.y]; }, HILDEN);
+      await page.mouse.click(p[0], p[1]);
+      await page.waitForTimeout(1500);
+      const rows = await page.$$eval('.pointmenu button[role=menuitem] .txt > span:first-child', (b) => b.map((x) => x.textContent));
+      check(!rows.includes('Rundtour von hier') && !(await page.evaluate(() => document.body.textContent.includes('Rundtour von hier'))),
+        `plan with points: no „Rundtour von hier“ (menu: ${rows.join(' · ') || 'none'})`);
+      await page.keyboard.press('Escape');
+    }
     const bad = errors.filter((e) => !/Failed to load resource|favicon|\[Problems\] (TRACE|INFO)/.test(e));
     check(bad.length === 0, `no page errors (${bad.slice(0, 3).join(' | ')})`);
     await ctx.close();

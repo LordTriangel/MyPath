@@ -4,8 +4,9 @@
 // the text line, at most 2 green + 2 yellow pills) → „Übernehmen“ = a normal plan (the planner's plan-from-track path,
 // round trip). On the map only the chosen card's loop (owner 2026-11-17). The cards (sketch 8, owner 2026-11-18 „Ja, so
 // bauen“): side by side in one row along the map's bottom edge, the side panel stays the plan; on a phone a low strip
-// with one card in front and the next looking in – swiping to a card or clicking it shows its loop. The method runs in the engine worker
-// (WebSuggest.kt). Behind a switch that is OFF by default: ?debug → „Tourvorschläge (Test)“ (this browser only).
+// with one card in front and the next looking in – swiping to a card or clicking it shows its loop. The method runs in
+// the engine worker (WebSuggest.kt). On for everyone since 2026-11-18 (owner); ?debug → „Tourvorschläge: an“ is the
+// off-switch (this browser only).
 import type * as maplibregl from 'maplibre-gl';
 import type { GeoJSONSource } from 'maplibre-gl';
 import type { EngineClient } from './engine/client';
@@ -19,9 +20,9 @@ import './suggest.css';
 type LatLon = [number, number];
 
 const KEY = 'onpath.suggestTest';
-/** The switch (this browser only): off unless the test setting turned it on. */
+/** The switch (this browser only): on unless the ?debug setting turned it off ('0'; an old '1' = on). */
 export function suggestOn(): boolean {
-  try { return localStorage.getItem(KEY) === '1'; } catch { return false; } // expected: storage blocked = off
+  try { return localStorage.getItem(KEY) !== '0'; } catch { return true; } // expected: storage blocked = the default, on
 }
 
 /** ?debug: one small button that switches the feature on / off (reloads – the page sets it up at start). */
@@ -33,7 +34,7 @@ export function installSuggestSwitch(debug: boolean) {
   b.className = 'suggestswitch';
   b.textContent = t(suggestOn() ? 'suggest_ui_test_on' : 'suggest_ui_test_off');
   b.onclick = () => {
-    try { if (suggestOn()) localStorage.removeItem(KEY); else localStorage.setItem(KEY, '1'); }
+    try { if (suggestOn()) localStorage.setItem(KEY, '0'); else localStorage.removeItem(KEY); }
     catch (e) { problem('suggest', 'test setting not stored', e); }
     location.reload();
   };

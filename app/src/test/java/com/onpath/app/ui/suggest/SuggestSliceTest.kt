@@ -140,6 +140,11 @@ class SuggestSliceTest {
         assertNull(s.phase); assertFalse(s.wishOpen)
     }
 
+    /** On for everyone since 2026-11-18 (owner): a slice without a stored choice offers „Rundtour von hier“. */
+    @Test fun onByDefault() {
+        runBlocking { assertTrue(SuggestSlice(this, Fake(ArrayDeque())).on) }
+    }
+
     @Test fun theSwitchOffClosesEverything() {
         val fake = Fake(ArrayDeque(listOf({ result(card(1, 8.4, 6.95)) })))
         var stored: Boolean? = null

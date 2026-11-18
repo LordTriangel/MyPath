@@ -13,7 +13,6 @@ import com.onpath.strings.Txt
 import com.onpath.strings.common_ok
 import com.onpath.strings.suggest_ui_from_here
 import com.onpath.strings.suggest_ui_take
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -23,7 +22,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /**
- * Round-trip suggestions on the phone (docs/design/tour-suggestions.md §7 stage 4), behind the developer switch: a hold
+ * Round-trip suggestions on the phone (docs/design/tour-suggestions.md §7 stage 4), on by default since 2026-11-18: a hold
  * on the empty map → „Rundtour von hier“ (right under „Hier starten“) → the wish sheet → OK → the cards in the plan
  * sheet's place, side by side in one row (sketch 8) → a swipe to the second card draws its loop (the one suggestion
  * line on the map) → „Übernehmen“.
@@ -35,14 +34,12 @@ import java.util.concurrent.TimeUnit
 @RunWith(AndroidJUnit4::class)
 class RoundTripSuggestE2ETest : E2EBase() {
 
-    @After fun switchOff() { if (launched) scenario.onActivity { vm(it).suggest.switch(false) } }
-
     @Test fun holdRoundTripWishCardsLoopTake() {
         launch()
         val asks = ArrayList<SuggestAsk>()
         scenario.onActivity { a ->
             val s = vm(a).suggest
-            s.switch(true)
+            assertTrue("on for everyone since 2026-11-18 (owner), no switch needed", s.on)
             val real = s.host
             s.host = object : SuggestHost by real {
                 override suspend fun suggest(ask: SuggestAsk): SuggestCards { asks += ask; return answer(ask.lat, ask.lon) }

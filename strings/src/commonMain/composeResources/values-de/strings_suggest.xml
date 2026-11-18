@@ -125,10 +125,10 @@
     <string name="suggest_ui_on_loop">davon %1$s km auf dem Rundweg</string>
     <string name="suggest_ui_failed">Gerade keine Vorschläge möglich – bitte noch einmal versuchen.</string>
     <string name="suggest_ui_taking">Plan wird erstellt …</string>
-    <string name="suggest_ui_test_on">Tourvorschläge (Test): an</string>
-    <string name="suggest_ui_test_off">Tourvorschläge (Test): aus</string>
+    <string name="suggest_ui_test_on">Tourvorschläge: an</string>
+    <string name="suggest_ui_test_off">Tourvorschläge: aus</string>
     <string name="suggest_ui_loading_routing">Wegedaten werden geladen …</string>
-    <string name="suggest_ui_test">Tourvorschläge (Test)</string>
+    <string name="suggest_ui_test">Tourvorschläge</string>
     <plurals name="suggest_ui_count">
         <item quantity="one">eine Rundtour</item>
         <item quantity="other">%1$s Rundtouren</item>
