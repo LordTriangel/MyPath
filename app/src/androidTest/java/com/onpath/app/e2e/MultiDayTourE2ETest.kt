@@ -53,8 +53,10 @@ class MultiDayTourE2ETest : E2EBase() {
     @Test fun aSyncedThreeDayPlanDayTwoIsRiddenAndSaved() {
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
         val db = TourDb.get(ctx)
-        // ~6 km north of Meran in steps: 7 points, nights on point 2 (Übernachtung) – N = 3, day 2 ends at a grey proposal
-        val pts = (0..6).map { GeoPoint(MERAN_LAT + it * 0.009, MERAN_LON + (it % 2) * 0.002) }
+        // 7 points, a night on point 2 (Übernachtung) – N = 3, day 2 ends at a grey proposal
+        // down the Etsch valley from Meran (paths a hike reaches; a climb north left a point unreachable on the emulator)
+        val pts = (0..6).map { GeoPoint(MERAN_LAT - it * 0.008, MERAN_LON + it * 0.004) }
+        var night = pts[2]
         val plan = PlanContent(pts, Activity.HIKE, 2, emptySet(), emptyMap(), days = 3, nights = mapOf(2 to NightMark.OVERNIGHT))
         val t = DbTourStore(ctx, db) { com.onpath.app.time.Factors.ONE }.addPlan("E2E Drei Tage", plan)
         assertEquals(3, db.getTour(t.id)?.days?.days)
@@ -67,7 +69,7 @@ class MultiDayTourE2ETest : E2EBase() {
             scenario.onActivity { a -> vm(a).routesOpen = false }
             scenario.onActivity { a -> vm(a).openTour(db.getTour(t.id)!!) }
             waitUntil("the tour is the plan", 15_000) { onVm { it.waypoints.size == pts.size } }
-            routeSettled()
+            routeSettled(); night = onVm { it.waypoints.getOrNull(2) } ?: night // the router may move the points onto their ways
             waitUntil("the overview shows its days", 20_000) { onVm { it.multiDay.daysUi()?.rows?.size == 3 } }
             // the maps question (first opening, once): shown, then "later" – the test map package has no server behind it
             try { waitUntil("the maps question", 10_000) { onVm { it.multiDay.tourMapsAsk != null } }; Thread.sleep(800); shot("1-maps-question") }
@@ -84,7 +86,7 @@ class MultiDayTourE2ETest : E2EBase() {
             waitUntil("day 2 is the plan", 15_000) { onVm { it.multiDay.flow.following } }
             routeSettled()
             val dayPts = onVm { it.waypoints.toList() }
-            assertTrue("day 2 starts at the night of day 1", dayPts.first().let { p -> kotlin.math.abs(p.lat - pts[2].lat) < 1e-4 })
+            assertTrue("day 2 starts at the night of day 1: ${dayPts.first()} vs $night", com.onpath.app.data.Geo.distance(dayPts.first(), night) < 50.0)
             shot("2-day-two")
             scenario.onActivity { it.let { a -> vm(a).startNavigation(force = true) } }
             waitUntil("Navigate (recording started)", 20_000) { mode() == AppMode.NAVIGATE && recording() }
