@@ -1,0 +1,3 @@
+# Multi-day tours – concept complete, nothing built (owner 2026-11-17: every open point decided, „ansonsten haben wir alles“):
+
+- **Multi-day tours – concept complete, nothing built (owner 2026-11-17: every open point decided, „ansonsten haben wir alles“):** one plan + number of days + limits per day; Übernachtung (blue moon) / Hotel (green bed), grey moons worked out; way in ☰ → Mehrtagestour planen (GPX-Track laden / gespeicherte Route, „Noch etwas anhängen“); saving as every plan; the phone asks for maps at the first opening and picks a day. `docs/design/multi-day-tours.md`, sketches rounds 1–3 linked there (§10). Next: stage 0 (measure München–Venedig) when the owner says go. Touches shared code (`PlanCode`, `PlanEdits`) → laptop.

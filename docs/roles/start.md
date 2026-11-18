@@ -15,7 +15,8 @@ it owns) and cloud-web works as before (`cloud-web.md`). The captain: `captain.m
 - **Wake-up: off** (owner 2026-11-07, calm phase, saves tokens): the session works when the owner writes to it. Do not
   create a scheduled task or `/loop` yourself. The paused task (`create_trigger`, `persistent_session_id` = the session,
   prompt „Runde – docs/roles/start.md“) is switched on again only on the owner's word.
-- When the chat gets long: handoff, archive, start a new session with the same sentence – the repo is the memory.
+- When the context reaches ~350,000 tokens (phase 0d of `docs/design/architecture-plan-2026-11.md`): handoff file
+  `docs/history/handoff-<role>-<date>.md`, archive, start a new session with the same sentence – the repo is the memory.
 
 ## Who takes what (tags in `docs/backlog.md` "Next")
 `[pixel]`, `[emu]` → donald · `[karten]`, `[ram]` → laptop · no tag → any unit that is free. The owner does not route:
@@ -34,7 +35,9 @@ an item said to the wrong session goes into the backlog for the right one.
 5. Next item this unit can do and nobody claims → claim under "In progress", push.
 6. Work: small green commits, `tools/ci/gate.sh`, push. Gradle only in a slot (`gate.sh` / `tools/dev/gradle_slot.sh`),
    devices only via `tools/dev/device.sh`, phone rules in `docs/owner-preferences.md`.
-7. Done: remove the claim, one handoff line in "Last session" (`docs/project-status.md`), push (`docs/working-agreement.md` §1).
+7. Done: remove the claim (role / claim lines ≤ 400 bytes, other items one short title line, detail in
+   `docs/items/<date>-<slug>.md`; the gate caps the backlog, target 20 KB), one handoff line in "Last session"
+   (`docs/project-status.md`), push (`docs/working-agreement.md` §1).
 
 **Before switching the computer off / when asked to stop:** push everything; half-done work on a `wip/<name>-<date>-<topic>`
 branch.

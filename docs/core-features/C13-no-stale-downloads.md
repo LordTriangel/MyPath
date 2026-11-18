@@ -1,0 +1,9 @@
+# C13 – No stale downloads
+
+
+Part of the core features (`docs/core-features.md`): every core feature has JVM regression tests; a field bug first gets a failing test, then the fix.
+
+
+| # | Core feature | Field bugs guarded against | Regression tests |
+| --- | --- | --- | --- |
+| C13 | **No stale or unexpected downloads** – route-corridor map regions and routing parts belong to the *current* plan: a new route / Undo / Clear / Cancel at the long-route question / "not routed" / routing failed drops the ones no longer needed (running download stops, installed maps stay); nothing loads for a plan that is not routed; at start the saved queue is revalidated (corridor waits for the restored plan's route, point requests older than 24 h go); right before each download the reason is checked again (corridor → still on the route, point → still near a planned point / the search / the position / a tour or the user waits in the modal, refresh → area still installed); every request / start / finish / drop is in the events trace; finished regions join the map in one generation (≤ 10 s window, never while the map is dragged); what loads in the background is visible (after 10 s a light blue chip with a progress ring under ☰ / the Navigate status, tap → a bottom sheet with what loads; owner 2026-10-31) and stoppable ("Cancel all" in that sheet and in Settings → Offline maps) | 16 corridor regions of a long route kept loading after every start on Wi-Fi: 392 MB, 40 generations | `NoStaleDownloadsTest`, `CellTriggersTest.t4NewRouteDropsTheOldCorridor` / `planWithoutRouteKeepsNoCorridor`, `RoutingDataAutoTest.corridorPartsFollowThePlan`, `BackgroundDownloadsTest`, screenshots `BackgroundDownloadScreenshotTest` (DE, largest font: `BackgroundDownloadGermanScreenshotTest`, `BackgroundDownloadLargeFontTest`); emulator `NoStaleDownloadsE2ETest` |

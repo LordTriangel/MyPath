@@ -12,7 +12,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 
 /**
- * CORE FEATURE (docs/core-features.md C1): hold a route point → its menu → Delete. Broke twice in the field
+ * CORE FEATURE (docs/core-features/C1-hold-route-point.md): hold a route point → its menu → Delete. Broke twice in the field
  * (0.7.19: the map turned under the resting finger; 0.8.3: a new point was added instead of the menu). Each scenario
  * below is one way it can break; the flow runs through the same pure functions MapHost uses.
  */

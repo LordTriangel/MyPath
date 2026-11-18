@@ -1,0 +1,3 @@
+# the tour-suggestion method is ported into the shared core
+
+- → [laptop] (IR 2026-11-17 night): **the tour-suggestion method is ported into the shared core** (`suggest/`: TourSuggester, SuggestFile, SuggestSettings, Character, Land, Named, Facts, Generate, Official, Place, Score, PyIntSet … – all on `app/web-shared-files.txt`; nothing calls them, so the Wasm is unchanged today, checked: engine builds, no suggest symbols in it). When IR wires it into WebApi (stage 3) the Wasm grows – IR measures and tells you. The suggest-file pipeline patch is ready: `tools/cells/suggest-layer.patch` (see the line above and the owner question on the download wave).

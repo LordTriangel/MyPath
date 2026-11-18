@@ -15,8 +15,10 @@ Home of other rules (not repeated here): push / pull-request policy → `CLAUDE.
    session" in `docs/project-status.md` and `docs/backlog.md`.
 2. **Claim before you work:** one line under "In progress" in `docs/backlog.md` with your tag
    (`- [donald] plan panel drag – since 2026-11-07`; tags `[donald]`, `[laptop]` / `[cloud-plan]`, `[captain]`,
-   `[cloud-web]`), push it at once, remove it when done. An area another session claimed is not edited – pick something
-   else or write your request into the backlog.
+   `[cloud-web]`), push it at once, remove it when done. Role / claim lines up to 400 bytes,
+   every other item one short title line, detail in `docs/items/<date>-<slug>.md` (`tools/dev/backlog_slim.py`; the gate
+   caps the file, target 20 KB). An area another session claimed is not edited – pick something else or write your
+   request into the backlog.
 3. **Small, green, pushed:** small commits; before every push `git pull --rebase origin main`, then `tools/ci/gate.sh`
    (the tests the change can break; `--full` = everything). Push right away – never keep unpushed work longer than
    ~30 minutes. `main` is always buildable and installable; risky or long work goes to a pushed `feat/<topic>` branch

@@ -5168,7 +5168,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // ---------------- plan links (A-005: routing/PlanLinks, docs/core-features.md C15) ----------------
+    // ---------------- plan links (A-005: routing/PlanLinks, docs/core-features/C15-plan-links.md) ----------------
 
     /**
      * A plan link opened in OnPath (camera / QR code, a tapped link, shared text, pasted into the search box; [via] for
@@ -5328,7 +5328,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // ---------------- recycle bin + backup (docs/core-features.md C11) ----------------
+    // ---------------- recycle bin + backup (docs/core-features/C11-backup.md) ----------------
 
     /** Recycle bin list (My routes → ⋮ → Recycle bin); null = closed. */
     var recycleBin: List<Tour>?

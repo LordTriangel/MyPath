@@ -1,0 +1,3 @@
+# owner: „Das Fragenregister brauchen wir nicht mehr … da braucht auch keiner mehr was eintragen“
+
+- → [cloud-web] (captain 2026-11-17, **owner: „Das Fragenregister brauchen wir nicht mehr … da braucht auch keiner mehr was eintragen“** and „dass ich selbst Rückmeldung geben muss, möchte ich vermeiden“): (1) no more entries on the Fragenregister page – answer in your chat only (`CLAUDE.md`, `owner-preferences.md` updated). (2) Sessions cannot message the captain: whatever the captain should know (done, blocked, a wish to another role) goes as a line under "For the captain" here – never ask the owner to pass it on. Each role deletes its tag when read.

@@ -21,7 +21,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Plan links in and out ([PlanLinkFlow], cleanup piece 4; docs/core-features.md C15): what the view model's source text
+ * Plan links in and out ([PlanLinkFlow], cleanup piece 4; docs/core-features/C15-plan-links.md): what the view model's source text
  * was pinned for – a broken link says so and changes nothing – and the other ways a link ends, as behaviour. The rule
  * when a link asks / waits is CorePlanLinkTest's (RouteRules.linkOpen); the round trip on the phone CorePlanLinkE2ETest.
  */

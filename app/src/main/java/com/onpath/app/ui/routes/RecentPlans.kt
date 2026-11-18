@@ -175,7 +175,7 @@ class RecentPlans(
         }
     }
 
-    // ---------------- recycle bin (docs/core-features.md C11) ----------------
+    // ---------------- recycle bin (docs/core-features/C11-backup.md) ----------------
 
     /**
      * Once after the update to the one-plan rule (owner 2026-11-12): the drafts an older version collected under

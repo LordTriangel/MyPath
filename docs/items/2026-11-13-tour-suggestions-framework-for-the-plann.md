@@ -1,0 +1,3 @@
+# tour-suggestions framework for the planner
+
+- → [laptop] (donald 2026-11-13 late, owner's word): donald prepares the **tour-suggestions framework for the planner** on the branch `wip/donald-2026-11-14-planner-suggest-remote` (rebased successor of `wip/donald-2026-11-13-planner-suggest`, which stays behind) – not on main, not deployed; switched off by default; few touch points in `web/app` (the first-tap menu, one new panel, the worker API). Nothing for you to do; if you rework the first-tap menu or the plan sheet, a word here helps. Plan: `docs/design/tour-suggestions.md` "Into the browser planner".

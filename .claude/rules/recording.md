@@ -9,6 +9,7 @@ paths:
   - "app/src/main/java/com/onpath/app/debug/**"
   - "app/src/androidTest/**"
   - "docs/core-features.md"
+  - "docs/core-features/**"
 ---
 # Recording, data, phone setup, search, updates (loads when you touch those packages or the E2E tests)
 
@@ -18,7 +19,7 @@ paths:
 | `  data/` | `TourDb` (SQLite WAL), `Prefs`, `DataFiles` (required data check), `Geo` helpers, `AppSettings` (Settings page model), `FollowProgress` (remaining distance while following) |
 | `  search/`, `update/`, `debug/` | Place / address search (offline index + Photon); in-app updates (`AppUpdater`); `Problems` log, health / jank logging |
 | `  setup/` | Phone setup rules (pure): `PhoneCheck` (location precise / on, notifications, vibration felt, battery, brand killers, battery saver, unused-app reset; required vs recommended; "removed by the phone"), `SetupGuide` (step flow) – UI in `ui/setup/` (`PhoneStateReader`, `SetupGuideScreen`, `PhoneSetupSection`), see `docs/design/onboarding-phone-check.md` |
-| `  backup/` | Backups: auto GPX copy to Documents/OnPath, restore, recycle bin – see `docs/core-features.md` C11 |
+| `  backup/` | Backups: auto GPX copy to Documents/OnPath, restore, recycle bin – see `docs/core-features/C11-backup.md` |
 
 - **Robustness rules** (requirements section 4): never crash on missing files – show a clear screen;
   write every recorded point to SQLite immediately; long work off the main thread; show plain-language
