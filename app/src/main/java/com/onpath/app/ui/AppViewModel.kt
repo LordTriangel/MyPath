@@ -1094,7 +1094,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val notRouted: NotRouted? get() = routeRun.notRouted
     /** What started the routing run: Cancel takes back only that ([com.onpath.app.domain.plan.RunCause]). */
     private val runCauses = com.onpath.app.domain.plan.RunCause()
-
     internal val multiDay = com.onpath.app.ui.plan.MultiDaySlice(this, plan, ::change, ::setSaved, ::rememberPlaceName, { mapData }) { nearbyNames }
     // --- saved state of the plan (menus / Manage routes) ---
     /** Name, tour id and points the plan was last saved or loaded as ([com.onpath.app.ui.plan.PlanDocument]: stored, linked, unsaved). */
