@@ -15,6 +15,7 @@ Read first: `docs/history/handoff-donald-2026-11-18.md` (night: cleanup, map reb
 - **Still needs his word in donald's chat:** `gh secret delete CF_START_TOKEN` (auto mode refused the relayed yes).
 
 ## In flight
+- **98 % on the phone** (owner, via captain ddc76295 – belongs into 0.18.1): helper branch `worktree-agent-<id>` „Honest progress, no frozen 98 %“ – every percent that stalls near the end (plan map loading, route calculation, map downloads), JVM test first, then each phase its own progress / a text where nothing is measurable. **Screenshots to the owner first**, then merge, then 0.18.1.
 - **Zuhause like Google Maps** (owner chose it 2026-11-18 late): helper branch `worktree-agent-a9bafbf61692b9077`
   (place menu: „Als Zuhause festlegen“ only while none is set; empty search: „⌂ Zuhause festlegen“ or „⌂ Zuhause“ with
   ⋮ Ändern / Entfernen). **Show the owner the screenshots first, merge only after his yes** (sketch-before-build).
