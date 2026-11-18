@@ -124,6 +124,13 @@ await page.waitForFunction(() => document.querySelectorAll('.pin').length === 3 
 if (await page.$('.holdaddpopup button')) await page.click('.holdaddpopup button:first-of-type');
 await waitPins(3);
 await planned();
+// the pinned elevation profile lies along the map's bottom edge: a point set low on the map can sit under it (CI's window,
+// release run 2026-11-18) – move the map until the point is in the free room, as a user would
+await page.evaluate(async () => {
+  const pin = document.querySelectorAll('.pin')[1].getBoundingClientRect(), prof = document.getElementById('bigProfile');
+  const top = prof && !prof.hidden ? prof.getBoundingClientRect().top : innerHeight;
+  if (pin.bottom > top - 20) { window.__map.panBy([0, pin.bottom - top + 80], { duration: 0 }); await new Promise((r) => setTimeout(r, 200)); }
+});
 await page.locator('.pin').nth(1).click();
 await page.waitForSelector('.pointmenu');
 const mid = await menuItems();
