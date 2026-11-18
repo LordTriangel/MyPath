@@ -3,7 +3,7 @@
 Pilot: the ☰ menu (8 whole-screen pictures → 6 component pictures, every state now in EN and DE; 2 old pictures were
 byte-identical duplicates). Helper: `app/src/test/java/com/onpath/app/ui/ShotGallery.kt` (`Gallery { cell(name) { … } }`,
 two cells of phone width per picture, fails when cells do not fit). Inventory of all 551 pictures (what each is for,
-FRAME / COMPONENT, variants): made in this session, to be committed with the next batch.
+FRAME / COMPONENT, variants): `docs/design/umbau-phase-4b-inventory.md` (state of 2026-11-19, before the pilot).
 
 What the pilot showed:
 1. **"549 → ~200" is not reachable without losing sharpness.** Paparazzi stores every picture scaled to 1000 px on its
