@@ -13,6 +13,13 @@ class OnPathApp : Application() {
     override fun onCreate() {
         super.onCreate()
         // Problems first: everything after this may report into it (debug/Problems.kt).
+        Problems.logSink = { level, tag, msg, t ->
+            when (level) {
+                Problems.Level.INFO -> Log.i(tag, msg, t)
+                Problems.Level.WARN -> Log.w(tag, msg, t)
+                Problems.Level.ERROR, Problems.Level.CRASH -> Log.e(tag, msg, t)
+            }
+        }
         Problems.init(filesDir)
         installCrashCapture()
         // the chosen language first; a text that cannot be read is a problem, not a crash

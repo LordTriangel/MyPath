@@ -1,6 +1,5 @@
 package com.onpath.app.debug
 
-import android.util.Log
 import com.onpath.app.data.AtomicFiles
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -221,13 +220,12 @@ object Problems {
         } catch (_: Throwable) { } // expected: never reported into Problems itself (would loop); the next write retries
     }
 
+    /** Where the log line goes besides the problem file; the app sets logcat in [com.onpath.app.OnPathApp] (no Android here). */
+    @Volatile var logSink: (level: Level, tag: String, message: String, t: Throwable?) -> Unit = { _, _, _, _ -> }
+
     private fun log(level: Level, msg: String, t: Throwable?) {
         try {
-            when (level) {
-                Level.INFO -> Log.i(TAG, msg, t)
-                Level.WARN -> Log.w(TAG, msg, t)
-                Level.ERROR, Level.CRASH -> Log.e(TAG, msg, t)
-            }
-        } catch (_: Throwable) { } // JVM tests: no android.util.Log
+            logSink(level, TAG, msg, t)
+        } catch (_: Throwable) { } // expected: a sink that fails (e.g. no logcat in JVM tests) must not break reporting
     }
 }
