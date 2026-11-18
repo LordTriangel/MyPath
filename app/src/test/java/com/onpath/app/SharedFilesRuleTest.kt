@@ -42,8 +42,11 @@ class SharedFilesRuleTest {
                     if (name in standIns || name.startsWith("debug.")) continue
                     val pkg = name.substringBeforeLast('.').replace('.', '/'); val cls = name.substringAfterLast('.')
                     val dir = File(main, pkg)
-                    val home = dir.listFiles { x -> x.isFile && x.name.endsWith(".kt") }?.firstOrNull { x ->
-                        x.name == "$cls.kt" || Regex("""(class|object|interface|fun|val) $cls\b""").containsMatchIn(x.readText())
+                    // the file named after the class first: `fun Poi.toFeature()` in poi/PoiGeoJson.kt also matches the
+                    // pattern, and the directory's order decided which one counted (red on main 2026-11-19)
+                    val kts = dir.listFiles { x -> x.isFile && x.name.endsWith(".kt") }.orEmpty()
+                    val home = kts.firstOrNull { it.name == "$cls.kt" } ?: kts.firstOrNull { x ->
+                        Regex("""(class|object|interface|fun|val) $cls\b""").containsMatchIn(x.readText())
                     }
                     if (home == null || "$pkg/${home.name}" !in listed) bad += "$f: imports $imp (not shared)"
                 } else if (external.none { imp.startsWith(it) }) bad += "$f: imports $imp (the web build has no such class)"
