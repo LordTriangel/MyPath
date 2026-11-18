@@ -33,8 +33,9 @@ the way and see distance, climbing and time for each day. The tour syncs to your
 and follow it; the maps along the whole route download by themselves on Wi-Fi.
 
 **Round trips from where you are.** Hold the map and choose "Round trip from here". Say how long you want to be out
-and what you like – nature, quiet paths, water, a destination such as a summit or a hut. OnPath suggests a few loops,
-signposted trails among them; swipe through the cards, see each loop on the map and take the one you like as your plan.
+and how much climbing you want, and if you like an aim – a summit, water, a view, a hut or café, a castle or chapel.
+Nature and quiet paths are always part of it. OnPath suggests up to five loops from your starting point, signposted
+trails among them; swipe through the cards, see each loop on the map and take the one you like as your plan.
 In the browser planner and in the app.
 
 ## On the way
