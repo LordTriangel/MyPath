@@ -51,7 +51,7 @@ await page.waitForFunction(() => document.body.dataset.engine === 'ready', null,
 // 1. first click on an empty plan: "New route" – Start here · Go here (MapGestures.FirstPointMenu)
 await clickAt(11.1600, 46.6700);
 await page.waitForSelector('.pointmenu');
-check((await page.textContent('.menuhead')).includes('New plan') && (await menuItems()).join('|') === 'Start here|Go here', 'first click: New plan – Start here · Go here');
+check((await page.textContent('.menuhead')).includes('New plan') && (await menuItems()).join('|') === 'Start here|Round trip from here|Go here', 'first click: New plan – Start here · Round trip from here · Go here (round trips on for everyone, 72a66e39)');
 check(await page.isHidden('#undoPill') && await page.isHidden('#undo'), 'no undo before the first change (the undo pill is hidden – the app\'s UndoPill)');
 check(await page.$('#toolbar #undo, #toolbar #redo') === null, 'undo / redo are not in the tool row (owner 2026-11-08: ↶ ↷ there read as „turn the map“)');
 const tb = await page.locator('#toolbar').boundingBox(), sb = await page.locator('#searchbox').boundingBox();
@@ -377,7 +377,7 @@ await waitPins(0);
 check(await page.isDisabled('#newPlan'), 'plan bar: + New greyed on an empty map');
 await clickAt(11.1350, 46.6840);
 await page.waitForSelector('.pointmenu');
-await page.click('.pointmenu button:nth-of-type(2)'); // Go here
+await page.locator('.pointmenu button', { hasText: 'Go here' }).click();
 await planned();
 const first = await page.evaluate(() => window.__engine && location.hash);
 check(await pins() === 2 && first.length > 10, 'Go here: route from my position to the clicked spot');
