@@ -867,6 +867,38 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val waypoints get() = plan.points
     /** Pinned (POI) points, kept by value ([com.onpath.app.ui.plan.PlanDocument.pinned]). */
     private val pinned: Set<GeoPoint> get() = plan.pinned
+    /**
+     * Plan links in and out ([com.onpath.app.ui.sync.PlanLinkFlow], cleanup piece 4): a link opened in OnPath, what the
+     * last link brought (its name, its points), a plan sent as a link. [receivePlanLink] … forward to it.
+     * Declared up here, above the init blocks: a route result at start reaches it ([com.onpath.app.ui.sync.PlanLinkFlow.snapped]).
+     */
+    private val links = com.onpath.app.ui.sync.PlanLinkFlow(object : com.onpath.app.ui.sync.PlanLinkHost {
+        override fun backToMap() {
+            routesOpen = false; showSettings = false; offlineResult = null; timeDetails = null; routeDetailsOpen = false; searchOpen = false
+            closeMapOverlays()
+        }
+        override fun sayError(text: String, place: NoticePlace) { this@AppViewModel.sayError(text, place) }
+        override fun receivePairing(secret: ByteArray, via: String) { this@AppViewModel.receivePairing(secret, via) }
+        override fun openSyncSettings() { openSettings(SettingsPage.SYNC) }
+        override suspend fun startModeKnown() {
+            if (!this@AppViewModel.startModeKnown) androidx.compose.runtime.snapshotFlow { this@AppViewModel.startModeKnown }.first { it }
+        }
+        override fun navigating(): Boolean = navigating(recState.value != null)
+        override fun planPoints(): List<GeoPoint> = waypoints.toList()
+        override fun savedPoints(): List<GeoPoint>? = this@AppViewModel.savedPoints
+        override fun open(plan: com.onpath.app.routing.SharedPlan, via: String) { if (shown != null) closeShown(); openSharedPlan(plan, via) }
+        override fun share(link: String, title: String?) {
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, link)
+                title?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
+            }
+            events += UiEvent.Share(Intent.createChooser(send, Txt.s(Res.string.plan_share_plan)))
+        }
+        override var storedLinkPoints: List<GeoPoint>?
+            get() = prefs.planLinkPoints
+            set(v) { prefs.planLinkPoints = v }
+    }, viewModelScope)
     fun pinnedIndices(): Set<Int> = plan.pinnedIndices()
     /**
      * POI kinds of pinned points (owner 2026-11-10, variant A: the POI symbol stays, a blue ring + badge around it):
@@ -5187,38 +5219,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ---------------- plan links (A-005: routing/PlanLinks, docs/core-features.md C15) ----------------
-
-    /**
-     * Plan links in and out ([com.onpath.app.ui.sync.PlanLinkFlow], cleanup piece 4): a link opened in OnPath, what the
-     * last link brought (its name, its points), a plan sent as a link. [receivePlanLink] … forward to it.
-     */
-    private val links = com.onpath.app.ui.sync.PlanLinkFlow(object : com.onpath.app.ui.sync.PlanLinkHost {
-        override fun backToMap() {
-            routesOpen = false; showSettings = false; offlineResult = null; timeDetails = null; routeDetailsOpen = false; searchOpen = false
-            closeMapOverlays()
-        }
-        override fun sayError(text: String, place: NoticePlace) { this@AppViewModel.sayError(text, place) }
-        override fun receivePairing(secret: ByteArray, via: String) { this@AppViewModel.receivePairing(secret, via) }
-        override fun openSyncSettings() { openSettings(SettingsPage.SYNC) }
-        override suspend fun startModeKnown() {
-            if (!this@AppViewModel.startModeKnown) androidx.compose.runtime.snapshotFlow { this@AppViewModel.startModeKnown }.first { it }
-        }
-        override fun navigating(): Boolean = navigating(recState.value != null)
-        override fun planPoints(): List<GeoPoint> = waypoints.toList()
-        override fun savedPoints(): List<GeoPoint>? = this@AppViewModel.savedPoints
-        override fun open(plan: com.onpath.app.routing.SharedPlan, via: String) { if (shown != null) closeShown(); openSharedPlan(plan, via) }
-        override fun share(link: String, title: String?) {
-            val send = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
-                putExtra(Intent.EXTRA_TEXT, link)
-                title?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
-            }
-            events += UiEvent.Share(Intent.createChooser(send, Txt.s(Res.string.plan_share_plan)))
-        }
-        override var storedLinkPoints: List<GeoPoint>?
-            get() = prefs.planLinkPoints
-            set(v) { prefs.planLinkPoints = v }
-    }, viewModelScope)
 
     /**
      * A plan link opened in OnPath (camera / QR code, a tapped link, shared text, pasted into the search box; [via] for
