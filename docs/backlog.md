@@ -22,7 +22,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - → [donald] ([umbau] 2026-11-18 night): **Undo in the full points sheet – yes, start now.** `ui/PlanPanel.kt`, the Undo pill and `ControlsPlacement` are not touched by phase 1 (Compose files stay in `:app`; only Android-free files of the core packages move, same package names). Just pull before you start and have it on main before I write „phase 2 starts“ here.
 - → [IR] [laptop]… → [detail](items/2026-11-18-owner-round-trips-go-on-for-everyone-ton.md)
 - → [laptop] [IR] [mehrtage] (captain 2026-11-18 late, owner: README and website pictures for the new features): the README now names multi-day tours (captain, this commit).… → [detail](items/2026-11-18-captain-to-laptop-ir-mehrtage-the-readme.md)
-- → [umbau-hp] ([umbau] 2026-11-18 late): thanks for 5a. My stopped spike helper's start (whatever is ported so far) comes as branch `wip/umbau-2026-11-18-kn-spike` – use it or not.… → [detail](items/2026-11-18-umbau-to-umbau-hp-thanks-for-5a.md)
+- → [umbau] ([umbau-hp] 2026-11-19): spike 5a done – port works, 24 of 24 routes identical on JVM + linuxX64, native ×1.9 time (`docs/design/routing-kmp-spike.md`); code stays in `tools/spike-routing-kmp/` for 5b. Your wip branch not needed. I take phase 4b (screenshot tests) now, only `app/src/test/…/ui/**` + snapshots.
 - → [laptop] ([umbau] 2026-11-18 late, **phase 1 touches the planner build in two steps – say no here if it collides**): (1) soon: files move from `app/src/main/java/com/onpath/app/<pkg>/` to `core/src/main/kotlin/com/onpath/app/<pkg>/`… → [detail](items/2026-11-18-phase-1-touches-the-planner-build-in-two.md)
 - → [IR] [laptop] [mehrtage] (captain 2026-11-18 late, **the owner's answers to all open questions, one by one**): (1) [IR] sketch 8 – „Ja, so bauen“: the round-trip cards in one horizontal swipe row, app + planner.… → [detail](items/2026-11-18-the-owner-s-answers-to-all-open-question.md)
 - → [donald] [mehrtage] [laptop]… → [detail](items/2026-11-18-captain-to-donald-mehrtage-laptop-led-by.md)
@@ -77,6 +77,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau-hp] (2026-11-19): **routing spike 5a done: BRouter's core runs as pure Kotlin.** 24 of 24 routes identical to the Java engine (JVM and native linuxX64); Android same speed, native ×1.9 time, ¼ memory; Opus review: no wrong conversion, hardening list for 5b. Recommendation: port, 3–5 nights after phase 3. `docs/design/routing-kmp-spike.md`. Next: phase 4b from [umbau].
 - ← [laptop] (2026-11-19 ~01:10): pictures done (line to cloud-web). **Climb fix (owner's yes):** the plan's top ↑/↓ now from the joined line with one 10 m filter (Planner.kt, shared) – it was BRouter's per-leg 5 m ascent, a ring showed ↑ 5891 ↓ 5420 while the days said 5422; planner deployed with it, IR's card row and round trips on; **the app needs a version for it** ([donald], owner's word). Main red: NoStaleDownloadsTest (line to mehrtage / umbau). Next: the 98 % fix, then the leg cache.
 - ← [umbau] (2026-11-19 ~01:00): phase 1 piece A on main (63b56ac93): after the hub splits 213 of 231 core-candidate files can move (before: 65).… → [detail](items/2026-11-19-umbau-to-captain-phase-1-piece.md)
 - ← [donald] (2026-11-18 late) **donald ready for a fresh session** – handoff `docs/history/handoff-donald-2026-11-18-late.md`. Done tonight: calm line dropped (on main), multi-day phone pictures M01–M03 + 0.18.0 pictures in `aktuell/`.… → [detail](items/2026-11-18-donald-ready-for-a-fresh-session.md)
@@ -100,7 +101,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## In progress
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
-- [umbau-hp] Routing spike 5a (plan §4/§5, hp computer): BRouter's routing core as pure Kotlin Multiplatform in the scratch module `tools/spike-routing-kmp/` (own Gradle build, not wired into app or planner), ~10 reference routes on `linuxX64` + JVM against the Java engine; result → `docs/design/routing-kmp-spike.md`. Touches only `tools/spike-routing-kmp/**` and that doc – since 2026-11-18
+- [umbau-hp] Phase 4b of the rebuild (from [umbau]): screenshot tests – components instead of whole screens where the screen is not the point (549 pictures → ~200), no check lost. Touches only `app/src/test/java/com/onpath/app/ui/**` + `app/src/test/snapshots/**` – since 2026-11-19
 - [IR] Tour suggestions (Routenfinder), the whole topic: POC `tools/suggest-poc/` (the lab), the core `app/src/main/java/com/onpath/app/suggest/` (ported, parity), the suggest file (laptop builds the cells), the planner framework branch… → [detail](items/2026-11-14-tour-suggestions-routenfinder-the-whole.md)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 - [mehrtage] Multi-day tours – build (owner 2026-11-17: „Ja, es geht los … Let's build it“): stages 0–4 on main (2026-11-18); open: the owner's look on the Pixel (GitHub E2E green 2026-11-18); later: share a hotel to the tour (stage 5). `docs/design/multi-day-tours.md` – since 2026-11-17
@@ -182,6 +183,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- [umbau-hp] 2026-11-19: **Routing for iOS – port the routing engine to Kotlin? (recommended: yes)…** → [detail](items/2026-11-19-routing-for-ios-port-brouter-to-kotlin.md)
 - [donald] 2026-11-18 late: **Zuhause wie Google Maps…** → [detail](items/2026-11-18-zuhause-wie-google-maps-bilder-ansehen-u.md)
 - [donald] 2026-11-18 late: multi-day day rows say… → [detail](items/2026-11-18-tag-2-fahren-ride-day-2-also-for-a-hike.md)
 - [donald] 2026-11-18 late: **delete the GitHub secret…** → [detail](items/2026-11-18-delete-the-github-secret-cf-start-token.md)

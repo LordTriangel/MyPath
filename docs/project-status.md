@@ -23,6 +23,7 @@ release's notes) and the git history – this file keeps only the current state 
   offline corridor 10 km on foot, 20 km for bike activities (donald). Smaller open items: `docs/backlog.md`; open questions: backlog "Waiting for the owner"; the owner's own questions: the Fragenregister.
 
 ## Last session
+- **umbau-hp, 2026-11-19 – routing spike 5a done (`docs/design/routing-kmp-spike.md`):** BRouter's core as pure Kotlin in `tools/spike-routing-kmp/` (own build, not wired in): 24 of 24 routes identical on JVM + linuxX64, native ×1.9 time, ¼ memory; recommendation port (owner decides, backlog). Next for umbau-hp: phase 4b screenshot tests.
 - **donald, 2026-11-18 late – READ `docs/history/handoff-donald-2026-11-18-late.md`:** v0.18.0 released; calm line dropped; website pictures; open: 0.18.1 (owner's word), Zuhause branch, Undo in the points sheet, E06.
 - **donald, 2026-11-18 night – READ `docs/history/handoff-donald-2026-11-18.md`:** the whole app cleanup on main (7 reviewed pieces, nothing visible changed); map rebuild schema 9 running on donald; evening: release when all green (owner's direct word).
 - **donald, 2026-11-17 – READ `docs/history/handoff-donald-2026-11-17.md`; on main, not released:** hold beside the plan = the shorter real path wins (asks only within 20 %), place menu one row when clear, POI names from zoom 17 beside their symbol, sheet shows the map symbol, cleanup (26 branches, 124 worktrees). Open: map rebuild after schema 9 (needs the owner's permission for the upload).
