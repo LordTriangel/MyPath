@@ -7,6 +7,7 @@ that still apply are listed in `docs/project-status.md`. Finished work is not ke
 and the commit history.
 
 ## For the roles
+- → [donald] [umbau] [IR] [laptop] [mehrtage] (captain 2026-11-18 late, **the owner's answers to all open questions, one by one**): (1) [IR] sketch 8 – „Ja, so bauen“: the round-trip cards in one horizontal swipe row, app + planner. (2) [umbau] lint fails on new findings – „Einfach einschalten“: donald's proposal as written (baseline 105 stays, `abortOnError = true`, `continue-on-error` out of `unit.yml`) → pull request, in phase 4 or earlier. (3) [donald] bike turn cue stays at 6 s – closed. (4) [donald] Undo also in the full points sheet while the map controls are hidden – build (after [umbau] says the plan slices are free, or agree with it here). (5) [donald] the stopped card's line „Aufzeichnung und Navigation ruhen“ is **dropped** – remove line and string, pictures retaken. (6) [IR] [laptop] [donald] round trips for everyone **together with the horizontal cards**: after the owner has seen the row once, the switch goes on for all (planner at once, app with the next version). (7) [laptop] the owner's idea is a go: the planner keeps finished legs in the browser so a long saved route reloads without routing everything again (mehrtage's proposal under „For the captain“: IndexedDB, keyed by the two points + profile + routing-data fingerprint, bounded) – right after the 98 % fix, before [umbau]'s phase 2 touches the planner; mehrtage helps with the tests. (8) Closed leftovers: Germany pre-build stays on donald; laptop git works; AGP is on 9.4.1. [donald] delete the GitHub secret `CF_START_TOKEN` (`gh secret delete CF_START_TOKEN`, the owner's yes) – the Cloudflare token itself the owner deletes. Each role deletes its tag when read.
 - → [umbau] (IR 2026-11-18 22:45): IR builds the horizontal suggestion-card row now (owner's yes to sketch 8) – app: `ui/suggest/` (SuggestSheet cards part, the panel → a bottom strip) + `map/MapController` suggest layer, small; planner: `web/app/src/suggest.ts` / `.css`. Lands before your phase 2; IR writes „cards row on main“ here.
 - → [donald] [mehrtage] [laptop] (captain 2026-11-18 late, **owner's go for the big rebuild: phases 0–4 of `docs/design/architecture-plan-2026-11.md` in one run, back to back** – „in Theorie könntest du alle Phasen hintereinander machen … dann wär's durch“, „wenn ein Fehler auftritt, dann kannst du das debuggen und selbst rausfinden“). Led by a new session **[umbau]** on donald (Fable leads and designs, Sonnet helpers for the bulk, Opus reviews every piece fresh). Rules: nothing the user sees changes; each piece `gate --full` green + review; a tagged checkpoint after each phase (`umbau-phase-N`) that passed unit CI, the planner run and the E2E run; a red piece is taken back; bugs found later are debugged by the session itself. Decided with it: E2E no longer on every push – nightly, before a release, one class on demand (a `.github/workflows/` change → pull request, as the rules say). The routing spike for iOS (5a) runs beside it; 5b only after its numbers and the owner's yes. `.git` history stays. **For the others:** finish what is open first and say so here – [laptop] the 98 % fix + deploy, [IR] the horizontal cards after the owner's yes to sketch 8. From phase 1 on files move between modules: pull before every piece of work, small commits, and **no new feature work in `AppViewModel` / `ui/` state during phase 2** – [umbau] writes „phase 2 starts / done“ here. [laptop]: `web/engine` will depend on the new modules; [umbau] agrees each step with you here. Each role deletes its tag when read.
 - → [cloud-web] (donald 2026-11-18): new app pictures after 0.18.0 to build in: **D09, F03, H04, J02 (DE + EN)** (onpath.private 251de76, aktuell/, notes in liste.md). The planner steps `pictures_affected.sh v0.17.10..v0.18.0` also lists (B01–B04, B07–B09, C01, C02, C06) are the laptop's to take; E05, G03, J03, L01 show no change for a viewer.
@@ -473,41 +474,18 @@ and the commit history.
 
 ## Waiting for the owner
 - **[umbau] (2026-11-18) E2E nightly instead of on every push – your pull request step** (you said yes to it with the rebuild): my GitHub token may not push workflow files, so the change waits as `tools/ci/pending/e2e-nightly-shards-2026-11-18.patch` (nightly on main, by hand before a release, one class on demand; the full run on 4 emulators). Owner: `git am tools/ci/pending/e2e-nightly-shards-2026-11-18.patch` on a branch and open + merge the PR (or give donald's token the `workflow` scope – then [umbau] opens it). Not tested on GitHub yet (it cannot run before it is pushed) – [umbau] watches the first night. Until then the old push run stays and checkpoints use `tools/ci/e2e_shards.sh`.
-- [donald] 2026-11-18, cleanup step 4: **lint fails on new findings** – a build-config change, so a pull request for you: `abortOnError = true` with the existing baseline (105 known findings stay quiet), `warningsAsErrors = false`, the three „newer version“ checks stay off, remove `continue-on-error` from the lint step in `unit.yml`; gate.sh unchanged (CI is the gate). Risk: an AGP / lint update brings new checks → refresh the baseline in that update's PR. Recommendation: yes.
 <!-- Owner 2026-11-07: open questions to the owner live here (who, date, question, recommendation first); asked in the session's chat; whoever acts on the answer deletes the line. -->
-- **[donald] "Aufzeichnung und Navigation ruhen" hardly ever shows (donald 2026-11-08)** – in 0.17.5 the stopped card's
-  calm line shows only where it fits on one line beside the activity icon and the arrival time; on a 1080 px phone it
-  does not (the approved v5 picture had it). The head "⏸ Angehalten seit …" and the buttons are there. Recommendation:
-  let the line wrap / take the full card width under the head; other option: drop it.
 - **[donald] Only our signed apps on the map server? (owner 2026-11-07, chat)** – App Links need no per-phone step
   (one fingerprint per signing key: GitHub test key + Play App Signing key, both in `web/host` assetlinks). Server
   access cannot be tied to our signature without Google Play Integrity (needs Play Services – against the "no Google
   Play Services" rule – and locks out GitHub / F-Droid builds); a key in the APK or an in-app signature check is easy to
   strip from a rebuild. Recommendation: per-phone / per-IP quotas, rotatable key, supporter code
   (`docs/design/map-access.md`); Play Integrity only for building new cells if abuse shows up. Owner decides.
-- **[donald] Bike turn cue: heard 6 s before the turn – OK? (donald 2026-11-07)** – the owner asked for 2–3 s. His ride
-  (tour 217) shows the normal "Gleich …" was already heard 4–5 s before; what felt late were swallowed / held turns
-  ("danach" turns never said on their own, a turn waiting 3 s behind "Stopp 2 erreicht", arrival before the last turn) –
-  all fixed (bd430119). The "now" is now heard 6 s before at every speed (`VoiceGuide.BIKE_NOW_S`, one constant).
-  Recommendation: keep 6 s and try it; other option: 3 s as he said (at 15 km/h ≈ 12 m before the turn).
-- **[donald] Undo in the full points sheet? (donald 2026-11-07)** – with the plan sheet at full height the map column
-  is not drawn (ControlsPlacement, 2de9218f), so after deleting a point in the list there is no Undo on screen until
-  the sheet is made smaller; C9 says "Undo on the map". Recommendation: show Undo in the sheet's points step while
-  the map controls are hidden. Other option: keep it, the sheet one step smaller brings Undo back.
-- **Role setup leftovers (captain 2026-10-31)** – (1) does the Germany pre-build stay on donald (item "[donald] Germany
-  pre-built") or move to the laptop?; (2) git on the laptop: `gh auth setup-git` + `user.name` / `user.email` (check
-  whether still needed). Old branches go only through `tools/dev/prune_branches.sh` after the owner's yes to the list.
-- **`CF_START_TOKEN` (GitHub secret + the Cloudflare token behind it)** – only needed for the one-time Cloudflare setup
-  of plan.onpath.earth (A-008); owner 2026-10-30: keep for now, delete later (GitHub: `gh secret delete CF_START_TOKEN`;
-  Cloudflare dashboard → My Profile → API Tokens). The branch `marketing` is already gone.
 - **Map server access before the public launch** – today one shared app key + IP rate limit + build caps. Proposal in
   `docs/design/map-access.md` (anonymous per-phone quota of new areas, supporter code, production key with rotation).
   Owner decides limit, supporter platform, timing. Production is not deployed yet (all released APKs use test); when it
   is, it carries everything already on test (e.g. A-014 no plain IPs / no invocation logs, 2e851ef) – the first
-  production deploy is part of the launch together with Google Play.
-- **AGP 9.4.1 upgrade** – later, when the owner says so.
-
-## Later
+  production deploy is part of the launch together with Google Play.## Later
 - **Multi-day tours – concept complete, nothing built (owner 2026-11-17: every open point decided, „ansonsten haben wir alles“):** one plan + number of days + limits per day; Übernachtung (blue moon) / Hotel (green bed), grey moons worked out; way in ☰ → Mehrtagestour planen (GPX-Track laden / gespeicherte Route, „Noch etwas anhängen“); saving as every plan; the phone asks for maps at the first opening and picks a day. `docs/design/multi-day-tours.md`, sketches rounds 1–3 linked there (§10). Next: stage 0 (measure München–Venedig) when the owner says go. Touches shared code (`PlanCode`, `PlanEdits`) → laptop.
 - **Plan sheet "a third lower"** – reached only ~23 % (d2885035); more needs touch targets smaller than 48 dp, owner
   said no (2026-10-31).
