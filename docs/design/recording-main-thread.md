@@ -73,3 +73,32 @@ Frames while Navigate was on screen (the Compose window; MapLibre draws on its o
 `tools/dev/device.sh emulator -- tools/dev/main_thread_measure.sh 180 90` (about 8 min with the build). Output:
 `~/onpath-cells-work/measure/<date-time>/measure.txt`. A change that moves work in `onFix` should be measured before
 and after with the same command.
+
+## Later: what moving recording off the main thread would need (note of cleanup piece 5, 2026-11-18)
+
+Piece 5 did **not** move anything (the numbers above say it is not urgent). It put the contract in place that a later
+move stands on: the app talks to the service only through `recording/RecordingClient` (typed commands = today's
+Intents), the service's flows are read-only outside it, and `nav-session.json` + `follow.json` are written through one
+object (`navigation/FollowStore`: every write one locked step, the service's conditional on its token). What is still
+to do for a recording thread of its own:
+
+1. **One recording dispatcher** (single thread) that owns everything `onFix` touches: `TourRun`, `PointQueue`,
+   `Navigator`, `tourRun` / pace / rest state, `follow`, `settings`. Today these are plain fields guarded only by
+   "everything is on main". `onStartCommand` then only posts the command to that thread; `LocationTracker` gets the
+   thread's looper instead of `Looper.getMainLooper()` (LocationTracker.kt, both `requestLocationUpdates`), and the
+   Demo ride's tick hands its fix over the same way.
+2. **What must stay on main**, posted back: `startForeground` / notifications are thread-safe, but `Speaker` (TTS
+   callbacks), `Vibrator`, the wake lock and `stopSelf(startId)` should keep their thread; `_state.value = …` may be
+   set from any thread (StateFlow), the view model collects on main already.
+3. **The re-route result** arrives on main today (`startReroute`: the service scope is on main, only the routing runs on `routeDispatcher`): it must land on the recording
+   thread. From then on the app's write (main) and the service's (recording thread) really run side by side – the case
+   `FollowStore` / `NavSessionStore.saveIfMine` are built for (`FollowStoreTest`, two threads).
+4. **`finish()`**: the last points, `saveStats("done")`, `RideApply.finish` and `_finished` in this order on the
+   recording thread, then the foreground stop on main; `TourInterruptedReceiver` and the sticky restart read the same
+   database rows as now.
+5. **SQLite**: `TourDb` is used by the view model on `Dispatchers.IO` beside the service already (WAL); one writer
+   thread for points makes it simpler, not harder. `Prefs(this)` per fix (`voiceOn`) → read once per settings change.
+6. **Tests first** (core feature C4/C5): `FakeNavService` already runs the service's navigation wiring on two
+   `ManualExecutor`s – an Android-free core of the service (commands in, state out) would let the same tests drive the
+   real code; then `MainThreadMeasure` before / after, `CoreFieldE2ETest`, the Rundgang's recording flows, and a tour on
+   the Pixel with the screen off.

@@ -25,6 +25,7 @@ class BrokenFollowFileTest {
     }
 
     private fun prefs(sp: MapPrefs = MapPrefs()) = Prefs(sp, dir)
+    private fun follow() = FollowFile(File(dir, FollowFile.NAME))
 
     private val good = """{"name":"Alm","pts":[46.5,11.2,46.6,11.3],"ele":[1200.0,null]}"""
 
@@ -44,37 +45,37 @@ class BrokenFollowFileTest {
     @Test fun aBrokenFollowFileIsNotRestoredAndIsReported() {
         for ((name, text) in cases) {
             Problems.clear()
-            val p = prefs()
+            val f = follow()
             File(dir, "follow.json").writeText(text)
-            assertNull(name, p.loadFollow())
+            assertNull(name, f.load())
             assertTrue(name, Problems.snapshot().any { it.area == "data" && it.message.contains("unreadable") })
             // the next save works and reloads
-            p.saveFollow("Alm", listOf(GeoPoint(46.5, 11.2, 1200.0), GeoPoint(46.6, 11.3)))
-            val back = p.loadFollow()
+            f.save("Alm", listOf(GeoPoint(46.5, 11.2, 1200.0), GeoPoint(46.6, 11.3)))
+            val back = f.load()
             assertEquals(name, "Alm", back!!.first)
             assertEquals(name, listOf(GeoPoint(46.5, 11.2, 1200.0), GeoPoint(46.6, 11.3)), back.second)
         }
     }
 
     @Test fun oddOrOversizedFilesAreTolerated() {
-        val p = prefs()
+        val f = follow()
         File(dir, "follow.json").writeText("""{"name":"x","pts":[46.5,11.2,46.6]}""") // an odd number: the last half point is dropped
-        assertEquals(1, p.loadFollow()!!.second.size)
+        assertEquals(1, f.load()!!.second.size)
         File(dir, "follow.json").writeText("""{"name":"x","pts":[46.5,11.2],"ele":"z"}""") // heights of the wrong type: ignored
-        assertNull(p.loadFollow()!!.second.single().ele)
+        assertNull(f.load()!!.second.single().ele)
         File(dir, "follow.json").writeText("""{"name":"x","pts":[46.5,11.2],"ele":["q"]}""")
-        assertNull(p.loadFollow()!!.second.single().ele)
+        assertNull(f.load()!!.second.single().ele)
         // a very long line (a 300 km track): still loads
         val big = buildString { append("{\"name\":\"long\",\"pts\":["); repeat(100_000) { append("46.5,11.2,") }; append("46.6,11.3]}") }
         File(dir, "follow.json").writeText(big)
-        assertEquals(100_001, p.loadFollow()!!.second.size)
+        assertEquals(100_001, f.load()!!.second.size)
         // missing: nothing to restore, no report
         Problems.clear()
         File(dir, "follow.json").delete()
-        assertNull(p.loadFollow())
+        assertNull(f.load())
         assertTrue(Problems.snapshot().isEmpty())
-        p.saveFollow("x", null) // deleting what is not there is fine
-        assertNull(p.loadFollow())
+        f.save("x", null) // deleting what is not there is fine
+        assertNull(f.load())
     }
 
     @Test fun brokenPreferenceValuesFallBackToDefaults() {

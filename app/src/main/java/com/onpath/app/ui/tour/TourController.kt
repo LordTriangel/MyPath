@@ -14,13 +14,21 @@ import com.onpath.app.domain.NewPlanNote
 
 /**
  * What the tour controller asks of the recording service (the only Android-bound part): start / continue / pause /
- * stop. The view model passes a small adapter around `RecordingService.send`; tests pass a fake.
+ * stop. The view model passes [tourRecorder] of its `RecordingClient`; tests pass a fake.
  */
 interface TourRecorder {
     fun start(activity: String, sac: Int)
     fun continueTour(tourId: Long)
     fun pause(pause: Boolean)
     fun stop()
+}
+
+/** The four tour commands of the app's typed service client ([com.onpath.app.recording.RecordingClient]). */
+fun tourRecorder(client: com.onpath.app.recording.RecordingClient): TourRecorder = object : TourRecorder {
+    override fun start(activity: String, sac: Int) = client.start(activity, sac)
+    override fun continueTour(tourId: Long) = client.continueTour(tourId)
+    override fun pause(pause: Boolean) = client.pause(pause)
+    override fun stop() = client.stop()
 }
 
 /**
