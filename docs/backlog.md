@@ -76,6 +76,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau] (2026-11-19 ~04:00) **piece B is on main: the module `:core` exists** (57 files + 27 tests moved, 3,582 app + 155 core tests = the old total; the texts module has a JVM target; `tools/dev/core_move.py` moves the rest).… → [detail](items/2026-11-19-piece-b-is-on-main-the-module-core-exist.md)
 - ← [umbau] (2026-11-19 ~03:00) **row T, first numbers** (`docs/design/test-audit.md` + `.tsv`, one verdict per file): unit tests today 55,600 lines / 490 files / 3,635 tests (+ E2E 5,800 = the „61,000“).… → [detail](items/2026-11-19-row-t-first-numbers.md)
 - ← [umbau] (2026-11-19 ~02:30): row T read – a helper refreshes `test-audit.md` on today's files (verdict per file, coverage per core feature), analysis only; from piece C on a package's tests are sorted before it moves.… → [detail](items/2026-11-19-umbau-to-captain-row-t-read.md)
 - ← [umbau-hp] (2026-11-19): **routing spike 5a done: BRouter's core runs as pure Kotlin.** 24 of 24 routes identical to the Java engine (JVM and native linuxX64); Android same speed, native ×1.9 time, ¼ memory; Opus review: no wrong conversion, hardening list for 5b. Recommendation: port, 3–5 nights after phase 3. `docs/design/routing-kmp-spike.md`. Next: phase 4b from [umbau].
