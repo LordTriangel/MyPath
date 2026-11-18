@@ -349,6 +349,7 @@ for (const [name, vp, phone] of [['desktop', { width: 1440, height: 900 }, false
   check(await page.isVisible('#fitRoute') && await page.isDisabled('#fitRoute') && await page.getAttribute('#fitRoute', 'title') === 'Set a start and destination first'
     && await page.getAttribute('#fitRoute', 'aria-label') === 'Show whole route', 'empty plan: "Show whole route" greyed, its tooltip says why');
   // header (owner 2026-11-06, A): "OnPath Planner" as one name; on the left ONE plan bar + New · My tours · Save ▾ · To phone ▾
+  // + „Plan a multi-day tour“ after My tours (multi-day tours 2026-11-18, docs/design/multi-day-tours.md – the planner's way in)
   // (every icon with its text on a wide screen), on the right Help, the app and the language; phone width: "Plan ▾"
   const brand = await page.evaluate(() => { const w = document.querySelector('.wordmark'), p = document.querySelector('.product');
     return { text: w.textContent.replace(/\s+/g, ' ').trim(), same: getComputedStyle(w).fontSize === getComputedStyle(p).fontSize, upper: getComputedStyle(p).textTransform }; });
@@ -357,9 +358,9 @@ for (const [name, vp, phone] of [['desktop', { width: 1440, height: 900 }, false
     return { id: b.id, label: l && l.getClientRects().length > 0 ? l.textContent : '', icon: !!b.querySelector('.ic'), title: b.title, h: Math.round(r.height), x: Math.round(r.x), w: Math.round(r.width) }; }));
   const over = () => page.evaluate(() => document.getElementById('header').scrollWidth - document.getElementById('header').clientWidth);
   let l = await bar();
-  check(l.map((x) => x.id).join() === 'newPlan,menuPlans,menuSavePlan,saveMore,syncBadge,phoneMore'
-    && l.filter((x) => !x.id.endsWith('More')).map((x) => x.label).join() === 'New,My tours,Save,To phone' && l.every((x) => x.icon && x.h === 36) && l.at(-1).x + l.at(-1).w < 1440 / 2,
-    `header at 1440 px: the plan bar on the left – New · My tours · Save ▾ · To phone ▾ (the app's words), 36 px, every icon with its text (${JSON.stringify(l.map((x) => [x.id, x.label, x.x]))})`);
+  check(l.map((x) => x.id).join() === 'newPlan,menuPlans,menuMultiDay,menuSavePlan,saveMore,syncBadge,phoneMore'
+    && l.filter((x) => !x.id.endsWith('More')).map((x) => x.label).join() === 'New,My tours,Plan a multi-day tour,Save,To phone' && l.every((x) => x.icon && x.h === 36) && l.at(-1).x + l.at(-1).w < 1440 * 2 / 3, // left two thirds since the multi-day entry (was the left half)
+    `header at 1440 px: the plan bar on the left – New · My tours · Plan a multi-day tour · Save ▾ · To phone ▾ (the app's words), 36 px, every icon with its text (${JSON.stringify(l.map((x) => [x.id, x.label, x.x]))})`);
   const help = await page.locator('#menuAbout').boundingBox();
   check(help && help.x > 1000 && await page.isVisible('#langSwitch') && await page.isVisible('#headRight a.navlink'), 'header at 1440 px: Help, the app and the language on the right');
   check(await page.isDisabled('#menuSavePlan') && await page.getAttribute('#menuSavePlan', 'data-state') === 'empty' && await page.isDisabled('#newPlan'), 'header: Save and New greyed on an empty route');
