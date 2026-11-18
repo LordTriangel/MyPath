@@ -9,12 +9,17 @@
 // style with the installed packages' boxes. Without any package that style draws like the plain overview one.
 import type * as maplibregl from 'maplibre-gl';
 import type { GeoJSONSource, StyleSpecification } from 'maplibre-gl';
+import { PMTiles, type Protocol, type RangeResponse, type Source } from 'pmtiles';
+import { problem } from './diag';
 
 const FILES = ['base.pmtiles', 'hillshade.pmtiles'];
 const ASSET = 'pmtiles://asset://overview/';
 
-/** The merged style when the overview files are deployed next to the page, else null (the plain style is used). */
-export async function overviewStyle(base: string): Promise<StyleSpecification | null> {
+/**
+ * The merged style when the overview files are deployed next to the page, else null (the plain style is used). The
+ * files are read through [protocol] with [WholeOrRange] (the host may not serve byte ranges for them).
+ */
+export async function overviewStyle(base: string, protocol: Protocol): Promise<StyleSpecification | null> {
   const dir = new URL(base + 'overview/', location.href).href;
   const there = await Promise.all(FILES.map((f) => fetch(dir + f, { method: 'HEAD' }).then((r) => r.ok).catch(() => false)));
   if (!there.every(Boolean)) return null;
@@ -27,10 +32,53 @@ export async function overviewStyle(base: string): Promise<StyleSpecification | 
   const s = (await r.json()) as StyleSpecification;
   for (const src of Object.values(s.sources)) {
     const x = src as { url?: string };
-    if (typeof x.url === 'string' && x.url.startsWith(ASSET)) x.url = 'pmtiles://' + dir + x.url.slice(ASSET.length);
+    if (typeof x.url === 'string' && x.url.startsWith(ASSET)) {
+      const file = dir + x.url.slice(ASSET.length);
+      x.url = 'pmtiles://' + file;
+      if (!protocol.get(file)) protocol.add(new PMTiles(new WholeOrRange(file)));
+    }
   }
   return s;
 }
+
+/**
+ * pmtiles' Source for the overview files: byte ranges when the host serves them (206); when it answers a range with the
+ * whole file (200 – the planner host's static assets do, field report 2026-11-18: below zoom 7 the map was plain
+ * background, pmtiles' FetchSource refuses such an answer), that file is kept in memory and every later range is cut
+ * from it. The overview files are small (a few MB, cached by the browser), so the map is never blank below the cells.
+ */
+export class WholeOrRange implements Source {
+  private whole: Promise<ArrayBuffer> | null = null;
+  constructor(private url: string, private fetchImpl: typeof fetch = (u, i) => fetch(u, i)) {}
+  getKey() { return this.url; }
+  async getBytes(offset: number, length: number, signal?: AbortSignal): Promise<RangeResponse> {
+    let whole = this.whole;
+    if (!whole) {
+      const r = await this.fetchImpl(this.url, { signal, headers: { range: `bytes=${offset}-${offset + length - 1}` } });
+      if (r.status === 206) return { data: await r.arrayBuffer(), etag: etag(r) };
+      if (r.status !== 200) throw new Error(`Bad response code: ${r.status}`);
+      if (!this.whole) { // concurrent ranges answered 200 too: the first whole file is kept, the others dropped
+        console.info(`${this.url}: the host sends the whole file for a range – kept in memory`);
+        // read without the tile's signal (the first read, the header, has none): an aborted tile never cuts the file
+        // expected (cancel): the body is not needed, a failed cancel changes nothing
+        const read = signal ? (r.body?.cancel().catch(() => {}), this.fetchImpl(this.url).then((w) => {
+          if (!w.ok) throw new Error(`Bad response code: ${w.status}`);
+          return w.arrayBuffer();
+        })) : r.arrayBuffer();
+        this.whole = read;
+        read.catch((e) => { // a read cut off (tile aborted, connection lost): the next range asks again
+          problem('overview', `overview file not read: ${this.url}`, e);
+          if (this.whole === read) this.whole = null;
+        });
+      } else r.body?.cancel().catch(() => {}); // expected: the body is not needed, a failed cancel changes nothing
+      whole = this.whole;
+    }
+    const all = await whole;
+    return { data: all.slice(offset, offset + length) };
+  }
+}
+
+const etag = (r: Response) => { const e = r.headers.get('etag'); return e && !e.startsWith('W/') ? e : undefined; };
 
 /**
  * Keeps the cover on the cells found (z10 tiles "x/y"): there the detailed map hides the magnified overview. A cell

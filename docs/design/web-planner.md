@@ -528,6 +528,12 @@ the cover (`detail-cover`) on the cells it found – the app covers its installe
 without `ONPATH_OVERVIEW_DIR`) the plain style is used as before. Region packages (z7–9): §13 #15 (since 2026-10-30). Test: `overview-smoke.mjs` (zoom 5 and 8 draw the overview; with
 map data also zoom 12.5 with the cover).
 
+**Byte ranges (field report 2026-11-18, „plain light green zoomed out“):** the host's static assets (Workers assets)
+answer a `Range` request for `overview/*.pmtiles` with the whole file (200), and pmtiles' `FetchSource` refuses that
+– below zoom 7 (outside region packages up to 9) the map was background only, everywhere. The overview files are now
+read through `overview.ts WholeOrRange`: ranges when the host serves them (206), else the whole file once, kept in
+memory, every range cut from it (~14 MB, browser-cached). overview-smoke checks it with a server that ignores ranges.
+
 ## 17. Map areas on demand, never a blank map, every wait said (cloud, 2026-10-30)
 
 Owner report (live test): Locate jumped to the owner's home (no cells there) and showed an **empty beige map** with

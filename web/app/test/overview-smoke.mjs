@@ -84,7 +84,31 @@ if (dataDir) {
   check(base > 0 && cover > 0, `zoom 12.5 in a cell: the detailed map (${base} features), cover over ${cover} cells`);
   await page.screenshot({ path: path.join(shots, 'overview-z12.png') });
 }
-await browser.close(); server.close();
+server.close();
+
+// a host that answers a byte range of the overview files with the whole file (200) – the planner host's static assets
+// do (field report 2026-11-18: zoomed out over Germany the map was plain background): the overview still draws, zoomed
+// out over Germany (cells, packages elsewhere) and over Europe
+const whole = [];
+const host = await serve({ dist, segments, dataDir: store, intercept: (req, res) => {
+  if (!req.url.startsWith('/overview/')) return false;
+  const file = path.join(dist, path.normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)));
+  if (req.headers.range) whole.push(req.url);
+  res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': fs.statSync(file).size });
+  fs.createReadStream(file).pipe(res);
+  return true;
+} });
+await page.goto(host.url + 'index.html?at=9.3,50.5,6.5');
+await page.waitForFunction(() => window.__map?.isStyleLoaded(), null, { timeout: 60_000 });
+await idle(); await idle();
+const de = await features('overview');
+check(whole.length > 0 && de > 20, `host without byte ranges: zoom 6.5 over Germany ${de} overview features drawn (${whole.length} ranges answered whole)`);
+await page.screenshot({ path: path.join(shots, 'overview-noranges-z6.png') });
+await page.evaluate(() => window.__map.jumpTo({ center: [10.5, 48.5], zoom: 5 }));
+await idle();
+const eu = await features('overview');
+check(eu > 20, `host without byte ranges: zoom 5 over Europe ${eu} overview features`);
+await browser.close(); host.server.close();
 fs.rmSync(store, { recursive: true, force: true });
 const real = errors.filter((e) => !/status of 404/.test(e) && !/^\[Problems\] (INFO|WARN|TRACE) /.test(e));
 if (real.length) { console.log('errors:', real.slice(0, 5)); fails.push('page errors'); }

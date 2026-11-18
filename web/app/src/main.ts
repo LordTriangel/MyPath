@@ -370,7 +370,7 @@ map.on('load', () => {
 // The style the app ships, pointed at web URLs; sources whose file is not there are left out (no blank errors).
 async function loadStyle(): Promise<StyleSpecification> {
   // cells: with the world overview below z10 when its files are deployed (overview.ts – the app's Overview.merge)
-  const s: StyleSpecification = (useCells ? await overviewStyle(base) : null) ?? await (await fetch(base + 'style/onpath.json')).json();
+  const s: StyleSpecification = (useCells ? await overviewStyle(base, pmtiles) : null) ?? await (await fetch(base + 'style/onpath.json')).json();
   if (useCells) {
     s.glyphs = PACKED ? packedGlyphs(base) : base + 'fonts/{fontstack}/{range}.pbf';
     s.sprite = base + 'sprites/onpath';
