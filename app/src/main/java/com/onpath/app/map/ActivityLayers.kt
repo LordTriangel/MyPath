@@ -1,7 +1,7 @@
 package com.onpath.app.map
 
 import com.onpath.app.routing.Activity
-import com.onpath.app.routing.BRouterEngine
+import com.onpath.app.routing.RouterRules
 
 /**
  * The map look per activity (+ hiking T level): which of the style's layers show and how the hiking route band is
@@ -42,8 +42,8 @@ object ActivityLayers {
     fun named(activity: Activity, perProfile: Boolean): List<Pair<String, Boolean>> {
         val walking = activity == Activity.HIKE
         val mtb = activity == Activity.MTB || activity == Activity.EMTB
-        // touring.brf family: Bike (BIKE_TOURING) and E-bike (BRouterEngine.profileFile)
-        val touring = BRouterEngine.profileFile(activity) == "touring.brf"
+        // touring.brf family: Bike (BIKE_TOURING) and E-bike (RouterRules.profileFile)
+        val touring = RouterRules.profileFile(activity) == "touring.brf"
         val trekking = !walking && !mtb && !touring
         // Blocked-way marking follows the activity: walkers may use "access=no + foot=yes" ways, bikers
         // "access=no + bicycle=yes" ones (tools/make_style.py access_restrictions). Format 2: one set per profile family;

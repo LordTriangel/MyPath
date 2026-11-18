@@ -31,11 +31,11 @@ class TouringProfileTest {
     }
 
     @Test fun touringAndEbikeRouteWithTouringBrf() {
-        assertEquals("touring.brf", BRouterEngine.profileFile(Activity.BIKE_TOURING))
-        assertEquals("touring.brf", BRouterEngine.profileFile(Activity.EBIKE))
-        assertEquals("trekking.brf", BRouterEngine.profileFile(Activity.BIKE_TREKKING))
+        assertEquals("touring.brf", RouterRules.profileFile(Activity.BIKE_TOURING))
+        assertEquals("touring.brf", RouterRules.profileFile(Activity.EBIKE))
+        assertEquals("trekking.brf", RouterRules.profileFile(Activity.BIKE_TREKKING))
         for (a in Activity.values()) {
-            val f = BRouterEngine.profileFile(a)
+            val f = RouterRules.profileFile(a)
             assertTrue("$f shipped", f in BRouterEngine.PROFILE_ASSETS && File(dir, f).isFile)
         }
         // the road-bike profile is gone (owner: exactly six activities, no road bike)

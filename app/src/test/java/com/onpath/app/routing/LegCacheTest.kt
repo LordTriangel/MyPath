@@ -178,7 +178,7 @@ class LegCacheTest {
             Planner(e, cancel, legs = cache).plan(listOf(p[0], p[1], p[2], p[3]), act, 2)
             fail("cancelled")
         } catch (x: RoutingException) {
-            assertEquals(BRouterEngine.CANCELLED, x.message)
+            assertEquals(RouterRules.CANCELLED, x.message)
         }
         assertTrue("leg 3 → 4 was not started", e.calls.none { it == listOf(p[2], p[3]) })
         e.calls.clear(); e.onCall = {}

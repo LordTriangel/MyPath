@@ -1,7 +1,7 @@
 package com.onpath.app.map
 
 import com.onpath.app.routing.Activity
-import com.onpath.app.routing.BRouterEngine
+import com.onpath.app.routing.RouterRules
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -45,7 +45,7 @@ class ActivityLayersTest {
         val want = if (activity == Activity.HIKE) "routes-hike" else "routes-bike"
         val walking = activity == Activity.HIKE
         val mtb = activity == Activity.MTB || activity == Activity.EMTB
-        val touring = BRouterEngine.profileFile(activity) == "touring.brf"
+        val touring = RouterRules.profileFile(activity) == "touring.brf"
         val trekking = !walking && !mtb && !touring
         val perProfile = getLayer("access-no-dash-touring") != null
         val accessOn = mapOf("foot" to walking, "bike" to if (perProfile) trekking else !walking,

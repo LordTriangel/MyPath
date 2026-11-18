@@ -243,4 +243,7 @@ interface RoutingEngine {
      */
     fun route(waypoints: List<GeoPoint>, activity: Activity, sacLimit: Int, limits: RouteLimits): RouteResult =
         route(waypoints, activity, sacLimit)
+
+    /** Ms the last request on the calling thread waited for another route to finish (0 = none / unknown); for the log line. */
+    fun lastLockWaitMs(): Long = 0L
 }

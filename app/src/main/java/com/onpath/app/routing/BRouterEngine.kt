@@ -82,6 +82,8 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
 
     private data class CacheKey(val coords: List<Long>, val activity: Activity, val sac: Int)
 
+    override fun lastLockWaitMs(): Long = RouterRules.lastLockWaitMs()
+
     override fun route(waypoints: List<GeoPoint>, activity: Activity, sacLimit: Int): RouteResult =
         routeWith(waypoints, activity, sacLimit, null)
 
@@ -467,8 +469,6 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
         /** One BRouter search at a time in this process (planning in the app, re-routing in the service). */
         private val LOCK = ReentrantLock()
 
-        /** Ms the last limited request on the calling thread waited for another route to finish (0 = none / unknown). */
-        fun lastLockWaitMs(): Long = RouterRules.lastLockWaitMs()
         val CANCELLED: String get() = RouterRules.CANCELLED
         /** Plain text (no file name, no path); the plan shows RoutingDataNotice instead. */
         val NO_DATA: String get() = Txt.s(Res.string.plan_err_no_data)

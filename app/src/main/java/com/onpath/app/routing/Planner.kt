@@ -113,7 +113,7 @@ class Planner(
             throw e
         } finally {
             tries += Try(pts.size, now() - t0, outcome,
-                RouterRules.lastLockWaitMs())
+                engine.lastLockWaitMs())
         }
     }
 

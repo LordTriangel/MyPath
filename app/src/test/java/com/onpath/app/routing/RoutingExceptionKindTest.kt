@@ -8,7 +8,7 @@ import org.junit.Test
 class RoutingExceptionKindTest {
     @Test fun kindFromTheAppsOwnTexts() {
         assertEquals(RoutingException.Kind.NO_DATA, RoutingException(BRouterEngine.NO_DATA).kind)
-        assertEquals(RoutingException.Kind.CANCELLED, RoutingException(BRouterEngine.CANCELLED).kind)
+        assertEquals(RoutingException.Kind.CANCELLED, RoutingException(RouterRules.CANCELLED).kind)
         assertEquals(RoutingException.Kind.BUSY, RoutingException(BRouterEngine.BUSY, timedOut = true).kind)
         assertEquals(RoutingException.Kind.TOO_COMPLEX, RoutingException(Txt.s(Res.string.plan_err_memory)).kind)
         assertEquals(RoutingException.Kind.UNAVAILABLE, RoutingException(Txt.s(Res.string.plan_err_engine)).kind)
