@@ -30,6 +30,7 @@ done
 cd "$(git rev-parse --show-toplevel)" || exit 2
 REPO=${ONPATH_REPO:-happychriss/OnPath}
 SRC=app/src/main/java/com/onpath/app
+CORE_SRC=core/src/main/kotlin/com/onpath/app  # since tools/dev/core_move.py a file may live here
 
 for r in "$APP" "$WEB"; do
   case "$r" in origin/*) git fetch -q origin "${r#origin/}" 2>/dev/null || true ;; esac
@@ -45,10 +46,12 @@ fail=0
 ok() { echo "  ✓ $*"; }
 bad() { echo "  ✗ $*"; fail=1; }
 blob() { git rev-parse -q --verify "$1:$2" 2>/dev/null || echo "-"; }
+# a shared file at a ref: in :app, or in :core once tools/dev/core_move.py moved it (old refs: old path, new refs: new path)
+appblob() { local b; b=$(blob "$1" "$SRC/$2"); [ "$b" = "-" ] && b=$(blob "$1" "$CORE_SRC/$2"); echo "$b"; }
 
 # 1. routing fingerprint
 echo "1. Routing fingerprint"
-fpv() { git show "$1:$SRC/routing/RoutingFingerprint.kt" 2>/dev/null | grep -E "const val (BROUTER_VERSION|PLANNER_VERSION)" | sed 's/^ *//'; }
+fpv() { { git show "$1:$SRC/routing/RoutingFingerprint.kt" 2>/dev/null || git show "$1:$CORE_SRC/routing/RoutingFingerprint.kt" 2>/dev/null; } | grep -E "const val (BROUTER_VERSION|PLANNER_VERSION)" | sed 's/^ *//'; }
 if [ "$(fpv "$APP")" = "$(fpv "$WEB")" ]; then ok "$(fpv "$APP" | tr '\n' ' ')"; else
   bad "versions differ:"; diff <(fpv "$APP") <(fpv "$WEB") | sed 's/^/      /'; fi
 for dir in app/src/main/assets/brouter app/libs; do
@@ -79,7 +82,7 @@ else
   else
     sync_diff=() other_diff=()
     for f in "${FILES[@]}"; do
-      [ "$(blob "$APP" "$SRC/$f")" = "$(blob "$WEB" "$SRC/$f")" ] && continue
+      [ "$(appblob "$APP" "$f")" = "$(appblob "$WEB" "$f")" ] && continue
       case "$f" in sync/*) sync_diff+=("$f") ;; *) other_diff+=("$f") ;; esac
     done
     echo "2. Sync format"

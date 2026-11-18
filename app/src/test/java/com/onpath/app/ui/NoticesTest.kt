@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.Sources
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -78,8 +79,7 @@ class NoticesTest {
 
     /** The wiring (the view model needs Android): the old bar is gone, every message goes through say / sayError / sayInfo. */
     @Test fun noDarkBarAnyMore() {
-        val main = File("src/main/java/com/onpath/app")
-        val src = main.walkTopDown().filter { it.isFile && it.extension == "kt" }.associate { it.name to it.readText() }
+        val src = Sources.kotlinFiles().associate { it.name to it.readText() }
         src.forEach { (name, text) ->
             assertTrue("$name: the dark bar look is gone", "inverseSurface" !in text && "Snackbar" !in text)
             assertTrue("$name: the old message API is gone", !Regex("""\bvm\.message\b|\bshowError\(|\bmessage = Txt\.""").containsMatchIn(text))

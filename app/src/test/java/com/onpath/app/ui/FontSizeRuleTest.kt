@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.Sources
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -11,8 +12,7 @@ import java.io.File
  * for map furniture drawn on a canvas and for the glyphs / numbers inside round markers (they scale with the marker).
  */
 class FontSizeRuleTest {
-    private val sources = listOf("src/main/java/com/onpath/app/ui", "src/main/java/com/onpath/app/poi")
-        .flatMap { File(it).walkTopDown().filter { f -> f.isFile && f.extension == "kt" }.toList() }
+    private val sources = listOf("ui", "poi").flatMap { Sources.kotlinFiles(it) }
 
     /** Text on the line that makes a literal font size fine (each with its reason). */
     private val allowed = listOf(

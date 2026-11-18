@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.Sources
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File
@@ -10,8 +11,7 @@ import java.io.File
  * for bug reports), names and symbols that are the same in every language.
  */
 class HardCodedTextRuleTest {
-    private val sources = listOf("src/main/java/com/onpath/app/ui", "src/main/java/com/onpath/app/poi")
-        .flatMap { File(it).walkTopDown().filter { f -> f.isFile && f.extension == "kt" }.toList() }
+    private val sources = listOf("ui", "poi").flatMap { Sources.kotlinFiles(it) }
 
     /** A literal with a word of 3+ letters as a shown text or an accessibility text. */
     private val literal = Regex("""(\bText\(|contentDescription\s*=\s*|\btext\s*=\s*)"([^"$]*[A-Za-z]{3,}[^"]*)"""")

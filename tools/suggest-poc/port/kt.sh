@@ -18,8 +18,9 @@ L=$(dirname "$KCE")
 KCP=$(ls $L/kotlin-compiler-embeddable-*.jar $L/kotlin-stdlib-[0-9]*.jar $L/kotlin-reflect-*.jar $L/kotlin-script-runtime-*.jar $L/kotlinx-coroutines-core-jvm-*.jar $L/annotations-*.jar $L/kotlin-daemon-embeddable-*.jar | tr '\n' ':')
 STD=$(ls $L/kotlin-stdlib-[0-9]*.jar)
 LIBS=$(ls "$ROOT"/app/libs/brouter-*.jar | tr '\n' ':')
-S="$ROOT/app/src/main/java/com/onpath/app/suggest"
-SRC=$(ls "$S"/*.kt | grep -v RouterProfile.kt)
+# the suggest files live in :core (core/src/main/kotlin) once moved there, the rest in :app (tools/dev/core_move.py)
+S="$ROOT/app/src/main/java/com/onpath/app/suggest"; SC="$ROOT/core/src/main/kotlin/com/onpath/app/suggest"
+SRC=$(ls "$S"/*.kt "$SC"/*.kt 2>/dev/null | grep -v RouterProfile.kt)
 if [ -z "${NOCOMPILE:-}" ]; then  # NOCOMPILE=1: run the classes compiled before
 rm -rf "$OUT" && mkdir -p "$OUT"
 # the core's words come from the :strings module: a stand-in with the texts of strings_suggest.xml (German by default,

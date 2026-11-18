@@ -1,5 +1,6 @@
 package com.onpath.app.debug
 
+import com.onpath.app.testkit.Sources
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File
@@ -11,11 +12,10 @@ import java.io.File
  */
 class SafeLaunchRuleTest {
     @Test fun noBareViewModelScopeLaunch() {
-        val root = File("src/main/java/com/onpath/app")
-        val hits = root.walkTopDown().filter { it.isFile && it.extension == "kt" }.flatMap { f ->
+        val hits = Sources.kotlinFiles().asSequence().flatMap { f ->
             f.readLines().mapIndexedNotNull { i, line ->
                 val code = line.substringBefore("//")
-                if ("viewModelScope.launch(" in code || "viewModelScope.launch {" in code) "${f.relativeTo(root)}:${i + 1}" else null
+                if ("viewModelScope.launch(" in code || "viewModelScope.launch {" in code) "${f.name}:${i + 1}" else null
             }
         }.toList()
         assertEquals("use launchSafe or a reported scope: $hits", emptyList<String>(), hits)

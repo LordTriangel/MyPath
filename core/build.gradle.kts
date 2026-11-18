@@ -14,6 +14,9 @@ java {
     targetCompatibility = JavaVersion.VERSION_17
 }
 
+// test helpers shared with :app's tests (Sources.kt ...): the same folder is a test source dir of :app too
+sourceSets.test { kotlin.srcDir("src/testkit/kotlin") }
+
 dependencies {
     // the texts; Gradle picks the JVM variant here and the Android variant for :app (one copy in the APK)
     api(project(":strings"))

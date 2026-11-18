@@ -1,5 +1,7 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.Sources
+import com.onpath.app.testkit.sourceFile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -12,8 +14,7 @@ import java.io.File
  * tabs, Settings under the title. One rule, [MessagePlacement].
  */
 class MessagePlacementTest {
-    private val ui = "src/main/java/com/onpath/app/ui/"
-    private fun src(name: String) = File(ui + name).readText()
+    private fun src(name: String) = sourceFile("ui/$name").readText()
 
     @Test fun twelveDpUnderTheTopElement() {
         assertEquals(12, MessagePlacement.GAP_DP)
@@ -44,7 +45,7 @@ class MessagePlacementTest {
 
     /** The old strips, chips and cards are gone: every box is a MessageCard. */
     @Test fun oneBoxComposable() {
-        val all = File(ui).walkTopDown().filter { it.isFile && it.extension == "kt" }.associate { it.name to it.readText() }
+        val all = Sources.kotlinFiles("ui").associate { it.name to it.readText() }
         val gone = listOf("fun ErrorCard(", "fun NoticeButton(", "fun MapNoticeStrip(", "fun HereAskStrip(", "fun OkNoteStrip(",
             "fun ActionStrip(", "fun SyncNoteStrip(", "fun PairHintStrip(", "fun NotificationsOffChip(", "fun RerouteQuestionCard(",
             "fun UpdateBanner(")

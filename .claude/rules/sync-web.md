@@ -1,7 +1,11 @@
 ---
 paths:
   - "app/src/main/java/com/onpath/app/sync/**"
+  - "core/src/main/kotlin/com/onpath/app/sync/**"
+  - "core/src/test/kotlin/com/onpath/app/sync/**"
   - "app/src/main/java/com/onpath/app/plansync/**"
+  - "core/src/main/kotlin/com/onpath/app/plansync/**"
+  - "core/src/test/kotlin/com/onpath/app/plansync/**"
   - "app/web-shared-files.txt"
   - "web/**"
   - "tools/sync/**"

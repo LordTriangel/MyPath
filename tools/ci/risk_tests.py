@@ -31,7 +31,7 @@ CORE = ["recording", "navigation", "data", "gpx", "backup", "plansync", "sync"]
 FULL_TRIGGERS = (
     "app/build.gradle.kts", "build.gradle.kts", "settings.gradle.kts", "gradle.properties", "gradle/",
     "app/libs/", "app/src/main/assets/brouter/", "strings/build.gradle.kts", "app/src/test/resources/",
-    "core/build.gradle.kts", "core/src/test/resources/",
+    "core/build.gradle.kts", "core/src/test/resources/", "core/src/testkit/",  # testkit: helpers both modules compile
 )
 PKG = re.compile(r"^(?:app/src/(?:main|test)/java|core/src/(?:main|test)/kotlin)/com/onpath/app/([a-z0-9_]+)/")
 ROOT_PKG = ("app/src/main/java/com/onpath/app/", "app/src/test/java/com/onpath/app/",

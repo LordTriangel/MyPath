@@ -1,5 +1,6 @@
 package com.onpath.app.map
 
+import com.onpath.app.testkit.Sources
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -13,7 +14,7 @@ import java.io.File
  * the real order on a device.
  */
 class PositionDotOnTopTest {
-    private val sources = File("src/main/java").walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList()
+    private val sources = Sources.allFiles()
 
     @Test fun noLayerIsAddedPastThePositionDot() {
         val call = Regex("""\.addLayer(Above|At)?\s*\(""")

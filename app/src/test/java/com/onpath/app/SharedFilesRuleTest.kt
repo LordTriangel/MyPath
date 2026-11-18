@@ -1,5 +1,7 @@
 package com.onpath.app
 
+import com.onpath.app.testkit.Sources
+import com.onpath.app.testkit.sourceFile
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -13,7 +15,6 @@ class SharedFilesRuleTest {
     private val list = File("web-shared-files.txt").readLines().map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }
     private val files = list.dropWhile { it != "[files]" }.drop(1).takeWhile { it != "[tests]" }
     private val tests = list.dropWhile { it != "[tests]" }.drop(1)
-    private val main = File("src/main/java/com/onpath/app")
 
     /** Outside the app: what the web build stubs or brings (tools/routing/jvm-test/stubs, the web's stand-ins). */
     private val external = listOf(
@@ -33,7 +34,7 @@ class SharedFilesRuleTest {
         val listed = files.toSet()
         val bad = ArrayList<String>()
         for (f in files) {
-            val src = File(main, f)
+            val src = sourceFile(f)
             if (!src.isFile) { bad += "$f: missing"; continue }
             for (line in src.readLines()) {
                 val imp = Regex("""^import ([\w.]+)""").find(line)?.groupValues?.get(1) ?: continue
@@ -41,10 +42,10 @@ class SharedFilesRuleTest {
                     val name = imp.removePrefix("com.onpath.app.")
                     if (name in standIns || name.startsWith("debug.")) continue
                     val pkg = name.substringBeforeLast('.').replace('.', '/'); val cls = name.substringAfterLast('.')
-                    val dir = File(main, pkg)
+                    val dirs = Sources.appRoots.map { File(it, pkg) }
                     // the file named after the class first: `fun Poi.toFeature()` in poi/PoiGeoJson.kt also matches the
                     // pattern, and the directory's order decided which one counted (red on main 2026-11-19)
-                    val kts = dir.listFiles { x -> x.isFile && x.name.endsWith(".kt") }.orEmpty()
+                    val kts = dirs.flatMap { it.listFiles { x -> x.isFile && x.name.endsWith(".kt") }?.toList().orEmpty() }
                     val home = kts.firstOrNull { it.name == "$cls.kt" } ?: kts.firstOrNull { x ->
                         Regex("""(class|object|interface|fun|val) $cls\b""").containsMatchIn(x.readText())
                     }
@@ -56,7 +57,7 @@ class SharedFilesRuleTest {
     }
 
     @Test fun everySharedTestExists() {
-        val missing = tests.filter { !File("src/test/java/com/onpath/app/$it").isFile }
+        val missing = tests.filter { !File("src/test/java/com/onpath/app/$it").isFile && !File("../core/src/test/kotlin/com/onpath/app/$it").isFile }
         assertTrue("$missing", missing.isEmpty())
     }
 }

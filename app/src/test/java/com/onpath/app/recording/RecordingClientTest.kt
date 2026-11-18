@@ -1,5 +1,7 @@
 package com.onpath.app.recording
 
+import com.onpath.app.testkit.Sources
+import com.onpath.app.testkit.sourceFile
 import com.onpath.app.testkit.FakeRecordingClient
 import com.onpath.app.ui.tour.tourRecorder
 import org.junit.Assert.assertEquals
@@ -78,8 +80,7 @@ class RecordingClientTest {
 
     // ---- the rule, in the source ----
 
-    private val main = File("src/main/java/com/onpath/app")
-    private fun sources() = main.walkTopDown().filter { it.isFile && it.extension == "kt" }
+    private fun sources() = Sources.kotlinFiles().asSequence()
 
     @Test fun outsideRecordingNobodyBuildsAServiceIntentOrWritesItsFlows() {
         val outside = sources().filter { !it.path.replace('\\', '/').contains("/recording/") }.toList()
@@ -90,7 +91,7 @@ class RecordingClientTest {
     }
 
     @Test fun theServicesFlowsAreReadOnlyOutsideIt() {
-        val svc = File(main, "recording/RecordingService.kt").readText()
+        val svc = sourceFile("recording/RecordingService.kt").readText()
         val open = Regex("""^\s*(?!private )(?:@Volatile )?(?:internal )?va[lr] \w+\s*(?::\s*MutableStateFlow|=\s*MutableStateFlow)""", RegexOption.MULTILINE)
         assertEquals("a MutableStateFlow the app could write", emptyList<String>(), open.findAll(svc).map { it.value.trim() }.toList())
         assertTrue(svc.contains("val state: StateFlow<RecState?> = _state"))

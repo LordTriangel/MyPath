@@ -151,6 +151,12 @@ android {
         // release (the baseline matches the message, which names the version)
         disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
     }
+    // Test helpers and resources that tests of both modules use live in :core (core/src/testkit/kotlin with Sources.kt,
+    // core/src/test/resources): one home, seen from here as extra source / resource dirs.
+    sourceSets.getByName("test") {
+        java.srcDir("../core/src/testkit/kotlin")
+        resources.srcDir("../core/src/test/resources")
+    }
     testOptions {
         unitTests.isReturnDefaultValues = true
         // Every JVM test in UTC, like CI: dates in screenshots (recycle bin, My routes) otherwise depend on the

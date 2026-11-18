@@ -1,5 +1,6 @@
 package com.onpath.app.data
 
+import com.onpath.app.testkit.Sources
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -25,7 +26,7 @@ class BrouterUserAgentTest {
         assertEquals(1, Regex("openConnection").findAll(parts).count())
         assertTrue(parts.contains("\"User-Agent\", SegmentDownloader.USER_AGENT"))
         // no other app file talks to brouter.de's segments directly
-        val others = File("src/main/java/com/onpath/app").walk().filter { it.isFile && it.extension == "kt" }
+        val others = Sources.kotlinFiles().asSequence()
             .filter { it.name != "SegmentDownloader.kt" && it.readText().contains("brouter.de/brouter") }.map { it.name }.toList()
         assertEquals(emptyList<String>(), others)
     }

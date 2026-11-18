@@ -3,6 +3,8 @@ paths:
   - "app/src/main/java/com/onpath/app/map/**"
   - "app/src/main/java/com/onpath/app/poi/**"
   - "app/src/main/java/com/onpath/app/cells/**"
+  - "core/src/main/kotlin/com/onpath/app/cells/**"
+  - "core/src/test/kotlin/com/onpath/app/cells/**"
   - "app/src/main/assets/style/**"
   - "app/src/main/assets/fonts/**"
   - "app/src/main/assets/sprites/**"

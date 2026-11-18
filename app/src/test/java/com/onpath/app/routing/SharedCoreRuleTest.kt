@@ -1,5 +1,7 @@
 package com.onpath.app.routing
 
+import com.onpath.app.testkit.Sources
+import com.onpath.app.testkit.sourceFile
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File
@@ -33,19 +35,18 @@ class SharedCoreRuleTest {
     )
 
     @Test fun coreLogicStaysFreeOfAndroid() {
-        val root = File("src/main/java/com/onpath/app")
         fun platformLines(key: String, f: File) = f.readLines().mapIndexedNotNull { i, line ->
             val code = line.substringBefore("//").trim()
             if (code.startsWith("*") || code.startsWith("/*")) null
             else if (platform.containsMatchIn(code)) "$key:${i + 1}: $code" else null
         }
         val hits = packages.flatMap { p ->
-            File(root, p).walkTopDown().filter { it.isFile && it.extension == "kt" }.flatMap { f ->
+            Sources.kotlinFiles(p).asSequence().flatMap { f ->
                 val key = "$p/${f.name}"
                 if (key in known) emptyList() else platformLines(key, f)
             }.toList()
         } + files.flatMap { key ->
-            val f = File(root, key)
+            val f = sourceFile(key)
             if (f.isFile) platformLines(key, f) else listOf("$key: missing – update SharedCoreRuleTest.files")
         }
         assertEquals("Android / MapLibre / BRouter / org.json in shared logic – put it behind an interface in the app " +
@@ -66,9 +67,8 @@ class SharedCoreRuleTest {
         """::class\.java|\.getClass\(\)|Class\.forName|kotlin\.reflect|java\.lang\.reflect|getDeclared|[sg]etAccessible|isAccessible|java\.security""")
 
     @Test fun webSharedFilesStayTeaVmFriendly() {
-        val root = File("src/main/java/com/onpath/app")
         val hits = webShared.flatMap { key ->
-            val f = File(root, key)
+            val f = sourceFile(key)
             if (!f.isFile) listOf("$key: missing – update SharedCoreRuleTest.webShared")
             else f.readLines().mapIndexedNotNull { i, line ->
                 val code = line.substringBefore("//").trim()
@@ -83,18 +83,16 @@ class SharedCoreRuleTest {
      * only: the code the web planner compiles must not reach it – plans are computed and edited the same in both.
      */
     @Test fun theTourSplitStaysOutOfTheCodeSharedWithTheWeb() {
-        val root = File("src/main/java/com/onpath/app")
         val shared = listOf("routing", "gpx", "sync", "time").flatMap { p ->
-            File(root, p).walkTopDown().filter { it.isFile && it.extension == "kt" }.map { "$p/${it.name}" }.toList()
+            Sources.kotlinFiles(p).map { "$p/${it.name}" }
         } + files + webShared + listOf("navigation/JunctionCues.kt", "navigation/CueRule.kt", "navigation/SpeedWindow.kt")
-        val hits = shared.distinct().filter { k -> File(root, k).let { it.isFile && it.readText().contains("TourSplit") } }
+        val hits = shared.distinct().filter { k -> sourceFile(k).let { it.isFile && it.readText().contains("TourSplit") } }
         assertEquals("the tour's position split in code the web planner shares:\n" + hits.joinToString("\n"), emptyList<String>(), hits)
     }
 
     @Test fun theExceptionListOnlyShrinks() {
-        val root = File("src/main/java/com/onpath/app")
         val stale = known.keys.filter { k ->
-            val f = File(root, k)
+            val f = sourceFile(k)
             !f.exists() || f.readLines().none { platform.containsMatchIn(it.substringBefore("//")) }
         }
         assertEquals("these files are clean now – remove them from SharedCoreRuleTest.known", emptyList<String>(), stale)

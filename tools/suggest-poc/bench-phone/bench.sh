@@ -27,7 +27,7 @@ if [ "${BENCH:-}" = net ]; then
   L=$(dirname "$KCE")
   KCP=$(ls $L/kotlin-compiler-embeddable-*.jar $L/kotlin-stdlib-[0-9]*.jar $L/kotlin-reflect-*.jar $L/kotlin-script-runtime-*.jar $L/kotlinx-coroutines-core-jvm-*.jar $L/annotations-*.jar $L/kotlin-daemon-embeddable-*.jar | tr '\n' ':')
   STD=$(ls $L/kotlin-stdlib-[0-9]*.jar)
-  S="$ROOT/app/src/main/java/com/onpath/app/suggest"
+  S="$ROOT/core/src/main/kotlin/com/onpath/app/suggest"; [ -f "$S/WayNet.kt" ] || S="$ROOT/app/src/main/java/com/onpath/app/suggest"  # moved to :core
   java -cp "$KCP" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect -jvm-target 1.8 -cp "$STD:$LIBS" -d "$OUT/classes" \
     "$S/WayNet.kt" "$S/WayKinds.kt" "$S/LongIntMap.kt" "$S/NetReader.kt" "$S/NetSearch.kt" "$HERE/NetBench.kt" 2>&1 | grep -v '^warning\|^WARNING\|^$' || true
   MAIN=NetBenchKt; ARGS="2 ${TILE_MB:-12} $([ -n "${LIVE:-}" ] && echo live || true)"; LIBS="$STD:$LIBS"

@@ -1,5 +1,6 @@
 package com.onpath.app.debug
 
+import com.onpath.app.testkit.Sources
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -16,7 +17,7 @@ import java.io.File
 class UserTextRuleTest {
     /** The problem log itself: technical by design (Settings → Diagnostics, the export). */
     private val logFiles = setOf("Problems.kt")
-    private val sources = File("src/main/java").walkTopDown().filter { it.isFile && it.extension in setOf("kt", "java") }.toList()
+    private val sources = Sources.allFiles()
 
     private val raw = Regex("""\b(e|it|t|ex|err|x|d|cause|throwable|error)\??\.(message|localizedMessage)\b|javaClass\.simpleName|localizedMessage""")
 

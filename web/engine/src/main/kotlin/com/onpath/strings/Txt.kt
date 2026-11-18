@@ -10,7 +10,7 @@ object Res {
 }
 
 /**
- * Web stand-in for the app's `Txt` (strings/src/androidMain/.../Txt.kt): same calls, same placeholder rule as
+ * Web stand-in for the app's `Txt` (strings/src/jvmSharedMain/.../Txt.kt): same calls, same placeholder rule as
  * XmlStrings.format (`%N$s` / `%N$d` → the N-th argument as text, nothing else touched). The language is the page's
  * choice ([setLanguage]: "en", "de", … – one per folder of `strings/…/composeResources`); English until it is set.
  */

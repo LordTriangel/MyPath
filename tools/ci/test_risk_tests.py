@@ -65,6 +65,7 @@ class RiskTests(unittest.TestCase):
         self.assertIsNone(r.select(["core/src/main/kotlin/com/onpath/app/Y.kt"]))
         self.assertIsNone(r.select(["core/build.gradle.kts"]))
         self.assertIsNone(r.select(["core/src/test/resources/suggest/a.json"]))
+        self.assertIsNone(r.select(["core/src/testkit/kotlin/com/onpath/app/testkit/Sources.kt"]))
         self.assertEqual(self.gate_core(["core/build.gradle.kts"])["mode"], "full")
     def test_gate_core_file_runs_core_and_app_tests_of_that_package(self):
         g = self.gate_core(["core/src/main/kotlin/com/onpath/app/suggest/X.kt"])

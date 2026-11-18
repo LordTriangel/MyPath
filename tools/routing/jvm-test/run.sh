@@ -57,8 +57,15 @@ javac -d "$W/stub" $(find "$HERE/stubs" -name '*.java')
 # BRouter's turn instructions are read from its own package (package-private fields): compile next to the jars
 LIBS_EARLY=$(ls "$ROOT"/app/libs/*.jar | tr '\n' ':')
 javac -cp "$LIBS_EARLY" -d "$W/stub" "$ROOT/app/src/main/java/btools/router/OnPathHints.java"
-R="$ROOT/app/src/main/java/com/onpath/app/routing"
-N="$ROOT/app/src/main/java/com/onpath/app/navigation"; D="$ROOT/app/src/main/java/com/onpath/app/data"
+# the app's Kotlin sources live in :app (app/src/main/java) and :core (core/src/main/kotlin, tools/dev/core_move.py): one
+# merged view of symlinks, so the lists below do not care where a file is
+APPSRC="$W/appsrc"; rm -rf "$APPSRC"
+for B in app/src/main/java core/src/main/kotlin; do
+  [ -d "$ROOT/$B/com/onpath/app" ] || continue
+  (cd "$ROOT/$B/com/onpath/app" && find . -name '*.kt') | while read -r F; do mkdir -p "$APPSRC/$(dirname "$F")"; ln -sf "$ROOT/$B/com/onpath/app/$F" "$APPSRC/$F"; done
+done
+R="$APPSRC/routing"
+N="$APPSRC/navigation"; D="$APPSRC/data"
 T=${KTTEST:-$HERE/KtTest.kt}; TN=$(basename "$T" .kt)
 ASSETS=${ASSETS_DIR:-$ROOT/app/src/main/assets}
 sed "s#/home/user/build/routing-test/segments#$SEG#; s#/home/user/build/routing-test/kt-files#$W/files#; s#/home/user/onpath/app/src/main/assets#$ASSETS#; s#@JVMTEST_DIR@#$HERE#" "$T" > "$W/$TN.kt"
@@ -91,7 +98,7 @@ EXTRA+=("$W/StringsStub.kt" "$W/StringsStubRes.kt")
 for f in ${EXTRA_KT:-}; do EXTRA+=("$f"); done
 java -cp "$KCP" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect -jvm-target 17 \
   -cp "$STD:$W/stub:$LIBS" -d "$W/kt" "$R/RoutingContract.kt" "$R/Rd5Parts.kt" "$R/BRouterWayStats.kt" "$R/WaypointSnap.kt" "$W/BRouterEngine.kt" "$R/RouterRules.kt" \
-  "$R/StraightLineEngine.kt" "$R/RouteTimeLimit.kt" "$R/SlowPlan.kt" "$W/TrackToPlan.kt" "$R/TurnDetector.kt" "$R/Junctions.kt" "$N/JunctionCues.kt" "$N/CueRule.kt" "$N/JogRule.kt" "$N/SpeedWindow.kt" "$N/VoiceGuide.kt" "$N/GoalSide.kt" "$N/VoiceText.kt" "$N/ScreenTurns.kt" "$D/Geo.kt" "$D/Format.kt" "$R/OfflineCorridor.kt" "$ROOT/app/src/main/java/com/onpath/app/time/PaceModel.kt" "$ROOT/app/src/main/java/com/onpath/app/time/RouteTimes.kt" "$N/NavLine.kt" "$N/StopSkip.kt" "$N/RerouteTargets.kt" "$N/Rerouter.kt" "$N/Onward.kt" "$N/TurnRound.kt" "$N/VisitRadius.kt" \
-  "$R/Planner.kt" "$R/LegCache.kt" "$R/RouteSummary.kt" "$ROOT/app/src/main/java/com/onpath/app/domain/RouteWarnings.kt" "$D/LastActivity.kt" \
+  "$R/StraightLineEngine.kt" "$R/RouteTimeLimit.kt" "$R/SlowPlan.kt" "$W/TrackToPlan.kt" "$R/TurnDetector.kt" "$R/Junctions.kt" "$N/JunctionCues.kt" "$N/CueRule.kt" "$N/JogRule.kt" "$N/SpeedWindow.kt" "$N/VoiceGuide.kt" "$N/GoalSide.kt" "$N/VoiceText.kt" "$N/ScreenTurns.kt" "$D/Geo.kt" "$D/Format.kt" "$R/OfflineCorridor.kt" "$APPSRC/time/PaceModel.kt" "$APPSRC/time/RouteTimes.kt" "$N/NavLine.kt" "$N/StopSkip.kt" "$N/RerouteTargets.kt" "$N/Rerouter.kt" "$N/Onward.kt" "$N/TurnRound.kt" "$N/VisitRadius.kt" \
+  "$R/Planner.kt" "$R/LegCache.kt" "$R/RouteSummary.kt" "$APPSRC/domain/RouteWarnings.kt" "$D/LastActivity.kt" \
   "$HERE/ProblemsStub.kt" "$HERE/TimeEstimateStub.kt" ${EXTRA[@]+"${EXTRA[@]}"} "$W/$TN.kt"
 java -Xmx${JAVA_XMX:-192m} -cp "$STD:$W/stub:$LIBS:$W/kt" "${TN}Kt"

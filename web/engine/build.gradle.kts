@@ -5,6 +5,9 @@ plugins {
 
 val root = rootDir.resolve("../..")
 val app = root.resolve("app/src/main/java/com/onpath/app")
+val core = root.resolve("core/src/main/kotlin/com/onpath/app")
+// a listed file lives in :core (core/src/main/kotlin) once it moved there (tools/dev/core_move.py), else in :app
+fun inModules(rel: String, coreDir: File, appDir: File): File = coreDir.resolve(rel).takeIf { it.isFile } ?: appDir.resolve(rel)
 val stubs = root.resolve("tools/routing/jvm-test/stubs")
 
 // The app files the engine compiles as they are, and the app's own unit tests for them (they run on the plain JVM
@@ -146,9 +149,9 @@ val generateStrings by tasks.registering {
 }
 kotlin.sourceSets["main"].kotlin.srcDir(generateStrings)
 
-tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") { source(appFiles.map { app.resolve(it) }) }
+tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") { source(appFiles.map { inModules(it, core, app) }) }
 tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileTestKotlin") {
-    source(appTests.map { root.resolve("app/src/test/java/com/onpath/app").resolve(it) })
+    source(appTests.map { inModules(it, root.resolve("core/src/test/kotlin/com/onpath/app"), root.resolve("app/src/test/java/com/onpath/app")) })
 }
 // app tests read the BRouter profiles from the app module's path (RouteWarningsTest: src/main/assets/brouter/*.brf);
 // the engine's tests run in web/engine, so the profiles are copied there first (git-ignored, the app's files as they are)

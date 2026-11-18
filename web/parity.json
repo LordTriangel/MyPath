@@ -214,15 +214,15 @@
       "blob": "525547e9371dbcb66c0d32a64b19ecf5bb2ef4d4"
     },
     {
-      "app": "strings/src/androidMain/kotlin/com/onpath/strings/Txt.kt",
+      "app": "strings/src/jvmSharedMain/kotlin/com/onpath/strings/Txt.kt",
       "what": "Txt.s / Txt.p (engine stand-in)",
       "web": [
         "web/engine/src/main/kotlin/com/onpath/strings/Txt.kt"
       ],
-      "blob": "dea8e796168c6471793b6d4fdffd723c09a84f83"
+      "blob": "274db680eb4c0b85701dcf9c8bbcd2afabd7f1c3"
     },
     {
-      "app": "strings/src/androidMain/kotlin/com/onpath/strings/XmlStrings.kt",
+      "app": "strings/src/jvmSharedMain/kotlin/com/onpath/strings/XmlStrings.kt",
       "what": "unescape + %N$s format (generateStrings, Txt.format)",
       "web": [
         "web/engine/build.gradle.kts",
