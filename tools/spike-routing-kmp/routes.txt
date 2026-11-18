@@ -15,3 +15,15 @@ hike-garmisch-zugspitze|hiking-mountain|11.0958,47.4917;10.9850,47.4210|turnInst
 hike-dortmund-hilden-70km|hiking-mountain|7.4653,51.5136;6.9397,51.1713|turnInstructionMode=4,correctMisplacedViaPoints=1,correctMisplacedViaPointsDistance=50,processUnusedTags=1,use_dynamic_range=0,waypointCatchingRange=1000
 bike-koeln-deutz-bonn-30km|trekking|6.9740,50.9380;7.0982,50.7374|turnInstructionMode=4,correctMisplacedViaPoints=1,correctMisplacedViaPointsDistance=400,processUnusedTags=1,use_dynamic_range=0,waypointCatchingRange=1000
 bike-duesseldorf-muenster-120km|trekking|6.7735,51.2277;7.6257,51.9625|turnInstructionMode=4,correctMisplacedViaPoints=1,correctMisplacedViaPointsDistance=400,processUnusedTags=1,use_dynamic_range=0,waypointCatchingRange=1000
+# other profiles (the app's mtb.brf and touring.brf with their own number literals)
+mtb-hilden-wuppertal-25km|mtb|6.9397,51.1713;7.1500,51.2560|turnInstructionMode=4,correctMisplacedViaPoints=1,correctMisplacedViaPointsDistance=400,processUnusedTags=1,use_dynamic_range=0,waypointCatchingRange=1000
+mtb-meran-hirzer-20km|mtb|11.1598,46.6713;11.2600,46.7330|turnInstructionMode=4,correctMisplacedViaPoints=1,correctMisplacedViaPointsDistance=400,processUnusedTags=1,use_dynamic_range=0,waypointCatchingRange=1000
+touring-hilden-dortmund-60km|touring|6.9397,51.1713;7.4653,51.5136|turnInstructionMode=4,correctMisplacedViaPoints=1,correctMisplacedViaPointsDistance=400,processUnusedTags=1,use_dynamic_range=0,waypointCatchingRange=1000
+touring-ebike-meran-bozen-30km|touring|11.1598,46.6713;11.3548,46.4983|turnInstructionMode=4,correctMisplacedViaPoints=1,correctMisplacedViaPointsDistance=400,processUnusedTags=1,use_dynamic_range=0,waypointCatchingRange=1000,bikerPower=180,maxSpeed=25,totalMass=110
+# far north / far south of the two map files (the distance table by latitude)
+bike-flensburg-schleswig-35km|trekking|9.4370,54.7830;9.5700,54.5150|turnInstructionMode=4,correctMisplacedViaPoints=1,correctMisplacedViaPointsDistance=400,processUnusedTags=1,use_dynamic_range=0,waypointCatchingRange=1000
+bike-verona-mantova-40km|trekking|10.9916,45.4384;10.7914,45.1564|turnInstructionMode=4,correctMisplacedViaPoints=1,correctMisplacedViaPointsDistance=400,processUnusedTags=1,use_dynamic_range=0,waypointCatchingRange=1000
+# under memory pressure: a small memory budget makes BRouter throw nodes away during the search (memoryclass = harness key)
+bike-hilden-nordkirchen-98km-mem16|trekking|6.9397,51.1713;7.5269,51.7381|turnInstructionMode=4,correctMisplacedViaPoints=1,correctMisplacedViaPointsDistance=400,processUnusedTags=1,use_dynamic_range=0,waypointCatchingRange=1000,memoryclass=16
+bike-duesseldorf-muenster-120km-mem24|trekking|6.7735,51.2277;7.6257,51.9625|turnInstructionMode=4,correctMisplacedViaPoints=1,correctMisplacedViaPointsDistance=400,processUnusedTags=1,use_dynamic_range=0,waypointCatchingRange=1000,memoryclass=24
+hike-dortmund-hilden-70km-mem16|hiking-mountain|7.4653,51.5136;6.9397,51.1713|turnInstructionMode=4,correctMisplacedViaPoints=1,correctMisplacedViaPointsDistance=50,processUnusedTags=1,use_dynamic_range=0,waypointCatchingRange=1000,memoryclass=16

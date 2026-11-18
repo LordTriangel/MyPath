@@ -30,7 +30,11 @@ public final class RefMain {
         RoutingContext rc = new RoutingContext();
         rc.localFunction = new File(profiles, profile + ".brf").getAbsolutePath();
         Map<String, String> kv = new LinkedHashMap<>();
-        for (String e : p[3].split(",")) { String[] x = e.split("="); kv.put(x[0], x[1]); }
+        for (String e : p[3].split(",")) {
+          String[] x = e.split("=");
+          if (x[0].equals("memoryclass")) rc.memoryclass = Integer.parseInt(x[1]); // the harness's own key: BRouter's memory budget
+          else kv.put(x[0], x[1]);
+        }
         rc.keyValues = kv;
         List<OsmNodeNamed> wps = new ArrayList<>();
         String[] pts = p[2].split(";");
@@ -66,6 +70,7 @@ public final class RefMain {
     sb.append("R ").append(name).append(' ').append(profile).append('\n');
     if (re.getErrorMessage() != null) { sb.append("E ").append(re.getErrorMessage()).append('\n'); return; }
     OsmTrack t = re.getFoundTrack();
+    if (t == null || t.nodes.isEmpty()) { sb.append("E <no error message and no track>\n"); return; }
     int hints = t.voiceHints == null ? 0 : t.voiceHints.list.size();
     sb.append("T cost=").append(t.cost).append(" dist=").append(t.distance).append(" ascend=").append(t.ascend)
       .append(" plain=").append(t.plainAscend).append(" energy=").append(t.energy).append(" secs=").append(t.getTotalSeconds())

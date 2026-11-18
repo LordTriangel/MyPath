@@ -78,6 +78,7 @@ class RoutingEngine(
   var boundary: SearchBoundary? = null
 
   var quite = false
+  var collectCount = 0
 
   // PORT-CUT extract (only used by getOpenSet)
 
@@ -1589,6 +1590,7 @@ class RoutingEngine(
               openSet.add(p.cost + (p.airdistance * airDistanceCostFactor).toInt(), p)
             }
             openBorderList.clear()
+            collectCount++ // spike: how often the search threw nodes away (memory pressure), for the harness
             logInfo("collected, nodes/paths before=" + nodesBefore + "/" + pathsBefore + " after=" + nodesCache!!.nodesMap!!.nodesCreated + "/" + openSet.getSize() + " maxTotalCost=" + maxTotalCost)
             if (!nodesCache!!.nodesMap!!.isInMemoryBounds(openSet.getSize(), true)) {
               if (maxTotalCost < 1000000000 || needNonPanicProcessing || fastPartialRecalc) {

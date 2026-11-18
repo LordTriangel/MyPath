@@ -18,6 +18,7 @@ fun main(args: Array<String>) {
     val reps = args[5].toInt()
     val dump = StringBuilder()
     val times = StringBuilder()
+    val collects = StringBuilder("# routes whose search threw nodes away under memory pressure: name, how often\n")
     val tAll = nanoTime()
     for (raw in readFileLines(args[2])) {
         val line = raw.trim()
@@ -30,7 +31,11 @@ fun main(args: Array<String>) {
             val rc = RoutingContext()
             rc.localFunction = File(profiles, "$profile.brf").getAbsolutePath()
             val kv = LinkedHashMap<String, String>()
-            for (e in p[3].split(",")) { val x = e.split("="); kv[x[0]] = x[1] }
+            for (e in p[3].split(",")) {
+                val x = e.split("=")
+                if (x[0] == "memoryclass") rc.memoryclass = x[1].toInt() // the harness's own key: BRouter's memory budget
+                else kv[x[0]] = x[1]
+            }
             rc.keyValues = kv
             val wps = ArrayList<OsmNodeNamed>()
             val pts = p[2].split(";")
@@ -48,6 +53,7 @@ fun main(args: Array<String>) {
             re.doRun(0)
             val ms = (nanoTime() - t0) / 1_000_000L
             times.append(' ').append(ms)
+            if (r == 0 && re.collectCount > 0) collects.append(name).append(' ').append(re.collectCount).append('\n')
             if (r == 0) dump(dump, name, profile, re)
         }
         times.append('\n')
@@ -58,6 +64,7 @@ fun main(args: Array<String>) {
     }
     writeFileText(args[3], dump.toString())
     writeFileText(args[4], times.toString())
+    writeFileText(args[4] + ".collects", collects.toString())
     print(times)
 }
 
@@ -66,7 +73,8 @@ private fun hex(f: Float): String = f.toRawBits().toUInt().toString(16)
 private fun dump(sb: StringBuilder, name: String, profile: String, re: RoutingEngine) {
     sb.append("R ").append(name).append(' ').append(profile).append('\n')
     if (re.getErrorMessage() != null) { sb.append("E ").append(re.getErrorMessage()).append('\n'); return }
-    val t: OsmTrack = re.getFoundTrack()!!
+    val t: OsmTrack? = re.getFoundTrack()
+    if (t == null || t.nodes.isEmpty()) { sb.append("E <no error message and no track>\n"); return }
     val hints = t.voiceHints?.list?.size ?: 0
     sb.append("T cost=").append(t.cost).append(" dist=").append(t.distance).append(" ascend=").append(t.ascend)
         .append(" plain=").append(t.plainAscend).append(" energy=").append(t.energy).append(" secs=").append(t.getTotalSeconds())
