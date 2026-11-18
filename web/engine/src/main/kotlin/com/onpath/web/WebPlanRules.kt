@@ -14,11 +14,13 @@ object WebPlanRules {
     /**
      * Owner: a plan far beyond a day (a point in another country by mistake) is asked about first – nothing is routed
      * or loaded until the answer. `{"ask":false}` or the question with the app's texts (TourBar.LongRouteDialog).
+     * Never in a multi-day tour ([multiDay], owner 2026-11-18: it asked on every point of München–Venedig) – a long
+     * route is what it is for, and its day rows show a long day in orange.
      */
-    fun longRoute(points: String, activity: String): String {
+    fun longRoute(points: String, activity: String, multiDay: Boolean = false): String {
         val pts = Engine.parsePoints(points)
         val act = Activity.valueOf(activity)
-        if (!LongRoute.needsAsk(pts, act)) return "{\"ask\":false}"
+        if (multiDay || !LongRoute.needsAsk(pts, act)) return "{\"ask\":false}"
         val s = LongRoute.estimateS(pts, act)
         return "{\"ask\":true,\"seconds\":" + Engine.num(s, 0) +
             ",\"title\":" + Engine.str(Txt.s(Res.string.nav_long_route_title)) +

@@ -253,9 +253,11 @@ object Engine {
             // own, in Plan, with no tour running
             val before = lastResultFor(wps)?.takeIf { (it.activity != act || it.sac != sac) &&
                 RouteWarnings.saysChanged(own = true, inPlan = true, touring = false) }
-            // the wait box's "Leg 2 of 5 is being calculated…" – the app's PlanStatus text, only for two or more legs
+            // the wait box: the km routed of the plan's length (WebPlanProgress, owner 2026-11-18) and the app's
+            // PlanStatus text "Calculating section 2 of 5…" (two or more legs) – as JSON, each time a leg is done
+            val km = progressSink?.let { WebPlanProgress(wps, act, sac, legCache) }
             val planner = Planner(engine(), null, askAtLimit = rounds >= 1, rounds = rounds.coerceAtLeast(1), legs = legCache,
-                progress = { done, total -> if (PlanStatus.hasLegs(done to total)) progressSink?.invoke(PlanStatus.calculating(done to total)) })
+                progress = { done, total -> if (km != null) progressSink?.invoke(km.json(done, total)) })
             val res = try {
                 PlanResult.plan(planner, wps, act, sac, parseIndices(pinned), nm.filterValues { it.isNotBlank() }.keys,
                     WebPace.factors(act))
@@ -916,7 +918,7 @@ external fun planProgress(text: String)
 @JSExport fun problems(): String = Engine.problems()
 
 // plan rules before routing (WebPlanRules.kt) and GPX import (WebImport.kt)
-@JSExport fun longRoute(points: String, activity: String): String = WebPlanRules.longRoute(points, activity)
+@JSExport fun longRoute(points: String, activity: String, multiDay: Boolean): String = WebPlanRules.longRoute(points, activity, multiDay)
 @JSExport fun planCancel(cause: String, canUndo: Boolean, canRedo: Boolean): String = WebPlanRules.onCancel(cause, canUndo, canRedo)
 @JSExport fun gpxRead(data: Int8Array, fileName: String, activity: String, sac: Int): String =
     WebImport.read(data.copyToJavaArray(), fileName, activity, sac)
