@@ -16,6 +16,17 @@ Fränkische Schweiz / Pottenstein 49.77, 11.41, Mittenwald / Garmisch), tell IR;
 - **CELL_SCHEMA 9 on main and on TEST** (suggest layer content 2); donald has the publish commands; cell list `tools/dev/areas/owner-test-cells.txt`.
 - Next for the laptop: follow mehrtage's / IR's web merges (parity, check-web, deploy when green); donald's cleanup may move more shared files.
 
+## In flight 2026-11-18 morning (owner's field reports)
+- **Long route stuck at 98 %** (Neuss → München): agent worktree `agent-a09c15482cdbee632` – the load card's calculation
+  phase gets honest progress (leg counter / moving bar, no frozen number). Announced in the backlog (loadoverlay.ts).
+- **Zoomed out = plain green over Germany** (photo): agent worktree `agent-a417a65e42caf77ed` – suspect the detail-cover
+  hides the overview where no z7 region package / low zoom exists after the schema-9 rebuild; fix in the planner or a
+  build order for donald (packages). The overview file itself is served fine.
+- **Deployed 62741bff** with multi-day + round trips; CI sheet-smoke red on the header bar („Plan a multi-day tour“) –
+  handed to mehrtage. TeaVM now out of process 6 GB (`web/engine/build.gradle.kts`).
+If these agents are gone: redo from the descriptions above; merge → `node web/parity/check.mjs` → check-web → push →
+`gh workflow run web.yml --ref main -f deploy=true -f quick=true`.
+
 ## Work in flight at the end of this session (now done – see above) (two agents, worktrees under `.claude/worktrees/`)
 1. **Hold rule on real paths + one-row place menu + WebPlaceMenuTest** (donald's words 2026-11-17 in the backlog:
    `pathDetours` with leg lengths, `planningHold` simplified (≤ 1.2 → ASK), `planningPlaceMenu(lineDp, d)`, pin menu
