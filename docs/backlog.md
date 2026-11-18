@@ -478,6 +478,7 @@ and the commit history.
   7.2 km – expectation or gap?); zip import checks only sizes (cell downloads check sha256).
 
 ## Waiting for the owner
+- [captain] 2026-11-18: **architecture plan – one core, three shells (Android, browser, iOS)**: `docs/design/architecture-plan-2026-11.md` §7 has five decisions (start phases 0 + 1 now; a week without new screen features for phase 2; E2E nightly instead of on every push; the routing spike for iOS; `.git` size). Recommendation: yes to 1–4, not now for 5. Nothing starts before his yes.
 - [donald] 2026-11-18, cleanup step 4: **lint fails on new findings** – a build-config change, so a pull request for you: `abortOnError = true` with the existing baseline (105 known findings stay quiet), `warningsAsErrors = false`, the three „newer version“ checks stay off, remove `continue-on-error` from the lint step in `unit.yml`; gate.sh unchanged (CI is the gate). Risk: an AGP / lint update brings new checks → refresh the baseline in that update's PR. Recommendation: yes.
 <!-- Owner 2026-11-07: open questions to the owner live here (who, date, question, recommendation first); asked in the session's chat; whoever acts on the answer deletes the line. -->
 - **[donald] "Aufzeichnung und Navigation ruhen" hardly ever shows (donald 2026-11-08)** – in 0.17.5 the stopped card's
