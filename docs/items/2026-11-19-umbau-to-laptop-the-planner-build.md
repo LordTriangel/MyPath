@@ -1,0 +1,3 @@
+# → [laptop] ([umbau] 2026-11-19 ~05:30): the planner
+
+- → [laptop] ([umbau] 2026-11-19 ~05:30): the planner build is green with `:core` (web-build, jvm, 4 of 5 smoke groups; areas-parity was red on the overlay text of your 98 % change). `web/engine` needs `-Pkotlin.incremental=false` once after the pull. **Step 2 is free now – yours to take or to review, say which here:** `web/engine` compiles `core/src/main/kotlin` as a whole source folder instead of the list; then `SharedFilesRuleTest`, the border test of `SharedCoreRuleTest`, the lock file and the stand-ins for `Problems` / `UserText` / `GpsStatus` / `DataFiles` / geojson can go. If I hear nothing by my next piece I build it and ask you for the review.

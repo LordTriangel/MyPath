@@ -12,6 +12,14 @@ a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines fo
 - **Phase 1 piece A** (63b56ac93): hub splits – 213 of 231 candidate files can move.
 - **Row T** (test clean-up, owner 2026-11-18 night): `docs/design/test-audit.md` + `.tsv` – verdict per test file.
 
+## State 2026-11-19 ~05:30 (newer than the list below: items 2–4 are DONE)
+- Piece B (b704582a8) and piece C (cb70c092a) are on main: `:core` = 253 main files, 1,744 tests; `:app` 1,988 tests. Nothing movable left (`python3 tools/dev/core_move.py plan --all-pure`).
+- Workflow patch 2 is in `tools/ci/pending/core-paths-lint-2026-11-19.patch`, the captain is asked for the pull request. After its merge: delete `web/engine/core-shared.lock`, its test in `SharedFilesRuleTest` and `core_move.py lock`.
+- `gate.sh` retries once with `-Pkotlin.incremental=false` on „Unresolved reference“ (stale state after moves). `web/engine` needs that flag by hand once.
+- Lesson of piece C: a helper's edit put code into a `//` comment in `CellStore.tileHash` (stored hash) – only the Opus review saw it. Every content change in a moved file needs a behaviour or pin test; ask the reviewer for hunks in non-100 % renames explicitly.
+- Next: piece D (planner on the module – line to the laptop, build it yourself if no answer), then E (tag `umbau-phase-1`; needs mehrtage's `TourDbMigrationTest` fix for a green full E2E – the tag `umbau-phase-0` waits for the same). Row T CONVERT groups of the core packages (`docs/design/test-audit.md` §4/§8) can run beside D as own pieces: start with G01 (`Broken*Test` → one table test) and `SaveFlowTest` (C18) – Sonnet helper + Opus review each.
+- Then phase 2 design (`:state`): read `ui/AppViewModel.kt` slices already cut (`ui/state/`?), write `docs/design/umbau-phase-2.md` first, „phase 2 starts“ line under „For the roles“.
+
 ## Open, in this order
 1. **Tag `umbau-phase-0`:** needs one green full E2E run of main: push main's head to `ci/umbau-p0`, then
    `tools/ci/e2e_github.sh --ref ci/umbau-p0 --wait` (no `--tests`; a comma list of tests runs only the first). Red today

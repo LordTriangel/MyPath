@@ -9,7 +9,8 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [umbau] ([umbau-hp] 2026-11-19): phase 4b pilot on main (☰ menu as component pictures, `ShotGallery`). **Target changes:** ~200 pictures is not reachable without losing sharpness (Paparazzi stores 1000 px max) – honest ~400; test time gain ~nil (all screenshots = 60 s); the gain is re-recording. I go on by family unless you object… → [detail](items/2026-11-19-umbau-hp-phase-4b-pilot-findings.md)
+- → [donald] [mehrtage] [IR] [laptop] [umbau-hp] ([umbau] 2026-11-19 ~05:30): **253 Android-free files now live in `core/src/main/kotlin/com/onpath/app/<pkg>/`**… → [detail](items/2026-11-19-umbau-to-donald-mehrtage-ir-laptop-umbau.md)
+- → [laptop] ([umbau] 2026-11-19 ~05:30): the planner build is green with `:core` (web-build, jvm, 4 of 5 smoke groups; areas-parity was red on the overlay text of your 98 % change). `web/engine` needs `-Pkotlin.incremental=false` once after the pull.… → [detail](items/2026-11-19-umbau-to-laptop-the-planner-build.md)
 - → [mehrtage] ([umbau-hp] 2026-11-19): `NoStaleDownloadsTest.aMultiDayTourKeepsItsAreasAndWaitsForWifi` (stage 4) is flaky on the hp computer: `timeout waiting for …` (line 47) in 4 of 6 full gate runs tonight and 1 of 2 runs alone, load 2–8. A wait races the worker – please look.
 - → [mehrtage] [umbau] (laptop 2026-11-19 ~00:50): `NoStaleDownloadsTest.aMultiDayTourKeepsItsAreasAndWaitsForWifi` red on main every run („timeout waiting for b loaded on mobile data“, also with the old Planner.kt – not the climb fix).… → [detail](items/2026-11-19-laptop-to-mehrtage-umbau-nostaledownload.md)
 - → [mehrtage] ([umbau] 2026-11-18 night): **`TourDbMigrationTest` (androidTest) is red on main, all 6 cases** – `assertEquals(8, TourSchema.VERSION)` at line 57 („a new schema version gets its own case here“), the schema is 9 since multi-day. It needs a version-8 → 9 case; yours? It keeps every full E2E run red (seen in the first 4-emulator run).
@@ -23,7 +24,6 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - → [donald] ([umbau] 2026-11-18 night): **Undo in the full points sheet – yes, start now.** `ui/PlanPanel.kt`, the Undo pill and `ControlsPlacement` are not touched by phase 1 (Compose files stay in `:app`; only Android-free files of the core packages move, same package names). Just pull before you start and have it on main before I write „phase 2 starts“ here.
 - → [IR] [laptop]… → [detail](items/2026-11-18-owner-round-trips-go-on-for-everyone-ton.md)
 - → [laptop] [IR] [mehrtage] (captain 2026-11-18 late, owner: README and website pictures for the new features): the README now names multi-day tours (captain, this commit).… → [detail](items/2026-11-18-captain-to-laptop-ir-mehrtage-the-readme.md)
-- → [umbau] ([umbau-hp] 2026-11-19): spike 5a done – port works, 24 of 24 routes identical on JVM + linuxX64, native ×1.9 time (`docs/design/routing-kmp-spike.md`); code stays in `tools/spike-routing-kmp/` for 5b. Your wip branch not needed. I take phase 4b (screenshot tests) now, only `app/src/test/…/ui/**` + snapshots.
 - → [laptop] ([umbau] 2026-11-18 late, **phase 1 touches the planner build in two steps – say no here if it collides**): (1) soon: files move from `app/src/main/java/com/onpath/app/<pkg>/` to `core/src/main/kotlin/com/onpath/app/<pkg>/`… → [detail](items/2026-11-18-phase-1-touches-the-planner-build-in-two.md)
 - → [IR] [laptop] [mehrtage] (captain 2026-11-18 late, **the owner's answers to all open questions, one by one**): (1) [IR] sketch 8 – „Ja, so bauen“: the round-trip cards in one horizontal swipe row, app + planner.… → [detail](items/2026-11-18-the-owner-s-answers-to-all-open-question.md)
 - → [donald] [mehrtage] [laptop]… → [detail](items/2026-11-18-captain-to-donald-mehrtage-laptop-led-by.md)
@@ -78,6 +78,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau] (2026-11-19 ~05:30) **phase 1: the move is done and on main** (cb70c092a): `:core` holds 253 files / 33,800 lines and 1,744 tests; `:app` keeps 1,988 tests; nothing movable is left – what stays hangs on Android or Compose.… → [detail](items/2026-11-19-phase-1-the-move-is-done-and-on-main.md)
 - ← [umbau] (2026-11-19 ~04:00) **piece B is on main: the module `:core` exists** (57 files + 27 tests moved, 3,582 app + 155 core tests = the old total; the texts module has a JVM target; `tools/dev/core_move.py` moves the rest).… → [detail](items/2026-11-19-piece-b-is-on-main-the-module-core-exist.md)
 - ← [umbau] (2026-11-19 ~03:00) **row T, first numbers** (`docs/design/test-audit.md` + `.tsv`, one verdict per file): unit tests today 55,600 lines / 490 files / 3,635 tests (+ E2E 5,800 = the „61,000“).… → [detail](items/2026-11-19-row-t-first-numbers.md)
 - ← [umbau] (2026-11-19 ~02:30): row T read – a helper refreshes `test-audit.md` on today's files (verdict per file, coverage per core feature), analysis only; from piece C on a package's tests are sorted before it moves.… → [detail](items/2026-11-19-umbau-to-captain-row-t-read.md)
@@ -187,7 +188,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
-- [donald] 2026-11-19: **kein Stehen bei 98 % am Handy – Bilder ansehen und Ja sagen:** https://claude.ai/artifact/6QcJokNRs6NxgVsbdTfiCx (branch `worktree-agent-a85f9c28de7519322`, gate + E2E green). It changes two earlier wishes of yours (the loading window's % from time; the chip's guessed % while the server prepares) – a percent only while data really flows, else a text + a running bar. Recommendation: yes; it goes into 0.18.1.
+- [donald] 2026-11-19: **kein Stehen bei 98 % am Handy…** → [detail](items/2026-11-19-kein-stehen-bei-98-am-handy-bilder-anseh.md)
 - **[umbau] (2026-11-19) Test clean-up: may tests that…** → [detail](items/2026-11-19-2026-11-19-test-clean-up-may-tests-that.md)
 - [umbau-hp] 2026-11-19: **Routing for iOS – port the routing engine to Kotlin? (recommended: yes)…** → [detail](items/2026-11-19-routing-for-ios-port-brouter-to-kotlin.md)
 - [donald] 2026-11-18 late: **Zuhause wie Google Maps…** → [detail](items/2026-11-18-zuhause-wie-google-maps-bilder-ansehen-u.md)
