@@ -11,6 +11,7 @@ actual class RandomAccessFile actual constructor(path: String) {
 }
 
 actual fun fileExists(path: String): Boolean = java.io.File(path).exists()
+actual fun fileIsDirectory(path: String): Boolean = java.io.File(path).isDirectory
 actual fun fileLength(path: String): Long = java.io.File(path).length()
 actual fun fileLastModified(path: String): Long = java.io.File(path).lastModified()
 actual fun readFileBytes(path: String): ByteArray =

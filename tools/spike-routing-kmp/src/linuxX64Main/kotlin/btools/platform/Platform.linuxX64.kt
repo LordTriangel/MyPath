@@ -46,6 +46,10 @@ actual class RandomAccessFile actual constructor(path: String) {
 }
 
 actual fun fileExists(path: String): Boolean = access(path, F_OK) == 0
+actual fun fileIsDirectory(path: String): Boolean = memScoped {
+    val st = alloc<stat>()
+    stat(path, st.ptr) == 0 && (st.st_mode.toInt() and platform.posix.S_IFMT) == platform.posix.S_IFDIR
+}
 actual fun fileLength(path: String): Long = memScoped {
     val st = alloc<stat>()
     if (stat(path, st.ptr) != 0) 0L else st.st_size
