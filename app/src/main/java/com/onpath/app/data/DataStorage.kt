@@ -9,6 +9,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
+import android.os.Process
 
 /** Whether the storage holding the offline data is there right now; [whenReady] runs a block once it is. */
 interface StorageGate {
@@ -188,7 +189,7 @@ class DataStorage(
             external = { app.getExternalFilesDir(null) },
             remembered = RememberedFile(File(app.filesDir, REMEMBERED_FILE)),
             // primary shared storage of this user (uid / 100000 = user id), as Android names it on every phone since 6
-            standard = { File("/storage/emulated/${android.os.Process.myUid() / 100_000}/Android/data/${app.packageName}/files") },
+            standard = { File("/storage/emulated/${Process.myUid() / 100_000}/Android/data/${app.packageName}/files") },
             internal = app.filesDir,
             scope = CoroutineScope(SupervisorJob() + Dispatchers.IO + com.onpath.app.debug.problemsHandler("data", "Storage check failed")),
         )

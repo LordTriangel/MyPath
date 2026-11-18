@@ -7,6 +7,7 @@ import java.io.IOException
 import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Replaces a file so that a reader always finds the old or the new one, never none (robust first: never lose a file).
@@ -34,7 +35,7 @@ object AtomicFiles {
         File.createTempFile(base.name.removeSuffix(".tmp").padEnd(3, '_') + ".", ".tmp", base.parentFile)
 
     /** One lock per target file: writes of one file in this process run one after the other. */
-    private val locks = java.util.concurrent.ConcurrentHashMap<String, Any>()
+    private val locks = ConcurrentHashMap<String, Any>()
     private fun lockFor(target: File): Any = locks.getOrPut(target.absoluteFile.normalize().path) { Any() }
 
     /** Temp files of writes a crash interrupted are of no use after this long (a write in progress is never this old). */

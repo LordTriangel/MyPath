@@ -4,6 +4,9 @@ import com.onpath.strings.*
 import android.content.Context
 import com.onpath.app.debug.Problems
 import java.io.File
+import java.util.Locale
+import org.json.JSONObject
+import com.onpath.app.cells.CellStore
 
 /**
  * Location and presence check of the big offline data files. The folder comes from [DataStorage] (one per process):
@@ -40,7 +43,7 @@ class DataFiles internal constructor(private val storage: DataStorage) {
      * (docs/design/map-cells.md §19, [com.onpath.app.cells.CellStore]) when at least one cell is installed, else the
      * data folder (region package / adb push). Never throws.
      */
-    fun mapDir(): File = try { com.onpath.app.cells.CellStore(dir).mapDir() ?: dir } catch (e: Exception) {
+    fun mapDir(): File = try { CellStore(dir).mapDir() ?: dir } catch (e: Exception) {
         Problems.error("data", "Downloaded map areas unreadable; using the map package in the data folder", e); dir
     }
 
@@ -72,11 +75,11 @@ class DataFiles internal constructor(private val storage: DataStorage) {
 
         /** "10.70–11.60 E · 46.30–46.85 N" */
         val area: String get() = if (bbox.size == 4)
-            "%.2f–%.2f E · %.2f–%.2f N".format(java.util.Locale.ROOT, bbox[0], bbox[2], bbox[1], bbox[3]) else ""
+            "%.2f–%.2f E · %.2f–%.2f N".format(Locale.ROOT, bbox[0], bbox[2], bbox[1], bbox[3]) else ""
 
         companion object {
             fun parse(json: String, sizeOf: (String) -> Long): PackageCheck {
-                val o = org.json.JSONObject(json)
+                val o = JSONObject(json)
                 val files = o.optJSONObject("files")
                 val bad = mutableListOf<String>()
                 files?.keys()?.forEach { name ->

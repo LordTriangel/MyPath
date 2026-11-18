@@ -1,6 +1,7 @@
 package com.onpath.app.data
 
 import com.onpath.app.routing.GeoPoint
+import java.util.Arrays
 
 /**
  * What is left of a followed route from the current position (F-NAV-01). Pure, unit-tested. Ascent counted like the plan
@@ -37,7 +38,7 @@ class FollowProgress(private val line: List<GeoPoint>) {
     fun at(alongM: Double, offM: Double?): Remaining? {
         if (line.size < 2) return null
         val a = alongM.coerceIn(0.0, cum.last())
-        val seg = java.util.Arrays.binarySearch(cum, a).let { if (it >= 0) it else -it - 2 }.coerceIn(0, line.size - 2)
+        val seg = Arrays.binarySearch(cum, a).let { if (it >= 0) it else -it - 2 }.coerceIn(0, line.size - 2)
         val i = seg + 1
         val (up, down) = Geo.routeClimb(line.subList(seg, line.size).map { it.ele })
         return Remaining(seg, cum.last() - a, up, down, offM ?: 0.0)

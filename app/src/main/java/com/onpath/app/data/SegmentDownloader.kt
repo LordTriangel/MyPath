@@ -1,7 +1,11 @@
 package com.onpath.app.data
 
 import com.onpath.app.debug.Problems
+import com.onpath.app.net.HttpDownload
+import com.onpath.app.routing.GeoPoint
+import com.onpath.app.routing.Rd5Parts
 import java.io.File
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import kotlin.math.floor
@@ -24,7 +28,7 @@ object SegmentDownloader {
     fun userAgent(version: String): String = "OnPath/$version (+https://onpath.earth)"
 
     /** Tile name for a position: 5° steps, west/south as W/S. Bozen (46.5, 11.35) → "E10_N45". */
-    fun tileName(lat: Double, lon: Double): String = com.onpath.app.routing.Rd5Parts.tileName(lat, lon)
+    fun tileName(lat: Double, lon: Double): String = Rd5Parts.tileName(lat, lon)
 
     /**
      * Downloads [name] into [segmentsDir]. [onProgress] gets (bytesDone, bytesTotal or -1).
@@ -39,7 +43,7 @@ object SegmentDownloader {
         val part = File(segmentsDir, ".$name.part")
         // the one resumable download (net/HttpDownload, review Arch 6); brouter.de publishes no checksums – size only
         try {
-            com.onpath.app.net.HttpDownload.resume(BASE_URL + name, part,
+            HttpDownload.resume(BASE_URL + name, part,
                 open = { u -> (u.openConnection() as HttpURLConnection).apply {
                     connectTimeout = 20_000; readTimeout = 30_000
                     setRequestProperty("User-Agent", USER_AGENT)
@@ -54,11 +58,11 @@ object SegmentDownloader {
                 onBytes = { done, total -> onProgress(done, total) },
                 cancelled = cancelled, cancelError = { Cancelled() },
             )
-        } catch (e: com.onpath.app.net.HttpDownload.Incomplete) {
+        } catch (e: HttpDownload.Incomplete) {
             throw IllegalStateException("Download incomplete – tap again to resume.", e)
         }
         // over the old file in one step: the router never finds the tile missing; on failure the part stays
-        try { AtomicFiles.replace(part, dest) } catch (e: java.io.IOException) { throw IllegalStateException("Could not save $name.", e) }
+        try { AtomicFiles.replace(part, dest) } catch (e: IOException) { throw IllegalStateException("Could not save $name.", e) }
     }
 
     /** The download was stopped by the user (Cancel); the partial file stays for resuming. */
@@ -96,11 +100,11 @@ object RoutingDataCheck {
      * The route changed in a way the user would notice: a point of one line is more than [toleranceM] from every
      * point of the other (sampled), or the length differs by more than 2 %.
      */
-    fun differs(a: List<com.onpath.app.routing.GeoPoint>, b: List<com.onpath.app.routing.GeoPoint>, toleranceM: Double = 30.0): Boolean {
+    fun differs(a: List<GeoPoint>, b: List<GeoPoint>, toleranceM: Double = 30.0): Boolean {
         if (a.size < 2 || b.size < 2) return a.size != b.size
         val la = Geo.length(a); val lb = Geo.length(b)
         if (kotlin.math.abs(la - lb) > 0.02 * maxOf(la, lb)) return true
-        fun far(x: List<com.onpath.app.routing.GeoPoint>, y: List<com.onpath.app.routing.GeoPoint>): Boolean {
+        fun far(x: List<GeoPoint>, y: List<GeoPoint>): Boolean {
             val step = maxOf(1, x.size / 200)
             for (i in x.indices step step) if (y.minOf { Geo.fastDistance(x[i], it) } > toleranceM) return true
             return false
