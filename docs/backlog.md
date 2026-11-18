@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [mehrtage] (donald 2026-11-18 late, found while taking the multi-day website pictures): reopening the **same** multi-day tour (the plan on the map is already it, e.g. restored at app start) from Meine Touren → Planen shows **no day overview** – the sheet shows „Los geht's · Saltaus“ without the days line. Cause seen: `MultiDaySlice` recomputes the days only when `snapshotFlow { Triple(route, overview, marks) }` changes, and reopening the same tour changes none. Workaround: open another route first.
 - → [umbau] [laptop] [donald] (IR 2026-11-18 late): **cards row on main** (owner's yes to sketch 8) **and round trips ON by default** in app and planner (owner ~23:30; the debug setting „Tourvorschläge“ / planner `?debug` stays as an off-switch), the row „Rundtour von hier“ only while setting the very first point. Gate full + androidTest compile green, `suggest-smoke.mjs` green, emulator `RoundTripSuggestE2ETest` + `CorePoiTapE2ETest` 11/11. [laptop]: deploy the planner with the next green run. [donald]: in tonight's release round trips are on for everyone. [umbau]: IR's app part is done, phase 2 is free from IR's side. Old branch `wip/ir-2026-11-18-card-row` is superseded (its content is in `…-card-row-on`).
 - → [cloud-web] (laptop 2026-11-18 ~00:30): **planner pictures in onpath.private `aktuell/` (164d311)**: retaken B01–B04, B07, C01, C02, C06 (DE + EN, planner a431bfea); new multi-day B11 „Mehrtagestour planen“ and B13 „Tage festlegen“ (keys in `docs/design/website-screens.md`). B12 (Als Mehrtagestour planen) and B14 (Übersicht) follow after a fix – their total ↑ disagrees with the days. B08–B10 stay the owner's 3D examples. Delete the tag when taken.
 - → [cloud-web] (donald 2026-11-18 night): new phone pictures of multi-day tours (Meraner Höhenweg, 3 days), DE + EN: keys **mehrtage-tage** (M01 day overview), **mehrtage-unterwegs** (M02 „Tag 2 von 3“), **mehrtage-karte** (M03 nights on the map) – onpath.private 801d650, aktuell/, Note M in liste.md; flow M in website-screens.md.
@@ -72,6 +73,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [donald] (2026-11-18 late) **donald ready for a fresh session** – handoff `docs/history/handoff-donald-2026-11-18-late.md`. Done tonight: calm line dropped (on main), multi-day phone pictures M01–M03 + 0.18.0 pictures in `aktuell/`. Open for the next donald: 0.18.1 (owner's word, when IR's round-trips-on line is in and all green), Zuhause like Google Maps (branch, pictures to the owner first), Undo in the full points sheet (waits for [umbau]), E06 retake, `CF_START_TOKEN` (needs the owner's word in donald's chat).
 - ← [umbau] (2026-11-18 night) **phase 0 state:** on main: backlog 112 → 31 KB + core-features index (0c), the 350k handoff rule (0d), E2E nightly + 4 emulators (0a, thanks for PR 13).… → [detail](items/2026-11-18-phase-0-state.md)
 - ← [donald] (2026-11-18 late) **owner's direct word in donald's chat:**… → [detail](items/2026-11-18-owner-s-direct-word-in-donald-s-chat.md)
 - ← [donald] (2026-11-18 late): owner's answers taken – (3) bike cue closed; (5) the calm line is being removed (helper running, pictures follow); (4) Undo in the full points sheet asked [umbau] first (files); multi-day phone pictures for the website… → [detail](items/2026-11-18-donald-to-captain-owner-s-answers.md)
@@ -174,6 +176,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- [donald] 2026-11-18 late: multi-day day rows say **„Tag 2 fahren“ / „Ride day 2“ also for a hike** – keep, or „Tag 2 gehen / starten“ for hikes? Recommendation: one neutral word for all activities, „Tag 2 starten“ / „Start day 2“.
 - [donald] 2026-11-18 late: **delete the GitHub secret…** → [detail](items/2026-11-18-delete-the-github-secret-cf-start-token.md)
 - **[donald] Only our signed apps on the map server?…** → [detail](items/2026-11-07-only-our-signed-apps-on-the-map-server-o.md)
 - **Map server access before the public launch** → [detail](items/2026-11-18-map-server-access-before-the-public-laun.md)

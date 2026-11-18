@@ -23,6 +23,7 @@ release's notes) and the git history – this file keeps only the current state 
   offline corridor 10 km on foot, 20 km for bike activities (donald). Smaller open items: `docs/backlog.md`; open questions: backlog "Waiting for the owner"; the owner's own questions: the Fragenregister.
 
 ## Last session
+- **donald, 2026-11-18 late – READ `docs/history/handoff-donald-2026-11-18-late.md`:** v0.18.0 released; calm line dropped; website pictures; open: 0.18.1 (owner's word), Zuhause branch, Undo in the points sheet, E06.
 - **donald, 2026-11-18 night – READ `docs/history/handoff-donald-2026-11-18.md`:** the whole app cleanup on main (7 reviewed pieces, nothing visible changed); map rebuild schema 9 running on donald; evening: release when all green (owner's direct word).
 - **donald, 2026-11-17 – READ `docs/history/handoff-donald-2026-11-17.md`; on main, not released:** hold beside the plan = the shorter real path wins (asks only within 20 %), place menu one row when clear, POI names from zoom 17 beside their symbol, sheet shows the map symbol, cleanup (26 branches, 124 worktrees). Open: map rebuild after schema 9 (needs the owner's permission for the upload).
 - **laptop, 2026-11-16/17 night (owner asleep, own decisions noted):** cells keep every route (s8, TEST, donald rebuilds), planner: hold rule, kept-places sync, click order, POI click after a move, 0/1-point plan fixed (live 01524309); suggest layer s9 on a branch (owner to decide: phones re-download whole cells on every schema bump): `docs/history/handoff-laptop-2026-11-16.md`.
