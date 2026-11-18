@@ -10,7 +10,7 @@
         "web/app/src/routefilter.ts",
         "web/app/src/style.css"
       ],
-      "blob": "e83d911072ff4ee42346b80b34f1bf9c5c534df9"
+      "blob": "5174c13eb78eec28de4bbb4e8c7c21793ca9519e"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapOverlays.kt",
@@ -20,7 +20,7 @@
         "web/app/src/menus.ts",
         "web/app/src/search.ts"
       ],
-      "blob": "b8f3d17c6438f5150f5c811937447ade84252504"
+      "blob": "36dbe49f9a39e9dfa8df76824cc20c61fccab9e7"
     },
     {
       "app": "app/src/main/java/com/onpath/app/domain/PlanStatus.kt",
@@ -98,7 +98,7 @@
         "web/app/src/gpximport.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "670388bffe1bf73774083698fe22fef8d27a9fab"
+      "blob": "493b82c82c60a5b671f0bcdfaaccc7423a34749b"
     },
     {
       "app": "app/src/main/java/com/onpath/app/poi/PinnedPoiKinds.kt",
@@ -115,7 +115,7 @@
       "web": [
         "web/app/src/main.ts"
       ],
-      "blob": "2ea2b54e9b036653f2e16589fe7277af551f7274"
+      "blob": "bdf006d9cab6561aac26a99f1c5a3b16333193e1"
     },
     {
       "app": "app/src/main/java/com/onpath/app/map/OptionalSources.kt",
@@ -170,7 +170,7 @@
         "web/app/src/plans.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "46a4d74cccb67ef5dcfdef5cbb56b8542dd24d87"
+      "blob": "7dc6be6355ea049b7375b36b0b3364447a7b83c8"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -245,7 +245,7 @@
       "web": [
         "web/app/src/main.ts"
       ],
-      "blob": "3e11c931349b8462bbf87cb61fc2a94ff1c7e282"
+      "blob": "7dcccd5648ae15d076fffdefe371b2c7ac0601dd"
     },
     {
       "app": "app/src/main/java/com/onpath/app/map/Overview.kt",
@@ -417,7 +417,7 @@
         "web/app/src/pinmenu.ts",
         "web/app/src/search.ts"
       ],
-      "blob": "3e354ee8b3de7be2c6d79aefda49f5814188f41d"
+      "blob": "8f5d908fcc71f2b640e7b31fcf1e077968f46dbc"
     },
     {
       "app": "app/src/main/java/com/onpath/app/cells/PoiDensity.kt",
@@ -466,12 +466,12 @@
     {
       "app": "app/src/main/java/com/onpath/app/ui/PlanPanel.kt",
       "why": "plan sheet layout and actions",
-      "blob": "210e188d6f3e8398eab33c2cde52bcff62f9131b"
+      "blob": "e0b73d372d9096ea0f4715071c427e5ef5fb4375"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapScreen.kt",
       "why": "plan screen wiring, dialogs",
-      "blob": "5649a16b6d754879dc4103fbdc2494674a98650c"
+      "blob": "9e8660ea0cc6564a5e555952cd8a440f61db19b8"
     },
     {
       "app": "app/src/main/java/com/onpath/app/domain/PlanGuidance.kt",
@@ -1669,6 +1669,10 @@
       "blob": "f44b3933f5408f2b7a817f65b5951b31d5793fed",
       "perf": []
     },
+    "strings/src/commonMain/composeResources/values/strings_multiday.xml": {
+      "blob": "cf7d8a6fd7dd6ed58864b54226edf06107b828c4",
+      "perf": []
+    },
     "strings/src/commonMain/composeResources/values/strings_navigate.xml": {
       "blob": "b0bcf2dee2355888474fa0259763f09dc39a0253",
       "perf": []
@@ -1698,7 +1702,7 @@
       "perf": []
     },
     "strings/src/commonMain/composeResources/values/strings_suggest.xml": {
-      "blob": "d9b3a3f99269a689549ecc279da83894d17383b4",
+      "blob": "007ed3075eeb85032d19da4d493525fc1b856055",
       "perf": []
     },
     "strings/src/commonMain/composeResources/values/strings_sync.xml": {
@@ -1733,6 +1737,10 @@
       "blob": "55eb09489525bda525c980a29037321ffa260513",
       "perf": []
     },
+    "strings/src/commonMain/composeResources/values-de/strings_multiday.xml": {
+      "blob": "cad32799475fd607fcd80af9914845b58e8747fe",
+      "perf": []
+    },
     "strings/src/commonMain/composeResources/values-de/strings_navigate.xml": {
       "blob": "29b30b5be52f5654612fa8f9cee8766c5e6f68f0",
       "perf": []
@@ -1762,7 +1770,7 @@
       "perf": []
     },
     "strings/src/commonMain/composeResources/values-de/strings_suggest.xml": {
-      "blob": "07dfcc514e377b13544a04e9d7c453b5a83a503d",
+      "blob": "e9b98f1aee19cfa03de4a73701a4b7ab102ad9a9",
       "perf": []
     },
     "strings/src/commonMain/composeResources/values-de/strings_sync.xml": {
