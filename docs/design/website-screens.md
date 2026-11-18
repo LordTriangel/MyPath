@@ -184,6 +184,19 @@ C04, C05, C07, C08 may stay Paparazzi snapshots (`GermanScreenshotTest_settingsS
 | L03 | `L03-einstellungen-sicherung` | Einstellungen → Sicherung: the backup folder | sicherung · akku-sicherung | `settingsBackup` `SettingsScreenshotTest_backup` | `ui/SettingsScreen.kt` |
 | L04 | `L04-einstellungen-datenschutz` | Einstellungen → Datenschutz: what leaves the phone | – | `settingsPrivacyFull` `SettingsScreenshotTest_privacy` | `ui/SettingsScreen.kt` |
 
+## M – A multi-day tour (app)
+
+The Meran scenario's multi-day tour (owner 2026-11-18): **Meraner Höhenweg, 3 days, Wandern T2** – Katharinaberg →
+Gasthaus Giggelberg (night 1: Hotel, green bed) → Hochganghaus → Leiteralm → Hochmuth (night 2: Übernachtung, blue
+moon) → Saltaus, 41,3 km. Planned in the browser as a rule; for the pictures the days went into the saved route as the
+sync stores them (`onpath.private` `liste.md`, Note M).
+
+| Step | File | What you see | Key · used on | Snapshot (Paparazzi) | Change here → new picture |
+| --- | --- | --- | --- | --- | --- |
+| M01 | `M01-handy-mehrtagestour-tagesuebersicht` | plan sheet fully up, day 2 picked: profile with the day borders, one row per day (bed / moon / goal), "Tag 2 fahren" | mehrtage-tage · – (new) | `MultiDayGermanTest_overview` `MultiDayEnglishTest_overview` | `ui/MultiDaySheet.kt`, `ui/PlanPanel.kt`, `ui/ElevationProfile.kt` |
+| M02 | `M02-handy-tag-2-von-3-unterwegs` | Navigate on day 2 (flight mode): status card "Tag 2 von 3", next turn, arrival at the day's end | mehrtage-unterwegs · – (new) | `MultiDayGermanTest_dayFollowed` `MultiDayEnglishTest_dayFollowed` | `ui/NavigateScreen.kt`, `ui/MultiDayFlow.kt` |
+| M03 | `M03-handy-mehrtagestour-naechte-karte` | the plan on the map, day 2 picked: green bed at the hotel, blue moon at the Übernachtung | mehrtage-karte · – (new) | `MultiDayGermanTest_signs` `MultiDayEnglishTest_signs` | `ui/MapScreen.kt` (day ends on the map), `ui/plan/MultiDaySlice.kt` |
+
 ## Store (Google Play) – made from the flows, no extra shots
 
 S1 "Plane in Ruhe – auch ohne Netz" → D05 · S2 "Unterwegs umplanen – ganz einfach" → F04 · S3 "Klare Ansagen an jeder
