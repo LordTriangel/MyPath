@@ -151,7 +151,7 @@ object TrackToPlan {
             val lo = hi - 1; val span = along[hi] - along[lo]
             val f = if (span > 0) (m - along[lo]) / span else 0.0
             val p = track[lo]; val q = track[hi]
-            val pe = p.ele; val qe = q.ele  // a local val: GeoPoint is in :core, no smart cast on its property
+            val pe = p.ele; val qe = q.ele
             val ele = if (pe != null && qe != null) pe + (qe - pe) * f else pe ?: qe
             return GeoPoint(p.lat + (q.lat - p.lat) * f, p.lon + (q.lon - p.lon) * f, ele)
         }

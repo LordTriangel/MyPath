@@ -92,7 +92,7 @@ class DemoPath private constructor(val line: List<GeoPoint>, private val cumM: D
     private fun moving(i: Int, t: Double): DemoFix {
         if (i >= line.size - 1) return standing(line.size - 1, ended = true)
         val a = line[i]; val b = line[i + 1]
-        val ae = a.ele; val be = b.ele  // a local val: GeoPoint is in :core, no smart cast on its property
+        val ae = a.ele; val be = b.ele
         val ele = if (ae != null && be != null) ae + (be - ae) * t else ae ?: be
         val lenM = cumM[i + 1] - cumM[i]
         val s = cumS[i + 1] - cumS[i]

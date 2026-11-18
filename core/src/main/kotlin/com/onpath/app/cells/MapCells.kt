@@ -1077,7 +1077,7 @@ class MapCells(
             val m = api.manifest(c)
             if (m.cell != c) throw IllegalStateException("manifest is for ${m.cell}")
             if (m.format != CellApi.FORMAT) { set(c, CellState.Failed(Txt.s(Res.string.maps_err_other_version), false)); dequeue(c); return }
-            val minApp = m.minApp  // a local val: CellManifest is in :core, no smart cast on its property
+            val minApp = m.minApp
             if (minApp != null && com.onpath.app.update.AppVersions.isNewer(minApp, appVersion)) {
                 set(c, CellState.Failed(Txt.s(Res.string.maps_err_needs_app, minApp), false)); dequeue(c); return
             }

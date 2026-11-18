@@ -735,7 +735,8 @@ class CellStore(
                 for (id in e.tileId until e.tileId + e.runLength) {
                     val (z, x, y) = PmTiles.tileIdToZxy(id)
                     if (!cell.ownsTile(z, x, y)) continue
-                    (id8 as java.nio.Buffer).clear(); id8.putLong(id)  // Buffer.clear(): ByteBuffer.clear() of JDK 9+ is missing on Android 8-12; md.update(id8.array())
+                    // Buffer.clear(): :core is compiled against the JDK, whose ByteBuffer.clear() (9+) is missing on Android 8–12
+                    (id8 as java.nio.Buffer).clear(); id8.putLong(id); md.update(id8.array())
                     md.update(seen.getOrPut(e.offset) { one.digest(r.tileBytes(e)) })
                 }
             }

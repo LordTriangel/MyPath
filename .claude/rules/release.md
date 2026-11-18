@@ -5,6 +5,7 @@ paths:
   - ".github/**"
   - "tools/ci/**"
   - "app/src/main/java/com/onpath/app/update/**"
+  - "core/src/main/kotlin/com/onpath/app/update/**"
 ---
 # Releases, CI, the gate (loads when you touch the version, release notes, workflows or tools/ci)
 

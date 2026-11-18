@@ -178,7 +178,7 @@ class NavLine(val points: List<GeoPoint>) {
         val seg = cum[i + 1] - cum[i]
         val f = if (seg <= 0) 0.0 else (alongM - cum[i]) / seg
         val a = points[i]; val b = points[i + 1]
-        val ae = a.ele; val be = b.ele  // a local val: GeoPoint is in :core, no smart cast on its property
+        val ae = a.ele; val be = b.ele
         val ele = if (ae != null && be != null) ae + (be - ae) * f else ae ?: be
         return GeoPoint(a.lat + (b.lat - a.lat) * f, a.lon + (b.lon - a.lon) * f, ele, a.way) // keeps the span's way (time model)
     }
