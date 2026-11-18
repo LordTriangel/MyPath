@@ -54,8 +54,7 @@ interface SyncHost {
 }
 
 /**
- * When the browser sync runs and what follows a pass (code audit 2026-11-12, cleanup piece 4 – out of AppViewModel
- * after the [com.onpath.app.ui.tour.TourController] pattern; the pairing half is [com.onpath.app.ui.PairingFlow]):
+ * When the browser sync runs and what follows a pass (the pairing half is [com.onpath.app.ui.PairingFlow]):
  * the triggers while the app is open – a tour ended, about every 15 s on My routes / Browser sync, right away when one
  * of them opens ([start]; the rules are [SyncPoll]) –, pull to refresh with its spinner ([pull], [pulling]), the
  * "New / Changed" marks ([marks], [markSeen]) and a pass's report handed on ([onReport]): the list, kept places,

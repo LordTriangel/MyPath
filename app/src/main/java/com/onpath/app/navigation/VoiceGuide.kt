@@ -3,6 +3,7 @@ package com.onpath.app.navigation
 import com.onpath.app.data.Geo
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.JunctionCue
+import java.util.Arrays
 
 /**
  * What the voice says, as language-free phrases ([VoiceText] turns them into a sentence of the app's language). Adding a
@@ -659,7 +660,7 @@ class VoiceGuide {
         /** The way type of the span at [d] metres along the line (clamped); null = not known. */
         private fun wayTypeAt(line: List<GeoPoint>, cum: DoubleArray, d: Double): String? {
             if (line.size < 2) return null
-            var j = java.util.Arrays.binarySearch(cum, d.coerceIn(0.0, cum.last())).let { if (it >= 0) it else -it - 2 }
+            var j = Arrays.binarySearch(cum, d.coerceIn(0.0, cum.last())).let { if (it >= 0) it else -it - 2 }
             j = j.coerceIn(0, line.size - 2)
             return line[j].way?.wayType
         }

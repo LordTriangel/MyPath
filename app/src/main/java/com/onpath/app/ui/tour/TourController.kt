@@ -11,6 +11,7 @@ import com.onpath.app.routing.GeoPoint
 import com.onpath.app.time.TourTimes
 import com.onpath.app.ui.EndAsk
 import com.onpath.app.domain.NewPlanNote
+import com.onpath.app.recording.RecordingClient
 
 /**
  * What the tour controller asks of the recording service (the only Android-bound part): start / continue / pause /
@@ -24,7 +25,7 @@ interface TourRecorder {
 }
 
 /** The four tour commands of the app's typed service client ([com.onpath.app.recording.RecordingClient]). */
-fun tourRecorder(client: com.onpath.app.recording.RecordingClient): TourRecorder = object : TourRecorder {
+fun tourRecorder(client: RecordingClient): TourRecorder = object : TourRecorder {
     override fun start(activity: String, sac: Int) = client.start(activity, sac)
     override fun continueTour(tourId: Long) = client.continueTour(tourId)
     override fun pause(pause: Boolean) = client.pause(pause)

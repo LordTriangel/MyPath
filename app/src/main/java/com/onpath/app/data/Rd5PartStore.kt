@@ -10,6 +10,11 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Base64
+import java.util.concurrent.atomic.AtomicInteger
+import java.io.FileOutputStream
+import com.onpath.app.debug.Problems
+import java.io.FilterInputStream
+import java.util.concurrent.ConcurrentHashMap
 
 /** brouter.de as seen by [Rd5PartStore]: a file read by byte ranges. */
 interface Rd5Remote {
@@ -77,7 +82,7 @@ class HttpRd5Remote(private val baseUrl: String = SegmentDownloader.BASE_URL) : 
         if ((etag != null && gotEtag != null && gotEtag != etag) || start != from) {
             c.disconnect(); throw Rd5Remote.Changed("$tile changed on the server (or wrong range).")
         }
-        return object : java.io.FilterInputStream(c.inputStream) {
+        return object : FilterInputStream(c.inputStream) {
             override fun close() { try { super.close() } finally { c.disconnect() } }
         }
     }
@@ -117,7 +122,7 @@ class Rd5PartStore(
 
     private val remoteCache = HashMap<String, Pair<Long, RemoteTile>>()
 
-    private val changes = java.util.concurrent.atomic.AtomicInteger()
+    private val changes = AtomicInteger()
 
     /** Changes with every install / removal of parts (caches of sizes key on it). */
     val version: Int get() = changes.get()
@@ -127,7 +132,7 @@ class Rd5PartStore(
      * place and writing its parts list, readers get this consistent old state instead of a "list does not match"
      * (a false warning per added part) or a new partial file without list (= "complete").
      */
-    private val rewriting = java.util.concurrent.ConcurrentHashMap<String, Array<State?>>()
+    private val rewriting = ConcurrentHashMap<String, Array<State?>>()
 
     fun rd5(tile: String) = File(dir, tile)
     private fun sidecar(tile: String) = File(dir, tile.removeSuffix(".rd5") + ".parts.json")
@@ -143,7 +148,7 @@ class Rd5PartStore(
      * reading and parsing the parts list. Our own writes drop the entry; a file changed from outside (adb push) has
      * another length / time.
      */
-    private val stateCache = java.util.concurrent.ConcurrentHashMap<String, Cached>()
+    private val stateCache = ConcurrentHashMap<String, Cached>()
 
     private fun fileKey(tile: String): List<Long> {
         val f = rd5(tile); val s = sidecar(tile)
@@ -185,9 +190,9 @@ class Rd5PartStore(
                         Base64.getDecoder().decode(j.getString("tail")), f.length(), legacy = false,
                     )
                 }
-                com.onpath.app.debug.Problems.warn("routing", "Parts list of $tile does not match the file; parts are checked again")
+                Problems.warn("routing", "Parts list of $tile does not match the file; parts are checked again")
             } catch (e: Exception) {
-                com.onpath.app.debug.Problems.warn("routing", "Parts list of $tile unreadable; parts are checked again", e)
+                Problems.warn("routing", "Parts list of $tile unreadable; parts are checked again", e)
             }
             // stale list: the file's own index says which parts have data; version unknown → refetched when added to
             val idx = Rd5Parts.readIndex(f) ?: return null
@@ -211,8 +216,8 @@ class Rd5PartStore(
         return try {
             val f = rd5(part.tile)
             (Rd5Parts.readIndex(f)?.let { Rd5Parts.creationTime(Rd5Parts.readTail(f, it)) }?.toString() ?: "?").also { c.created = it }
-        } catch (e: java.io.IOException) {
-            com.onpath.app.debug.Problems.info("routing", "Date of routing data ${part.tile} not read – stored legs there are routed again", e)
+        } catch (e: IOException) {
+            Problems.info("routing", "Date of routing data ${part.tile} not read – stored legs there are routed again", e)
             "?"
         }
     }
@@ -306,7 +311,7 @@ class Rd5PartStore(
                 return miss
             } catch (e: Rd5Remote.Changed) {
                 if (attempt == 2) throw IOException("Routing data changed on the server while loading – try again.", e)
-                com.onpath.app.debug.Problems.info("routing", "Routing data changed on the server during the download; starting over", e)
+                Problems.info("routing", "Routing data changed on the server during the download; starting over", e)
                 plans = plan(parts, fresh = true).also { remoteCache.clear() }
             }
         }
@@ -345,7 +350,7 @@ class Rd5PartStore(
             val have = f.length()
             if (have < size) {
                 remote.open(p.tile, r.index.start(i) + have, r.index.end(i), r.head.etag).use { inp ->
-                    java.io.FileOutputStream(f, true).use { out ->
+                    FileOutputStream(f, true).use { out ->
                         val buf = ByteArray(256 * 1024)
                         var got = have
                         var reported = 0L
@@ -395,7 +400,7 @@ class Rd5PartStore(
             val f = rd5(tile)
             val local = Rd5Parts.readIndex(f) ?: continue
             try { local.check(f.length()) } catch (e: IOException) {
-                com.onpath.app.debug.Problems.warn("routing", "$tile is not a valid rd5; its parts are not removed", e); continue
+                Problems.warn("routing", "$tile is not a valid rd5; its parts are not removed", e); continue
             }
             val before = f.length()
             val left = st.parts - drop

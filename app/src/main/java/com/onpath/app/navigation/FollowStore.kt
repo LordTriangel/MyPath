@@ -6,8 +6,7 @@ import java.io.File
 
 /**
  * What is followed, on disk: `nav-session.json` ([NavSession]: the original line, the stops, a re-route) and
- * `follow.json` ([FollowFile]: the navigated line and its name) – the one object both writers go through (cleanup
- * piece 5, code audit 2026-11-12 point c).
+ * `follow.json` ([FollowFile]: the navigated line and its name) – the one object both writers go through.
  *
  * **Two writers stay, by design.** The app writes when the user chooses what to follow ([appFollows]) or ends it
  * ([appEnds]); the service writes what it changed itself – a re-route taken, a stop visited, "reached"

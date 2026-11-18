@@ -1,14 +1,24 @@
 package com.onpath.app.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.onpath.app.debug.Problems
 import com.onpath.app.gpx.GpxWaypoint
+import com.onpath.app.map.ReliefAuto
+import com.onpath.app.poi.PoiKinds
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.GeoPoint
+import com.onpath.app.setup.CheckId
+import com.onpath.app.setup.Felt
+import com.onpath.app.setup.LastSeen
+import com.onpath.app.setup.PhoneCheck
+import com.onpath.app.setup.VoiceSetup
+import com.onpath.app.setup.VoiceStatus
+import com.onpath.app.time.Pace
 import java.io.File
 
 /** Small persisted settings and the auto-saved current plan (R-08). */
-class Prefs internal constructor(private val sp: android.content.SharedPreferences, filesDir: File) {
+class Prefs internal constructor(private val sp: SharedPreferences, filesDir: File) {
     constructor(context: Context) : this(
         context.applicationContext.getSharedPreferences("onpath", Context.MODE_PRIVATE), context.applicationContext.filesDir)
 
@@ -86,11 +96,11 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
      * five ([com.onpath.app.time.Pace.fromOld]), so existing users keep their pace. Separate keys because the old
      * "FIT" (×0.8) maps to "Very fit", not to "Fit".
      */
-    private fun pace(key: String, oldKey: String): com.onpath.app.time.Pace = try {
-        if (sp.contains(key)) com.onpath.app.time.Pace.of(sp.getString(key, null))
-        else com.onpath.app.time.Pace.fromOld(sp.getString(oldKey, null))
+    private fun pace(key: String, oldKey: String): Pace = try {
+        if (sp.contains(key)) Pace.of(sp.getString(key, null))
+        else Pace.fromOld(sp.getString(oldKey, null))
     } catch (e: Exception) {
-        Problems.warn("settings", "Setting $key unreadable, using Average pace", e); com.onpath.app.time.Pace.DEFAULT
+        Problems.warn("settings", "Setting $key unreadable, using Average pace", e); Pace.DEFAULT
     }
 
     /** Writes that may lag (camera, last seen): background, coalesced, never waited for in onStop ([LazyPrefs]). */
@@ -117,7 +127,7 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
 
     /** Hidden POI kinds; a set stored under older defaults is upgraded once ([com.onpath.app.poi.PoiKinds.upgradeHidden]). */
     private fun hiddenPoiKinds(): Set<String> {
-        val kinds = com.onpath.app.poi.PoiKinds
+        val kinds = PoiKinds
         val stored = sp.getStringSet("poiHidden", null)?.toSet() ?: return kinds.defaultHidden
         if (sp.getInt("poiDefaultsVer", 0) >= kinds.DEFAULTS_VERSION) return stored
         val now = kinds.upgradeHidden(stored)
@@ -163,7 +173,7 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
         )
         set(v) = sp.edit()
             .putStringSet("poiHidden", HashSet(v.hiddenPoiKinds))
-            .putInt("poiDefaultsVer", com.onpath.app.poi.PoiKinds.DEFAULTS_VERSION)
+            .putInt("poiDefaultsVer", PoiKinds.DEFAULTS_VERSION)
             .putBoolean("contours", v.contours)
             .putBoolean("hillshade", v.hillshade)
             .putBoolean("offRouteOn", v.offRouteWarning)
@@ -226,28 +236,28 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
      * Relief switched off by the app on a slow phone (map/ReliefAuto) – kept apart from the setting itself: "reliefAutoOff"
      * = the app did it once (never twice), "reliefByUser" = the user set Relief by hand in Settings → Map (always wins).
      */
-    var reliefAuto: com.onpath.app.map.ReliefAuto.State
-        get() = com.onpath.app.map.ReliefAuto.State(autoOff = sp.getBoolean("reliefAutoOff", false),
+    var reliefAuto: ReliefAuto.State
+        get() = ReliefAuto.State(autoOff = sp.getBoolean("reliefAutoOff", false),
             byUser = sp.getBoolean("reliefByUser", false))
         set(v) = sp.edit().putBoolean("reliefAutoOff", v.autoOff).putBoolean("reliefByUser", v.byUser).apply()
 
     // ---- Phone setup (docs/design/onboarding-phone-check.md) ----
     /** Phone setup: the voice's test sentence was heard (spoken directions start only then). */
-    var voiceHeard: com.onpath.app.setup.Felt
-        get() = com.onpath.app.debug.enumOrNull<com.onpath.app.setup.Felt>(sp.getString("voiceHeard", null), "settings")
-            ?: com.onpath.app.setup.Felt.UNKNOWN
+    var voiceHeard: Felt
+        get() = com.onpath.app.debug.enumOrNull<Felt>(sp.getString("voiceHeard", null), "settings")
+            ?: Felt.UNKNOWN
         set(v) = sp.edit().putString("voiceHeard", v.name).apply()
 
     /** The speech output for the app language as last found (recording/Speaker). */
-    var voiceStatus: com.onpath.app.setup.VoiceStatus
-        get() = com.onpath.app.debug.enumOrNull<com.onpath.app.setup.VoiceStatus>(sp.getString("voiceStatus", null), "settings")
-            ?: com.onpath.app.setup.VoiceStatus.UNKNOWN
+    var voiceStatus: VoiceStatus
+        get() = com.onpath.app.debug.enumOrNull<VoiceStatus>(sp.getString("voiceStatus", null), "settings")
+            ?: VoiceStatus.UNKNOWN
         set(v) = sp.edit().putString("voiceStatus", v.name).apply()
 
     /** Which engine lacks the voice and whether Google's is there (the voice step's text), as last found. */
-    var voiceFix: com.onpath.app.setup.VoiceSetup.Fix?
-        get() = com.onpath.app.setup.VoiceSetup.decode(sp.getString("voiceFix", null))
-        set(v) = sp.edit().putString("voiceFix", com.onpath.app.setup.VoiceSetup.encode(v)).apply()
+    var voiceFix: VoiceSetup.Fix?
+        get() = VoiceSetup.decode(sp.getString("voiceFix", null))
+        set(v) = sp.edit().putString("voiceFix", VoiceSetup.encode(v)).apply()
 
     /** The last check of the speech engines as one line (diagnostics export: engine, version, voices). */
     var voiceDetail: String
@@ -255,9 +265,9 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
         set(v) = sp.edit().putString("voiceDetail", v).apply()
 
     /** The user's answer to the vibration test ("Did you feel it?"). */
-    var vibrationFelt: com.onpath.app.setup.Felt
-        get() = com.onpath.app.debug.enumOrNull<com.onpath.app.setup.Felt>(sp.getString("vibrationFelt", null), "settings")
-            ?: com.onpath.app.setup.Felt.UNKNOWN
+    var vibrationFelt: Felt
+        get() = com.onpath.app.debug.enumOrNull<Felt>(sp.getString("vibrationFelt", null), "settings")
+            ?: Felt.UNKNOWN
         set(v) = sp.edit().putString("vibrationFelt", v.name).apply()
 
     /** The user went through the steps for their phone brand ("Done"). */
@@ -283,19 +293,19 @@ class Prefs internal constructor(private val sp: android.content.SharedPreferenc
     fun countAsk(what: String) = sp.edit().putInt("asks_$what", asks(what) + 1).apply()
 
     /** Recommended checks put off with "Later" before a tour: id → when (ms). */
-    fun snoozed(now: Long): Set<com.onpath.app.setup.CheckId> = com.onpath.app.setup.CheckId.entries.filter {
-        now - sp.getLong("snooze_${it.name}", 0L) < com.onpath.app.setup.PhoneCheck.SNOOZE_MS
+    fun snoozed(now: Long): Set<CheckId> = CheckId.entries.filter {
+        now - sp.getLong("snooze_${it.name}", 0L) < PhoneCheck.SNOOZE_MS
     }.toSet()
-    fun snooze(id: com.onpath.app.setup.CheckId, now: Long) = sp.edit().putLong("snooze_${id.name}", now).apply()
+    fun snooze(id: CheckId, now: Long) = sp.edit().putLong("snooze_${id.name}", now).apply()
 
     /** What was fine when OnPath was last open, and when (for "your phone removed …"). */
-    var lastSeen: com.onpath.app.setup.LastSeen?
+    var lastSeen: LastSeen?
         get() {
-            (later.peek("lastSeen") as? com.onpath.app.setup.LastSeen)?.let { return it }
+            (later.peek("lastSeen") as? LastSeen)?.let { return it }
             val at = sp.getLong("lastSeenAt", 0L).takeIf { it > 0 } ?: return null
             val ok = sp.getString("lastSeenOk", "").orEmpty().split(',').filter { it.isNotEmpty() }.mapNotNull { n ->
-                com.onpath.app.debug.enumOrNull<com.onpath.app.setup.CheckId>(n, "settings") }.toSet()
-            return com.onpath.app.setup.LastSeen(ok, at)
+                com.onpath.app.debug.enumOrNull<CheckId>(n, "settings") }.toSet()
+            return LastSeen(ok, at)
         }
         // written in Activity.onStop – through [later], so onStop never waits for the disk
         set(v) { if (v != null) later.put("lastSeen", v) { e -> e.putLong("lastSeenAt", v.atMs).putString("lastSeenOk", v.ok.joinToString(",") { it.name }) } }

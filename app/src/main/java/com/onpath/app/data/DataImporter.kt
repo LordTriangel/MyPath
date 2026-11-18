@@ -3,6 +3,7 @@ package com.onpath.app.data
 import com.onpath.app.debug.Problems
 import com.onpath.strings.*
 import java.io.File
+import java.io.IOException
 import java.io.InputStream
 import java.util.zip.ZipInputStream
 
@@ -110,7 +111,7 @@ object DataImporter {
             }
             if (tmp.length() == 0L) throw ImportException(Txt.s(Res.string.maps_import_empty, dest.name))
             // one atomic move over the old file: the existing data is never gone without the new one in place
-            try { AtomicFiles.replace(tmp, dest) } catch (e: java.io.IOException) {
+            try { AtomicFiles.replace(tmp, dest) } catch (e: IOException) {
                 Problems.warn("data", "Imported ${dest.name} could not replace the old file", e)
                 throw ImportException(Txt.s(Res.string.maps_import_cant_save, dest.name))
             }

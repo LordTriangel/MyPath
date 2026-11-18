@@ -16,8 +16,13 @@ import com.onpath.app.gpx.GpxWaypoint
 import com.onpath.app.gpx.TrackPoint
 import org.json.JSONArray
 import org.json.JSONObject
+import org.jetbrains.compose.resources.StringResource
+import android.database.Cursor
+import com.onpath.app.rides.RideRecord
+import java.util.UUID
+import java.util.Locale
 
-enum class TourKind(private val labelRes: org.jetbrains.compose.resources.StringResource) {
+enum class TourKind(private val labelRes: StringResource) {
     PLANNED(Res.string.routes_kind_planned), RECORDED(Res.string.routes_kind_recorded), IMPORTED(Res.string.routes_kind_imported);
 
     /** "Planned route" / "Geplante Route" (strings_routes.xml); the stored form is the enum name. */
@@ -46,7 +51,7 @@ data class Tour(
     /** In the recycle bin since (ms); null = in My routes. */
     val deletedMs: Long? = null,
     /** Recorded: bus / car / lift rides found and what the user chose (rides/); null = none, read as recorded. */
-    val rides: com.onpath.app.rides.RideRecord? = null,
+    val rides: RideRecord? = null,
     /** Planned: kept automatically under "Zuletzt" when it left the map (owner 2026-11-06), not saved by the user. */
     val draft: Boolean = false,
     /** Recorded: a copy of the plan it followed is stored ([TourPlan], `tour_plan`) – Gemacht offers Planen / Los geht's. */
@@ -176,7 +181,7 @@ class TourDb internal constructor(context: Context, name: String = "onpath.db") 
         /** Restore: the backup's id and date; otherwise new. */
         uuid: String = newUuid(),
         createdMs: Long = System.currentTimeMillis(),
-        rides: com.onpath.app.rides.RideRecord? = null,
+        rides: RideRecord? = null,
         /** A plan kept under "Zuletzt" (not saved by the user; no backup, no browser sync). */
         draft: Boolean = false,
         /** [Tour.difficulty]; null = not known. */
@@ -349,7 +354,7 @@ class TourDb internal constructor(context: Context, name: String = "onpath.db") 
         "SELECT COUNT(*), TOTAL(lat), TOTAL(lon) FROM points WHERE tour_id=?", arrayOf(id.toString())
     ).use { c ->
         if (!c.moveToFirst() || c.getLong(0) == 0L) null
-        else "${c.getLong(0)}:" + "%.6f".format(java.util.Locale.ROOT, c.getDouble(1)) + ":" + "%.6f".format(java.util.Locale.ROOT, c.getDouble(2))
+        else "${c.getLong(0)}:" + "%.6f".format(Locale.ROOT, c.getDouble(1)) + ":" + "%.6f".format(Locale.ROOT, c.getDouble(2))
     }
 
     fun loadSegments(id: Long): List<List<TrackPoint>> {
@@ -464,7 +469,7 @@ class TourDb internal constructor(context: Context, name: String = "onpath.db") 
      * The rides of a tour and its stats under the chosen reading (rides/RideApply) in one step. The points are never
      * touched: [rides] only says how to read them. False when the tour is gone.
      */
-    fun setRides(tourId: Long, rides: com.onpath.app.rides.RideRecord?, distance: Double, ascent: Double, descent: Double, duration: Double): Boolean =
+    fun setRides(tourId: Long, rides: RideRecord?, distance: Double, ascent: Double, descent: Double, duration: Double): Boolean =
         writableDatabase.update("tours", ContentValues().apply {
             if (rides == null) putNull("rides") else put("rides", rides.toJson().toString())
             put("distance", distance); put("ascent", ascent); put("descent", descent); put("duration", duration)
@@ -487,7 +492,7 @@ class TourDb internal constructor(context: Context, name: String = "onpath.db") 
         })
     }
 
-    private fun readTour(c: android.database.Cursor): Tour {
+    private fun readTour(c: Cursor): Tour {
         fun s(n: String) = c.getString(c.getColumnIndexOrThrow(n))
         fun d(n: String) = c.getDouble(c.getColumnIndexOrThrow(n))
         return Tour(
@@ -505,7 +510,7 @@ class TourDb internal constructor(context: Context, name: String = "onpath.db") 
             uuid = opt(c, "uuid")?.let { c.getString(it) } ?: "",
             pinned = opt(c, "pinned")?.let { jsonToPinned(c.getString(it)) } ?: emptySet(),
             deletedMs = opt(c, "deleted_at")?.let { c.getLong(it) },
-            rides = opt(c, "rides")?.let { com.onpath.app.rides.RideRecord.fromJson(c.getString(it)) },
+            rides = opt(c, "rides")?.let { RideRecord.fromJson(c.getString(it)) },
             draft = opt(c, "draft")?.let { c.getInt(it) == 1 } ?: false,
             hasPlan = opt(c, "has_plan")?.let { c.getInt(it) == 1 } ?: false,
             difficulty = opt(c, "difficulty")?.let { c.getString(it) },
@@ -514,13 +519,13 @@ class TourDb internal constructor(context: Context, name: String = "onpath.db") 
     }
 
     /** Column index when the column exists and is not null. */
-    private fun opt(c: android.database.Cursor, n: String): Int? = c.getColumnIndex(n).takeIf { it >= 0 && !c.isNull(it) }
+    private fun opt(c: Cursor, n: String): Int? = c.getColumnIndex(n).takeIf { it >= 0 && !c.isNull(it) }
 
     companion object {
         const val VERSION = TourSchema.VERSION
         @Volatile private var instance: TourDb? = null
 
-        fun newUuid(): String = java.util.UUID.randomUUID().toString()
+        fun newUuid(): String = UUID.randomUUID().toString()
 
         fun pinnedToJson(p: Set<Int>): String = JSONArray().apply { p.sorted().forEach { put(it) } }.toString()
 

@@ -1,6 +1,7 @@
 package com.onpath.app.recording
 
 import com.onpath.app.data.Geo
+import com.onpath.app.debug.Problems
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.TurnDetector
@@ -130,7 +131,7 @@ class DemoPath private constructor(val line: List<GeoPoint>, private val cumM: D
         fun timed(line: List<GeoPoint>, activity: Activity, factors: Factors = Factors.ONE, fallbackMs: Double = 1.2): DemoPath? {
             val c = cumulative(line) ?: return null
             val rt = try { RouteTimes.of(line, activity) } catch (e: Exception) {
-                com.onpath.app.debug.Problems.warn("demo", "Demo: no time model for this line; riding it at a fixed speed", e)
+                Problems.warn("demo", "Demo: no time model for this line; riding it at a fixed speed", e)
                 null
             }
             val total = rt?.total(factors) ?: 0.0

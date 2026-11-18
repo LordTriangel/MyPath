@@ -2,6 +2,7 @@ package com.onpath.app.data
 
 import android.content.SharedPreferences
 import com.onpath.app.debug.Problems
+import java.util.WeakHashMap
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
@@ -71,7 +72,7 @@ internal class LazyPrefs(private val sp: SharedPreferences, private val delayMs:
         private val sharedExecutor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor { r ->
             Thread(r, "onpath-prefs").apply { isDaemon = true }
         }
-        private val instances = java.util.WeakHashMap<SharedPreferences, LazyPrefs>()
+        private val instances = WeakHashMap<SharedPreferences, LazyPrefs>()
 
         /** One writer per preferences file (several [Prefs] objects share Android's one SharedPreferences). */
         fun of(sp: SharedPreferences): LazyPrefs = synchronized(instances) { instances.getOrPut(sp) { LazyPrefs(sp) } }

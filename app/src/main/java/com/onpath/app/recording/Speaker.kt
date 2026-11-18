@@ -8,13 +8,18 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.speech.tts.Voice
+import com.onpath.app.data.Prefs
 import com.onpath.app.debug.Problems
+import com.onpath.app.navigation.VoiceGuide
 import com.onpath.app.setup.VoiceSetup
+import com.onpath.app.setup.VoiceStatus
 import com.onpath.strings.Txt
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * The one place OnPath speaks (voice guidance, `docs/design/voice-guidance.md`): the phone's own text-to-speech –
@@ -54,9 +59,9 @@ class Speaker(private val context: Context) {
      * How long the engine takes from the call to the first sound (ms, a running mean of what it measured; owner field ride
      * 2026-11-07: 0.1–0.9 s, 1.5 s at the first sentence) – the voice says a turn that much earlier.
      */
-    @Volatile var startMs: Long = com.onpath.app.navigation.VoiceGuide.SPEECH_START_MS
+    @Volatile var startMs: Long = VoiceGuide.SPEECH_START_MS
         private set
-    private val asked = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private val asked = ConcurrentHashMap<String, Long>()
 
     private var tts: TextToSpeech? = null
     private var pending: String? = null
@@ -256,7 +261,7 @@ class Speaker(private val context: Context) {
             val id = "onpath-${System.nanoTime()}"
             if (onTest != null) testId = id
             // QUEUE_FLUSH: a turn that is due cuts what is still being said (owner 2026-11-07: never swallowed)
-            asked[id] = android.os.SystemClock.elapsedRealtime()
+            asked[id] = SystemClock.elapsedRealtime()
             val r = tts?.speak(text, TextToSpeech.QUEUE_FLUSH, Bundle(), id) ?: TextToSpeech.ERROR
             if (r != TextToSpeech.SUCCESS) {
                 asked.remove(id)
@@ -286,7 +291,7 @@ class Speaker(private val context: Context) {
             test?.invoke(VoiceSetup.VoiceTest(if (muted()) VoiceSetup.Outcome.MUTED else VoiceSetup.Outcome.SPOKEN))
         }
         val at = id?.let { asked.remove(it) } ?: return
-        val ms = (android.os.SystemClock.elapsedRealtime() - at).coerceIn(0, START_CAP_MS)
+        val ms = (SystemClock.elapsedRealtime() - at).coerceIn(0, START_CAP_MS)
         startMs = (startMs * 2 + ms) / 3
         Problems.trace("voice", "Speech started after $ms ms (planned with $startMs ms)")
     }
@@ -368,12 +373,12 @@ class Speaker(private val context: Context) {
         const val START_CAP_MS = 2_500L
 
         /** What the phone check stores for [s] ([online]: READY with a voice that needs the internet). */
-        fun status(s: State, online: Boolean = false): com.onpath.app.setup.VoiceStatus = when (s) {
-            State.READY -> if (online) com.onpath.app.setup.VoiceStatus.ONLINE else com.onpath.app.setup.VoiceStatus.READY
-            State.NO_VOICE -> com.onpath.app.setup.VoiceStatus.MISSING
-            State.NO_LANGUAGE -> com.onpath.app.setup.VoiceStatus.NO_LANGUAGE
-            State.NO_ENGINE -> com.onpath.app.setup.VoiceStatus.NO_ENGINE
-            State.STARTING -> com.onpath.app.setup.VoiceStatus.UNKNOWN
+        fun status(s: State, online: Boolean = false): VoiceStatus = when (s) {
+            State.READY -> if (online) VoiceStatus.ONLINE else VoiceStatus.READY
+            State.NO_VOICE -> VoiceStatus.MISSING
+            State.NO_LANGUAGE -> VoiceStatus.NO_LANGUAGE
+            State.NO_ENGINE -> VoiceStatus.NO_ENGINE
+            State.STARTING -> VoiceStatus.UNKNOWN
         }
 
         /** The app's text language as a locale (voice = texts). */
@@ -382,7 +387,7 @@ class Speaker(private val context: Context) {
         fun language(): String = locale().language
 
         /** Stores what [s] found for the phone check (status, the engine to name, the line for diagnostics). */
-        fun remember(prefs: com.onpath.app.data.Prefs, s: Speaker) {
+        fun remember(prefs: Prefs, s: Speaker) {
             prefs.voiceStatus = status(s.state, s.online)
             prefs.voiceFix = s.result?.let(VoiceSetup::fix)
             prefs.voiceDetail = "${s.detail}; in use: ${s.voiceInfo}"

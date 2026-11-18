@@ -1,11 +1,14 @@
 package com.onpath.app.recording
 
 import android.content.Context
+import android.media.AudioAttributes
 import android.os.Build
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import com.onpath.app.debug.Problems
+import com.onpath.app.navigation.JunctionCues
 
 /**
  * The navigation vibrations (turn cues, off-route warning) – one code path for the tour and for the "Test vibration"
@@ -28,11 +31,11 @@ object Cues {
             // As an alarm: Android drops vibrations without a usage while the app is not on screen (phone in the
             // pocket); alarm vibrations also pass Do Not Disturb, silent mode and the touch setting.
             if (Build.VERSION.SDK_INT >= 33) {
-                vib.vibrate(effect, android.os.VibrationAttributes.createForUsage(android.os.VibrationAttributes.USAGE_ALARM))
+                vib.vibrate(effect, VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM))
             } else {
                 @Suppress("DEPRECATION")
-                vib.vibrate(effect, android.media.AudioAttributes.Builder().setUsage(android.media.AudioAttributes.USAGE_ALARM)
-                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
+                vib.vibrate(effect, AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
             }
             true
         } catch (e: Exception) {
@@ -43,5 +46,5 @@ object Cues {
 
     /** The test: one pulse (owner 2026-11-08). */
     // owner 2026-11-08: one buzz is enough for the test (the old "once, then twice" felt like a second test after Weiter)
-    val TEST_PATTERN: LongArray = longArrayOf(0, com.onpath.app.navigation.JunctionCues.PULSE_MS)
+    val TEST_PATTERN: LongArray = longArrayOf(0, JunctionCues.PULSE_MS)
 }

@@ -72,7 +72,7 @@ class ArrivalBoxTest {
         assertEquals(Txt.s(Res.string.nav_notif_arrived), t.text)
         val svc = File("src/main/java/com/onpath/app/recording/RecordingService.kt").readText()
         val nav = svc.substringAfter("private fun navNotification()").substringBefore("} catch")
-        assertTrue(nav, nav.contains("if (arrived && st != null) com.onpath.app.navigation.NavNotification.arrived()"))
+        assertTrue(nav, nav.contains("if (arrived && st != null) NavNotification.arrived()"))
     }
 
     private fun de(r: org.jetbrains.compose.resources.StringResource) = withLocale("de") { Txt.s(r) }

@@ -1,5 +1,7 @@
 package com.onpath.app.data
 
+import android.content.res.AssetManager
+import com.onpath.app.debug.Problems
 import com.onpath.strings.*
 import org.jetbrains.compose.resources.StringResource
 
@@ -123,18 +125,18 @@ object Licences {
     fun parse(text: String): List<String> = text.lines().map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }
 
     /** From the APK's assets; the bundled parts alone when the list is missing (never throws). */
-    fun load(assets: android.content.res.AssetManager): List<Entry> = try {
+    fun load(assets: AssetManager): List<Entry> = try {
         entries(parse(assets.open(LIST_ASSET).bufferedReader().use { it.readText() }))
     } catch (e: Exception) {
-        com.onpath.app.debug.Problems.warn("settings", "Licence list missing in the app – showing the bundled parts only", e)
+        Problems.warn("settings", "Licence list missing in the app – showing the bundled parts only", e)
         BUNDLED
     }
 
     /** A licence text from the assets, or null (never throws). */
-    fun text(assets: android.content.res.AssetManager, asset: String): String? = try {
+    fun text(assets: AssetManager, asset: String): String? = try {
         assets.open(asset).bufferedReader().use { it.readText() }
     } catch (e: Exception) {
-        com.onpath.app.debug.Problems.warn("settings", "Licence text $asset missing in the app", e)
+        Problems.warn("settings", "Licence text $asset missing in the app", e)
         null
     }
 }

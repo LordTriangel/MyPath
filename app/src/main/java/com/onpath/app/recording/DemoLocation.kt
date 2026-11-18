@@ -11,6 +11,7 @@ import com.onpath.app.debug.Problems
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.Locale
 
 /**
  * Demo location (Settings → Diagnostics → Developer tools → Demo): simulated GPS fixes for screenshots that must not
@@ -93,7 +94,7 @@ object DemoLocation {
         val f = p.at(simS)
         _state.value = State(Kind.RIDE, label, factor.coerceIn(1, FACTORS.last()), paused = false, alongM = f.alongM, lengthM = p.lengthM,
             ended = f.ended)
-        Problems.info("demo", "Demo location ON: riding the $label (${"%.1f".format(java.util.Locale.ROOT, p.lengthM / 1000)} km, " +
+        Problems.info("demo", "Demo location ON: riding the $label (${"%.1f".format(Locale.ROOT, p.lengthM / 1000)} km, " +
             "${(p.durationS / 60).toInt()} min at 1×) from ${f.alongM.toInt()} m – real GPS ignored")
         emit(f)
         if (autoTick) startTicker()

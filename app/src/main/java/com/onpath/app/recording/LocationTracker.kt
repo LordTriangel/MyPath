@@ -16,6 +16,10 @@ import androidx.core.content.ContextCompat
 import com.onpath.app.debug.Problems
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import com.onpath.app.navigation.Provisional
+import android.location.LocationRequest
+import org.jetbrains.compose.resources.StringResource
+import android.os.Bundle
 
 /** GPS silent this long → an accurate network fix may stand in (indoors). */
 const val GPS_STALE_MS = 30_000L
@@ -45,7 +49,7 @@ fun showGpsFix(gpsAccuracyM: Float?, lastNetElapsed: Long, lastNetAccuracyM: Flo
     gpsAccuracyM == null || gpsAccuracyM <= GPS_WEAK_M || lastNetElapsed == 0L ||
         nowElapsed - lastNetElapsed > NET_FRESH_MS || lastNetAccuracyM * 2 > gpsAccuracyM
 
-enum class GpsStatus(private val res: org.jetbrains.compose.resources.StringResource) {
+enum class GpsStatus(private val res: StringResource) {
     NO_PERMISSION(Res.string.nav_gps_no_permission),
     OFF(Res.string.nav_gps_off),
     SEARCHING(Res.string.nav_gps_searching),
@@ -94,7 +98,7 @@ class LocationTracker(context: Context, private var gpsIntervalMs: Long = 1000L,
         override fun onProviderEnabled(provider: String) { _enabled.value = isEnabled() }
         override fun onProviderDisabled(provider: String) { _enabled.value = isEnabled() }
         @Deprecated("Deprecated in Java")
-        override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) {}
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
     }
     /** A network or fused fix: the same rules ([useNetworkFix]) – it stands in for GPS, never beside it. */
     private fun onNetworkLikeFix(loc: Location) {
@@ -110,7 +114,7 @@ class LocationTracker(context: Context, private var gpsIntervalMs: Long = 1000L,
         override fun onProviderEnabled(provider: String) { _enabled.value = isEnabled() }
         override fun onProviderDisabled(provider: String) { _enabled.value = isEnabled() }
         @Deprecated("Deprecated in Java")
-        override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) {}
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
     }
     /** Separate object: removeUpdates(netListener) must not end the fused request, nor the other way round. */
     private val fusedListener = object : LocationListener {
@@ -118,7 +122,7 @@ class LocationTracker(context: Context, private var gpsIntervalMs: Long = 1000L,
         override fun onProviderEnabled(provider: String) {}
         override fun onProviderDisabled(provider: String) {}
         @Deprecated("Deprecated in Java")
-        override fun onStatusChanged(provider: String?, status: Int, extras: android.os.Bundle?) {}
+        override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
     }
 
     /** [setFusedWanted]: a tour waits for its first GPS fix (indoors); [fusedRunning]: the request is active. */
@@ -256,8 +260,8 @@ class LocationTracker(context: Context, private var gpsIntervalMs: Long = 1000L,
                 Problems.info("gps", "Tour without a GPS fix yet: no fused provider on this phone, the network position stands in")
                 return
             }
-            val request = android.location.LocationRequest.Builder(FUSED_MS)
-                .setQuality(android.location.LocationRequest.QUALITY_BALANCED_POWER_ACCURACY).build()
+            val request = LocationRequest.Builder(FUSED_MS)
+                .setQuality(LocationRequest.QUALITY_BALANCED_POWER_ACCURACY).build()
             lm.requestLocationUpdates(LocationManager.FUSED_PROVIDER, request, ContextCompat.getMainExecutor(app), fusedListener)
             fusedRunning = true
             Problems.trace("gps", "Tour without a GPS fix yet: fused position asked every ${FUSED_MS / 1000} s until the first GPS fix")
@@ -266,7 +270,7 @@ class LocationTracker(context: Context, private var gpsIntervalMs: Long = 1000L,
             lm.getLastKnownLocation(LocationManager.FUSED_PROVIDER)?.let { last ->
                 val held = _location.value
                 val fresh = SystemClock.elapsedRealtimeNanos() - last.elapsedRealtimeNanos <=
-                    com.onpath.app.navigation.Provisional.MAX_AGE_MS * 1_000_000L
+                    Provisional.MAX_AGE_MS * 1_000_000L
                 if (fresh && (held == null || last.elapsedRealtimeNanos > held.elapsedRealtimeNanos)) onNetworkLikeFix(last)
             }
         } catch (e: Exception) {
