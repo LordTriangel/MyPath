@@ -16,6 +16,18 @@ Fränkische Schweiz / Pottenstein 49.77, 11.41, Mittenwald / Garmisch), tell IR;
 - **CELL_SCHEMA 9 on main and on TEST** (suggest layer content 2); donald has the publish commands; cell list `tools/dev/areas/owner-test-cells.txt`.
 - Next for the laptop: follow mehrtage's / IR's web merges (parity, check-web, deploy when green); donald's cleanup may move more shared files.
 
+## State 2026-11-18 ~12:00 – the next laptop session starts HERE
+- **World overview fixed and live (2e15413f)**: the host ignores Range for `overview/*.pmtiles` → the planner reads the
+  whole file once (`overview.ts` WholeOrRange). Done.
+- **98 % load card – NOT on main yet.** The fix is commit `ad0b53ef` (branch `worktree-agent-a09c15482cdbee632`; my merge
+  attempt is local branch `laptop-loadcard-merge`). Merging it with mehrtage's fe2b6d33 (worker progress now JSON with
+  km: doneM / totalM, „the wait box shows k…“) conflicts in `worker.ts`; after resolving, robust-smoke part 9 fails
+  (section counter / running bar / calm line) and multiday-smoke failed („waited for a blue moon“ – check whether it is
+  red on origin/main alone first). Redo the merge on top of mehrtage's km progress: likely show km instead of legs.
+  The owner must still choose the calm line (borrowed `plan_from_track_busy_text` „Bei einer langen Tour kann das ein
+  paar Minuten dauern.“ or `plan_slow_title`, or a new text).
+- **Mirror review owed** (backlog item): 7 app files marked checked unreviewed to deploy the overview fix.
+
 ## In flight 2026-11-18 morning (owner's field reports)
 - **Long route stuck at 98 %** (Neuss → München): agent worktree `agent-a09c15482cdbee632` – the load card's calculation
   phase gets honest progress (leg counter / moving bar, no frozen number). Announced in the backlog (loadoverlay.ts).
