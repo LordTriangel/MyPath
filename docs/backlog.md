@@ -184,6 +184,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- [donald] 2026-11-19: **kein Stehen bei 98 % am Handy – Bilder ansehen und Ja sagen:** https://claude.ai/artifact/6QcJokNRs6NxgVsbdTfiCx (branch `worktree-agent-a85f9c28de7519322`, gate + E2E green). It changes two earlier wishes of yours (the loading window's % from time; the chip's guessed % while the server prepares) – a percent only while data really flows, else a text + a running bar. Recommendation: yes; it goes into 0.18.1.
 - **[umbau] (2026-11-19) Test clean-up: may tests that…** → [detail](items/2026-11-19-2026-11-19-test-clean-up-may-tests-that.md)
 - [umbau-hp] 2026-11-19: **Routing for iOS – port the routing engine to Kotlin? (recommended: yes)…** → [detail](items/2026-11-19-routing-for-ios-port-brouter-to-kotlin.md)
 - [donald] 2026-11-18 late: **Zuhause wie Google Maps…** → [detail](items/2026-11-18-zuhause-wie-google-maps-bilder-ansehen-u.md)
