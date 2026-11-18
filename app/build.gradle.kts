@@ -221,6 +221,8 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
     implementation(project(":strings"))
+    // the pure Kotlin part (JVM module); same packages as here
+    implementation(project(":core"))
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.core:core-ktx:1.15.0")
     // the one interface androidx.core's getUnusedAppRestrictionsStatus returns (Phone setup); no Guava, no Play services
@@ -249,4 +251,11 @@ dependencies {
     androidTestImplementation("androidx.test:core-ktx:1.6.1")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
+}
+
+// The release run (:app:testDebugUnitTest --tests …) and CI know only this task: it runs the :core tests first (their own
+// `--tests` filter cannot be given through it – the app's filter would hit nothing there). tools/ci/gate.sh passes
+// -Ponpath.coreTests=explicit and names :core:test with its own filter instead.
+if (findProperty("onpath.coreTests") != "explicit") {
+    tasks.withType<Test>().configureEach { if (name == "testDebugUnitTest") dependsOn(":core:test") }
 }

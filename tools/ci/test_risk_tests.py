@@ -15,11 +15,11 @@ class RiskTests(unittest.TestCase):
     def test_nothing_to_compare_runs_everything(self):
         self.assertIsNone(r.select([]))
     def test_args(self):
-        self.assertEqual(r.gradle_args(["app/src/main/java/com/onpath/app/map/X.kt"]).count("--tests"), len(r.CORE) + 1)
+        self.assertEqual(r.gradle_args(["app/src/main/java/com/onpath/app/map/X.kt"], r.CORE + ["map"]).count("--tests"), len(r.CORE) + 1)
 
     def test_btools_tests_are_selected(self):
         self.assertIn("btools", r.select(["app/src/test/java/btools/router/OnPathHintsTest.java"]))
-        self.assertIn("--tests 'btools.*'", r.gradle_args(["app/src/main/java/btools/router/X.java"]))
+        self.assertIn("--tests 'btools.*'", r.gradle_args(["app/src/main/java/btools/router/X.java"], r.CORE + ["btools", "routing"]))
 
     # gate.sh (local agent gate)
     SHOTS = {"ui", "search"}
@@ -52,6 +52,44 @@ class RiskTests(unittest.TestCase):
         self.assertEqual(r.gate(["tools/ci/gate.sh"], self.SHOTS)["python"], 1)
     def test_screenshot_packages_found_in_repo(self):
         self.assertIn("ui", r.screenshot_packages())
+
+    # :core (core/src/{main,test}/kotlin): a package may live in both modules; a filter only goes to a module with tests
+    APP = set(r.CORE) | {"ui", "search", "routing", "map", "suggest"}
+    CORE = {"suggest", "sync", "domain"}
+    def gate_core(self, files, core=None, rules=(True, True)):
+        return r.gate(files, self.SHOTS, self.APP, self.CORE if core is None else core, rules)
+    def test_core_file_selects_its_package(self):
+        self.assertIn("suggest", r.select(["core/src/main/kotlin/com/onpath/app/suggest/X.kt"]))
+        self.assertIn("suggest", r.select(["core/src/test/kotlin/com/onpath/app/suggest/XTest.kt"]))
+    def test_core_root_package_and_build_run_everything(self):
+        self.assertIsNone(r.select(["core/src/main/kotlin/com/onpath/app/Y.kt"]))
+        self.assertIsNone(r.select(["core/build.gradle.kts"]))
+        self.assertIsNone(r.select(["core/src/test/resources/suggest/a.json"]))
+        self.assertEqual(self.gate_core(["core/build.gradle.kts"])["mode"], "full")
+    def test_gate_core_file_runs_core_and_app_tests_of_that_package(self):
+        g = self.gate_core(["core/src/main/kotlin/com/onpath/app/suggest/X.kt"])
+        self.assertEqual(g["mode"], "select")
+        self.assertIn("com.onpath.app.suggest.*", g["patterns"].split())
+        self.assertIn("com.onpath.app.suggest.*", g["core_patterns"].split())
+        self.assertIn("*RuleTest", g["core_patterns"].split())
+    def test_gate_package_only_in_one_module(self):
+        g = self.gate_core(["core/src/main/kotlin/com/onpath/app/suggest/X.kt"])
+        self.assertIn("com.onpath.app.sync.*", g["core_patterns"].split())  # a core-feature package living in both
+        self.assertNotIn("com.onpath.app.recording.*", g["core_patterns"].split())  # no core test: no filter there
+        self.assertIn("com.onpath.app.recording.*", g["patterns"].split())
+        g = self.gate_core(["app/src/main/java/com/onpath/app/map/X.kt"], rules=(True, False))
+        self.assertNotIn("com.onpath.app.map.*", g["core_patterns"].split())
+        self.assertNotIn("*RuleTest", g["core_patterns"].split())
+    def test_gate_no_core_tests_no_core_patterns(self):
+        g = self.gate_core(["app/src/main/java/com/onpath/app/map/X.kt"], core=set(), rules=(True, False))
+        self.assertEqual(g["core_patterns"], "")
+    def test_release_args_only_for_packages_with_app_tests(self):
+        a = r.gradle_args(["core/src/main/kotlin/com/onpath/app/suggest/X.kt"], {"suggest", "data"})
+        self.assertIn("com.onpath.app.suggest.*", a)
+        self.assertNotIn("recording", a)  # moved out of :app: its filter would match nothing there
+    def test_gate_core_dir_is_a_gradle_input(self):
+        self.assertNotEqual(self.gate_core(["core/src/test/kotlin/com/onpath/app/suggest/XTest.kt"])["mode"], "skip")
+
 
 if __name__ == "__main__":
     unittest.main()

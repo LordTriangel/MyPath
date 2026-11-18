@@ -14,7 +14,7 @@
 # no `./gradlew --stop` afterwards.
 #
 # Usage: tools/ci/gate.sh [--full] [--base REF] [--no-ci-skip] [--dry-run] [-- extra Gradle args/tasks]
-#   --full        everything: all unit tests of both modules + the screenshot check
+#   --full        everything: all unit tests of all modules (:app, :core, :strings) + the screenshot check
 #   --base REF    compare with REF instead of origin/main (the merge base is used)
 #   --no-ci-skip  a release runs its selected tests even when CI is green
 #   --dry-run     print what would run, run nothing
@@ -113,8 +113,13 @@ fi
 case "$mode" in
   full) TASKS=(testDebugUnitTest verifyPaparazziDebug) ;;
   select)
-    TASKS=(:app:testDebugUnitTest)
-    set -f; for p in $patterns; do TASKS+=(--tests "$p"); done; set +f
+    # :app:testDebugUnitTest would run the whole :core:test first (release.yml relies on it): the gate names :core:test
+    # with its own filter and switches that dependency off. A module without a test for the packages gets no task.
+    TASKS=(-Ponpath.coreTests=explicit)
+    set -f
+    if [ -n "$patterns" ]; then TASKS+=(:app:testDebugUnitTest); for p in $patterns; do TASKS+=(--tests "$p"); done; fi
+    if [ -n "$core_patterns" ]; then TASKS+=(:core:test); for p in $core_patterns; do TASKS+=(--tests "$p"); done; fi
+    set +f
     [ "$paparazzi" = 1 ] && TASKS+=(:app:verifyPaparazziDebug)
     TASKS+=(:strings:testDebugUnitTest) ;;
   *) TASKS=() ;;
@@ -147,7 +152,9 @@ G0=$(date +%s)
 G=$(( $(date +%s) - G0 ))
 gradle_slot_release
 [ "$grc" = 0 ] || rc=$grc
-n=$(cat app/build/test-results/testDebugUnitTest/*.xml 2>/dev/null | grep -o '<testsuite [^>]*tests="[0-9]*"' | grep -o 'tests="[0-9]*"' | tr -dc '0-9\n' | awk '{s+=$1} END {print s+0}')
-echo "gate: $([ "$rc" = 0 ] && echo PASSED || echo FAILED) · $mode · $n app tests · screenshots $([ "$paparazzi" = 1 ] && echo checked || echo skipped) · Gradle ${G} s, lock wait ${WAIT} s, total $(( $(date +%s) - T0 )) s"
+count_tests() { cat "$@" 2>/dev/null | grep -o '<testsuite [^>]*tests="[0-9]*"' | grep -o 'tests="[0-9]*"' | tr -dc '0-9\n' | awk '{s+=$1} END {print s+0}'; }
+n=$(count_tests app/build/test-results/testDebugUnitTest/*.xml)
+nc=$(count_tests core/build/test-results/test/*.xml)
+echo "gate: $([ "$rc" = 0 ] && echo PASSED || echo FAILED) · $mode · $n app tests + $nc core tests · screenshots $([ "$paparazzi" = 1 ] && echo checked || echo skipped) · Gradle ${G} s, lock wait ${WAIT} s, total $(( $(date +%s) - T0 )) s"
 [ "$grc" != 0 ] && [ -d app/build/paparazzi/failures ] && echo "gate: screenshot differences in app/build/paparazzi/failures/"
 exit $rc
