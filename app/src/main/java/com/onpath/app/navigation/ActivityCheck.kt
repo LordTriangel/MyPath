@@ -9,6 +9,8 @@ import com.onpath.app.routing.BRouterEngine
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.RouteResult
 import kotlin.math.max
+import com.onpath.app.time.Factors
+import com.onpath.app.time.TimeEstimate
 
 /**
  * How the rest of the followed route fits one activity (Navigate → tap the activity icon → check-and-switch sheet).
@@ -133,7 +135,7 @@ object ActivityCheck {
 
     /** Fit of the followed rest [restLine] for [activity], from the route [r] the router found for it. */
     fun evaluate(restLine: List<GeoPoint>, activity: Activity, sac: Int, r: RouteResult,
-                 factors: com.onpath.app.time.Factors = com.onpath.app.time.Factors.ONE): ActivityFit {
+                 factors: Factors = Factors.ONE): ActivityFit {
         val restM = Geo.length(restLine)
         val newM = if (r.distanceM > 0) r.distanceM else Geo.length(r.points)
         val problems = ArrayList<String>()
@@ -168,8 +170,8 @@ object ActivityCheck {
     }
 
     /** Time of a route for [activity] (same model as the plan sheet and the to-go card: time/RouteTimes). */
-    fun timeS(r: RouteResult, activity: Activity, factors: com.onpath.app.time.Factors = com.onpath.app.time.Factors.ONE): Double =
-        com.onpath.app.time.TimeEstimate.planSeconds(r.points, activity, factors)
+    fun timeS(r: RouteResult, activity: Activity, factors: Factors = Factors.ONE): Double =
+        TimeEstimate.planSeconds(r.points, activity, factors)
 
     /** Metres of [rest] farther than [ON_LINE_M] from [route] (sampled every [SAMPLE_M]). */
     fun avoidedM(rest: List<GeoPoint>, route: List<GeoPoint>): Double {

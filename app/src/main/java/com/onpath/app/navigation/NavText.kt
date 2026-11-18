@@ -6,6 +6,9 @@ import com.onpath.app.data.Format
 import com.onpath.app.routing.Activity
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import java.util.Locale
+import com.onpath.app.data.LastActivity
+import com.onpath.app.ui.StopTokens
 
 /** Plain-language texts for the off-route question / banner and its notification (English + German). Pure. */
 object NavText {
@@ -35,11 +38,11 @@ object NavText {
      * names the stop in words. Notifications keep their plain words ([SKIP_SHORT], [TAKE]).
      */
     fun viaButton(q: NavPrompt.Question): String =
-        Txt.s(Res.string.nav_via_stop_button, com.onpath.app.ui.StopTokens.stop(stopNumber(q)))
+        Txt.s(Res.string.nav_via_stop_button, StopTokens.stop(stopNumber(q)))
 
     /** "③ auslassen" / "Skip ③" – the new route without the stop (see [viaButton]). */
     fun skipButton(q: NavPrompt.Question): String =
-        Txt.s(Res.string.nav_skip_stop_button, com.onpath.app.ui.StopTokens.stop(stopNumber(q)))
+        Txt.s(Res.string.nav_skip_stop_button, StopTokens.stop(stopNumber(q)))
 
     /** The number the map shows for the stop in question. */
     private fun stopNumber(q: NavPrompt.Question): Int = q.skipNumber ?: ((q.skipStop ?: 0) + 1)
@@ -111,7 +114,7 @@ object NavText {
     fun switchTitle(sw: ActivitySwitch): String = Txt.s(Res.string.nav_switch_title, activityName(sw.activity, sw.sac))
 
     /** "Hike T3" / "MTB" ([com.onpath.app.data.LastActivity.name]). */
-    fun activityName(a: Activity, sac: Int): String = com.onpath.app.data.LastActivity.name(a, sac)
+    fun activityName(a: Activity, sac: Int): String = LastActivity.name(a, sac)
 
     /** The question's line; [maxName] as for [stopLabel] (the card passes a smaller one at a large font). */
     fun question(q: NavPrompt.Question, maxName: Int = NAME_MAX): String = buildString {
@@ -180,14 +183,14 @@ object NavText {
      * Five decimals ≈ 1 m. Pure.
      */
     fun position(lat: Double, lon: Double, accuracyM: Float?, altitudeM: Double?, ageS: Long): String = buildString {
-        append("%.5f %s %.5f %s".format(java.util.Locale.ROOT, abs(lat), if (lat >= 0) "N" else "S", abs(lon), if (lon >= 0) "E" else "W"))
+        append("%.5f %s %.5f %s".format(Locale.ROOT, abs(lat), if (lat >= 0) "N" else "S", abs(lon), if (lon >= 0) "E" else "W"))
         accuracyM?.let { append(" · ±").append(it.roundToInt()).append(" m") }
         altitudeM?.let { append(" · ").append(it.roundToInt()).append(" m") }
         if (ageS >= 60) append(" · ").append(Txt.s(Res.string.nav_position_age, (ageS / 60).toInt()))
     }
 
     /** "46.54120, 10.90320" – what is copied (pastes into any map app or message). */
-    fun positionCopy(lat: Double, lon: Double): String = "%.5f, %.5f".format(java.util.Locale.ROOT, lat, lon)
+    fun positionCopy(lat: Double, lon: Double): String = "%.5f, %.5f".format(Locale.ROOT, lat, lon)
 
     fun compass(deg: Double): String {
         val names = listOf(Res.string.nav_compass_n, Res.string.nav_compass_ne, Res.string.nav_compass_e, Res.string.nav_compass_se,

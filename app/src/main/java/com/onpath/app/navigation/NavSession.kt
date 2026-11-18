@@ -8,6 +8,10 @@ import com.onpath.app.routing.WayAttrs
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.util.concurrent.ConcurrentHashMap
+import com.onpath.app.routing.JunctionCue
+import com.onpath.app.routing.JunctionShape
+import com.onpath.app.data.Geo
 
 /** What is navigated: a plan (stops known) or a followed track (no stops). */
 enum class NavKind { PLAN, TRACK }
@@ -109,7 +113,7 @@ data class NavSession(
             // a different plan (none of its points was in the old one – a route loaded on the way, owner 2026-11-03):
             // not an edit – it starts afresh at its point ① (the way there / the mid-route question), nothing carried
             if (old.stops.isNotEmpty() && fresh.stops.isNotEmpty() &&
-                fresh.stops.none { f -> old.stops.any { o -> com.onpath.app.data.Geo.distance(o.point, f.point) < 1.0 } }) return fresh
+                fresh.stops.none { f -> old.stops.any { o -> Geo.distance(o.point, f.point) < 1.0 } }) return fresh
             return when {
                 old.reached -> if (fresh.reached) fresh else fresh.copy(reached = true)
                 old.lead && !fresh.reached && !fresh.lead -> fresh.copy(lead = true)
@@ -172,7 +176,7 @@ class NavSessionStore(private val file: File) {
     }
 
     companion object {
-        private val locks = java.util.concurrent.ConcurrentHashMap<String, Any>()
+        private val locks = ConcurrentHashMap<String, Any>()
         private fun lockOf(file: File): Any = locks.getOrPut(file.absoluteFile.normalize().path) { Any() }
 
         fun toJson(s: NavSession): JSONObject = JSONObject()
@@ -287,7 +291,7 @@ class NavSessionStore(private val file: File) {
                 while (r + 1 < a.length()) {
                     val i = a.getInt(r)
                     val parts = a.optString(r + 1).split(':')
-                    val cue = com.onpath.app.routing.JunctionCue.ofCode(parts[0])
+                    val cue = JunctionCue.ofCode(parts[0])
                     val exit = parts.getOrNull(1)?.toIntOrNull() ?: 0
                     val angle = parts.getOrNull(2)?.toFloatOrNull() ?: 0f
                     if (cue != null && i in out.indices) out[i] = out[i].copy(turn = cue, exit = exit, turnAngle = angle)
@@ -318,7 +322,7 @@ class NavSessionStore(private val file: File) {
                 var r = 0
                 while (r + 1 < a.length()) {
                     val i = a.getInt(r)
-                    val shape = com.onpath.app.routing.JunctionShape.decode(a.optString(r + 1))
+                    val shape = JunctionShape.decode(a.optString(r + 1))
                     if (shape != null && i in out.indices && out[i].turn != null) out[i] = out[i].copy(shape = shape)
                     r += 2
                 }

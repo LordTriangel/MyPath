@@ -1,6 +1,7 @@
 package com.onpath.app.navigation
 
 import com.onpath.app.data.Geo
+import com.onpath.app.routing.Activity
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.TurnDetector
 import kotlin.math.abs
@@ -150,7 +151,7 @@ class Navigator(session: NavSession, offRouteM: Double = 40.0) {
         private set
 
     private var original = NavLine(session.original)
-    val detector = OffRouteDetector(offRouteM).apply { headingRule = session.activity != com.onpath.app.routing.Activity.HIKE }
+    val detector = OffRouteDetector(offRouteM).apply { headingRule = session.activity != Activity.HIKE }
     private var leftAtM = session.leftAtM
     private var jobId = 0
     private var runningJob = -1

@@ -2,6 +2,7 @@ package com.onpath.app.navigation
 
 import com.onpath.app.data.Geo
 import com.onpath.app.debug.Problems
+import com.onpath.app.debug.UserText
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.RouteCancel
@@ -10,6 +11,7 @@ import com.onpath.app.routing.RouteResult
 import com.onpath.app.routing.RoutingEngine
 import com.onpath.app.routing.RoutingException
 import com.onpath.app.routing.StraightLineEngine
+import com.onpath.app.time.RouteTimes
 
 /**
  * "Take new route" (owner: compute it completely new, like Google Maps): for a plan with stops, a fresh
@@ -93,7 +95,7 @@ class Rerouter(private val engine: RoutingEngine, private val clock: () -> Long 
         if (cancel?.isCancelled == true) return Failed(Reason.CANCELLED, "Cancelled", clock() - t0)
         val targets = RerouteTargets.candidates(req.original, base, req.stops, req.visited)
         // same time model as the plan sheet and "to go" (time/RouteTimes)
-        val restTimes = com.onpath.app.time.RouteTimes.of(req.original.points, req.activity)
+        val restTimes = RouteTimes.of(req.original.points, req.activity)
         var best: Pair<RejoinTarget, RouteResult>? = null
         var bestScore = Double.MAX_VALUE
         // past the next stop (it would be left out): the best of those, decided against [best] with StopSkip
@@ -114,7 +116,7 @@ class Rerouter(private val engine: RoutingEngine, private val clock: () -> Long 
             } catch (e: Exception) {
                 // expected: RoutingException = no way to this candidate; anything else is an engine bug
                 if (e !is RoutingException) Problems.error("routing", "Re-route candidate request threw unexpectedly", e)
-                val msg = com.onpath.app.debug.UserText.of(e, "No route found")
+                val msg = UserText.of(e, "No route found")
                 val kind = (e as? RoutingException)?.kind ?: RoutingException.Kind.OTHER
                 if (firstError == null) { firstError = msg; firstReason = reasonOf(kind) }
                 if (cancel?.isCancelled == true) return Failed(Reason.CANCELLED, msg, clock() - t0)
@@ -123,7 +125,7 @@ class Rerouter(private val engine: RoutingEngine, private val clock: () -> Long 
                 continue
             }
             if (r.points.size < 2) continue
-            val legS = com.onpath.app.time.RouteTimes.of(r.points, req.activity).total()
+            val legS = RouteTimes.of(r.points, req.activity).total()
             val score = legS + restTimes.remainingFrom(t.alongM)
             if (t.skips != null) {
                 // leaving out an ordinary route point: fine, as long as the tour is not cut short (round trip end)
@@ -218,7 +220,7 @@ class Rerouter(private val engine: RoutingEngine, private val clock: () -> Long 
         val skipAt = skipLine.alongsInOrder(listOf(pos, req.stops[m].point))[1]
         val skipS = secondsTo(past.points, listOf(pos, req.stops[m].point), req.activity)
         if (!StopSkip.keepsTheTour(skipAt, base, req.stops[m].alongM)) return found(r, null)
-        val plan = com.onpath.app.time.RouteTimes.of(req.original.points, req.activity)
+        val plan = RouteTimes.of(req.original.points, req.activity)
         val planS = plan.remainingFrom(base) - plan.remainingFrom(req.stops[m].alongM)
         val decision = StopSkip.decide(viaS, skipS, planS, StopSkip.deliberate(req.stops[n], req.original))
         Problems.trace("routing", "Fresh route: next stop $n via ${viaS.toInt()} s, straight to stop $m ${skipS.toInt()} s, " +
@@ -262,7 +264,7 @@ class Rerouter(private val engine: RoutingEngine, private val clock: () -> Long 
             // expected: RoutingException = no way to the start (no data here, nothing found); anything else is an engine bug
             if (e !is RoutingException) Problems.error("routing", "Way to the start request threw unexpectedly", e)
             val kind = (e as? RoutingException)?.kind ?: RoutingException.Kind.OTHER
-            return Failed(reasonOf(kind), com.onpath.app.debug.UserText.of(e, "No route found"), clock() - t0)
+            return Failed(reasonOf(kind), UserText.of(e, "No route found"), clock() - t0)
         }
         if (leg.points.size < 2) return Failed(Reason.NO_WAY, "No route found", clock() - t0)
         val legM = Geo.length(leg.points)
@@ -312,7 +314,7 @@ class Rerouter(private val engine: RoutingEngine, private val clock: () -> Long 
     private fun onwardOf(req: Request, stops: List<Int>, shortest: RouteResult, deadline: Long, cancel: RouteCancel?): RouteResult? {
         if (!Onward.goesBack(req.recent, shortest.points)) return null
         val heading = TurnRound.heading(req.recent) ?: return null
-        val shortestS = com.onpath.app.time.RouteTimes.of(shortest.points, req.activity).total()
+        val shortestS = RouteTimes.of(shortest.points, req.activity).total()
         for (m in Onward.aheadM(req.activity)) {
             if (cancel?.isCancelled == true) return null
             val left = deadline - clock()
@@ -328,7 +330,7 @@ class Rerouter(private val engine: RoutingEngine, private val clock: () -> Long 
             }
             if (r.points.size < 2 || Onward.goesBack(req.recent, r.points) ||
                 Onward.thereAndBack(r.points, m + Onward.CHECK_M)) continue
-            val onS = com.onpath.app.time.RouteTimes.of(r.points, req.activity).total()
+            val onS = RouteTimes.of(r.points, req.activity).total()
             if (!Onward.worthIt(shortestS, onS)) continue
             Problems.trace("routing", "Fresh route: the shortest leads back the way just walked – going on instead " +
                 "(${onS.toInt()} s vs ${shortestS.toInt()} s, through a point ${m.toInt()} m ahead)")
@@ -340,7 +342,7 @@ class Rerouter(private val engine: RoutingEngine, private val clock: () -> Long 
     /** Seconds along [line] from its start to the last of [stops] (matched in order), same time model as the plan sheet. */
     private fun secondsTo(line: List<GeoPoint>, stops: List<GeoPoint>, activity: Activity): Double {
         val at = NavLine(line).alongsInOrder(stops).last()
-        val times = com.onpath.app.time.RouteTimes.of(line, activity)
+        val times = RouteTimes.of(line, activity)
         return times.total() - times.remainingFrom(at)
     }
 
