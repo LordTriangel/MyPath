@@ -65,6 +65,6 @@ class ModeQuietTest {
         assertFalse(GuidanceGate.voiceSpeaks(planQuiet = true))
         assertTrue(GuidanceGate.voiceSpeaks(planQuiet = false))
         // wiring pin: back in Navigate the sentences that waited are dropped, not said late
-        assertTrue(File("src/main/java/com/onpath/app/recording/RecordingService.kt").readText().contains("voice.dropWaiting()"))
+        assertTrue(File("../app/src/main/java/com/onpath/app/recording/RecordingService.kt").readText().contains("voice.dropWaiting()"))
     }
 }

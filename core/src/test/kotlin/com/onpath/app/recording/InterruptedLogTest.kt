@@ -32,10 +32,10 @@ class InterruptedLogTest {
             assertEquals(c.name, 1, cleared)
         }
         // the system restarting the service (background location) also ends it
-        val svc = java.io.File("src/main/java/com/onpath/app/recording/RecordingService.kt").readText()
+        val svc = java.io.File("../app/src/main/java/com/onpath/app/recording/RecordingService.kt").readText()
         assertTrue(svc.substringAfter("if (existing != null) {").substringBefore("} else {")
             .contains("TourInterruptedReceiver.cancelNote(this)"))
-        val vm = java.io.File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+        val vm = java.io.File("../app/src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
         assertEquals(3, Regex("InterruptedLog\\.Choice\\.[A-Z]+, ::clearInterruptedNote\\)").findAll(vm).count())
     }
 

@@ -142,7 +142,7 @@ object TripReplay {
             for (p in s) {
                 sb.append("<trkpt lat=\"%.6f\" lon=\"%.6f\">".format(Locale.US, p.lat, p.lon))
                 p.ele?.let { sb.append("<ele>%.2f</ele>".format(Locale.US, it)) }
-                if (withTime && p.timeMs != null) sb.append("<time>").append(java.time.Instant.ofEpochMilli(p.timeMs).toString()).append("</time>")
+                p.timeMs?.takeIf { withTime }?.let { sb.append("<time>").append(java.time.Instant.ofEpochMilli(it).toString()).append("</time>") }
                 sb.append("</trkpt>\n")
             }
             sb.append("</trkseg>")

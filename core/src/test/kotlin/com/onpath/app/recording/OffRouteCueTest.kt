@@ -37,7 +37,7 @@ class OffRouteCueTest {
 
     /** The service asks this one rule and writes the vibration into the event log (the E2E reads it there). */
     @Test fun theServiceUsesTheRuleAndTracesTheVibration() {
-        val svc = File("src/main/java/com/onpath/app/recording/RecordingService.kt").readText()
+        val svc = File("../app/src/main/java/com/onpath/app/recording/RecordingService.kt").readText()
         val handle = svc.substringAfter("private fun handle(step: Navigator.Step").substringBefore("if (step.cancelJob)")
         assertEquals(true, handle.contains("GuidanceGate.offRouteCue("))
         assertEquals(true, handle.contains("Problems.trace(\"navigation\", \"\${GuidanceGate.OFF_ROUTE_VIBRATED}"))

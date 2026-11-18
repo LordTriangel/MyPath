@@ -31,7 +31,7 @@ class GpsWatchdogTest {
         assertFalse("GPS keeps running there", L.warnDuringTour(true, L.FOREGROUND_ONLY, false))
         assertFalse(L.warnDuringTour(true, L.NO_CHANGE, false))
         assertFalse("saver off", L.warnDuringTour(false, L.GPS_OFF_SCREEN_OFF, false))
-        val svc = java.io.File("src/main/java/com/onpath/app/recording/RecordingService.kt").readText()
+        val svc = java.io.File("../app/src/main/java/com/onpath/app/recording/RecordingService.kt").readText()
         assertTrue(svc.contains("PowerManager.ACTION_POWER_SAVE_MODE_CHANGED"))
     }
 }

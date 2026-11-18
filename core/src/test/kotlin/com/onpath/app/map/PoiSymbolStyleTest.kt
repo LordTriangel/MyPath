@@ -24,13 +24,13 @@ import kotlin.math.pow
  */
 class PoiSymbolStyleTest {
     private val styles: Map<String, JSONObject> = buildMap {
-        val dir = File("src/main/assets/style")
+        val dir = File("../app/src/main/assets/style")
         for (f in (dir.listFiles().orEmpty().toList() + File(dir, "f2").listFiles().orEmpty().toList())
             .filter { it.isFile && it.name.startsWith("onpath") && it.name.endsWith(".json") }.sortedBy { it.path })
             put(f.relativeTo(dir).path, JSONObject(f.readText()))
     }
     private val sprites = listOf("onpath.json", "onpath@2x.json")
-        .map { name -> JSONObject(File("src/main/assets/sprites/$name").readText()).keys().asSequence().toSet() }
+        .map { name -> JSONObject(File("../app/src/main/assets/sprites/$name").readText()).keys().asSequence().toSet() }
 
     private fun layers(s: JSONObject) = s.getJSONArray("layers").let { a -> (0 until a.length()).map { a.getJSONObject(it) } }
     private fun poiLayers(s: JSONObject) = layers(s).filter { it.optString("source") == "pois" }

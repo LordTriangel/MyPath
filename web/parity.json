@@ -23,7 +23,7 @@
       "blob": "36dbe49f9a39e9dfa8df76824cc20c61fccab9e7"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/domain/PlanStatus.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/domain/PlanStatus.kt",
       "what": "noRouteLine texts (Hold → Click)",
       "web": [
         "web/app/src/main.ts"
@@ -74,7 +74,7 @@
       "blob": "4be358bb93dc974ba7016285e0149a9041afbabd"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/recording/GpsStatus.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/recording/GpsStatus.kt",
       "what": "GpsStatus names (engine stand-in recording/GpsStatus.kt)",
       "web": [
         "web/engine/src/main/kotlin/com/onpath/app/recording/GpsStatus.kt",
@@ -190,7 +190,7 @@
       "blob": "e44231289894461b09788538d6dc70ddd17ae988"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/debug/Problems.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/debug/Problems.kt",
       "what": "problem log calls (engine stand-in)",
       "web": [
         "web/engine/src/main/kotlin/com/onpath/app/debug/Problems.kt"
@@ -509,7 +509,7 @@
       "blob": "dbb85f63ff3a53cd27e94955e0978db344464a8f"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/search/SharedPlace.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/search/SharedPlace.kt",
       "why": "Google Maps share (phone only)",
       "blob": "56b4a3f2b4cd4868a6b2563cd53f43c6492f3b9f"
     },
@@ -545,7 +545,7 @@
     }
   ],
   "shared": {
-    "app/src/main/java/com/onpath/app/routing/RoutingContract.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/RoutingContract.kt": {
       "blob": "ebf536c8c9a2fa3bac6eb37fc3af0a8a2549c0e7",
       "perf": [
         "* [timedOut] = the router gave up for time (search budget used up, or the engine stayed busy): another try with the",
@@ -575,7 +575,7 @@
         "val b = ByteArray(INDEX_BYTES)"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/OfflineCorridor.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/OfflineCorridor.kt": {
       "blob": "3c1fbeadd00e7223fd88bbc464937716ea5211e3",
       "perf": [
         "const val MAX_M = BIKE_M",
@@ -583,7 +583,7 @@
         "null -> MAX_M"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/BRouterWayStats.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/BRouterWayStats.kt": {
       "blob": "f4e62015fea9f66c3b2b4a63b6ea7a74d274958f",
       "perf": [
         "val cache = HashMap<String, WayAttrs>()",
@@ -652,7 +652,7 @@
       "blob": "dc8e79c9ed4e1918a463c784395a5d7d6ce11874",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/routing/Junctions.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/Junctions.kt": {
       "blob": "ece866248097738df720edda477146aa79130770",
       "perf": []
     },
@@ -754,7 +754,7 @@
         "const val GAP_MS = 220L"
       ]
     },
-    "app/src/main/java/com/onpath/app/navigation/CueRule.kt": {
+    "core/src/main/kotlin/com/onpath/app/navigation/CueRule.kt": {
       "blob": "ba340a51711dba1ed444f14bc063ab9787b40b43",
       "perf": []
     },
@@ -769,7 +769,7 @@
         "const val WINDOW_MS = 10_000L"
       ]
     },
-    "app/src/main/java/com/onpath/app/data/Geo.kt": {
+    "core/src/main/kotlin/com/onpath/app/data/Geo.kt": {
       "blob": "6afc436075050d24280bb36c08740ba900f4920f",
       "perf": [
         "var best = line[0]; var bestD = Double.MAX_VALUE",
@@ -781,7 +781,7 @@
       "blob": "aa590937851fe361f89c1d15951e621121a1146d",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/time/PaceModel.kt": {
+    "core/src/main/kotlin/com/onpath/app/time/PaceModel.kt": {
       "blob": "b0a07a016005d1261804f39dadcd63b176382cc0",
       "perf": [
         "const val GROUP_LIMIT = 0.05",
@@ -806,7 +806,7 @@
       "blob": "038b7c8d9bb0e71cbcfc6c8272d718617d58d9b1",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/routing/PlanCode.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/PlanCode.kt": {
       "blob": "4d11652b07aa053a1a2e6c5930d2df5807d15b4f",
       "perf": [
         "/** Limits per day of a multi-day tour (owner 2026-11-17: \"Natürlich bleiben die Grenzen pro Tag\"); null = no limit. */",
@@ -858,7 +858,7 @@
         "if (days < nights.size + 1 || days < 1 || days > PlanCode.MAX_DAYS) return null"
       ]
     },
-    "app/src/main/java/com/onpath/app/search/Place.kt": {
+    "core/src/main/kotlin/com/onpath/app/search/Place.kt": {
       "blob": "f3b3191bf1121f3fe593f68dacb9b4867c9f833b",
       "perf": []
     },
@@ -932,11 +932,11 @@
       "blob": "bad38bba5a4a70205769eaa8c57a464066f97f32",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/poi/Poi.kt": {
+    "core/src/main/kotlin/com/onpath/app/poi/Poi.kt": {
       "blob": "13f90ac3e37e02a2723e677336c504170d410bec",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/poi/PoiKinds.kt": {
+    "core/src/main/kotlin/com/onpath/app/poi/PoiKinds.kt": {
       "blob": "6dffc68f99b5f3ee5c3bc0bcc5f06fa2fffa7d20",
       "perf": []
     },
@@ -953,11 +953,11 @@
       "blob": "cc2f7ad1eb46f842c8e6d7050d140c1377f4389d",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/poi/PoiFilter.kt": {
+    "core/src/main/kotlin/com/onpath/app/poi/PoiFilter.kt": {
       "blob": "28c0deaf625bcf21c802b26874984d224b44170e",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/domain/PlanState.kt": {
+    "core/src/main/kotlin/com/onpath/app/domain/PlanState.kt": {
       "blob": "9605a5157a2962e28e3a2026d278fc892a78038f",
       "perf": [
         "class PlanHistory(private val limit: Int = 100) {",
@@ -965,7 +965,7 @@
         "undo.clear(); undo.addAll(undoSteps.takeLast(limit)); redo.clear(); redo.addAll(redoSteps)"
       ]
     },
-    "app/src/main/java/com/onpath/app/domain/MapGestures.kt": {
+    "core/src/main/kotlin/com/onpath/app/domain/MapGestures.kt": {
       "blob": "60a525dad678d4bee79f0498af6d20e51d3ec383",
       "perf": []
     },
@@ -997,7 +997,7 @@
       "blob": "a4fb4972052cf96e2dec5d5af6cdf29bc5b0cad0",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/gpx/GpxModel.kt": {
+    "core/src/main/kotlin/com/onpath/app/gpx/GpxModel.kt": {
       "blob": "02902d35f3a30dd29c34a56b5304211c4b11d909",
       "perf": []
     },
@@ -1009,7 +1009,7 @@
       "blob": "f4c8b2d7dd72d824c0fcf58e7d52fc49be88691e",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/data/LastActivity.kt": {
+    "core/src/main/kotlin/com/onpath/app/data/LastActivity.kt": {
       "blob": "8bd85477c1b32fa4db38cb7ebe349998d4a5b539",
       "perf": []
     },
@@ -1019,7 +1019,7 @@
         "var t = ByteArray(0)"
       ]
     },
-    "app/src/main/java/com/onpath/app/sync/PairCode.kt": {
+    "core/src/main/kotlin/com/onpath/app/sync/PairCode.kt": {
       "blob": "3990c2d59bae121544a1634b1be58a5d98ab4aa1",
       "perf": [
         "const val SECRET_BYTES = 32",
@@ -1029,7 +1029,7 @@
         "init { require(secret.size == PairCode.SECRET_BYTES) }"
       ]
     },
-    "app/src/main/java/com/onpath/app/sync/SyncItem.kt": {
+    "core/src/main/kotlin/com/onpath/app/sync/SyncItem.kt": {
       "blob": "67a041756f9369f70f537aaf9ea0573b3530ba6e",
       "perf": [
         "* only, missing = unknown), 7 = routing fingerprint (ASCII, \"r1-\" + 12 hex, ≤ [MAX_ROUTING]; kind 1 plan only),",
@@ -1080,7 +1080,7 @@
         "if (l.isEmpty() || '\\n' in l || '\\r' in l || l.encodeToByteArray().size > SyncFormat.MAX_PLACE) return null"
       ]
     },
-    "app/src/main/java/com/onpath/app/sync/SyncMerge.kt": {
+    "core/src/main/kotlin/com/onpath/app/sync/SyncMerge.kt": {
       "blob": "3b3217ab60ebf131a361a069ff9d44b7ce2e1732",
       "perf": [
         "val seed = \"OnPath copy \".encodeToByteArray() + (B64.decode(loser.id) ?: ByteArray(0)) +",
@@ -1088,7 +1088,7 @@
         "return loser.copy(id = B64.encode(Sha256.hash(seed).copyOf(SyncFormat.ID_BYTES)), title = base + COPY)"
       ]
     },
-    "app/src/main/java/com/onpath/app/sync/SyncLedger.kt": {
+    "core/src/main/kotlin/com/onpath/app/sync/SyncLedger.kt": {
       "blob": "7eeaf2fb9cb1f7acb22d85c9143faad8c2e022aa",
       "perf": []
     },
@@ -1113,7 +1113,7 @@
       "blob": "1b8eb4d6b92f6849b396654336957b12acf68e9a",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/sync/SyncRound.kt": {
+    "core/src/main/kotlin/com/onpath/app/sync/SyncRound.kt": {
       "blob": "c0dff1eaa3d19a729f71bb07f60ac7a73b8c2d91",
       "perf": [
         "* answer at all: no network, timeout, DNS) and never throws.",
@@ -1141,7 +1141,7 @@
       "blob": "34084104a7bf35caac8aa4fa2ceb5d6dfbbee16d",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/domain/PlanStatus.kt": {
+    "core/src/main/kotlin/com/onpath/app/domain/PlanStatus.kt": {
       "blob": "8b28d0eeac067308bfa74d1447949aa40b43d88b",
       "perf": [
         "* route. Keeps the highest value it gave – a new search inside the same leg (a retry) or a leg from the cache never"
@@ -1241,15 +1241,15 @@
       "blob": "0b2b0c7d5cbe1f9d8f4321489e6fc670826991e0",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/data/RoutingDataNotice.kt": {
+    "core/src/main/kotlin/com/onpath/app/data/RoutingDataNotice.kt": {
       "blob": "6f7664a5f685f21e589f9ee209068c2eeab16bec",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/routing/BreakdownRules.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/BreakdownRules.kt": {
       "blob": "c0b32eb2d2cac99324fa3b853a04a641f9f6d82e",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/routing/PlanNames.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/PlanNames.kt": {
       "blob": "da0473777e0012de06d5d51d36e920985e23c11c",
       "perf": []
     },
@@ -1415,7 +1415,7 @@
       "blob": "3c5c29f8144ef1a821a8605edb70ef0aa4f47bcf",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/suggest/SuggestCards.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/SuggestCards.kt": {
       "blob": "9df06d2bdf046b0aca61ff0080c297ffa6ccaef7",
       "perf": [
         "/** loops the method built and judged (the pool) */",
@@ -1423,7 +1423,7 @@
         "var best = causes[0].first; var top = -Double.MAX_VALUE"
       ]
     },
-    "app/src/test/java/com/onpath/app/routing/OfflineCorridorTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/OfflineCorridorTest.kt": {
       "blob": "d106d511aeffa606325dace25a9e3d9c84fac957",
       "perf": [
         "assertEquals(Activity.entries.maxOf { OfflineCorridor.marginM(it) }, OfflineCorridor.MAX_M, 0.0)"
@@ -1436,7 +1436,7 @@
         "assertEquals(PlanCode.MAX_NAME, back.names[0]!!.length)"
       ]
     },
-    "app/src/test/java/com/onpath/app/routing/PlanCodeDaysTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/PlanCodeDaysTest.kt": {
       "blob": "1b3701df2ff2d1505f13d717b0793616036fbd2e",
       "perf": [
         "assertEquals(PlanCode.MAX_DAYS, back.days)",
@@ -1459,13 +1459,13 @@
       "blob": "13ccd938f2b655255ab60abd32825cf294ba5eda",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/domain/PlanStateTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/domain/PlanStateTest.kt": {
       "blob": "164c2ee5e836d2733d23318ec4b3cd6a5ef154be",
       "perf": [
         "val h = PlanHistory(limit = 3)"
       ]
     },
-    "app/src/test/java/com/onpath/app/domain/MapGesturesTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/domain/MapGesturesTest.kt": {
       "blob": "06cacfd27837e9f3eeccf54894ce34ce8cdc82b8",
       "perf": []
     },
@@ -1491,7 +1491,7 @@
         "assertEquals(c + \"b094dac5d93471bdec1a502270e3cc6c\", AesGcm.seal(k, iv, ByteArray(0), p).hex())"
       ]
     },
-    "app/src/test/java/com/onpath/app/sync/PlanSyncTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/sync/PlanSyncTest.kt": {
       "blob": "70303cc5444dcc0cc5533afd44066a1188a58ee3",
       "perf": [
         "private val phone = SyncFormat.newDevice(ByteArray(8) { 1 })",
@@ -1551,7 +1551,7 @@
         "assertEquals(250, SyncLimits.MAX_TOURS)"
       ]
     },
-    "app/src/test/java/com/onpath/app/sync/MemoryMailbox.kt": {
+    "core/src/testkit/kotlin/com/onpath/app/sync/MemoryMailbox.kt": {
       "blob": "5304ccb0ca7034c8dc2dad371c4abb40bc9d98bf",
       "perf": [
         "* The mailbox's rules (web/host/src/sync.js, docs/design/web-sync.md §8) in memory, for JVM tests: claim by the first",
@@ -1575,7 +1575,7 @@
       "blob": "4ecbbf0fe5c2aceaa089a741644cdb6e1ec562ff",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/routing/BreakdownRulesTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/BreakdownRulesTest.kt": {
       "blob": "50090800c2848bdf0aa0012cc1ca9cc242bfba8d",
       "perf": []
     },
@@ -1637,7 +1637,7 @@
         "Planner(e, RouteCancel(), askAtLimit = true, rounds = 2, legs = cache).plan(listOf(p[0], p[1], p[2]), act, 2)"
       ]
     },
-    "app/src/test/java/com/onpath/app/routing/PlanNamesTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/PlanNamesTest.kt": {
       "blob": "3398fc398aaeab22e9105a48cbbaebd9588a35bf",
       "perf": []
     },
@@ -1829,11 +1829,11 @@
       "blob": "1c409cb28ff79aaf7c56578053c9e792a41f66c0",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/routing/RouterRules.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/RouterRules.kt": {
       "blob": "ba283d44fdfd8411ad330f486ddb7e8e5c5e2f78",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/data/DataNames.kt": {
+    "core/src/main/kotlin/com/onpath/app/data/DataNames.kt": {
       "blob": "c6d033829d8ec407cf86f595c43a5a4e64ff0c4c",
       "perf": []
     }

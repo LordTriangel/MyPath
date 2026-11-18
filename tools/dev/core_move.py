@@ -277,6 +277,16 @@ WEB_TESTS = set()   # [tests] of app/web-shared-files.txt: the planner compiles 
 ALL_RES = []        # every resource folder (for the web-test rewrite check)
 
 
+def member_imports(s, sym):
+    """Files that declare the OBJECT of a member import (`import pkg.Trace.pt`: the name `Trace` is never in the body)."""
+    out = set()
+    for n, star in s.imports:
+        parts = n.split(".")
+        if not star and len(parts) > 2 and n.startswith("com.onpath.app."):
+            out |= sym.get((".".join(parts[:-2]), parts[-2]), set())
+    return out
+
+
 def plan_tests(model, moved):
     """Which tests move. moved = set of main paths that go to :core. Returns (tests: path->'core'|'kit', stays: set of app test paths)."""
     app_tests = [p for p in model.tests if p.startswith(APP_TEST + "/")]
@@ -289,6 +299,7 @@ def plan_tests(model, moved):
         for (pk, sy), fs in model.sym.items():
             if sy in s.tokens and (pk == s.pkg or pk in wild or imps.get(sy) == pk):
                 refs |= fs
+        refs |= member_imports(s, model.sym)
         for fq in set(re.findall(r"com\.onpath\.app\.[\w.]+", s.body)):
             parts = fq.split(".")
             for i in range(3, len(parts)):
@@ -306,6 +317,7 @@ def plan_tests(model, moved):
         for (pk, sy), fs in model.tsym.items():
             if sy in s.tokens and (pk == s.pkg or pk in wild or imps.get(sy) == pk):
                 refs |= fs
+        refs |= member_imports(s, model.tsym)
         refs.discard(p)
         tref[p] = refs
     core_like = lambda q: not q.startswith(APP_TEST + "/")  # already in core (test or testkit)
@@ -567,8 +579,8 @@ def parity_rewrite(moved_main, moved_tests, dry):
         a, b = f'"{APP_MAIN}/{rel}"', f'"{CORE_MAIN}/{rel}"'
         n += t.count(a)
         t = t.replace(a, b)
-    for rel in moved_tests:
-        a, b = f'"{APP_TEST}/{rel}"', f'"{CORE_TEST}/{rel}"'
+    for rel, kind in moved_tests.items():  # kind: 'core' (core/src/test) | 'kit' (core/src/testkit)
+        a, b = f'"{APP_TEST}/{rel}"', f'"{CORE_KIT if kind == "kit" else CORE_TEST}/{rel}"'
         n += t.count(a)
         t = t.replace(a, b)
     if n and not dry:
@@ -687,7 +699,7 @@ def cmd_move(args):
         sys.exit("core_move: nothing movable")
     dry = args.dry_run
     moved_rel = {model.rel(p) for p in ok}
-    moved_test_rel = {model.rel(p) for p in tests}
+    moved_test_rel = {model.rel(p): k for p, k in tests.items()}
     res, res_stay = resource_dirs(model, tests)
     pre = [(p, main_dest(model, p)) for p in ok] + [(p, test_dest(model, p, k)) for p, k in tests.items()]
     for d in res:

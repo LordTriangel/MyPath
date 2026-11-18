@@ -186,7 +186,7 @@ data class TourReview(
         internal fun climbRates(segs: List<List<TrackPoint>>): Pair<Double?, Double?> {
             var upM = 0.0; var upS = 0.0; var downM = 0.0; var downS = 0.0
             for (seg in segs) {
-                val pts = seg.filter { it.timeMs != null && it.ele != null && !it.ele.isNaN() }
+                val pts = seg.filter { it.timeMs != null && it.ele?.isNaN() == false }
                 var i = 0
                 while (i < pts.size - 1) {
                     var j = i; var len = 0.0
