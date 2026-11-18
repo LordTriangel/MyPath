@@ -34,7 +34,7 @@ class StopTextTest {
         val msg = nav.substringAfter("internal fun rerouteMessage(").substringBefore("\n}\n")
         assertTrue("via first-class, primary last", msg.contains("MessageButton(NavText.skipButton(q), onTake),\n            MessageButton(NavText.viaButton(q), onVia)"))
         assertTrue("a skip without a way via still says it on the button", msg.contains("q.skipStop != null -> listOf(MessageButton(NavText.KEEP, onKeep), MessageButton(NavText.skipButton(q), onTake))"))
-        val rr = File("src/main/java/com/onpath/app/navigation/Rerouter.kt").readText()
+        val rr = File("../core/src/main/kotlin/com/onpath/app/navigation/Rerouter.kt").readText()
         assertFalse("no silent skip left", rr.contains("StopSkip.Decision.SKIP -> return build(past, n)\n") || rr.contains("StopSkip.Decision.SKIP -> found(past, n)\n"))
         assertTrue(rr.contains("StopSkip.Decision.SKIP, StopSkip.Decision.ASK -> return build(past, n, ask = via?.let { build(it, null) })"))
         assertTrue(rr.contains("StopSkip.Decision.SKIP, StopSkip.Decision.ASK -> found(past, n, ask = found(r, null))"))

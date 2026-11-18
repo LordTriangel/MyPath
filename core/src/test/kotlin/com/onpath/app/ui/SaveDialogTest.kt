@@ -179,18 +179,18 @@ class SaveDialogTest {
 
     // ---- wiring pins (no JVM harness for AppViewModel / TourDb): the entry points and the one DB write
 
-    private val vmSrc = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+    private val vmSrc = File("../app/src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
     private fun body(start: String) = vmSrc.substringAfter(start).substringBefore("\n    }\n")
 
     @Test fun everySaveEntryPointOpensTheDialog() {
         assertTrue(vmSrc.contains("fun requestSave() = askSave(null)"))
         assertFalse("no Replace current plan? any more (owner 2026-11-06, Zuletzt)", vmSrc.contains("fun replaceSaveFirst("))
-        val map = File("src/main/java/com/onpath/app/ui/MapScreen.kt").readText()
+        val map = File("../app/src/main/java/com/onpath/app/ui/MapScreen.kt").readText()
         assertTrue("☰ Save route – the one Save of the plan", map.contains("onSaveRoute = if (RouteRules.saveInMenu(vm.waypoints.size)) vm::requestSave else null"))
-        val main = File("src/main/java/com/onpath/app/MainActivity.kt").readText()
+        val main = File("../app/src/main/java/com/onpath/app/MainActivity.kt").readText()
         assertTrue("My routes ⋮ Save as copy", main.contains("onCopy = { vm.requestCopyRoute(it) }"))
         assertTrue(body("fun confirmSave(").contains("is com.onpath.app.domain.routes.SaveFlow.Write.Copy -> copyRoute(w.routeId, w.name)"))
-        val dialogs = File("src/main/java/com/onpath/app/ui/RouteDialogs.kt").readText()
+        val dialogs = File("../app/src/main/java/com/onpath/app/ui/RouteDialogs.kt").readText()
         assertTrue(dialogs.contains("SaveNameDialog(ask.kind, ask.name, onSave = vm::confirmSave, onCancel = vm::cancelSave)"))
         assertTrue("the name selected", dialogs.contains("TextFieldValue(name, TextRange(0, name.length))"))
     }

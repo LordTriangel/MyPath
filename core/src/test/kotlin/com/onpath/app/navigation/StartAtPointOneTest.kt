@@ -159,7 +159,7 @@ class StartAtPointOneTest {
     }
 
     @Test fun loadedOnTheWay_isFollowedAsAWholePlan() {
-        val vm = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+        val vm = File("../app/src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
         assertTrue(vm.contains("loadedOnTheWay = duringTour && recState.value != null"))
         val split = vm.substringAfter("private fun splitOf(").substringBefore("\n    }\n")
         assertTrue(split, split.contains("val passed = if (fresh) emptySet() else tourPassed(before)"))

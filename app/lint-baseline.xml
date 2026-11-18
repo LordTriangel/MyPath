@@ -330,16 +330,6 @@
 
 
 
-    <issue
-        id="UsableSpace"
-        message="Consider also using `StorageManager#getAllocatableBytes` and `allocateBytes` which will consider clearable cached data"
-        errorLine1="            val free = store.root.apply { mkdirs() }.usableSpace"
-        errorLine2="                                                     ~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/onpath/app/cells/MapCells.kt"
-            line="929"
-            column="54"/>
-    </issue>
 
     <issue
         id="UsableSpace"

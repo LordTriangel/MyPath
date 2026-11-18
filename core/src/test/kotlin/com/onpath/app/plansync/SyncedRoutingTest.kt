@@ -22,7 +22,7 @@ class SyncedRoutingTest {
     }
 
     @Test fun theAppRoutesThemAgainWhenTheDataArrives() {
-        val vm = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+        val vm = File("../app/src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
         assertTrue(vm.contains("SyncedRouting.storable(r)"))
         assertTrue(vm.substringAfter("private fun routingDataArrived").substringBefore("\n    }\n").contains("routeSyncedPlans(later)"))
     }

@@ -175,7 +175,7 @@ class ReleaseRundgang : E2EBase() {
         waitUntil("far-start question", 60_000) { nav()?.prompt is NavPrompt.FarStart }
         shot("1-far-start")
         clickText(NavText.LEAD)
-        waitUntil("led there (Guide me)", 90_000) { nav()?.let { it.session?.lead == true && it.session.rerouted && it.prompt == null } == true }
+        waitUntil("led there (Guide me)", 90_000) { nav()?.let { it.session?.let { s -> s.lead && s.rerouted } == true && it.prompt == null } == true }
         val lead = nav()!!.line
         assertTrue("the lead starts here", Geo.distance(lead.first(), FAR) < 200)
         shot("2-led")
@@ -593,7 +593,7 @@ class ReleaseRundgang : E2EBase() {
         assertNotNull("\"Zu ① führen\" in the box", findFresh(By.text(Txt.s(Res.string.nav_mid_lead)), 10_000))
         shot("1-mid-route-question")
         clickText(Txt.s(Res.string.nav_mid_lead))
-        waitUntil("the way to ① followed", 90_000) { nav()?.let { it.session?.lead == true && it.session.rerouted && it.prompt == null } == true }
+        waitUntil("the way to ① followed", 90_000) { nav()?.let { it.session?.let { s -> s.lead && s.rerouted } == true && it.prompt == null } == true }
         val led = nav()!!.version
         shot("2-led-to-one")
         pause(20_000, "standing beside the plan's own line: the field flipped back after ~2 s, four times")

@@ -64,7 +64,7 @@ class SlowPlanTest {
     }
 
     @Test fun theAppAsksOnlyInPlanAndCancelIsTheUsualCancel() {
-        val vm = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+        val vm = File("../app/src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
         // only a run started in Plan asks; Cancel is the usual Cancel; "Weiter warten" runs again for the same cause with
         // one more period and a new run starts at one period: the route run's rules (RouteRunTest
         // aRunForNavigateKeepsTheStraightLegsAtTheTimeLimit, cancelOfWeiterWartenIsTheUsualCancel,
@@ -80,7 +80,7 @@ class SlowPlanTest {
         assertTrue(perform, perform.contains("is RouteRun.Effect.Cancel -> cancelRun(fx.why)"))
         // RunCause.again (PlanStatusTest.eachTriggerSetsTheCauseOfTheNextRun)
         assertTrue(perform, perform.contains("is RouteRun.Effect.Rerun -> { if (fx.sameCause) runCauses.again(); recalc() }"))
-        val screen = File("src/main/java/com/onpath/app/ui/MapScreen.kt").readText()
+        val screen = File("../app/src/main/java/com/onpath/app/ui/MapScreen.kt").readText()
         assertTrue(screen.contains("vm.slowPlanAsk?.let { slowPlanMessage(onAnswer = vm::answerSlowPlan) }"))
     }
 }

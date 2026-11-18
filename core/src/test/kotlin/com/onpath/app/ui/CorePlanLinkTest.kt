@@ -61,10 +61,10 @@ class CorePlanLinkTest {
      * hands every link to that flow, and MainActivity looks for a plan link first.
      */
     @Test fun brokenLinkSaysSoAndChangesNothing() {
-        val vm = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+        val vm = File("../app/src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
         assertTrue("fun receivePlanLink(found: com.onpath.app.routing.PlanLinks.Found, via: String) = links.receive(found, via)" in vm)
         // MainActivity checks for a plan link before the place / GPX handling (a planner link is no Google place)
-        val act = File("src/main/java/com/onpath/app/MainActivity.kt").readText().substringAfter("private fun handleIntent(")
+        val act = File("../app/src/main/java/com/onpath/app/MainActivity.kt").readText().substringAfter("private fun handleIntent(")
         assertTrue(act.indexOf("planLinkOf(intent)") in 0 until act.indexOf("sharedPlaceOf(intent)"))
     }
 }

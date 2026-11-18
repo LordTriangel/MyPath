@@ -105,7 +105,7 @@ class TourRunTest {
 
     /** The wiring: both start branches make a new run before the tour's first stats write; no per-tour field outside it. */
     @Test fun theServiceStartsEveryTourWithAFreshRun() {
-        val svc = File("src/main/java/com/onpath/app/recording/RecordingService.kt").readText()
+        val svc = File("../app/src/main/java/com/onpath/app/recording/RecordingService.kt").readText()
         val start = svc.substringAfter("private fun startCommand(").substringBefore("\n    private fun goForeground(")
         val firstStats = start.indexOf("db.updateStats(tourId, distance")
         assertTrue(firstStats > 0)

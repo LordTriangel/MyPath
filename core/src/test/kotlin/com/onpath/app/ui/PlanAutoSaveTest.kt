@@ -38,7 +38,7 @@ class PlanAutoSaveTest {
 
     @Test fun noPlanNothingToSave() = assertEquals(NOTHING, PlanAutoSave.atStart(points = 1, unsaved = true, changesASavedPlan = false))
 
-    private val vm = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+    private val vm = File("../app/src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
     private fun body(start: String) = vm.substringAfter(start).substringBefore("\n    }\n")
 
     @Test fun losGehtsSavesTheNewPlan() =

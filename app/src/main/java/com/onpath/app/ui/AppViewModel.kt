@@ -3044,10 +3044,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Times of a finished tour: the service's live summary, else recomputed from the stored points. */
     private fun tourTimes(t: Tour): com.onpath.app.time.TourTimes? = try {
-        // rides taken out (vehicle detection): moving time / breaks of what is left, not the service's live summary
-        if (t.rides != null && t.rides.choice != com.onpath.app.rides.RideChoice.AS_RECORDED)
+        val rides = t.rides // rides taken out (vehicle detection): moving time / breaks of what is left, not the service's live summary
+        if (rides != null && rides.choice != com.onpath.app.rides.RideChoice.AS_RECORDED)
             com.onpath.app.time.TourTimes.of(t.durationS, com.onpath.app.time.BreakDetector.breaksIn(
-                com.onpath.app.rides.RideView.keptSegments(db.loadSegments(t.id), t.rides)))
+                com.onpath.app.rides.RideView.keptSegments(db.loadSegments(t.id), rides)))
         else com.onpath.app.time.TourTimesStore(File(getApplication<Application>().filesDir, com.onpath.app.time.TourTimesStore.FILE)).get(t.id)
             ?: com.onpath.app.time.TourTimes.of(t.durationS, com.onpath.app.time.BreakDetector.breaksIn(db.loadSegments(t.id)))
     } catch (e: Exception) {
@@ -3820,9 +3820,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return withContext(Dispatchers.IO) {
             try {
                 val all = db.loadSegments(t.id)
-                // rides taken out as chosen at End tour (vehicle detection): the review is of what was walked / ridden
-                val segs = if (t.rides != null && t.rides.choice != com.onpath.app.rides.RideChoice.AS_RECORDED)
-                    com.onpath.app.rides.RideView.keptSegments(all, t.rides) else all
+                val rides = t.rides // rides taken out as chosen at End tour (vehicle detection): the review is of what was walked / ridden
+                val segs = if (rides != null && rides.choice != com.onpath.app.rides.RideChoice.AS_RECORDED)
+                    com.onpath.app.rides.RideView.keptSegments(all, rides) else all
                 com.onpath.app.time.TourReview.of(segs, tourTimes(t), t.durationS, t.distanceM, lengths)
             } catch (e: Exception) {
                 Problems.warn("time", "Review of tour ${t.id} not computed – the overview shows its stored numbers only", e)
@@ -4872,7 +4872,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 else m
             }.let { m ->
                 // rides taken out: the overview recomputes the times from the kept points – the row does not know them
-                val asRecorded = m.rides == null || m.rides.choice == com.onpath.app.rides.RideChoice.AS_RECORDED
+                val asRecorded = m.rides?.choice.let { it == null || it == com.onpath.app.rides.RideChoice.AS_RECORDED }
                 if (m.kind == TourKind.RECORDED && asRecorded)
                     m.copy(avgKmh = com.onpath.app.time.TourReview.averageFromTimes(times[m.id], m.distanceM))
                 else m

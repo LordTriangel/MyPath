@@ -57,7 +57,7 @@
       "blob": "7301c5f0ca06814840aa55f5d45fd83bdf5bcc94"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/domain/RouteRules.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/domain/RouteRules.kt",
       "what": "saveMode (OVERWRITE / NEW_ROUTE: Save at once, \"wie Word\") – the names are shared now (routing/PlanNames.kt, engine planNewRouteName / planCopyName)",
       "web": [
         "web/app/src/plans.ts"
@@ -170,7 +170,7 @@
         "web/app/src/plans.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "d5d9c2ed129324241e7f822f331c6e080dba8852"
+      "blob": "13c027f1f66b69b903a72c62b9d9c5e4f4e648e1"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -198,7 +198,7 @@
       "blob": "826ac41caadaa14966beb023684199ff6412926d"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/debug/UserText.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/debug/UserText.kt",
       "what": "own RoutingException texts shown, else the plain sentence (engine stand-in)",
       "web": [
         "web/engine/src/main/kotlin/com/onpath/app/debug/UserText.kt"
@@ -272,7 +272,7 @@
       "blob": "f59a6e4b5b755b6a8da8dd43d87a154101ac89cb"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/cells/CellTriggers.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/cells/CellTriggers.kt",
       "what": "T1 point set (more than 3 new = loaded plan → T4 only), T2 search result, T3 position, T4 route corridor – web triggers (the map resting orders nothing, A-011)",
       "web": [
         "web/app/src/areas.ts",
@@ -297,7 +297,7 @@
       "blob": "ff02f7b3a4db84e9777523963d8b04501810fbd9"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/domain/routes/RouteSort.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/domain/routes/RouteSort.kt",
       "what": "Meine Touren's order: keys and their order, tap rule, ties (newest, then id), encode / decode (web: localStorage onpath.routesSort; a row without numbers goes last)",
       "web": [
         "web/app/src/routesort.ts"
@@ -315,7 +315,7 @@
       "blob": "534a18d1117d673ae6e21b12a8529245cfa6e36a"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/domain/RoutesTab.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/domain/RoutesTab.kt",
       "what": "search (every word in the name, case / accents / ß folded)",
       "web": [
         "web/app/src/plans.ts"
@@ -323,7 +323,7 @@
       "blob": "4d4409dc64ad66fa6fd75a3af5919f1696670876"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/domain/plan/LivePlan.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/domain/plan/LivePlan.kt",
       "what": "LivePlanRows.of / RecentRow – the one Zuletzt row: the plan on the map („In Bearbeitung“, + „Gespeichert“ when saved as it is), else the pointed draft / saved route, a draft never hides",
       "web": [
         "web/app/src/recent.ts",
@@ -656,7 +656,7 @@
       "blob": "ece866248097738df720edda477146aa79130770",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/routing/Planner.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/Planner.kt": {
       "blob": "940a11f389698e98d48f9701c0b84626fcc30d21",
       "perf": [
         "* points = same legs = same route: the cache saves time, never changes a line.",
@@ -842,7 +842,7 @@
         "var best = Double.MAX_VALUE"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/PlanDays.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/PlanDays.kt": {
       "blob": "94fa7638cf8ade64a86a2e91a46268df9e99398b",
       "perf": [
         "/** A limit per day a day is above (R8: its row turns orange with that value). */",
@@ -1222,7 +1222,7 @@
         "val t = limit.coerceIn(1, 6)"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/PlanResult.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/PlanResult.kt": {
       "blob": "2dfaad9e0739c2a172d6417608895a50f7d4922f",
       "perf": []
     },
@@ -1446,7 +1446,7 @@
         "assertEquals(PlanCode.MAX_DESCRIPTION, back.description!!.length)"
       ]
     },
-    "app/src/test/java/com/onpath/app/routing/PlanDaysTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/PlanDaysTest.kt": {
       "blob": "d92a88331de33b3fd17f079d0ad7ac2fb5626398",
       "perf": [
         "assertNull(PlanDays.setDays(blue, PlanCode.MAX_DAYS + 1))",
@@ -1455,7 +1455,7 @@
         "assertEquals(PlanCode.MAX_DAYS, PlanDays.start(tour, 1000).days)"
       ]
     },
-    "app/src/test/java/com/onpath/app/routing/PlanMarksFollowTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/PlanMarksFollowTest.kt": {
       "blob": "13ccd938f2b655255ab60abd32825cf294ba5eda",
       "perf": []
     },
@@ -1559,7 +1559,7 @@
         "* household). Over [ratePerMinute] calls in the minute of [clock] (a fixed window, as Cloudflare's simple limit) the"
       ]
     },
-    "app/src/test/java/com/onpath/app/routing/PlanResultTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/PlanResultTest.kt": {
       "blob": "f8ceb20079564e9119999ef312bb9653b639f626",
       "perf": []
     },
@@ -1579,11 +1579,11 @@
       "blob": "50090800c2848bdf0aa0012cc1ca9cc242bfba8d",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/routing/PlannerLegsTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/PlannerLegsTest.kt": {
       "blob": "3a5cdb535c729bfc6a4067279c36c41923be26dd",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/routing/LegCacheTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/LegCacheTest.kt": {
       "blob": "751ffebe9ee6f07bcbf7678a8b7257371ba97788",
       "perf": [
         "* The leg cache (owner 2026-11-05, \"long bike routes faster\"): an edit routes only the legs it changed, same points give",
