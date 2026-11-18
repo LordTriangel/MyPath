@@ -43,7 +43,7 @@ object WebSync {
 
     /**
      * Saved plans and imported tracks, newest first: [{id, kind, title, plan, track, updatedAt, device, mine, dirty, onPhone,
-     * favourite, activity, sac, roundTrip}]
+     * favourite, activity, sac, roundTrip, days}]
      * ([kind] "plan" / "track", [mine] = last changed on this device, [device] = who changed it last, [dirty] = not in
      * the mailbox in this version yet – what Save sends, [onPhone] = a version of it is in the mailbox: web-sync.md §14.6;
      * [favourite] = sync field 9, not said = false (§5.3); [activity] / [sac] / [roundTrip] = [factsFields], for My routes' row).
@@ -65,12 +65,14 @@ object WebSync {
      * What My routes' row says of a plan or track besides its name (owner 2026-11-13): its activity (the enum name, null
      * = unreadable), the T level and "↻ Rundtour" – the app's ui/routes/RoundTrip (not shared: it reads the app's Tour):
      * a plan is a round trip when its points end at its start ([PlanEdits.isRoundTrip], the plan sheet's ↻ rule: certain);
-     * an imported track has no plan to ask – a guess from its line ([roundTripGuess]).
+     * an imported track has no plan to ask – a guess from its line ([roundTripGuess]). [days] = a multi-day tour's N (its
+     * plan code's tour part – the app's "6 Tage · …"), null = a normal plan or a track.
      */
     private fun factsFields(it: SyncItem): String {
         var act: com.onpath.app.routing.Activity? = null
         var sac = 0
         var loop = false
+        var days: Int? = null
         if (it.kind == SyncItem.TRACK) {
             TrackCode.of(it.track ?: "")?.let { t ->
                 act = t.activity; sac = t.sac
@@ -78,17 +80,17 @@ object WebSync {
             }
         } else {
             com.onpath.app.routing.PlanCode.parse(it.plan ?: "")?.let { p ->
-                act = p.activity; sac = p.sac; loop = com.onpath.app.routing.PlanEdits.isRoundTrip(p.points)
+                act = p.activity; sac = p.sac; loop = com.onpath.app.routing.PlanEdits.isRoundTrip(p.points); days = p.days
             }
         }
-        return "\"activity\":" + (act?.name?.let(::str) ?: "null") + ",\"sac\":" + sac + ",\"roundTrip\":" + loop
+        return "\"activity\":" + (act?.name?.let(::str) ?: "null") + ",\"sac\":" + sac + ",\"roundTrip\":" + loop + ",\"days\":" + days
     }
 
-    /** [factsFields] of a plan code alone (a Zuletzt draft, kept in this browser – no sync item): {activity, sac, roundTrip}. */
+    /** [factsFields] of a plan code alone (a Zuletzt draft, kept in this browser – no sync item): {activity, sac, roundTrip, days}. */
     fun planFacts(plan: String): String {
-        val p = com.onpath.app.routing.PlanCode.parse(plan) ?: return "{\"activity\":null,\"sac\":0,\"roundTrip\":false}"
+        val p = com.onpath.app.routing.PlanCode.parse(plan) ?: return "{\"activity\":null,\"sac\":0,\"roundTrip\":false,\"days\":null}"
         return "{\"activity\":" + str(p.activity.name) + ",\"sac\":" + p.sac + ",\"roundTrip\":" +
-            com.onpath.app.routing.PlanEdits.isRoundTrip(p.points) + "}"
+            com.onpath.app.routing.PlanEdits.isRoundTrip(p.points) + ",\"days\":" + p.days + "}"
     }
 
     /**

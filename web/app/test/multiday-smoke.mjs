@@ -257,6 +257,32 @@ async function run(lang, viewport, shotPrefix) {
   await page.waitForFunction((n) => document.querySelectorAll('.pin').length === n, before, { timeout: 30_000 }).catch(() => {});
   check(await pins() === before, 'undo takes the far point back');
 
+  // 13 · Meine Touren (app 73e83067, its TourCard): a multi-day row's facts start with „3 Tage · “ – the saved route,
+  // then (a day more, unsaved, + Neu) the Zuletzt draft with „4 Tage · “
+  const daysRe = (n) => new RegExp('^' + n + (lang === 'de' ? ' Tage' : ' days') + '( · |$)');
+  const openPlans = async () => {
+    if (viewport.width <= 700) await page.click('#menuBtn');
+    await page.click('#menuPlans');
+    await page.waitForSelector('dialog.plans[open] #planList li', { timeout: 60_000 });
+    await page.waitForTimeout(300);
+  };
+  const statsOf = (sel) => page.$$eval(sel, (ls) => ls.map((l) => l.querySelector('.stats')?.textContent ?? ''));
+  await openPlans();
+  // (the imported GPX tracks are saved routes too – one day, no „N Tage“)
+  const savedStats = await statsOf('#planList li.saved:not([data-zuletzt])');
+  check(savedStats.filter((s) => daysRe(3).test(s)).length === 1 && savedStats.filter((s) => !daysRe(3).test(s)).every((s) => !/ (Tage|days)/.test(s)), `the saved multi-day route's row: „3 ${lang === 'de' ? 'Tage' : 'days'} · …“ (${savedStats.join(' | ')})`);
+  if (viewport.width > 700) await shot('6-my-routes');
+  await page.click('#closePlans');
+  await page.click('#toPlus');
+  await waitView(() => window.__days.lastView?.days === 4, '4 days before + New');
+  await page.click('#newPlan');
+  await page.waitForFunction(() => document.querySelectorAll('.pin').length === 0, null, { timeout: 10_000 }).catch(() => {});
+  await page.waitForTimeout(300);
+  await openPlans();
+  const draftStats = await statsOf('#planList li.draft');
+  check(draftStats.length === 1 && daysRe(4).test(draftStats[0]), `the Zuletzt draft of a multi-day tour: „4 ${lang === 'de' ? 'Tage' : 'days'} · …“ (${draftStats.join(' | ')})`);
+  await page.click('#closePlans');
+
   check(errors.length === 0, `no page errors (${errors.slice(0, 6).join(' | ')})`);
   void T;
   await ctx.close();

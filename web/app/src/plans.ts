@@ -249,7 +249,7 @@ interface Item {
   /** Its line's key in this browser (planKey / trackKey – the map picture's key); null = the plan on the map. */
   lineKey: string | null;
   /** The activity line (the app's ActivityLine): activity, T level, round trip; none for the plan on the map (as the app). */
-  facts: { activity: string | null; sac: number; roundTrip: boolean } | null;
+  facts: { activity: string | null; sac: number; roundTrip: boolean; days?: number | null } | null;
 }
 
 /**
@@ -407,13 +407,16 @@ export async function myPlansDialog(sync: PlanSync, host: PlanHost, again = fals
     const thumbKeyOf = it.lineKey && it.segs ? thumbKey(it.lineKey, it.segs) : null;
     const pic = thumbKeyOf ? host.thumbs?.cached(thumbKeyOf) ?? null : null;
     // a round trip says so to the screen reader too (the app's ", Rundtour" in the row's label)
+    // a multi-day tour (app 73e83067, its TourCard): „6 Tage · 564 km · …“ – N from the plan code's tour part
+    const nDays = f?.days ?? 0;
+    const tourDays = nDays > 0 ? tp('multiday_days_count', nDays, nDays) + (it.stats ? ' · ' : '') : '';
     const openLabel = t('routes_open_row', it.title) + (f?.roundTrip ? ', ' + t('plan_round_trip') : '');
     // the app's L1 row (21c0eac1): map tile, name, activity line („Wandern · T2 · ↻ Rundtour“), facts; ⋮ over the star
     const star = p && it.section === 'saved' ? starHtml(!!p.favourite, it.title) : '';
     li.innerHTML = `<div class="rowmain">
       <button class="tile" tabindex="-1" aria-hidden="true">${tileHtml(it.segs, it.kind, it.section === 'draft', pic)}</button>
       <button class="open" title="${esc(openLabel)}" aria-label="${esc(openLabel)}"><span class="txt"><span class="nameline"><span class="name">${esc(it.title)}</span>${tag}</span>
-        ${f ? activityLineHtml(f.activity, f.sac, f.roundTrip, actRows()) : ''}${it.stats ? `<span class="stats">${esc(statsText(it.stats))}</span>` : ''}${marked ? `<span class="justsavedline">${esc(t('routes_just_saved'))}</span>` : ''}</span></button>
+        ${f ? activityLineHtml(f.activity, f.sac, f.roundTrip, actRows()) : ''}${it.stats || tourDays ? `<span class="stats">${esc(tourDays + (it.stats ? statsText(it.stats) : ''))}</span>` : ''}${marked ? `<span class="justsavedline">${esc(t('routes_just_saved'))}</span>` : ''}</span></button>
       ${where}
       <span class="rowside">${spec.menu.length ? `<button class="more iconbtn" aria-haspopup="menu" aria-expanded="false" aria-label="${esc(t('web_route_options'))}" title="${esc(t('web_route_options'))}">${icon('moreVert', 22)}</button>
         <div class="menu rowmenu" role="menu" hidden>${spec.menu.map((a) => `<button class="m-${a} ${MENU_CLASS[a]}${a === 'plan' ? ' planact' : ''}${a === 'delete' ? ' danger' : ''}" role="menuitem">${icon(ic[a], 20)}${esc(label[a])}</button>`).join('')}</div>` : ''}${star}</span>
@@ -613,7 +616,7 @@ export async function myPlansDialog(sync: PlanSync, host: PlanHost, again = fals
       const lineKey = p.kind === 'track' ? trackKey(p.id) : planKey(p.plan);
       return { section: 'saved', id: p.id, kind: p.kind === 'track' ? 'track' : 'plan', title: titleOf(p), at: p.updatedAt,
         stats: statsFor(p), segs: shapeOf(lineKey), code: p.plan ?? null, saved: p, lineKey,
-        facts: { activity: p.activity ?? null, sac: p.sac ?? 0, roundTrip: !!p.roundTrip } };
+        facts: { activity: p.activity ?? null, sac: p.sac ?? 0, roundTrip: !!p.roundTrip, days: p.days ?? null } };
     };
     // the recycle bin's way in (the app: My routes ⋮ → Papierkorb) – while it holds a plan
     $('plansBin').hidden = !binnedPlans().length && !binnedSaved;

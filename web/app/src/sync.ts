@@ -32,6 +32,8 @@ export interface SavedPlan {
   activity?: string | null; sac?: number;
   /** „↻ Rundtour“ (the app's RoundTrip: a plan's points end at its start; a track: a guess from its line). */
   roundTrip?: boolean;
+  /** A multi-day tour's N (its plan code's tour part; the row's „6 Tage · …“); null = a normal plan or a track. */
+  days?: number | null;
 }
 /**
  * A saved route in this browser's recycle bin (deleted while no phone was paired, owner 2026-11-15): the whole item, so
@@ -310,11 +312,11 @@ export class PlanSync {
     await this.refresh();
   }
 
-  /** A Zuletzt draft's activity line (its plan code alone – no sync item): {activity, sac, roundTrip}. */
-  async planFacts(code: string): Promise<{ activity: string | null; sac: number; roundTrip: boolean }> {
+  /** A Zuletzt draft's activity line (its plan code alone – no sync item): {activity, sac, roundTrip, days}. */
+  async planFacts(code: string): Promise<{ activity: string | null; sac: number; roundTrip: boolean; days: number | null }> {
     try { return JSON.parse(await this.call('syncPlanFacts', code)); } catch (e) {
       problem('routes', 'a Zuletzt plan\'s activity could not be read – its row shows none', e);
-      return { activity: null, sac: 0, roundTrip: false };
+      return { activity: null, sac: 0, roundTrip: false, days: null };
     }
   }
 

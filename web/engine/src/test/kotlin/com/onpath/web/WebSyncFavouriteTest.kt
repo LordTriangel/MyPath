@@ -57,8 +57,17 @@ class WebSyncFavouriteTest {
         l = WebSync.save(l, id(2), code(listOf(meran, vellau, dorf, meran), Activity.MTB, 2), "Runde", 1000.0, dev)
         assertTrue(row(l, id(1)).contains("\"activity\":\"HIKE\",\"sac\":3,\"roundTrip\":false"))
         assertTrue(row(l, id(2)).contains("\"activity\":\"MTB\",\"sac\":2,\"roundTrip\":true"))
-        assertEquals("{\"activity\":\"MTB\",\"sac\":2,\"roundTrip\":true}", WebSync.planFacts(code(listOf(meran, vellau, dorf, meran), Activity.MTB, 2)))
-        assertEquals("{\"activity\":null,\"sac\":0,\"roundTrip\":false}", WebSync.planFacts("nonsense"))
+        assertEquals("{\"activity\":\"MTB\",\"sac\":2,\"roundTrip\":true,\"days\":null}", WebSync.planFacts(code(listOf(meran, vellau, dorf, meran), Activity.MTB, 2)))
+        assertEquals("{\"activity\":null,\"sac\":0,\"roundTrip\":false,\"days\":null}", WebSync.planFacts("nonsense"))
+    }
+
+    @Test fun aMultiDayTourSaysItsDays() {
+        // the app's My routes row: "6 Tage · 564 km · …" – N from the plan code's tour part, saved row and Zuletzt draft alike
+        val tour = PlanCode.encode(SharedPlan(listOf(meran, vellau, dorf), Activity.BIKE_TOURING, 1, days = 6))
+        val l = WebSync.save("", id(5), tour, "Alpen", 1000.0, dev)
+        assertTrue(row(l, id(5)).contains("\"roundTrip\":false,\"days\":6"))
+        assertTrue(WebSync.planFacts(tour).endsWith(",\"days\":6}"))
+        assertTrue(row(WebSync.save(l, id(1), code(listOf(meran, vellau)), "Hin", 1000.0, dev), id(1)).contains("\"days\":null"))
     }
 
     @Test fun anImportedTrackIsAGuessFromItsLine() {
