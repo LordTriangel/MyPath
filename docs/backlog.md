@@ -473,8 +473,7 @@ and the commit history.
   7.2 km – expectation or gap?); zip import checks only sizes (cell downloads check sha256).
 
 ## Waiting for the owner
-- **[umbau] (2026-11-18) E2E nightly instead of on every push – your pull request step** (you said yes to it with the rebuild): my GitHub token may not push workflow files, so the change waits as `tools/ci/pending/e2e-nightly-shards-2026-11-18.patch` (nightly on main, by hand before a release, one class on demand; the full run on 4 emulators). Owner: `git am tools/ci/pending/e2e-nightly-shards-2026-11-18.patch` on a branch and open + merge the PR (or give donald's token the `workflow` scope – then [umbau] opens it). Not tested on GitHub yet (it cannot run before it is pushed) – [umbau] watches the first night. Until then the old push run stays and checkpoints use `tools/ci/e2e_shards.sh`.
-<!-- Owner 2026-11-07: open questions to the owner live here (who, date, question, recommendation first); asked in the session's chat; whoever acts on the answer deletes the line. -->
+- **[umbau] E2E nightly – pull request https://github.com/happychriss/OnPath/pull/13 waits for the owner's merge** (captain opened it 2026-11-18 from [umbau]'s patch, unchanged; one click „Merge“). [umbau] watches the first night.
 - **[donald] Only our signed apps on the map server? (owner 2026-11-07, chat)** – App Links need no per-phone step
   (one fingerprint per signing key: GitHub test key + Play App Signing key, both in `web/host` assetlinks). Server
   access cannot be tied to our signature without Google Play Integrity (needs Play Services – against the "no Google
