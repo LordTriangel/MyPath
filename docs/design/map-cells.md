@@ -511,6 +511,33 @@ to `<name>.part` with `Range` resume → size + sha256 (wrong → deleted, one r
 reloads the style. A complete download found at start (crash before joining) is joined then.
 HttpURLConnection like AppUpdater; headers `X-OnPath-Key`, `X-OnPath-App`.
 
+**A new version downloads only what changed** (owner 2026-11-17; before, every schema bump loaded 9–23 MB per area
+again). The store keeps no cell files – a cell's tiles and POIs live only inside the generation – so "reuse" has two
+forms, both by the manifest's name + sha256 against the installed version's (`store.json` keeps per cell `sha`: the
+sha256 of every file it was installed from, and `content`: a hash of the cell's own tiles per layer / of its POIs, taken
+from the verified download):
+- **tile layers and `pois.geojson`** with the installed sha256 are **not downloaded and not written to the download
+  folder**; the folder's manifest is then `manifest.reuse.json` instead of `manifest.json` (`{"from": "<installed
+  version>", "files": [...], "manifest": "<manifest text>"}` – one file, written synced before the folder rename; an
+  app that does not know it finds no manifest, deletes the folder and loads the area again) and the join copies the
+  cell's tiles / POIs of those layers from the current generation, like a kept cell's (`CellStore.Reuse`, `apply`).
+  Before a layer counts, the cell's part of the current generation is read and hashed and must equal `content`
+  (`CellStore.reusable`; real cell 23 MB: 55 ms on the PC) – a damaged store file is reported and downloaded;
+- **`addresses/<cell>.sqlite` and `suggest.bin`** lie beside the store: copied into the download folder, the copy's
+  size + sha256 checked (`MapCells.copyInstalled`); changed on the phone → reported and downloaded.
+
+Nothing installed, a cell installed before the hashes were kept (no `sha` in `store.json`), or a changed file →
+downloaded as before. The switch stays one generation rename: `apply` refuses a download whose note does not fit the
+installed cell (other version, other file, cell deleted) and any download in which a tile layer / the POIs of its
+manifest is neither a file nor left to the installed version (`ReuseException`, nothing written – a layer never goes
+missing silently); the worker then deletes that download, reports it and asks for the area again, in full (as the
+update it was, else as a refresh; an area that is not installed is dropped – the next point / route there asks).
+Known cost (follow-up, not built): the POI check reads the generation's whole `pois.geojson` once per generation
+(kept in memory per generation + file size / time, `poiHashesOf`) – with many areas tens of MB of JSON per refresh
+batch; a per-cell POI index or the POI tiles' hash would avoid it. The size shown and the progress count only what
+is downloaded; the trace says "Download finished: … (reused 6 files, 22.2 MB)". Storage: less than before (the reused
+layers are never on disk twice outside the generations).
+
 **Mobile data rule** (§9, Q2/Q5): unmetered network (`NET_CAPABILITY_NOT_METERED`) → always; refresh → Wi-Fi only;
 `wifiOnly` setting → Wi-Fi only; else a cell requested with `ownPoint` loads at once, others wait as
 `WaitingForWifi(bytes)` until Wi-Fi or `approveMobile(cells)`.
@@ -548,10 +575,14 @@ types refused, truncated file), `CellIdTest` (Meran values, half-open rule, neig
 (add / neighbour / replace / delete / last delete, damaged input keeps the old generation, crash leftovers, low storage,
 region join + re-join, format-1 not joined, rollback, search index on a generation), `CellDownloadTest` against a tiny
 socket-based fake doorman (request / status / manifest, 401, offline, Range resume, sha256 damage, request → poll →
-download → join, mobile-data rule, Wi-Fi only, offline → online, server failure, refresh, restart resume, delete).
+download → join, mobile-data rule, Wi-Fi only, offline → online, server failure, refresh, restart resume, delete),
+`CellReuseTest` (a new version: only the changed file is fetched, a damaged file on the phone is fetched, nothing
+installed / no hashes → everything, interrupted → goes on, never a mix of two versions, a download whose kept files no
+longer fit → dropped and loaded in full), `CellStoreReuseTest` (the store's side).
 Optional: `RealCellsTest` with `ONPATH_CELLS_DIR=…/cells-data/cells/f2` (+ `ONPATH_REGION_DIR=…/out-f2/onpath-data`)
 joins the two real cells (+ region); `StoreWriteCostTest` with `ONPATH_STORE_BENCH=1` measures the write time per
-store size (§19.9); `ONPATH_LIVE=1` downloads 10-543-361 from the test doorman (key from
+store size (§19.9); `ONPATH_REAL_CELL=<a cell's version folder>` reuses a real cell for a new version;
+`ONPATH_LIVE=1` downloads 10-543-361 from the test doorman (key from
 `~/.gradle/gradle.properties`, never printed). Gradle caches test results: add `--rerun`.
 
 ### 19.6 To check on the phone

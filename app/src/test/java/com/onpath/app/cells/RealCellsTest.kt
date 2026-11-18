@@ -15,6 +15,8 @@ import java.io.File
  * - `ONPATH_CELLS_DIR=…/onpath-build/cells-data/cells/f2` – two neighbouring format-2 cells built locally
  *   (10/543/361 Meran and 10/544/361 Bozen side), joined in the store;
  * - `ONPATH_REGION_DIR=…/onpath-build/out-f2` (optional, with the cells) – a format-2 region package joined too;
+ * - `ONPATH_REAL_CELL=…/cells/f2/10/531/342/2026-10-25-s6` – one real cell version folder: a new version of it that only
+ *   brings a new suggest.bin reuses every map file from the store (hashes equal on real data, sizes and times printed);
  * - `ONPATH_LIVE=1` – downloads cell 10-543-361 from the test doorman (key `onpath.mapKey.test` from
  *   ~/.gradle/gradle.properties, never printed) and joins it.
  */
@@ -74,6 +76,50 @@ class RealCellsTest {
         if (regionDir == null) assertEquals(OfflineIndex.readPois(File(cellDir(root, a), "pois.geojson")).size +
             OfflineIndex.readPois(File(cellDir(root, b), "pois.geojson")).size, pois.size)
         assertTrue(File(data, "addresses/${a.id}.sqlite").isFile && File(data, "addresses/${b.id}.sqlite").isFile)
+    }
+
+    /** The owner's case on a real cell: version 2 = the same files + a new suggest.bin. What would be downloaded, and what the check costs. */
+    @Test fun aNewVersionOfARealCellReusesItsMapFiles() {
+        val src = System.getenv("ONPATH_REAL_CELL")?.let(::File)
+        assumeTrue("ONPATH_REAL_CELL not set", src != null && File(src, CellStore.MANIFEST).isFile)
+        val store = CellStore(tmp.newFolder("data"))
+        val d1 = asDownload(store, src!!)
+        val c = d1.manifest.cell
+        var t0 = System.currentTimeMillis()
+        val g1 = store.apply(add = listOf(d1))
+        val joinMs = System.currentTimeMillis() - t0
+        store.deleteDownloads(c)
+        // version 2: the manifest names the same files (same sha256) and a new suggest.bin
+        val o = org.json.JSONObject(d1.manifest.json).put("version", d1.manifest.version + "x")
+        val suggest = ByteArray(300_000) { it.toByte() }
+        val dir2 = File(File(store.downloadDir, c.id), d1.manifest.version + "x").apply { mkdirs() }
+        File(dir2, CellStore.SUGGEST).writeBytes(suggest)
+        o.getJSONArray("files").put(org.json.JSONObject().put("name", CellStore.SUGGEST).put("size", suggest.size)
+            .put("sha256", com.onpath.app.net.HttpDownload.sha256Of(File(dir2, CellStore.SUGGEST))).put("url", "x/suggest.bin"))
+        o.put("total_size", d1.manifest.totalSize + suggest.size)
+        val m2 = CellManifest.parse(o.toString())
+        t0 = System.currentTimeMillis()
+        val reuse = store.reusable(m2)
+        val checkMs = System.currentTimeMillis() - t0
+        val inStore = m2.files.filter { it.name in CellStore.LAYERS || it.name == CellStore.POIS }
+        assertEquals(inStore.map { it.name }.toSet(), reuse?.names)
+        val addr = m2.files.first { it.name.startsWith("addresses/") }
+        val copy = File(dir2, addr.name).also { it.parentFile.mkdirs() }
+        store.installedFile(c, addr)!!.copyTo(copy)
+        assertEquals(addr.sha256, com.onpath.app.net.HttpDownload.sha256Of(copy))
+        store.writeManifest(dir2, m2, reuse)
+        val g2 = store.apply(add = listOf(store.pendingDownloads().single()))
+        assertEquals(m2.version, g2.cell(c)!!.version)
+        assertEquals(g1.cell(c)!!.bytes, g2.cell(c)!!.bytes)
+        assertEquals(g1.cell(c)!!.content, g2.cell(c)!!.content)
+        for (f in inStore) {
+            if (f.name == CellStore.POIS) assertEquals(OfflineIndex.readPois(File(src, f.name)).size, OfflineIndex.readPois(File(g2.dir, f.name)).size)
+            else assertEquals(f.name, CellStore.tileHash(File(src, f.name), c), CellStore.tileHash(File(g2.dir, f.name), c))
+        }
+        assertEquals(CellStore.poiHashes(File(src, CellStore.POIS), setOf(c)), CellStore.poiHashes(File(g2.dir, CellStore.POIS), setOf(c)))
+        val reused = inStore.sumOf { it.size } + addr.size
+        println("real cell $c: version ${m2.totalSize} bytes, reused $reused (${inStore.size + 1} files), downloaded ${m2.totalSize - reused}; " +
+            "first join $joinMs ms, check before the download $checkMs ms")
     }
 
     @Test fun liveTestServer() {

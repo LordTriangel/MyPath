@@ -586,6 +586,10 @@ class MapCells(
     private var backoff = 0
     /** Cells whose download was damaged once in this run (second time → failed). */
     private val damaged = HashSet<CellId>()
+    /** Areas whose next download takes nothing from the installed version (a reuse failed, [applyDownloads]); worker only. */
+    private val noReuse = HashSet<CellId>()
+    /** Why each area downloaded in this run was asked for (a download that cannot be joined is asked again the same way). */
+    private val askedAs = java.util.concurrent.ConcurrentHashMap<CellId, CellReason>()
 
     private val queueFile get() = File(store.root, "requests.json")
     private val usageFile get() = File(store.root, "usage.json")
@@ -646,9 +650,10 @@ class MapCells(
             val pending = store.pendingDownloads()
             val toJoin = pending.filter { d -> cur?.cell(d.manifest.cell)?.version != d.manifest.version }
             pending.filter { it !in toJoin }.forEach { store.deleteDownloads(it.manifest.cell) }
-            if (toJoin.isNotEmpty()) {
-                publish(store.apply(add = toJoin))
-                toJoin.forEach { store.deleteDownloads(it.manifest.cell); dequeue(it.manifest.cell) }
+            val joined = applyDownloads(toJoin)
+            if (joined != null) {
+                publish(joined.first)
+                joined.second.forEach { store.deleteDownloads(it.manifest.cell); dequeue(it.manifest.cell) }
             } else if (store.regionChanged()) publish(store.apply())
         } catch (e: Exception) {
             Problems.error("cells", "Downloaded map areas could not be joined after a restart; they load again", e)
@@ -673,13 +678,72 @@ class MapCells(
             val toJoin = pending.filter { d -> cur?.cell(d.manifest.cell)?.version != d.manifest.version }
             pending.filter { it !in toJoin }.forEach { store.deleteDownloads(it.manifest.cell) }
             if (toJoin.isEmpty()) return
-            publish(store.apply(add = toJoin))
-            synchronized(finished) { toJoin.forEach { finished.remove(it.manifest.cell) } }
-            toJoin.forEach { store.deleteDownloads(it.manifest.cell); set(it.manifest.cell, CellState.Ready(it.manifest.version)) }
-            Problems.info("cells", "Map cells downloaded during the tour joined: ${toJoin.joinToString { it.manifest.cell.id }}")
+            val (gen, joined) = applyDownloads(toJoin) ?: return
+            publish(gen)
+            synchronized(finished) { joined.forEach { finished.remove(it.manifest.cell) } }
+            joined.forEach { store.deleteDownloads(it.manifest.cell); set(it.manifest.cell, CellState.Ready(it.manifest.version)) }
+            Problems.info("cells", "Map cells downloaded during the tour joined: ${joined.joinToString { it.manifest.cell.id }}")
         } catch (e: Exception) {
             Problems.error("cells", "Map areas downloaded during the tour could not be joined; they load again", e)
         }
+    }
+
+    /**
+     * [CellStore.apply] for finished downloads. A download that left files to the installed version, and that version
+     * is not there any more as it needs it, or that lacks a map layer ([CellStore.ReuseException] – nothing was written,
+     * the map is as before), is deleted, reported and – still installed – asked for again, then in full ([noReuse]): as
+     * the update it was ([askedAs]), else as a refresh. One that is not installed is dropped (the next point / route
+     * there asks again); the others are joined.
+     * Returns the new generation and the downloads in it, null when none is left. Other failures throw as before.
+     */
+    private fun applyDownloads(add: List<CellStore.Download>): Pair<CellStore.Generation, List<CellStore.Download>>? {
+        var rest = add
+        while (rest.isNotEmpty()) {
+            try { return store.apply(add = rest) to rest } catch (e: CellStore.ReuseException) {
+                val bad = rest.filter { it.manifest.cell in e.cells }
+                if (bad.isEmpty()) throw e
+                rest = rest - bad.toSet()
+                val ids = bad.map { it.manifest.cell }
+                Problems.warn("cells", "Map area(s) ${ids.joinToString { it.id }}: the download is not complete with the installed map " +
+                    "(a kept file no longer fits or a layer is missing); not joined, loading in full", e)
+                val inst = store.current()
+                ids.forEach { c ->
+                    store.deleteDownloads(c)
+                    synchronized(finished) { finished.remove(c) }
+                    noReuse += c
+                    val old = inst?.cell(c)
+                    if (old != null) set(c, CellState.Ready(old.version)) else update { it.remove(c) }
+                }
+                val again = ids.filter { inst?.cell(it) != null }
+                val (updates, others) = again.partition { askedAs[it] == CellReason.UPDATE }
+                if (updates.isNotEmpty()) request(updates, CellReason.UPDATE, ownPoint = true) // the user's Update: as [outdated] cells are asked
+                if (others.isNotEmpty()) request(others, CellReason.REFRESH, ownPoint = false)
+            }
+        }
+        return null
+    }
+
+    /**
+     * Copies the installed version's [f] (addresses, suggest file – [CellStore.installedFile]) to [dest] in the download
+     * folder when it is the same file: only a copy with the manifest's size and sha256 counts. False = download it
+     * (not the same file, changed on the phone, or the copy failed – reported).
+     */
+    private fun copyInstalled(c: CellId, f: CellManifest.File, dest: File): Boolean {
+        val src = store.installedFile(c, f) ?: return false
+        val tmp = File(dest.path + ".reuse") // never the ".part" a download resumes from
+        try {
+            dest.parentFile?.mkdirs()
+            src.copyTo(tmp, overwrite = true)
+            if (tmp.length() == f.size && com.onpath.app.net.HttpDownload.sha256Of(tmp) == f.sha256) {
+                if (!tmp.renameTo(dest)) throw java.io.IOException("could not save ${f.name}")
+                return true
+            }
+            Problems.warn("cells", "Map area $c: ${f.name} on the phone is not what was installed; downloaded again")
+        } catch (e: Exception) {
+            Problems.warn("cells", "Map area $c: ${f.name} on the phone could not be reused; downloaded again", e)
+        }
+        tmp.delete()
+        return false
     }
 
     private fun queued(c: CellId): Boolean = synchronized(queue) { c in queue }
@@ -821,12 +885,13 @@ class MapCells(
         val ids = done.map { it.manifest.cell }
         try {
             ids.forEach { set(it, CellState.Installing) }
-            val gen = store.apply(add = done)
-            ids.forEach { store.deleteDownloads(it) }
-            synchronized(finished) { ids.forEach { finished.remove(it) } }
+            val (gen, joined) = applyDownloads(done) ?: return
+            val inIt = joined.map { it.manifest.cell }
+            inIt.forEach { store.deleteDownloads(it) }
+            synchronized(finished) { inIt.forEach { finished.remove(it) } }
             publish(gen)
-            done.forEach { set(it.manifest.cell, CellState.Ready(it.manifest.version)) }
-            Problems.trace("cells", "Joined ${ids.size} region(s) into the map in one update (generation ${gen.number}): ${ids.joinToString { it.id }}")
+            joined.forEach { set(it.manifest.cell, CellState.Ready(it.manifest.version)) }
+            Problems.trace("cells", "Joined ${inIt.size} region(s) into the map in one update (generation ${gen.number}): ${inIt.joinToString { it.id }}")
             ensurePackages() // a package dropped meanwhile (e.g. during a tour) is asked for again
         } catch (e: Exception) {
             synchronized(finished) { ids.forEach { finished.remove(it) } }
@@ -992,38 +1057,64 @@ class MapCells(
                 set(c, CellState.Failed(Txt.s(Res.string.maps_err_needs_app, m.minApp), false)); dequeue(c); return
             }
             store.current()?.cell(c)?.takeIf { it.version == m.version }?.let { dequeue(c); set(c, CellState.Ready(it.version)); return }
+            // a new version of an installed area: what the manifest names with the installed version's sha256 is not
+            // loaded again. Tile layers and POIs stay in the map store and are taken from there when the version is
+            // joined (checked against the hash kept at install, [CellStore.reusable]); the address and suggest files are
+            // copied below. Nothing installed / installed before the hashes were kept / a damaged file → downloaded.
+            val part = store.partDir(m)
+            fun have(f: CellManifest.File) = File(part, f.name).let { it.isFile && it.length() == f.size && com.onpath.app.net.HttpDownload.sha256Of(it) == f.sha256 }
+            val kept = (if (c in noReuse) null else store.reusable(m))?.let { r ->
+                // a file an earlier try downloaded completely is used as it is; a begun one is not needed any more
+                val here = m.files.filter { it.name in r.names && have(it) }.map { it.name }.toSet()
+                (r.names - here).forEach { n -> File(part, n).delete(); File(part, "$n.part").delete() }
+                r.copy(names = r.names - here).takeIf { it.names.isNotEmpty() }
+            }
+            var reusedFiles = 0
+            var reusedBytes = 0L
+            m.files.filter { kept != null && it.name in kept.names }.forEach { reusedFiles++; reusedBytes += it.size }
             val free = store.root.apply { mkdirs() }.usableSpace
-            val need = m.totalSize * 2 + CellStore.MARGIN // download + its tiles in the new store generation
+            val need = m.totalSize * 2 - reusedBytes + CellStore.MARGIN // download + its tiles in the new store generation
             if (free in 0 until need) {
                 set(c, CellState.Failed(Txt.s(Res.string.maps_err_space_needs, need / 1_048_576)))
                 Problems.warn("cells", "Not enough space for map cell $c (${need / 1_048_576} MB needed)")
                 dequeue(c); return
             }
-            sizes[c] = m.totalSize
-            Problems.trace("cells", "Download start: $c (${p.reason.name.lowercase()}${if (p.ownPoint) ", own" else ""}), ${mbOf(m.totalSize)}" +
-                (if (network.unmetered()) "" else " on mobile data"))
-            val part = store.partDir(m)
             part.mkdirs()
+            // first the copies from the phone, so that the size shown and the progress are what really loads
+            val skip = HashSet<String>(kept?.names.orEmpty())
+            if (c !in noReuse) for (f in m.files) {
+                if (f.name in skip || have(f)) continue
+                if (copyInstalled(c, f, File(part, f.name))) { skip += f.name; reusedFiles++; reusedBytes += f.size }
+            }
+            val total = m.totalSize - reusedBytes
+            sizes[c] = total
+            Problems.trace("cells", "Download start: $c (${p.reason.name.lowercase()}${if (p.ownPoint) ", own" else ""}), ${mbOf(total)}" +
+                (if (reusedFiles > 0) " (reused $reusedFiles files, ${mbOf(reusedBytes)})" else "") +
+                (if (network.unmetered()) "" else " on mobile data"))
             var before = 0L
-            set(c, CellState.Downloading(0, m.totalSize))
+            set(c, CellState.Downloading(0, total))
             for (f in m.files) {
+                if (f.name in skip) continue
                 val dest = File(part, f.name)
-                if (!(dest.isFile && dest.length() == f.size && com.onpath.app.net.HttpDownload.sha256Of(dest) == f.sha256)) {
+                if (!have(f)) {
                     dest.delete()
                     val tmp = File(part, f.name + ".part")
                     val base = before
                     api.download(f, tmp) { done ->
                         if (!queued(c)) throw Cancelled() // modal → Cancel: stop the download now (the part file stays)
-                        set(c, CellState.Downloading(base + done, m.totalSize))
+                        set(c, CellState.Downloading(base + done, total))
                     }
                     if (!tmp.renameTo(dest)) throw java.io.IOException("could not save ${f.name}")
                 }
                 before += f.size
             }
-            File(part, CellStore.MANIFEST).writeText(m.json)
+            // the manifest makes the folder complete: with what it leaves to the installed version in the same file, synced
+            store.writeManifest(part, m, kept)
+            askedAs[c] = p.reason
             val complete = store.completeDir(m)
             complete.deleteRecursively()
             if (!part.renameTo(complete)) throw java.io.IOException("could not finish the download folder")
+            noReuse -= c
             if (holdUpdates) {
                 // a tour runs: the download stays complete on disk and is joined after the tour ([joinHeld])
                 dequeue(c); damaged -= c
@@ -1035,9 +1126,10 @@ class MapCells(
             dequeue(c); damaged -= c
             set(c, CellState.Installing)
             val t = now()
-            synchronized(finished) { if (finished.isEmpty()) firstFinishedAt = t; finished[c] = CellStore.Download(m, complete) }
+            synchronized(finished) { if (finished.isEmpty()) firstFinishedAt = t; finished[c] = CellStore.Download(m, complete, kept) }
             lastFinishedAt = t
-            Problems.trace("cells", "Download finished: $c (${p.reason.name.lowercase()}), ${mbOf(m.totalSize)}")
+            Problems.trace("cells", "Download finished: $c (${p.reason.name.lowercase()}), ${mbOf(total)}" +
+                if (reusedFiles > 0) " (reused $reusedFiles files, ${mbOf(reusedBytes)})" else "")
         } catch (e: Cancelled) { // expected: the download is no longer wanted – a trace, not a problem
             Problems.trace("cells", "Download stopped: $c (${p.reason.name.lowercase()}) – no longer wanted")
             update { it.remove(c) } // packages too (update keeps both maps)

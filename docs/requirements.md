@@ -136,6 +136,7 @@ These six profiles aim to cover about 70% of use cases. Road bike and gravel are
 | F-OFF-04 | Monthly map updates, optional; old data keeps working until the new package is fully verified. | Must |
 | F-OFF-05 | List of regions with size, date and delete button; total storage used. | Must |
 | F-OFF-06 | App updates from the phone: each version is published as a GitHub Release (built automatically by GitHub Actions). Settings → "Check for updates" (plus a quiet daily check when online) shows release notes and installs the new APK in place with one tap; tours and data are kept. Never installs without asking; offline it stays silent. | Must |
+| F-OFF-07 | A new version of a downloaded map area loads only the files that changed (owner 2026-11-17): what the installed version already has – same name and sha256 in the manifest – is taken from the phone after a check (a damaged file is downloaded); the area is still replaced as a whole, never half (`docs/design/map-cells.md` §19.3; `CellReuseTest`, `CellStoreReuseTest`). | Must |
 
 ## 4. Robustness requirements
 

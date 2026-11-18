@@ -28,6 +28,13 @@ import java.util.concurrent.atomic.AtomicInteger
  * The previous generation is deleted once the map loaded the new one ([confirmLoaded]), or rolled back to
  * ([rollback]) when it does not load.
  *
+ * A cell's own files are not kept: its tiles and POIs live only inside the generation. A new version of an installed
+ * cell therefore reuses unchanged files in two ways ([reusable], [Reuse]): a tile layer / the POIs whose manifest
+ * sha256 is the installed version's are left out of the download and copied from the current generation when the new
+ * version is joined – after the cell's part of it was checked against the hash kept at install
+ * ([InstalledCell.content]); the address and suggest files lie beside the store and are copied into the download
+ * ([installedFile], sha256 checked by the caller).
+ *
  * Ownership decides where every tile / POI comes from: a tile at zoom ≥ 10 inside an installed cell, and a POI inside
  * it (half-open rule), come only from that cell; everything else from the region package. So cells override the
  * region package where both exist, and the region package fills the rest (and z0–9).
@@ -63,6 +70,13 @@ class CellStore(
         val installedAt: Long,
         /** Profile hash of the cell's router classes (manifest "wayclass"); null = unknown (older store, no classes). */
         val wayclass: String? = null,
+        /** sha256 of every file of the version it was installed from (manifest name → hex); empty = installed before they were kept. */
+        val sha: Map<String, String> = emptyMap(),
+        /**
+         * Hash of the cell's own part of each tile layer and of the POIs ([tileHash], [poiHashes]), taken from the
+         * verified download ("base.pmtiles" → hex): what a later version checks the store against before it reuses it.
+         */
+        val content: Map<String, String> = emptyMap(),
     ) {
         val totalBytes: Long get() = bytes.values.sum() + addressBytes
     }
@@ -84,10 +98,24 @@ class CellStore(
         fun cell(id: CellId) = cells.firstOrNull { it.id == id }
     }
 
-    /** A complete, verified download waiting to be joined. */
-    data class Download(val manifest: CellManifest, val dir: File)
+    /**
+     * Files of a new version that were not downloaded because the installed version [from] has the same ones
+     * (name + sha256): tile layers and the POIs ([names]), taken from the current generation when it is joined.
+     * Kept with the download's manifest in [MANIFEST_REUSE].
+     */
+    data class Reuse(val from: String, val names: Set<String>)
 
-    class StoreException(message: String, cause: Throwable? = null) : IOException(message, cause)
+    /** A complete, verified download waiting to be joined; [reuse] = what it leaves to the installed version. */
+    data class Download(val manifest: CellManifest, val dir: File, val reuse: Reuse? = null)
+
+    open class StoreException(message: String, cause: Throwable? = null) : IOException(message, cause)
+
+    /**
+     * The downloads of [cells] cannot be joined as they are: they leave files to an installed version that is not
+     * there (any more) as they need it, or a map layer of their manifest is neither in the folder nor left to the
+     * installed version. Nothing was written; they must be loaded again in full.
+     */
+    class ReuseException(val cells: Set<CellId>, message: String) : StoreException(message)
 
     /** Generation the loaded map style uses (set via [confirmLoaded]); never deleted. */
     @Volatile var inUse: Int? = null
@@ -158,7 +186,9 @@ class CellStore(
                 InstalledCell(CellId.parse(c.getString("id")) ?: error("bad cell id"), c.getString("version"),
                     c.optString("built").ifBlank { null }, c.optInt("format", 2),
                     b.keys().asSequence().associateWith { b.getLong(it) }, c.optLong("addressBytes"), c.optLong("installedAt"),
-                    c.optString("wayclass").ifBlank { null })
+                    c.optString("wayclass").ifBlank { null },
+                    c.optJSONObject("sha")?.let { m -> m.keys().asSequence().associateWith { m.getString(it) } }.orEmpty(),
+                    c.optJSONObject("content")?.let { m -> m.keys().asSequence().associateWith { m.getString(it) } }.orEmpty())
             },
             o.optJSONObject("region")?.let { r -> r.keys().asSequence().associateWith { r.getString(it) } }.orEmpty(),
             o.optJSONObject("files")?.let { r -> r.keys().asSequence().associateWith { r.getLong(it) } }.orEmpty(),
@@ -206,6 +236,14 @@ class CellStore(
             IOException("data folder not readable (storage not ready): ${dataDir.path}"))
         val cur = current()
         val addIds = add.map { it.manifest.cell }.toSet()
+        // every map layer of a download's manifest is in its folder, or left to the installed version – and that only
+        // while exactly that version is installed with the same files. Otherwise nothing is written (never a cell with
+        // a layer of another version, or without one)
+        add.filter { downloadProblem(it, cur) != null }.takeIf { it.isNotEmpty() }?.let { bad ->
+            throw ReuseException(bad.map { it.manifest.cell }.toSet(), bad.joinToString { "${it.manifest.cell}: ${downloadProblem(it, cur)}" })
+        }
+        /** The current generation's file a download takes [n] from, null when it brought its own. */
+        fun reused(d: Download, n: String): File? = if (d.reuse != null && n in d.reuse.names) cur?.dir?.let { File(it, n) } else null
         val kept = cur?.cells.orEmpty().filter { it.id !in remove && it.id !in addIds }
         val keptIds = kept.map { it.id }.toSet()
         val allIds = keptIds + addIds
@@ -244,7 +282,8 @@ class CellStore(
                 cur?.dir?.let { File(it, n) }?.takeIf { it.isFile && keptIds.isNotEmpty() }?.let { f ->
                     inputs += PmTiles.Input(f) { z, x, y -> CellId.ofTile(z, x, y)?.let { it in keptIds } ?: false }; owners += null
                 }
-                for (d in add) File(d.dir, n).takeIf { it.isFile }?.let { f ->
+                // an added cell's tiles: from its download, or – same file as the installed version – from the current generation
+                for (d in add) (reused(d, n) ?: File(d.dir, n)).takeIf { it.isFile }?.let { f ->
                     val c = d.manifest.cell
                     inputs += PmTiles.Input(f) { z, x, y -> c.ownsTile(z, x, y) }; owners += c
                 }
@@ -264,7 +303,7 @@ class CellStore(
                 cur?.dir?.let { File(it, POIS) }?.takeIf { it.isFile && keptIds.isNotEmpty() }?.let { f ->
                     inputs += GeoJsonMerge.Input(f) { lat, lon -> CellId.at(lat, lon)?.let { it in keptIds } ?: false }; owners += null
                 }
-                for (d in add) File(d.dir, POIS).takeIf { it.isFile }?.let { f ->
+                for (d in add) (reused(d, POIS) ?: File(d.dir, POIS)).takeIf { it.isFile }?.let { f ->
                     val c = d.manifest.cell
                     inputs += GeoJsonMerge.Input(f) { lat, lon -> CellId.at(lat, lon) == c }; owners += c
                 }
@@ -291,7 +330,8 @@ class CellStore(
             }
             val cells = kept + add.map { d ->
                 InstalledCell(d.manifest.cell, d.manifest.version, d.manifest.built, d.manifest.format,
-                    bytes[d.manifest.cell].orEmpty(), addressFileOf(d)?.length() ?: 0L, now, d.manifest.wayclass)
+                    bytes[d.manifest.cell].orEmpty(), addressFileOf(d)?.length() ?: 0L, now, d.manifest.wayclass,
+                    d.manifest.files.associate { it.name to it.sha256 }, contentOf(d, cur))
             }.sortedBy { it.id }
             val gen = Generation(number, final, cells.sortedBy { it.id }, region, files, now, poiTilesFailed)
             File(tmp, STORE_JSON).writeText(toJson(gen).toString(1))
@@ -352,10 +392,17 @@ class CellStore(
                 encode(f) { lat, lon -> CellId.at(lat, lon)?.let { it in keptIds } ?: false }
                     ?.let { inputs += PmTiles.Input(it) { _, _, _ -> true }; owners += null }
             }
-            for (d in add) File(d.dir, POIS).takeIf { it.isFile }?.let { f ->
+            for (d in add) {
                 val c = d.manifest.cell
-                encode(f) { lat, lon -> CellId.at(lat, lon) == c }
-                    ?.let { inputs += PmTiles.Input(it) { z, x, y -> c.ownsTile(z, x, y) }; owners += c }
+                val own = File(d.dir, POIS).takeIf { it.isFile }
+                // POIs left to the installed version: its tiles of the previous generation, as for a kept cell
+                val prevOf = if (own == null && d.reuse != null && POIS in d.reuse.names) cur?.dir else null
+                val tiles = prevOf?.let { File(it, PoiTiles.FILE) }?.takeIf { it.isFile && (cur?.poiTilesVersion ?: 0) >= PoiTiles.VERSION }
+                if (tiles != null) { inputs += PmTiles.Input(tiles) { z, x, y -> c.ownsTile(z, x, y) }; owners += c }
+                else (own ?: prevOf?.let { File(it, POIS) }?.takeIf { it.isFile })?.let { f ->
+                    encode(f) { lat, lon -> CellId.at(lat, lon) == c }
+                        ?.let { inputs += PmTiles.Input(it) { z, x, y -> c.ownsTile(z, x, y) }; owners += c }
+                }
             }
             if (inputs.isEmpty()) return null
             val out = File(tmp, PoiTiles.FILE)
@@ -368,6 +415,102 @@ class CellStore(
             work.deleteRecursively()
             parts.forEach { it.delete() }
         }
+    }
+
+    // ------------------------------------------------------------------------------------------- reuse for a new version
+
+    /**
+     * What a download of [m] may leave to the installed version of its cell: the tile layers and the POIs the manifest
+     * names with the installed version's sha256 – each only after the cell's part of the current generation was read
+     * and its hash is the one kept at install (a damaged store file is reported and downloaded). Null when there is
+     * nothing: no installed version, one installed before the hashes were kept, everything changed. Never throws.
+     * Reads the cell's tiles (a second or so on a phone): call from the worker.
+     */
+    fun reusable(m: CellManifest): Reuse? {
+        val cur = current() ?: return null
+        val old = cur.cell(m.cell)?.takeIf { it.sha.isNotEmpty() && it.version != m.version } ?: return null
+        val names = LinkedHashSet<String>()
+        for (f in m.files) {
+            if (f.name !in LAYERS && f.name != POIS) continue
+            val want = old.content[f.name]
+            if (old.sha[f.name] != f.sha256 || want == null) continue
+            try {
+                val src = File(cur.dir, f.name)
+                val have = if (f.name == POIS) poiHashesOf(cur, src)[m.cell] else tileHash(src, m.cell)
+                if (have == want) names += f.name
+                else Problems.warn("cells", "Map area ${m.cell}: ${f.name} on the phone is not what was installed; downloaded again")
+            } catch (e: Exception) {
+                Problems.warn("cells", "Map area ${m.cell}: ${f.name} on the phone could not be checked; downloaded again", e)
+            }
+        }
+        return if (names.isEmpty()) null else Reuse(old.version, names)
+    }
+
+    /**
+     * [poiHashes] of every cell in [cur]'s joined POI file [src], read once per generation and state of the file (size,
+     * time): a batch of refreshed areas checks one after the other, and the file holds the POIs of all of them.
+     */
+    private fun poiHashesOf(cur: Generation, src: File): Map<CellId, String> {
+        val key = "${cur.dir.path}:${src.length()}:${src.lastModified()}"
+        poiHashCache?.takeIf { it.first == key }?.let { return it.second }
+        return poiHashes(src, cur.cellIds).also { poiHashCache = key to it }
+    }
+    @Volatile private var poiHashCache: Pair<String, Map<CellId, String>>? = null
+
+    /**
+     * The installed copy of a cell file that lies beside the store – the addresses, the suggest file – when the
+     * installed version of [cell] has [f] with the same sha256; null otherwise (tiles and POIs: [reusable]). The
+     * caller copies it and checks the copy's sha256 (the file may have been changed since).
+     */
+    fun installedFile(cell: CellId, f: CellManifest.File): File? {
+        val old = current()?.cell(cell) ?: return null
+        if (old.sha[f.name] != f.sha256) return null
+        val src = when {
+            f.name == SUGGEST -> suggestFile(cell)
+            f.name == "addresses/${cell.id}.sqlite" -> File(addressesDir, "${cell.id}.sqlite")
+            else -> return null
+        }
+        return src.takeIf { it.isFile }
+    }
+
+    /**
+     * Why [d] cannot be joined against [cur], null when it can: a map layer / the POIs of its manifest that is neither
+     * a file in its folder nor left to the installed version, or a [Reuse] that does not fit the installed cell.
+     */
+    private fun downloadProblem(d: Download, cur: Generation?): String? {
+        for (f in d.manifest.files) {
+            if (f.name !in LAYERS && f.name != POIS) continue
+            if (!File(d.dir, f.name).isFile && d.reuse?.names?.contains(f.name) != true) return "${f.name} is missing in the download"
+        }
+        val r = d.reuse ?: return null
+        val old = cur?.cell(d.manifest.cell) ?: return "version ${r.from} is not installed"
+        if (old.version != r.from) return "version ${old.version} is installed, not ${r.from}"
+        for (n in r.names) {
+            val f = d.manifest.files.firstOrNull { it.name == n } ?: return "$n is not in the manifest"
+            if (n !in LAYERS && n != POIS) return "$n cannot be taken from the map store"
+            if (old.sha[n] != f.sha256 || old.content[n] == null) return "$n of the installed version is another file"
+            if (File(d.dir, n).exists()) return "$n was downloaded too"
+            if (!File(cur.dir, n).isFile) return "$n is missing in the map store"
+        }
+        return null
+    }
+
+    /** [InstalledCell.content] of a cell being added: from its verified files; for reused ones the installed version's. */
+    private fun contentOf(d: Download, cur: Generation?): Map<String, String> {
+        val c = d.manifest.cell
+        val old = cur?.cell(c)
+        val out = LinkedHashMap<String, String>()
+        for (f in d.manifest.files) {
+            val n = f.name
+            if (n !in LAYERS && n != POIS) continue
+            if (d.reuse != null && n in d.reuse.names) { old?.content?.get(n)?.let { out[n] = it }; continue }
+            val src = File(d.dir, n).takeIf { it.isFile } ?: continue
+            try { (if (n == POIS) poiHashes(src, setOf(c))[c] else tileHash(src, c))?.let { out[n] = it } } catch (e: Exception) {
+                // the file itself was joined fine (or the join failed before): only its reuse by a later version is off
+                Problems.warn("cells", "Map area $c: no content hash for $n (its next version downloads it again)", e)
+            }
+        }
+        return out
     }
 
     /** Removes cells (their tiles, POIs and address files). */
@@ -428,11 +571,37 @@ class CellStore(
     /** Complete downloads on disk (e.g. after a crash before they were joined). */
     fun pendingDownloads(): List<Download> = downloadDir.listFiles { f -> f.isDirectory }.orEmpty().flatMap { cellDir ->
         cellDir.listFiles { f -> f.isDirectory && !f.name.endsWith(".part") }.orEmpty().mapNotNull { dir ->
-            try { Download(CellManifest.parse(File(dir, MANIFEST).readText()), dir) } catch (e: Exception) {
+            try {
+                // a folder that leaves files to the installed version has its manifest and that note in one file
+                val noted = File(dir, MANIFEST_REUSE)
+                if (noted.isFile) {
+                    val o = JSONObject(noted.readText())
+                    val a = o.getJSONArray("files")
+                    Download(CellManifest.parse(o.getString("manifest")), dir,
+                        Reuse(o.getString("from"), (0 until a.length()).map { a.getString(it) }.toSet()))
+                } else Download(CellManifest.parse(File(dir, MANIFEST).readText()), dir)
+            } catch (e: Exception) {
                 Problems.warn("cells", "Downloaded map cell ${cellDir.name}/${dir.name} unreadable; deleted, loads again", e)
                 dir.deleteRecursively(); null
             }
         }
+    }
+
+    /**
+     * Writes the manifest that makes the download in [dir] complete – the last file before the folder is renamed;
+     * written to a temp file, synced, renamed ([AtomicFiles]). Without [reuse]: [MANIFEST]. With it: [MANIFEST_REUSE],
+     * the manifest and the note in ONE file under another name, so that the two can never be apart and an app that does
+     * not know the note (older, downgraded) finds no manifest, deletes the folder and loads the area again – instead of
+     * joining it without the layers it leaves out. Throws when it cannot be written.
+     */
+    @Throws(IOException::class)
+    fun writeManifest(dir: File, m: CellManifest, reuse: Reuse?) {
+        val plain = File(dir, MANIFEST)
+        val noted = File(dir, MANIFEST_REUSE)
+        val (write, other) = if (reuse == null) plain to noted else noted to plain
+        if (other.exists() && !other.delete()) throw IOException("could not remove ${other.name}")
+        AtomicFiles.writeText(write, if (reuse == null) m.json else
+            JSONObject().put("from", reuse.from).put("files", JSONArray(reuse.names.toList())).put("manifest", m.json).toString())
     }
 
     /** Deletes download folders of [id] (after joining, or when a cell is deleted). */
@@ -521,6 +690,8 @@ class CellStore(
             JSONObject().put("id", c.id.id).put("version", c.version).put("built", c.built ?: "").put("format", c.format)
                 .put("bytes", JSONObject(c.bytes as Map<*, *>)).put("addressBytes", c.addressBytes).put("installedAt", c.installedAt)
                 .apply { c.wayclass?.let { put("wayclass", it) } }
+                .apply { if (c.sha.isNotEmpty()) put("sha", JSONObject(c.sha as Map<*, *>)) }
+                .apply { if (c.content.isNotEmpty()) put("content", JSONObject(c.content as Map<*, *>)) }
         }))
 
     companion object {
@@ -531,6 +702,11 @@ class CellStore(
 
         const val STORE_JSON = "store.json"
         const val MANIFEST = "manifest.json"
+        /**
+         * In a download folder that leaves files to the installed version ([Reuse]), instead of [MANIFEST]:
+         * `{"from": "<version>", "files": [...], "manifest": "<the manifest's JSON text>"}` ([writeManifest]).
+         */
+        const val MANIFEST_REUSE = "manifest.reuse.json"
         const val POIS = "pois.geojson"
         /**
          * Tile layers of a format-2 map (style sources base, overlays, terrain, contours; region-shade = the region
@@ -544,6 +720,44 @@ class CellStore(
         /** [generations] per store folder (absolute path), for the whole process – every instance on a folder shares it. */
         private val cache = java.util.concurrent.ConcurrentHashMap<String, Snapshot>()
         private val epochs = java.util.concurrent.ConcurrentHashMap<String, AtomicInteger>()
+
+        /**
+         * Hash of the tiles [cell] owns in archive [f] (tile id + stored bytes, in tile-id order): the same for the
+         * cell's downloaded file and for any generation its tiles were copied into ([PmTiles.merge] keeps tile bytes).
+         */
+        fun tileHash(f: File, cell: CellId): String = PmTiles.Reader(f).use { r ->
+            val md = java.security.MessageDigest.getInstance("SHA-256")
+            val one = java.security.MessageDigest.getInstance("SHA-256")
+            val seen = HashMap<Long, ByteArray>() // data offset → hash of that tile's bytes (repeated tiles are read once)
+            val id8 = java.nio.ByteBuffer.allocate(8)
+            for (e in r.entries()) {
+                if (e.runLength > 1_000_000) throw IOException("${f.name}: run of ${e.runLength} tiles not supported")
+                for (id in e.tileId until e.tileId + e.runLength) {
+                    val (z, x, y) = PmTiles.tileIdToZxy(id)
+                    if (!cell.ownsTile(z, x, y)) continue
+                    id8.clear(); id8.putLong(id); md.update(id8.array())
+                    md.update(seen.getOrPut(e.offset) { one.digest(r.tileBytes(e)) })
+                }
+            }
+            hex(md.digest())
+        }
+
+        /**
+         * Hash of the POIs each of [cells] owns in GeoJSON [f], in file order – as [GeoJsonMerge] writes them, so the
+         * same for the cell's downloaded file and for a generation's joined file. One pass; a cell without POIs gets
+         * the hash of nothing.
+         */
+        fun poiHashes(f: File, cells: Set<CellId>): Map<CellId, String> {
+            val mds = cells.associateWith { java.security.MessageDigest.getInstance("SHA-256") }
+            GeoJsonMerge.forEachFeature(f) { feature ->
+                val (lat, lon) = GeoJsonMerge.firstPosition(feature) ?: return@forEachFeature
+                val md = mds[CellId.at(lat, lon)] ?: return@forEachFeature
+                md.update(feature.toString().toByteArray(Charsets.UTF_8)); md.update(0)
+            }
+            return mds.mapValues { hex(it.value.digest()) }
+        }
+
+        private fun hex(b: ByteArray) = b.joinToString("") { "%02x".format(it) }
 
         /** Tests: forget what is known about [storeDir] (the next read lists and reads it again). */
         internal fun forget(storeDir: File) { cache.remove(storeDir.absolutePath) }
