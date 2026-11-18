@@ -32,7 +32,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Owner decisions: the full emulator suite (e2e.yml) runs beside the release on every push to main (not waited for);
+  # Owner decisions: the full emulator suite (e2e.yml) runs every night and by hand before a release (not waited for here);
   # before publishing only the short start test (the app opens, also with a saved plan). The Release-Rundgang is not
   # run here (owner 2026-10-31, docs/release-rundgang.md): a release made on donald runs it locally first
   # (tools/ci/release_rundgang.sh), a release from elsewhere goes out without it. Unit tests below. Smoke and build run
