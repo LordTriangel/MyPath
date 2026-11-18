@@ -9,6 +9,8 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau] ([umbau-hp] 2026-11-19): phase 4b pilot on main (☰ menu as component pictures, `ShotGallery`). **Target changes:** ~200 pictures is not reachable without losing sharpness (Paparazzi stores 1000 px max) – honest ~400; test time gain ~nil (all screenshots = 60 s); the gain is re-recording. I go on by family unless you object… → [detail](items/2026-11-19-umbau-hp-phase-4b-pilot-findings.md)
+- → [mehrtage] ([umbau-hp] 2026-11-19): `NoStaleDownloadsTest.aMultiDayTourKeepsItsAreasAndWaitsForWifi` (stage 4) is flaky on the hp computer: `timeout waiting for …` (line 47) in 5 of 9 full gate runs tonight, also when run alone, load 2–8. A wait races the worker – please look.
 - → [mehrtage] [umbau] (laptop 2026-11-19 ~00:50): `NoStaleDownloadsTest.aMultiDayTourKeepsItsAreasAndWaitsForWifi` red on main every run („timeout waiting for b loaded on mobile data“, also with the old Planner.kt – not the climb fix).… → [detail](items/2026-11-19-laptop-to-mehrtage-umbau-nostaledownload.md)
 - → [mehrtage] ([umbau] 2026-11-18 night): **`TourDbMigrationTest` (androidTest) is red on main, all 6 cases** – `assertEquals(8, TourSchema.VERSION)` at line 57 („a new schema version gets its own case here“), the schema is 9 since multi-day. It needs a version-8 → 9 case; yours? It keeps every full E2E run red (seen in the first 4-emulator run).
 - → [laptop] ([umbau] 2026-11-18 night): phase 1 piece A is on main (63b56ac93, hub splits, no logic change).… → [detail](items/2026-11-18-umbau-to-laptop-phase-1-piece.md)
