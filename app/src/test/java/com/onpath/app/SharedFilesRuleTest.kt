@@ -57,9 +57,9 @@ class SharedFilesRuleTest {
     }
 
     /**
-     * web.yml does not know core/** yet (its path filters and the engine cache key): an edit of a shared file that lives in
-     * core/ would neither start the planner run nor change the cache key. web/engine/core-shared.lock is under web/engine/**
-     * and holds a fingerprint of those files (tools/dev/core_move.py lock). Goes when web.yml knows core/**.
+     * web.yml does not know the core folder yet (its path filters and the engine cache key): an edit of a shared file that lives in
+     * the core folder would neither start the planner run nor change the cache key. web/engine/core-shared.lock is in web/engine
+     * and holds a fingerprint of those files (tools/dev/core_move.py lock). Goes when web.yml knows the core folder.
      */
     @Test fun coreFilesThePlannerCompilesMatchTheLock() {
         val paths = (files.map { "core/src/main/kotlin/com/onpath/app/$it" } +
