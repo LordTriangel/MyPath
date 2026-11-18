@@ -580,6 +580,10 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
   DE / DE 1.3), `PinMenuPlaceTest.roundTripFollowsStartHere`, E2E `RoundTripSuggestE2ETest` (hold → row → sheet → OK →
   cards → second card's line drawn → Übernehmen; the run itself is a stand-in answer – the E2E map is Meran, which has
   no suggest file; with the workflow's E10_N45.rd5 Übernehmen must give a round-trip plan).
+- **Owner 2026-11-18 late:** round trips are ON for everyone (the debug setting stays as an off-switch); the cards are a
+  horizontal swipe row (sketch 8 https://claude.ai/artifact/DkavTPQGNXErH4ADZVdZS6); „Rundtour von hier“ appears only
+  when setting the very first point (empty plan) – first-tap menu and a place / map-symbol menu – never once the plan has
+  a point (narrows the 2026-11-15 rule „wherever Hier starten appears“).
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
