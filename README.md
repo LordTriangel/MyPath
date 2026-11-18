@@ -28,6 +28,10 @@ No OnPath account · No ads · No analytics · German and English · Apache-2.0
 The [browser planner](https://plan.onpath.earth/) offers a larger map, elevation profile, 3D terrain and a route
 flyover. Transfer a plan by QR code, or pair your browser and phone to sync saved plans without an account.
 
+**Tours over several days.** In the browser planner, turn a long route into a multi-day tour: set the nights along
+the way and see distance, climbing and time for each day. The tour syncs to your paired phone, where you pick a day
+and follow it; the maps along the whole route download by themselves on Wi-Fi.
+
 ## On the way
 
 - **Change the plan and carry on.** Add a café, shorten the route or choose a different way home.
@@ -88,7 +92,7 @@ You need **Android 8 or newer**. There is no iPhone app.
   Review it before sharing.
 
 Current limitations include the early map-service setup, downloads that can take a few minutes for a new area,
-no automatic round-trip suggestions, and limited field testing across devices. Offline spoken directions require
+round-trip suggestions that are still in testing and not switched on yet, and limited field testing across devices. Offline spoken directions require
 a suitable text-to-speech voice installed on the phone. The [project status](docs/project-status.md) and
 [backlog](docs/backlog.md) track ongoing work.
 
