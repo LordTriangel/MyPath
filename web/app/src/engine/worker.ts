@@ -49,7 +49,7 @@ interface WasmEngine {
   gpx(name: string, activity: string, sac: number, points: string, names: string): string;
   activities(): string;
   problems(): string;
-  longRoute(points: string, activity: string): string;
+  longRoute(points: string, activity: string, multiDay: boolean): string;
   planCancel(cause: string, canUndo: boolean, canRedo: boolean): string;
   gpxRead(data: Int8Array, fileName: string, activity: string, sac: number): string;
   planFromTrack(track: string, activity: string, sac: number): string;
@@ -427,9 +427,13 @@ self.onmessage = async (ev: MessageEvent<EngineRequest>) => {
     const t1 = performance.now();
     e.writeParts(); // new parts into the local rd5 files (once per plan, not per part)
     const storeMs = performance.now() - t1;
-    // the engine's "Leg 2 of 5 is being calculated…" (WebApi planProgress, the app's PlanStatus text) while it plans
+    // the engine's progress while it plans (WebApi planProgress → WebPlanProgress JSON): the app's PlanStatus text
+    // "Leg 2 of 5 is being calculated…" (null for one leg) and the metres routed of the plan's length
     const g = globalThis as unknown as { onpathPlanProgress?: (text: string) => void };
-    g.onpathPlanProgress = req.type === 'plan' ? (text) => reply({ id: req.id, ok: true, progress: { phase: 'legs', text } }) : undefined;
+    g.onpathPlanProgress = req.type === 'plan' ? (text) => {
+      const j = JSON.parse(text) as { text: string | null; doneM: number; totalM: number };
+      reply({ id: req.id, ok: true, progress: { phase: 'legs', text: j.text ?? '', doneM: j.doneM, totalM: j.totalM } });
+    } : undefined;
     let json: string;
     try {
       json = req.type === 'plan' ? e.plan(req.points, req.activity, req.sac, req.pinned ?? '', req.names ?? '', req.rounds ?? 0) : e.route(req.points, req.activity, req.sac);

@@ -174,6 +174,89 @@ async function run(lang, viewport, shotPrefix) {
   await waitView(() => window.__days.lastView?.days === 3, 'undo of N +');
   check((await view()).days === 3, 'undo takes N + back');
 
+  // 11 · a normal point's menu (owner 2026-11-18): „Übernachtung hier“ first – not on the start; the point turns blue
+  await page.keyboard.press('Escape');
+  if (viewport.width <= 700) {
+    for (let k = 0; k < 3 && await page.$eval('#sheet', (s) => s.dataset.step) !== 'small'; k++) await page.click('#sheetStep');
+  }
+  const overnight = lang === 'de' ? 'Übernachtung hier' : 'Overnight stop here';
+  const menuRows = () => page.$$eval('.holdpopup .pointmenu button', (bs) => bs.map((b) => b.textContent.trim()));
+  const pressPin = (k) => page.evaluate((k) => document.querySelectorAll('.pin')[k].dispatchEvent(new MouseEvent('click', { bubbles: true })), k);
+  await pressPin(0);
+  await page.waitForSelector('.holdpopup .pointmenu', { timeout: 10_000 });
+  check(!(await menuRows()).some((r) => r.includes(overnight)), 'the start point\'s menu has no „Übernachtung hier“');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('.holdpopup .pointmenu'), null, { timeout: 5_000 }).catch(() => {});
+  // a plan point in the middle that is no night yet: one put in on the route (a click on it → Einfügen)
+  if (await page.evaluate(() => document.querySelectorAll('.pin:not(.night)').length) < 3) {
+    const n0 = await pins();
+    await page.click('#fitRoute');
+    await page.waitForTimeout(1200);
+    const at = await page.evaluate(() => { const pts = window.__days.h.routedPlan().legs.flatMap((l) => l.points); return pts[Math.floor(pts.length * 0.8)]; });
+    await clickLngLat(at[1], at[0]);
+    await menuItem(lang === 'de' ? 'Einfügen' : 'Insert');
+    await page.waitForFunction((n) => document.querySelectorAll('.pin').length > n, n0, { timeout: 30_000 }).catch(() => {});
+    await settled();
+    await waitView(() => window.__days.lastView?.ends.length === 2, 'the overview after Einfügen');
+  }
+  const mid = await page.evaluate(() => { const ps = [...document.querySelectorAll('.pin')];
+    const cands = ps.map((p, k) => [p, k]).filter(([p, k]) => k > 0 && k < ps.length - 1 && !p.classList.contains('night'));
+    return cands[Math.floor(cands.length / 2)][1]; });
+  await pressPin(mid);
+  await page.waitForSelector('.holdpopup .pointmenu', { timeout: 10_000 });
+  const rows = await menuRows();
+  check(rows[0]?.includes(overnight), `a normal point's menu starts with „Übernachtung hier“ (${rows.join(' | ')})`);
+  if (viewport.width > 700) await shot('4-point-menu');
+  await menuItem(overnight);
+  await waitView(() => window.__days.lastView?.ends.filter((e) => e.kind === 'OVERNIGHT').length === 2, 'a second blue moon');
+  v = await view();
+  check(v.days === 3 && v.ends.filter((k) => k === 'OVERNIGHT').length === 2 && !v.ends.includes('PROPOSAL'),
+    `the point is an Übernachtung: N stays 3, the grey one goes (${v.ends})`);
+  check(await page.locator('.pin.night .daysym.blue').count() === 2, 'the point is drawn as a blue moon');
+  await page.evaluate(() => document.getElementById('undo').click());
+  await waitView(() => window.__days.lastView?.ends.filter((e) => e.kind === 'OVERNIGHT').length === 1, 'undo of the point\'s night');
+  await settled();
+
+  // 12 · a far point in a multi-day tour (owner 2026-11-18): no „This route is very long“ question; the wait box shows
+  // the km routed of the plan's length and the time, ticking; Cancel takes the point back
+  const before = await pins();
+  const last = await page.evaluate(() => window.__state.points.at(-1));
+  let far = null;
+  for (const d of [1, 2, 3]) {
+    const pts = [...(await page.evaluate(() => window.__state.points)), [last[0] + d, last[1]]];
+    const enc = pts.map(([a, b]) => `${a.toFixed(6)},${b.toFixed(6)}`).join(';');
+    const ask = await page.evaluate(([e]) => window.__engine.call('longRoute', e, window.__state.activity, false), [enc]);
+    if (JSON.parse(ask).ask) { far = [last[0] + d, last[1]]; break; }
+  }
+  check(!!far, 'a far point a normal plan would be asked about');
+  await page.evaluate(() => { window.__progSeen = []; new MutationObserver(() => { const l = document.querySelector('#msgcards .msgprogline');
+    if (l && window.__progSeen.at(-1) !== l.textContent) window.__progSeen.push(l.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true }); });
+  await page.evaluate(([la, lo]) => window.__map.jumpTo({ center: [lo, (la + window.__state.points[0][0]) / 2], zoom: 6.5 }), far);
+  await page.waitForFunction(() => !window.__map.isMoving(), null, { timeout: 10_000 }).catch(() => {});
+  await clickLngLat(far[1], far[0]);
+  await page.waitForSelector('dialog.longroute, .holdaddpopup button, #msgcards .msgprogline', { timeout: 30_000 }).catch(() => {});
+  if (await page.locator('.holdaddpopup').count()) await page.click('.holdaddpopup button:first-of-type');
+  await page.waitForSelector('dialog.longroute, #msgcards .msgprogline', { timeout: 60_000 }).catch(() => {});
+  check(!(await page.$('dialog.longroute')), 'a far point in a multi-day tour: no long-route question');
+  const t0 = Date.now();
+  if (viewport.width > 700) await shot('5-wait-box');
+  check(await page.locator('#msgcards .msgcard[data-id="routing"] .msgbar i').count() === 1, 'the wait box: a thin progress bar');
+  check(await page.locator('#msgcards .msgcard[data-id="routing"] button', { hasText: lang === 'de' ? 'Abbrechen' : 'Cancel' }).count() === 1, 'the wait box keeps Cancel');
+  await settled();
+  const waited = Date.now() - t0;
+  // what the box said while it waited: every line "N of M km · m:ss", km never back, the clock running
+  const seen = await page.evaluate(() => window.__progSeen);
+  console.log('progress lines seen:', seen.slice(0, 8).join(' | '), `(${waited} ms)`);
+  const re = lang === 'de' ? /^(\d+) von (\d+) km · (\d+):(\d\d)$/ : /^(\d+) of (\d+) km · (\d+):(\d\d)$/;
+  const parsed = seen.map((s) => re.exec(s)).filter(Boolean).map((m) => ({ done: +m[1], total: +m[2], s: +m[3] * 60 + +m[4] }));
+  check(seen.length > 0 && parsed.length === seen.length, `the wait box: km routed of the plan's length and the time ("${seen[0]}")`);
+  check(parsed.every((p, k) => !k || (p.done >= parsed[k - 1].done && p.s >= parsed[k - 1].s)), 'km and clock never go back');
+  check(waited < 1500 || new Set(parsed.map((p) => p.s)).size > 1, `the clock ticks while it waits (${parsed.map((p) => p.s).join(',')})`);
+  // back as before: undo the far point
+  await page.evaluate(() => document.getElementById('undo').click());
+  await page.waitForFunction((n) => document.querySelectorAll('.pin').length === n, before, { timeout: 30_000 }).catch(() => {});
+  check(await pins() === before, 'undo takes the far point back');
+
   check(errors.length === 0, `no page errors (${errors.slice(0, 6).join(' | ')})`);
   void T;
   await ctx.close();

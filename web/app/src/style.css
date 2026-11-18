@@ -613,6 +613,11 @@ dialog.phone .phonemore .textbtn { padding-left: 0; }
 .msgtext { flex: 1 1 220px; min-width: 0; }
 .msgtitle { font-size: 16px; font-weight: 700; color: #243C31; }
 .msgdetail { font-size: 14px; color: #4A4F4A; margin-top: 2px; }
+/* a wait's progress (owner 2026-11-18): a thin bar by the km routed, the line "210 of 564 km · 0:42" under it */
+.msgprog { margin-top: 8px; }
+.msgbar { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.msgbar i { display: block; height: 100%; width: 0; background: var(--plan); transition: width .4s ease; }
+.msgprogline { font-size: 14px; color: #4A4F4A; margin-top: 4px; font-variant-numeric: tabular-nums; }
 .msgbuttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-left: auto; }
 .msgcard:not(.one) .msgbuttons { flex-basis: 100%; }
 .msgbtn { min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px; background: transparent; color: var(--green);

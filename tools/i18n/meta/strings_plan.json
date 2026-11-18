@@ -229,6 +229,14 @@
     "confidence": "sicher",
     "decided": "Owner 2026-11-05 asked for e.g. 'Route wird berechnet · Abschnitt 2 von 4'; shortened so it stays one line beside Abbrechen"
   },
+  "plan_progress_km": {
+    "area": "Plan sheet",
+    "context": "Planner's routing wait box, under a thin progress bar: %1$s = km of the legs already routed, %2$s = the plan's whole length in km (routed legs real, the rest estimated), %3$s = time since the calculation started (m:ss, ticking)",
+    "max": 40,
+    "priority": 1,
+    "confidence": "sicher",
+    "decided": "Owner 2026-11-18 (München–Venedig): '210 von 564 km · 0:42' instead of only 'Abschnitt 2 von 2'"
+  },
   "plan_hint_first_point": {
     "area": "Plan sheet",
     "context": "Plan sheet with no points yet (first use). \"☰ → Start recording\" names the menu path (keep it equal to plan_menu_start_recording) – since 2026-11-07 no longer shown in the empty sheet (the guide replaced it); still the no-route line text and the web planner mirror",
