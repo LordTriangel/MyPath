@@ -84,7 +84,7 @@ object PlanStatus {
 
 /**
  * The wait bar of one plan run (owner 2026-11-05: it must move within one long leg too, never back): legs done plus the
- * running leg's search share ([com.onpath.app.routing.BRouterEngine.searchProgress], null = not known) over the legs to
+ * running leg's search share (`BRouterEngine.searchProgress`, null = not known) over the legs to
  * route. Keeps the highest value it gave – a new search inside the same leg (a retry) or a leg from the cache never
  * moves it back. One per run; not thread-safe (one poller).
  */

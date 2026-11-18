@@ -94,7 +94,7 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
             val start = System.currentTimeMillis()
             if (limits == null) LOCK.lock()
             else if (!LOCK.tryLock(limits.timeoutMs, TimeUnit.MILLISECONDS)) throw RoutingException(BUSY, timedOut = true)
-            lastLockWait.set(System.currentTimeMillis() - start)
+            RouterRules.lastLockWait.set(System.currentTimeMillis() - start)
             try {
                 val key = cacheKey(waypoints, activity, sacLimit)
                 cache[key] ?: run {
@@ -466,12 +466,10 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
     companion object {
         /** One BRouter search at a time in this process (planning in the app, re-routing in the service). */
         private val LOCK = ReentrantLock()
-        /** How long the last request on this thread waited for [LOCK] (ms) – for the per-route log line. */
-        private val lastLockWait = ThreadLocal<Long>()
 
         /** Ms the last limited request on the calling thread waited for another route to finish (0 = none / unknown). */
-        fun lastLockWaitMs(): Long = lastLockWait.get() ?: 0L
-        val CANCELLED: String get() = Txt.s(Res.string.plan_err_cancelled)
+        fun lastLockWaitMs(): Long = RouterRules.lastLockWaitMs()
+        val CANCELLED: String get() = RouterRules.CANCELLED
         /** Plain text (no file name, no path); the plan shows RoutingDataNotice instead. */
         val NO_DATA: String get() = Txt.s(Res.string.plan_err_no_data)
         val BUSY: String get() = Txt.s(Res.string.plan_err_busy)
@@ -500,15 +498,7 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
             }
             return if (err.startsWith("no track found") && islandRetries >= BROUTER_ISLAND_RETRIES && points == 2) 0 else null
         }
-        /**
-         * Longest out-and-back spike (one way) BRouter cuts at a via point – and the Planner at a leg join (its
-         * trimSpike, PLANNER_VERSION 4). Much shorter for hiking, where a via point on a spur is usually a deliberate
-         * goal (summit, viewpoint): 250 m cut off a point 100 m up a spur. 50 m still trims small snapping spikes.
-         */
-        internal fun viaCorrectionM(activity: Activity): Double =
-            if (activity == Activity.HIKE) VIA_CORRECTION_HIKE_M else VIA_CORRECTION_M
-        private const val VIA_CORRECTION_M = 400.0
-        private const val VIA_CORRECTION_HIKE_M = 50.0
+        internal fun viaCorrectionM(activity: Activity): Double = RouterRules.viaCorrectionM(activity)
         private const val CACHE_SIZE = 8
         private const val MAX_SNAP_M = 1000.0
         private const val ELE_FILTER_M = 10.0
@@ -521,17 +511,7 @@ class BRouterEngine(context: Context, private val segmentsDir: File) : RoutingEn
             "hiking-mountain.brf",
         )
 
-        /**
-         * Profile per activity. Bike (BIKE_TOURING) and E-bike = touring.brf, OnPath's copy of trekking.brf for a normal bike
-         * (owner: paved bike ways and quiet ways, traffic and rough gravel avoided). E-bike changes only power, speed and
-         * mass (keyValues).
-         */
-        internal fun profileFile(activity: Activity): String = when (activity) {
-            Activity.BIKE_TOURING, Activity.EBIKE -> "touring.brf"
-            Activity.BIKE_TREKKING -> "trekking.brf"
-            Activity.MTB, Activity.EMTB -> "mtb.brf"
-            Activity.HIKE -> "hiking-mountain.brf"
-        }
+        internal fun profileFile(activity: Activity): String = RouterRules.profileFile(activity)
 
         /**
          * Deletes the profiles in [dir] that the app no longer ships (*.brf not in [PROFILE_ASSETS]).

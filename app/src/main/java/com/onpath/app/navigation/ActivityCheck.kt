@@ -5,7 +5,7 @@ import com.onpath.strings.*
 import com.onpath.app.data.Format
 import com.onpath.app.data.Geo
 import com.onpath.app.routing.Activity
-import com.onpath.app.routing.BRouterEngine
+import com.onpath.app.routing.RouterRules
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.RouteResult
 import kotlin.math.max
@@ -149,18 +149,18 @@ object ActivityCheck {
             val steps = way("steps")
             if (steps >= STEPS_MIN_M) problems += Txt.s(Res.string.nav_check_steps, Format.distance(round10(steps)))
         }
-        // the surface check follows the routing profile (BRouterEngine.profileFile), not the activity: touring.brf avoids
+        // the surface check follows the routing profile (RouterRules.profileFile), not the activity: touring.brf avoids
         // gravel, trekking.brf only rough trails
         when {
             activity == Activity.HIKE -> {
                 val busy = way("busy_road")
                 if (busy >= BUSY_MIN_M) problems += Txt.s(Res.string.nav_check_busy_road, Format.distance(round10(busy)))
             }
-            BRouterEngine.profileFile(activity) == "touring.brf" -> {
+            RouterRules.profileFile(activity) == "touring.brf" -> {
                 val rough = surf("gravel", "ground", "unpaved", "natural_trail", "alpine")
                 if (rough >= ROUGH_MIN_M) problems += Txt.s(Res.string.nav_check_unpaved, Format.distance(round10(rough)))
             }
-            BRouterEngine.profileFile(activity) == "trekking.brf" -> {
+            RouterRules.profileFile(activity) == "trekking.brf" -> {
                 val rough = surf("ground", "natural_trail", "alpine")
                 if (rough >= ROUGH_MIN_M) problems += Txt.s(Res.string.nav_check_rough, Format.distance(round10(rough)))
             }

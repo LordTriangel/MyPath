@@ -1,11 +1,11 @@
 package com.onpath.app.suggest
 
 import com.onpath.app.routing.Activity
-import com.onpath.app.routing.BRouterEngine
+import com.onpath.app.routing.RouterRules
 import java.io.File
 
 /**
- * The routing profile of an activity exactly as the app routes with it: the same .brf ([BRouterEngine.profileFile]) and
+ * The routing profile of an activity exactly as the app routes with it: the same .brf ([RouterRules.profileFile]) and
  * the same parameters (SAC limit, e-bike power …), so the network's "allowed" is the router's verdict (a suggestion must
  * never use a way navigation refuses). Kept apart from [NetReader] so the reader compiles without the app's routing code
  * (bench tools).
@@ -16,11 +16,11 @@ import java.io.File
 object RouterProfile {
     /** [profileDir] = where the app keeps lookups.dat and the .brf files (BRouterEngine copies them from the assets). */
     fun of(profileDir: File, activity: Activity, sacLimit: Int): NetReader.Profile =
-        NetReader.Profile(File(profileDir, BRouterEngine.profileFile(activity)), keyValues(activity, sacLimit))
+        NetReader.Profile(File(profileDir, RouterRules.profileFile(activity)), keyValues(activity, sacLimit))
 
     private const val MAX_SNAP_M = 1000.0
 
-    private fun viaCorrectionM(activity: Activity): Double = BRouterEngine.viaCorrectionM(activity)
+    private fun viaCorrectionM(activity: Activity): Double = RouterRules.viaCorrectionM(activity)
 
     // ---- copy of BRouterEngine.keyValues (RouterProfileTest) ----
     internal fun keyValues(activity: Activity, sacLimit: Int): MutableMap<String, String> {

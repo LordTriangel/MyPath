@@ -4,7 +4,7 @@ import com.onpath.strings.*
 import com.onpath.app.data.Format
 import com.onpath.app.data.Geo
 import com.onpath.app.routing.Activity
-import com.onpath.app.routing.BRouterEngine
+import com.onpath.app.routing.RouterRules
 import com.onpath.app.routing.GeoPoint
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -82,7 +82,7 @@ object RouteWarnings {
      * costs it as pushing, but MTB / e-MTB get no pushing hint at all ([isMtb]).
      */
     private val FOOTWAY_ON_ROUTE_PROFILES = setOf("touring.brf", "trekking.brf")
-    private fun footwayOnRouteRidden(a: Activity) = BRouterEngine.profileFile(a) in FOOTWAY_ON_ROUTE_PROFILES
+    private fun footwayOnRouteRidden(a: Activity) = RouterRules.profileFile(a) in FOOTWAY_ON_ROUTE_PROFILES
 
     /** Surface keys (BRouterWayStats.surface) of a footway the bike profiles allow at +1: paved, or not tagged. */
     val FIRM_FOOTWAY_SURFACES = setOf("asphalt", "paved", "unknown")

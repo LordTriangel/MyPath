@@ -101,7 +101,7 @@ class Planner(
 
     /** [limitMs] = this request's own time limit (the short-trip retry, [retryShortDetour]); null = the engine's usual one. */
     private fun route(pts: List<GeoPoint>, activity: Activity, sac: Int, limitMs: Long? = null): RouteResult {
-        if (cancel?.isCancelled == true) throw RoutingException(BRouterEngine.CANCELLED)
+        if (cancel?.isCancelled == true) throw RoutingException(RouterRules.CANCELLED)
         val t0 = now()
         var outcome = "failed"
         try {
@@ -113,11 +113,11 @@ class Planner(
             throw e
         } finally {
             tries += Try(pts.size, now() - t0, outcome,
-                if (engine is BRouterEngine) BRouterEngine.lastLockWaitMs() else 0L)
+                RouterRules.lastLockWaitMs())
         }
     }
 
-    private fun stopIfCancelled() { if (cancel?.isCancelled == true) throw RoutingException(BRouterEngine.CANCELLED) }
+    private fun stopIfCancelled() { if (cancel?.isCancelled == true) throw RoutingException(RouterRules.CANCELLED) }
 
     /**
      * Routes [waypoints] leg by leg ([Planner]). [pinned] = indices of waypoints that must be passed exactly (a tapped
@@ -240,7 +240,7 @@ class Planner(
      * The join at plan point [k] (index): leg [a] ends where the router matched the point, [b] starts there. When [a]'s
      * last stretch and [b]'s first are the same way there and back (a spike – a point tapped beside the road, snapped onto
      * a side way), both are cut back to where they part, as BRouter's via correction did inside a whole request: at most
-     * [BRouterEngine.viaCorrectionM] one way, and never when the point lies on that way – the owner rule "a point on a way
+     * [RouterRules.viaCorrectionM] one way, and never when the point lies on that way – the owner rule "a point on a way
      * is always visited" ([WaypointSnap.missesMatched]: the trimmed line would miss its spot).
      */
     private fun trimSpike(point: GeoPoint, k: Int, a: Leg, b: Leg, activity: Activity) {
@@ -253,7 +253,7 @@ class Planner(
         if (m == 0) return
         val fa = pa.lastIndex - m // the fork in pa (= pb[m])
         val spike = Geo.length(pa.subList(fa, pa.size))
-        if (spike > BRouterEngine.viaCorrectionM(activity)) return
+        if (spike > RouterRules.viaCorrectionM(activity)) return
         val spot = a.end ?: pa.last()
         val near = pa.subList(maxOf(0, fa - NEAR_POINTS), fa + 1) + pb.subList(m + 1, minOf(pb.size, m + 1 + NEAR_POINTS))
         if (WaypointSnap.missesMatched(point, spot, near)) {
