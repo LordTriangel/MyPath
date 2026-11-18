@@ -44,8 +44,7 @@ interface RecentPlansHost {
 }
 
 /**
- * "Zuletzt" and the recycle bin as the user's actions (code audit 2026-11-12, cleanup piece 4 – out of AppViewModel
- * after the [com.onpath.app.ui.tour.TourController] pattern): a plan that leaves the map is kept under Zuletzt
+ * "Zuletzt" and the recycle bin as the user's actions: a plan that leaves the map is kept under Zuletzt
  * ([keep]), the version of a saved route a tour start replaced too ([keepReplaced]); Zuletzt → Speichern / Löschen
  * ([saveDraft], [deleteDraft]); the recycle bin's list, Restore and Delete now ([bin], [openBin], [restore],
  * [deleteForever]); the one clean-up after the one-plan rule ([trimOnce]). The rules (which plan holds the place, what

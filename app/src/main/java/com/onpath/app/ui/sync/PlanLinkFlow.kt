@@ -38,8 +38,7 @@ interface PlanLinkHost {
 }
 
 /**
- * Plan links in and out (A-005: routing/PlanLinks, docs/core-features.md C15; code audit 2026-11-12, cleanup piece 4 –
- * out of AppViewModel after the [com.onpath.app.ui.tour.TourController] pattern): a link opened in OnPath ([receive],
+ * Plan links in and out (A-005: routing/PlanLinks, docs/core-features.md C15): a link opened in OnPath ([receive],
  * [pasted]) – broken, a pairing link, during a tour, or a plan to open –, what the last link brought ([title],
  * [opened], [snapped]: its name for the Save dialog and its points, so the next link needs no question while the plan
  * is unchanged), and a plan sent as a link ([share]). The plan itself stays in the view model ([PlanLinkHost.open]).

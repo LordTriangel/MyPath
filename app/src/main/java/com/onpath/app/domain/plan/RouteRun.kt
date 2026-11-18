@@ -11,22 +11,7 @@ import com.onpath.app.routing.SlowPlan
  * (`AppViewModel.recalc` and its callbacks) holds one [RouteRun], sends it what happened and does what the effects say –
  * every side effect (router, coroutines, map data, the tour, messages) stays there. Android-free, `RouteRunTest`.
  *
- * Before (code audit 2026-11-12, point a) this was a state machine in flags spread over the view model; what became what:
- *
- * | view model field (before) | here |
- * | --- | --- |
- * | `routing`, `routingSlow` | [Phase.Routing] and its `slow` |
- * | `longRouteAsk` | [Phase.AskLong] |
- * | `slowPlanAsk` | [Phase.AskSlow] |
- * | `notRouted` | [Phase.Unrouted] |
- * | `requests` (RouteRequests: generation of the newest run) | [gen] |
- * | `planRounds`, `keepRounds` | [rounds], [keepRounds] |
- * | `longRouteOk` | [longOk] |
- * | `sheetRisen` | [sheetRisen] |
- * | `fitNextRoute`, `followNextRoute`, `planEditPending`, `adoptPlanBaseline` | the orders [fitNext], [followNext], [editPending], [adoptBaseline] |
- * | `routingDataReroute`, `activityRecalc` | the next run's [viaData], [compareActivity] |
- *
- * The five phase fields excluded each other already (each writer cleared the others); the phase says so by its type.
+ * The phases exclude each other; the phase says so by its type.
  * Stays in the view model, because it is data or a handle and not a decision: the route and its error line, the wait
  * card's progress (`routeProgress`, `routeShare`), the job and the router's cancel signal, the stand-in line of a loaded
  * route, the route before an activity change (`activityBefore`), the points whose maps wait for the long-plan answer

@@ -43,8 +43,7 @@ class PrefsPlanStore(private val prefs: Prefs) : PlanStore {
 }
 
 /**
- * The plan on the map as one object (code audit 2026-11-12, cleanup piece 4 – out of AppViewModel after the
- * [com.onpath.app.ui.tour.TourController] pattern): its points as the screens observe them ([points]), Undo / Redo
+ * The plan on the map as one object: its points as the screens observe them ([points]), Undo / Redo
  * and the pinned points ([PlanSession], with [canUndo] / [canRedo] as state), the saved route it belongs to
  * ([savedName], [savedId], [unsaved], [setSaved]) – and that all of it survives the process: every change of the
  * points, the pins and the saved link is written to [store] here, at once, and read back when the next run makes its
