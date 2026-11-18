@@ -52,7 +52,9 @@ teavm {
         properties.put("java.util.Locale.available", "en_US, de_DE")
     }
     js { addedToWebApp = false; moduleType = org.teavm.gradle.api.JSModuleType.ES2015 }
-    wasmGC { addedToWebApp = false }
+    // the Wasm build outgrew the Gradle daemon's heap with the tour-suggestion core (2026-11-18: OutOfMemoryError at the
+    // default heap): TeaVM in its own JVM with room of its own, the same on every machine and in CI
+    wasmGC { addedToWebApp = false; outOfProcess = true; processMemory = 6144 }
 }
 
 // The app's texts (main: `strings/` = Compose Multiplatform resources, docs/i18n.md) for the web: a generated stand-in
