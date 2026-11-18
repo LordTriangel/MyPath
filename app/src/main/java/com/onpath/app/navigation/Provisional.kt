@@ -8,7 +8,7 @@ import com.onpath.app.recording.PointFilter
  * service's first usable GPS fix, Navigate stands on the app's own Wi-Fi / fused fix: the dot with its accuracy
  * circle, what is left, the turn card and the arrival clock count from it, and an amber line says it is approximate.
  *
- * What it never does (robust first): the fix never reaches the recording service ([com.onpath.app.recording.tracksFix]
+ * What it never does (robust first): the fix never reaches the recording service (`tracksFix` in recording/RecordingService.kt)
  * – no track point, no off-route check, no re-route, no learned pace), and the arrival question is not asked on it.
  * Only until the first GPS fix: a later GPS gap (tunnel) is the normal "No GPS" line again. Pure.
  */

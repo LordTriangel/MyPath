@@ -129,7 +129,7 @@ class VoiceGuide {
         val skipped: Set<Int> = emptySet(),
         /** To go for the start sentence (time model); null = not known yet. */
         val toGoS: Double? = null,
-        /** Standing still ([com.onpath.app.recording.MoveWatch], owner 2026-11-01): no "No GPS", no "off the route". */
+        /** Standing still (`recording.MoveWatch`, owner 2026-11-01): no "No GPS", no "off the route". */
         val quiet: Boolean = false,
         /** The route taken starts behind the user ([TurnRound], the U sign): the new-route sentence says to turn round. */
         val turnRound: Boolean = false,
