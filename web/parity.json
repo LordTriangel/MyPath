@@ -80,7 +80,7 @@
         "web/engine/src/main/kotlin/com/onpath/app/recording/GpsStatus.kt",
         "web/app/src/position.ts"
       ],
-      "blob": "67d8e815a9eec56c43d2b6fd5517db9fa849a0fc"
+      "blob": "80365fc08d7f3fa3096e72fda34db4db3832db6e"
     },
     {
       "app": "app/src/main/java/com/onpath/app/map/LayerSettings.kt",
@@ -170,7 +170,7 @@
         "web/app/src/plans.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "83bbebf89fc1d03a1a19cb998d6bb80d46b00384"
+      "blob": "46a4d74cccb67ef5dcfdef5cbb56b8542dd24d87"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -211,7 +211,7 @@
       "web": [
         "web/engine/src/main/kotlin/com/onpath/app/data/DataFiles.kt"
       ],
-      "blob": "5d288e57c4e17049d41c557bffab8e2c059eecbf"
+      "blob": "b3ac63228bb81f89dfc4ec1e94ec0f550aa588be"
     },
     {
       "app": "strings/src/androidMain/kotlin/com/onpath/strings/Txt.kt",
@@ -245,7 +245,7 @@
       "web": [
         "web/app/src/main.ts"
       ],
-      "blob": "3c0ad4e909c81005734a3ec77d235a8d2a16efa2"
+      "blob": "3e11c931349b8462bbf87cb61fc2a94ff1c7e282"
     },
     {
       "app": "app/src/main/java/com/onpath/app/map/Overview.kt",
@@ -261,7 +261,7 @@
       "web": [
         "web/app/src/cells.ts"
       ],
-      "blob": "8b8ae1be05834567c1aaaaf647c33e7426215533"
+      "blob": "4f7f9fa5121452326e3a69e1fd116d6fdb57f907"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/CellCard.kt",
@@ -526,7 +526,7 @@
     {
       "app": "app/src/main/java/com/onpath/app/data/Rd5PartStore.kt",
       "why": "rd5 part storage (web: Engine.writeParts)",
-      "blob": "a00c93d87abc51dd24e7cdb7e7408f650029007a"
+      "blob": "9c3b6af8f0f397368b2e963c9b6cf67d784cf9d0"
     },
     {
       "app": "tools/make_style.py",
@@ -949,6 +949,10 @@
         "private fun fit(s: String): String = if (s.length <= MAX_LEN + 15) s else s.take(MAX_LEN + 14).trimEnd() + \"…\""
       ]
     },
+    "app/src/main/java/com/onpath/app/search/SharedPlaceText.kt": {
+      "blob": "cc2f7ad1eb46f842c8e6d7050d140c1377f4389d",
+      "perf": []
+    },
     "app/src/main/java/com/onpath/app/poi/PoiFilter.kt": {
       "blob": "28c0deaf625bcf21c802b26874984d224b44170e",
       "perf": []
@@ -1263,24 +1267,24 @@
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/LongIntMap.kt": {
-      "blob": "ec00b6c71f262733bfae4be16f441c815df2e31a",
+      "blob": "79ca53d9fbfd12a2f3702543044881b6c09ca295",
       "perf": [
         "/** Empty, and gives the memory back (the map stays usable). */"
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/WayKinds.kt": {
-      "blob": "c79eda58944d018e1ca5fbbd7317551d174242d8",
+      "blob": "01b733a9f82066ac42b148f1efe6dee2ff68ed77",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/suggest/WayNet.kt": {
-      "blob": "c971968f3c1112044184f6b2f87eceec8c0aec60",
+      "blob": "d1c3523ab570124cfd7fe4fa148da67d9e039fd2",
       "perf": [
         "/** Heap size of the arrays, spare room and adjacency included (bytes). */",
         "/** Heap of the arrays so far, with their spare room (bytes). */"
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/NetReader.kt": {
-      "blob": "0a08b17660a932e8f22279b6f2d7187d2bb64613",
+      "blob": "a843be8b5c8b92552a0acbfbd6d004f818dcdb99",
       "perf": [
         "private inner class Tiles(val rc: RoutingContext, private val budget: Long) {",
         "if (bytes > budget) evict(key)",
@@ -1294,9 +1298,11 @@
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/NetSearch.kt": {
-      "blob": "debedd2ca64ed3c39c2295cf51e92054809473df",
+      "blob": "d2ef4b7743d1e001305481df0b631360aa98f855",
       "perf": [
-        "* expanded. Ties are broken by node number, as Python's heap of (cost, node) does."
+        "* expanded. Ties are broken by node number, as Python's heap of (cost, node) does. [withMetres] false: [metres]",
+        "// a 4-ary heap of (cost, node): (cost, node) pairs are unique (a node is pushed again only cheaper), so any heap",
+        "// takes them out in the same order as Python's heapq – this one with half the levels of a binary heap"
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/RouterProfile.kt": {
@@ -1330,22 +1336,34 @@
       "perf": []
     },
     "app/src/main/java/com/onpath/app/suggest/Land.kt": {
-      "blob": "ac80aa01dcec1e7dda8adf3ed84de23bd5b50719",
-      "perf": []
+      "blob": "bafbddfbc9a4c12fa820fe649758b1fb9ce69d59",
+      "perf": [
+        "/** Gives the tables and the rim cache back (made again when needed, the same values). */"
+      ]
     },
     "app/src/main/java/com/onpath/app/suggest/Named.kt": {
-      "blob": "676ffe18590c7a35f64196e9372a8bc5f6dacc4e",
+      "blob": "88f9561590798692a64c0b59989adf04e361fee7",
       "perf": [
         "class DoubleList(capacity: Int = 64) {",
-        "private var a = DoubleArray(capacity)"
+        "private var a = DoubleArray(capacity)",
+        "class IntList(capacity: Int = 16) {",
+        "private var a = IntArray(capacity)"
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/Facts.kt": {
-      "blob": "fdb13e9482a7530be44421d5ed71df37185423ee",
-      "perf": []
+      "blob": "aee13012d2fba1cd844602ba54d03b278f23e65a",
+      "perf": [
+        "// from grid to grid), then each grid's links together – only one grid's tables are in memory at a time",
+        "private var pool = ByteArray(256 * 64)",
+        "return if (b < 0) 0.0 else weights[pool[b * 256 + ((x and 15) shl 4) + (y and 15)].toInt() and 0xff]",
+        "if (blocks * 256 > pool.size) pool = pool.copyOf(pool.size * 2)",
+        "pool[b * 256 + ((x and 15) shl 4) + (y and 15)] = code.toByte()",
+        "val c = pool[b * 256 + i].toInt() and 0xff",
+        "pool = ByteArray(0)"
+      ]
     },
     "app/src/main/java/com/onpath/app/suggest/Place.kt": {
-      "blob": "4437096ca864cc66baf97f3e17b5edab9dcefd95",
+      "blob": "05c12b18beefef1481e3b8e8235e8704b114ef57",
       "perf": [
         "/** loops that fit but climb more than wished (generate.pool) */"
       ]
@@ -1357,7 +1375,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/Generate.kt": {
-      "blob": "f46625210fcec91507b94230ee13ab949efae64e",
+      "blob": "f31388ac1bac1c5b75b8e5c6429bea24731f5193",
       "perf": [
         "* Building loops – one pool, one assembly routine (the POC's `generate.py`). Every loop is a list of turning points",
         "* quarter turn away, two in a chain; a wished Ziel's aims always). When the pool stays small (mountains: few ways, most",
@@ -1368,25 +1386,26 @@
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/Official.kt": {
-      "blob": "aacc1ba22ad4c82dc956e83d3a9a8b3e329c27ba",
+      "blob": "6632c739fc0c452e5422e27716d7707666bd6995",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/suggest/Score.kt": {
-      "blob": "511bc8ac889a7464471de2586fe276426038ebdb",
+      "blob": "2348949c2110775776804dd802bf378cb67821da",
       "perf": [
         "if (s.length > 40 && \" · \" in s) s = s.split(\" · \", limit = 2)[1]"
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/TourSuggester.kt": {
-      "blob": "cad1981e20657a8b7b29a0483faf5ebc41042fcb",
+      "blob": "410c03e8042880c4bb713b776cb1123df5b70e4b",
       "perf": [
         "/** What one wish gave: the shown suggestions first (in list order), then the rest of the pool by points. */",
+        "* `ensureActive`, so a newer wish stops this one at the next phase instead of letting two runs hold memory at once.",
         "var cands = Generate(P, S).pool()",
         "cands = Generate(P, S).pool()"
       ]
     },
     "app/src/main/java/com/onpath/app/suggest/Aims.kt": {
-      "blob": "5f7872d0f1a892c278453258a1428995b5127fd8",
+      "blob": "d6daf88240f3c9de20dd76e462dadb8773af8c5f",
       "perf": [
         "var d = Double.MAX_VALUE",
         "var hit = Double.MAX_VALUE"
@@ -1395,6 +1414,14 @@
     "app/src/main/java/com/onpath/app/suggest/SuggestText.kt": {
       "blob": "3c5c29f8144ef1a821a8605edb70ef0aa4f47bcf",
       "perf": []
+    },
+    "app/src/main/java/com/onpath/app/suggest/SuggestCards.kt": {
+      "blob": "9df06d2bdf046b0aca61ff0080c297ffa6ccaef7",
+      "perf": [
+        "/** loops the method built and judged (the pool) */",
+        "var lo = Double.MAX_VALUE; var hi = -Double.MAX_VALUE; var sum = 0.0",
+        "var best = causes[0].first; var top = -Double.MAX_VALUE"
+      ]
     },
     "app/src/test/java/com/onpath/app/routing/OfflineCorridorTest.kt": {
       "blob": "d106d511aeffa606325dace25a9e3d9c84fac957",
@@ -1630,6 +1657,10 @@
       "blob": "037d0e153420a138314c7e4bda8f108ccf5d4fb5",
       "perf": []
     },
+    "strings/src/commonMain/composeResources/values/strings_days.xml": {
+      "blob": "1c8d98a7a2c758c803c450374a8bf792c5ab64f5",
+      "perf": []
+    },
     "strings/src/commonMain/composeResources/values/strings_maps.xml": {
       "blob": "8dd8c6c39c216ca231c4ce08409a1be97848f93a",
       "perf": []
@@ -1667,7 +1698,7 @@
       "perf": []
     },
     "strings/src/commonMain/composeResources/values/strings_suggest.xml": {
-      "blob": "8fe2ab55792a5ddc2e6bf902555699629c16d5e2",
+      "blob": "d9b3a3f99269a689549ecc279da83894d17383b4",
       "perf": []
     },
     "strings/src/commonMain/composeResources/values/strings_sync.xml": {
@@ -1688,6 +1719,10 @@
     },
     "strings/src/commonMain/composeResources/values-de/strings_common.xml": {
       "blob": "a164bde3214f87462b71b702d03435c0536859a7",
+      "perf": []
+    },
+    "strings/src/commonMain/composeResources/values-de/strings_days.xml": {
+      "blob": "610605fa54772da550658c68b7704227be3c8d92",
       "perf": []
     },
     "strings/src/commonMain/composeResources/values-de/strings_maps.xml": {
@@ -1727,7 +1762,7 @@
       "perf": []
     },
     "strings/src/commonMain/composeResources/values-de/strings_suggest.xml": {
-      "blob": "4266c51e38b46120e83c111340fe709bfb8b9200",
+      "blob": "07dfcc514e377b13544a04e9d7c453b5a83a503d",
       "perf": []
     },
     "strings/src/commonMain/composeResources/values-de/strings_sync.xml": {
@@ -1784,18 +1819,6 @@
     },
     "app/src/main/assets/style/f2/onpath.json": {
       "blob": "1c409cb28ff79aaf7c56578053c9e792a41f66c0",
-      "perf": []
-    },
-    "app/src/main/java/com/onpath/app/search/SharedPlaceText.kt": {
-      "blob": "cc2f7ad1eb46f842c8e6d7050d140c1377f4389d",
-      "perf": []
-    },
-    "strings/src/commonMain/composeResources/values/strings_days.xml": {
-      "blob": "1c8d98a7a2c758c803c450374a8bf792c5ab64f5",
-      "perf": []
-    },
-    "strings/src/commonMain/composeResources/values-de/strings_days.xml": {
-      "blob": "610605fa54772da550658c68b7704227be3c8d92",
       "perf": []
     }
   }
