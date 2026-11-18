@@ -40,7 +40,7 @@ import { setupGpxImport } from './gpximport';
 import { overviewStyle, followCover, followPackages } from './overview';
 import { PlanGapsLayer } from './plangaps';
 import { MapNotices } from './mapnotice';
-import { LoadOverlay, watchTiles, BUILD_UNITS, CALC_UNITS, ENGINE_UNITS, LINK_UNITS, type JobLook } from './loadoverlay';
+import { LoadOverlay, watchTiles, BUILD_UNITS, CALC_UNITS, ENGINE_UNITS, HINT_MS, LINK_UNITS, type JobLook } from './loadoverlay';
 import { MapAreas, type MapTexts } from './areas';
 import { t, tp, lang, languages, switchLanguage, number, distance, locale } from './i18n';
 import { appHint } from './apphint';
@@ -405,7 +405,8 @@ status(t('web_engine_loading'), 'busy');
 /** The engine, loaded with two more tries on a failed download (a network blip at start must not need a reload). */
 async function configureEngine() {
   for (let i = 0; ; i++) {
-    const r = await engine.configure(base, params.get('segments') ?? base + 'segments/', PACKED, lang);
+    // ?slowRoute=ms: the tests' slow router (worker.ts hold – robust-smoke 9)
+    const r = await engine.configure(base, params.get('segments') ?? base + 'segments/', PACKED, lang, Number(params.get('slowRoute') ?? 0) || 0);
     if (r.ok || r.unsupported || i >= 2) return r;
     problem('engine', 'routing engine not loaded – trying again', r.error);
     await new Promise((res) => setTimeout(res, 3000 * (i + 1)));
@@ -1584,14 +1585,21 @@ async function planRun(rounds: number) {
   // While the map of a new area loads (its routing data here, its tiles, a map area being prepared) the load overlay
   // says it with a percent and takes this wait over as its last phase (owner 2026-11-13) – one wait at a time.
   let wait = t('plan_calculating');
-  const calcLook = (title: string): JobLook => ({ title, prio: 0, opens: false, action: cancelLook() });
-  overlay.job('calc', 0, CALC_UNITS, calcLook(wait));
   // the route's progress (owner 2026-11-18, München–Venedig): a thin bar by the km of the legs routed of the plan's
   // length and "210 of 564 km · 0:42" – the bar moves when a leg is done (nothing invented), the clock each second
   const t0 = performance.now();
   let km: { doneM: number; totalM: number } | null = null;
-  const progressNow = (): WaitProgress | undefined => km && km.totalM > 0 ? { share: km.doneM / km.totalM,
-    line: t('plan_progress_km', String(Math.round(km.doneM / 1000)), String(Math.round(km.totalM / 1000)), elapsed(performance.now() - t0)) } : undefined;
+  const kmLine = () => km && km.totalM > 0 ? t('plan_progress_km', String(Math.round(km.doneM / 1000)), String(Math.round(km.totalM / 1000)), elapsed(performance.now() - t0)) : null;
+  // a long route (owner 2026-11-18, Neuss → München: „98 % sehr lange – hängt das?“): within a leg and while the legs
+  // are put together the router says nothing – a running stripe shows it works, after HINT_MS the app's calm line
+  const hint = () => performance.now() - t0 >= HINT_MS ? t('plan_from_track_busy_text') : undefined;
+  const progressNow = (): WaitProgress | undefined => { const line = kmLine();
+    return line ? { share: km!.doneM / km!.totalM, line, running: true, hint: hint() } : undefined; };
+  // the load card's last phase: running (no percent), the engine's line, the km and the clock (loadoverlay.ts)
+  const calcLook = (title: string): JobLook => { const line = kmLine();
+    return { title, prio: 0, opens: false, action: cancelLook(), running: true, hint: t('plan_from_track_busy_text'), lines: line ? [line] : undefined }; };
+  const calcDone = () => km && km.totalM > 0 ? Math.round((km.doneM / km.totalM) * CALC_UNITS) : 0;
+  overlay.job('calc', 0, CALC_UNITS, calcLook(wait));
   const show = () => {
     if (id !== state.latest || !state.planning) return;
     if (overlay.shown) { dismiss('routing'); return; }
@@ -1600,7 +1608,12 @@ async function planRun(rounds: number) {
   };
   let shown = false;
   const waitTimer = setTimeout(() => { shown = true; show(); }, WAIT_CARD_MS);
-  const clock = setInterval(() => { const p = progressNow(); if (p && id === state.latest && state.planning) setProgress('routing', p); }, 1000);
+  const clock = setInterval(() => {
+    if (id !== state.latest || !state.planning) return;
+    const p = progressNow();
+    if (p) setProgress('routing', p);
+    if (km && overlay.isOpen('calc')) overlay.job('calc', calcDone(), CALC_UNITS, calcLook(wait)); // the card's clock
+  }, 1000);
   const routed = state.points;
   const r = await engine.plan(routed, state.activity, state.sac, sharedPlan().pinned, (pr) => {
     if (id !== state.latest) return;
@@ -1613,7 +1626,7 @@ async function planRun(rounds: number) {
       overlay.finish('route');
       if (pr.phase === 'legs') {
         if (pr.totalM != null && pr.doneM != null) km = { doneM: pr.doneM, totalM: pr.totalM };
-        overlay.job('calc', km && km.totalM > 0 ? Math.round((km.doneM / km.totalM) * CALC_UNITS) : 0, CALC_UNITS, calcLook(pr.text || t('plan_calculating')));
+        overlay.job('calc', calcDone(), CALC_UNITS, calcLook(pr.text || t('plan_calculating')));
       }
     }
     wait = pr.phase === 'download' ? `${t('maps_load_loading')} · ${t('maps_about_mb', Math.max(1, Math.round(pr.bytes / 1e6)))}`

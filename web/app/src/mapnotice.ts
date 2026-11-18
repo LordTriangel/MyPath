@@ -15,6 +15,8 @@ export interface Notice {
   /** The load overlay (loadoverlay.ts): 0..100 and its text ("45 %") – a bar under the title. */
   progress?: number;
   progressText?: string;
+  /** The route calculation (the router says no fraction): a running bar, no number – [progress] stays the last percent. */
+  running?: boolean;
   /** One text button (the route's Cancel). */
   action?: { label: string; act: () => void };
 }
@@ -26,6 +28,17 @@ export interface Notice {
  */
 const ORDER = ['load', 'locate', 'loading', 'cells', 'areas'] as const;
 export type Slot = (typeof ORDER)[number];
+
+/**
+ * A running bar's stripe (the route calculation, owner 2026-11-18: never a bar that looks frozen): [el] moves by the
+ * page's clock, not from its own start – the card and the wait box are drawn anew while they wait (each second, each
+ * new number), and a stripe that began again each time would jump back.
+ */
+export function runStripe(el: HTMLElement) {
+  const ms = matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 4000 : 1400;
+  el.style.animationDuration = `${ms}ms`;
+  el.style.animationDelay = `-${Math.round(performance.now() % ms)}ms`;
+}
 
 export class MapNotices {
   private shown = new Map<Slot, Notice>();
@@ -68,11 +81,15 @@ export class MapNotices {
         const row = document.createElement('div');
         row.className = 'progress';
         const bar = document.createElement('div');
-        bar.className = 'bar';
+        bar.className = n.running ? 'bar running' : 'bar';
         bar.setAttribute('role', 'progressbar');
-        bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '100'); bar.setAttribute('aria-valuenow', String(n.progress));
-        bar.append(Object.assign(document.createElement('i'), { style: `width: ${n.progress}%` }));
-        row.append(bar, Object.assign(document.createElement('span'), { className: 'pct', textContent: n.progressText ?? `${n.progress} %` }));
+        bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '100');
+        if (!n.running) bar.setAttribute('aria-valuenow', String(n.progress)); // running: no value = indeterminate
+        const fill = document.createElement('i');
+        if (n.running) runStripe(fill); else fill.style.width = `${n.progress}%`;
+        bar.append(fill);
+        row.append(bar);
+        if (!n.running) row.append(Object.assign(document.createElement('span'), { className: 'pct', textContent: n.progressText ?? `${n.progress} %` }));
         el.append(row);
       }
       for (const l of n.lines ?? []) el.append(Object.assign(document.createElement('div'), { className: 'line', textContent: l }));
