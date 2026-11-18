@@ -55,12 +55,25 @@ actual fun fileLastModified(path: String): Long = memScoped {
     if (stat(path, st.ptr) != 0) 0L else st.st_mtim.tv_sec * 1000L + st.st_mtim.tv_nsec / 1_000_000L
 }
 actual fun readFileBytes(path: String): ByteArray {
-    val f = RandomAccessFile(path)
+    // read until end of file (not by length: /proc files report 0)
+    val fd = open(path, O_RDONLY)
+    if (fd < 0) throw IOException("cannot open $path")
     try {
-        val b = ByteArray(f.length().toInt())
-        f.readFully(b, 0, b.size)
-        return b
-    } finally { f.close() }
+        var buf = ByteArray(65536)
+        var n = 0
+        while (true) {
+            if (n == buf.size) buf = buf.copyOf(buf.size * 2)
+            val r = buf.usePinned { platform.posix.read(fd, it.addressOf(n), (buf.size - n).convert()).toInt() }
+            if (r < 0) throw IOException("read error $path")
+            if (r == 0) break
+            n += r
+        }
+        return buf.copyOf(n)
+    } finally { platform.posix.close(fd) }
+}
+actual fun writeFileText(path: String, text: String) {
+    val f = platform.posix.fopen(path, "w") ?: throw IOException("cannot write $path")
+    try { if (fputs(text, f) < 0) throw IOException("write error $path") } finally { platform.posix.fclose(f) }
 }
 private fun clock(id: Int): Long = memScoped {
     val ts = alloc<timespec>()

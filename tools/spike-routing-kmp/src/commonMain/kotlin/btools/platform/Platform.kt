@@ -16,6 +16,8 @@ expect fun fileLength(path: String): Long
 expect fun fileLastModified(path: String): Long
 /** The whole file; throws IOException when it cannot be read. */
 expect fun readFileBytes(path: String): ByteArray
+/** Test harness only (the engine never writes). */
+expect fun writeFileText(path: String, text: String)
 expect fun currentTimeMillis(): Long
 expect fun nanoTime(): Long
 expect fun printErr(line: String)

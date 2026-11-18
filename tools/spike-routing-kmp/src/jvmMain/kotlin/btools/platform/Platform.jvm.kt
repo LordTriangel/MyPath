@@ -15,6 +15,7 @@ actual fun fileLength(path: String): Long = java.io.File(path).length()
 actual fun fileLastModified(path: String): Long = java.io.File(path).lastModified()
 actual fun readFileBytes(path: String): ByteArray =
     try { java.io.File(path).readBytes() } catch (e: java.io.IOException) { throw IOException(e.toString(), e) }
+actual fun writeFileText(path: String, text: String) = java.io.File(path).writeText(text)
 actual fun currentTimeMillis(): Long = System.currentTimeMillis()
 actual fun nanoTime(): Long = System.nanoTime()
 actual fun printErr(line: String) = System.err.println(line)
