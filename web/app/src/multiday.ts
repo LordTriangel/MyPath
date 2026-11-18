@@ -383,6 +383,17 @@ export class MultiDay {
     });
   }
 
+  /**
+   * „Übernachtung hier“ as the first row of a normal plan point's menu in a multi-day tour (owner 2026-11-18): R1 on
+   * that point – one undo step, the grey proposals spread anew. Never on the start or the last point (no marks there);
+   * a point with a night has its night menu instead. Null = not offered.
+   */
+  pointNightItem(i: number): MenuItem | null {
+    const n = this.h.points().length;
+    if (!this.isTour || i <= 0 || i >= n - 1 || this.nightOf(i)) return null;
+    return { icon: 'moon', label: t('days_overnight_here'), act: async () => this.take(await this.rule('addNightAt', i)) };
+  }
+
   /** A click on the route of a multi-day tour: „Übernachtung hier“ and the normal „Einfügen“. */
   routeMenu(at: maplibregl.LngLat) {
     this.h.openMenu(at, [

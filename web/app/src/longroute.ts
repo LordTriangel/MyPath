@@ -33,10 +33,12 @@ export type LongAnswer = 'plan' | 'cancel' | { fresh: LatLon };
  * very long – or, after a point edit ([before]), "Far from your route" when the one new point alone makes it long;
  * nothing is routed while it is open.
  */
-export async function longRouteOk(engine: EngineClient, points: LatLon[], activity: Activity, before?: Before | null): Promise<LongAnswer> {
+export async function longRouteOk(engine: EngineClient, points: LatLon[], activity: Activity, before?: Before | null,
+  multiDay = false): Promise<LongAnswer> {
   const k = keyOf(points);
   if (k === okFor) return 'plan';
-  const a = JSON.parse(await engine.call('longRoute', k, activity)) as Ask;
+  // a multi-day tour is never asked (owner 2026-11-18, WebPlanRules.longRoute): its day rows show a long day
+  const a = JSON.parse(await engine.call('longRoute', k, activity, multiDay)) as Ask;
   if (!a.ask) return 'plan';
   notRoutedTexts = { line: a.notRouted ?? notRoutedTexts.line, button: a.again ?? notRoutedTexts.button };
   const far = before ? await farPoint(engine, points, activity, before) : null;
@@ -69,10 +71,10 @@ async function farPoint(engine: EngineClient, points: LatLon[], activity: Activi
   const old = new Set(before.points.map((p) => keyOf([p])));
   const fresh = points.filter((p) => !old.has(keyOf([p])));
   if (!before.points.length || fresh.length !== 1 || points.length !== before.points.length + 1) return null;
-  if (before.points.length >= 2 && (JSON.parse(await engine.call('longRoute', keyOf(before.points), activity)) as Ask).ask) return null;
+  if (before.points.length >= 2 && (JSON.parse(await engine.call('longRoute', keyOf(before.points), activity, false)) as Ask).ask) return null;
   const p = fresh[0];
   const nearest = before.points.reduce((b, q) => (metres(p, q) < metres(p, b) ? q : b));
-  const leg = JSON.parse(await engine.call('longRoute', keyOf([nearest, p]), activity)) as Ask & { seconds?: number };
+  const leg = JSON.parse(await engine.call('longRoute', keyOf([nearest, p]), activity, false)) as Ask & { seconds?: number };
   if (!leg.ask || leg.seconds == null) return null;
   // LongRoute.describe ("about 35 hours" / "about 3 days") + how: the app's words, the web's sentence
   const h = leg.seconds / 3600;

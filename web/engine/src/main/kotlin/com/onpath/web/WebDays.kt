@@ -204,7 +204,7 @@ object WebDays {
 
     /**
      * One rule on the page's plan (each one undo step on the page): `start` (N = [n]), `setDays` (N = [n]), `addNight`
-     * (R1 / R7 at the line point nearest [lat] / [lon]), `removeNight` (plan point [n]), `setHotel` (R3: plan point [n]
+     * (R1 / R7 at the line point nearest [lat] / [lon]), `addNightAt` (R1 on plan point [n]), `removeNight` (plan point [n]), `setHotel` (R3: plan point [n]
      * – or, [n] < 0, the grey proposal at the line point nearest [text]'s 4th / 5th field: R1 + R3 –, the hotel at
      * [lat] / [lon], [text] = "name\taddress\tlink\t…"), `removeHotel` (R4, plan point [n]), `afterEdit` (R6: the points
      * changed to [text] = "lat,lon;…"; marks follow, a dragged night stays one), `nearest` (the day end nearest
@@ -220,6 +220,10 @@ object WebDays {
             "removeNight" -> if (p.nights.containsKey(n)) planOut(PlanDays.removeNight(p, n)) else "null"
             "afterEdit" -> planOut(PlanDays.afterEdit(p, Engine.parsePoints(text)))
             "addNight" -> line(p)?.let { l -> addNight(p, l, nearestLine(l, lat, lon)) } ?: "null"
+            // „Übernachtung hier“ in a plan point's menu (owner 2026-11-18): R1 on that point itself – its own line
+            // index, so a route that passes the spot twice still marks this point; never the start or the finish
+            "addNightAt" -> if (n <= 0 || n >= p.points.lastIndex || p.nights.containsKey(n)) "null"
+                else line(p)?.let { l -> pointAt(p, l).getOrNull(n)?.let { addNight(p, l, it) } } ?: "null"
             "removeHotel" -> {
                 val l = line(p)
                 if (l == null || p.nights[n]?.isHotel != true) "null"

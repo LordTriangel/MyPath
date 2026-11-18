@@ -9,6 +9,7 @@ import type { EngineClient } from './engine/client';
 import type { Activity, PlanResult } from './engine/types';
 import { profileSvg } from './profile';
 import './gpximport.css';
+import { elapsed } from './msgcard';
 import { t, distance } from './i18n';
 import * as maplibre from 'maplibre-gl';
 
@@ -365,9 +366,15 @@ function busyBox(onCancel: () => void): HTMLDialogElement & { progress(text: str
   document.body.append(d);
   d.addEventListener('cancel', (e) => e.preventDefault()); // Escape does not dismiss it (the app: no outside dismiss)
   d.querySelector<HTMLButtonElement>('#cancelTrackPlan')!.onclick = () => { onCancel(); d.close(); };
-  d.addEventListener('close', () => d.remove());
+  // the share done and the time since it started (owner 2026-11-18: the clock shows it is alive), each second
+  const t0 = performance.now();
+  let pct = '';
+  const show = () => { const b = d.querySelector('.busypct'); if (b) b.textContent = [pct, elapsed(performance.now() - t0)].filter(Boolean).join(' · '); };
+  const clock = setInterval(show, 1000);
+  show();
+  d.addEventListener('close', () => { clearInterval(clock); d.remove(); });
   d.showModal();
-  return Object.assign(d, { progress: (s: string) => { const b = d.querySelector('.busypct'); if (b) b.textContent = s; } });
+  return Object.assign(d, { progress: (s: string) => { pct = s; show(); } });
 }
 
 const empty = () => ({ type: 'FeatureCollection' as const, features: [] });

@@ -36,9 +36,10 @@ for (const name of Object.keys(jvm).sort()) {
 const nothing = JSON.parse(e.gpxRead(new Int8Array(new TextEncoder().encode('<gpx></gpx>')), 'x.gpx', 'HIKE', 2));
 check(nothing.error === 'Could not import this file: No track, route or waypoint found in this file.', 'empty GPX: the app\'s plain error');
 
-const far = JSON.parse(e.longRoute('46.67,11.16;52.05,11.16', 'HIKE'));
+const far = JSON.parse(e.longRoute('46.67,11.16;52.05,11.16', 'HIKE', false));
 check(far.ask && far.title === 'This route is very long' && /days on foot\. Calculating and loading its maps takes long\.$/.test(far.text), `600 km on foot is asked first: "${far.text}"`);
-check(JSON.parse(e.longRoute('46.67,11.16;46.69,11.15', 'HIKE')).ask === false, 'a day hike is not asked');
+check(JSON.parse(e.longRoute('46.67,11.16;46.69,11.15', 'HIKE', false)).ask === false, 'a day hike is not asked');
+check(JSON.parse(e.longRoute('46.67,11.16;52.05,11.16', 'HIKE', true)).ask === false, 'a multi-day tour is never asked');
 check(e.planCancel('edit', true, false) === 'UNDO' && e.planCancel('activity', false, false) === 'RESTORE_ACTIVITY', 'Cancel takes back the change (PlanStatus.onCancel)');
 
 console.log(fails.length ? 'FAILED' : 'all ok');

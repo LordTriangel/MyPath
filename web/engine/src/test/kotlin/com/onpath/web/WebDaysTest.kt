@@ -51,6 +51,8 @@ class WebDaysTest {
         assertTrue(moved, moved.contains("\"nights\":{\"2\":{\"hotel\":null},\"3\":{\"hotel\":null}}"))
         // nothing routed: the rules that need the line say "null"
         assertEquals("null", WebDays.rule("addNight", "46.1,11.1;46.2,11.1", "HIKE", 2, "", "", t3, 0, 46.15, 11.1, ""))
+        // a plan point's „Übernachtung hier“: never the start, the finish or a point with a mark; else needs the line
+        for (n in listOf(0, 3, 1, 2)) assertEquals("null", WebDays.rule("addNightAt", pts, "BIKE_TOURING", 2, "", "", t3, n, 0.0, 0.0, ""))
         assertEquals("{\"routed\":false}", WebDays.view("46.1,11.1;46.2,11.1", "HIKE", 2, "", "", t3))
     }
 

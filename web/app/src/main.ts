@@ -34,7 +34,7 @@ import { keepRecent, afterSaved, takePlace, renameRecentIf, startUp as zuletztSt
 import { MapContentPanel } from './mapcontent';
 import { sortable } from './sortable';
 import { longRouteOk, allowLongRoute, cancelCamera, notRoutedTexts, setNotRouted, type Before } from './longroute';
-import { post, dismiss, onShown } from './msgcard';
+import { post, dismiss, onShown, setProgress, elapsed, type WaitProgress } from './msgcard';
 import { OneWait } from './onewait';
 import { setupGpxImport } from './gpximport';
 import { overviewStyle, followCover, followPackages } from './overview';
@@ -1158,6 +1158,9 @@ async function pointMenu(i: number) {
     if (a === 'GOOGLE') return { icon: 'map', label: t('plan_open_google_maps'), act: () => google(name ?? '', lat, lon, '') };
     return { icon: 'delete', label: t('common_delete'), danger: true, act: () => deletePoint(i) };
   });
+  // a multi-day tour: „Übernachtung hier“ first (owner 2026-11-18) – this point becomes a night (blue moon)
+  const night = multiDay?.pointNightItem(i);
+  if (night) items.unshift(night);
   const color = state.roundTrip && i === 0 ? COLORS.start : stopColor(i, n);
   const title = `<b>${escapeHtml(stopLabel(i, n, name))}</b>`;
   openMenu(new maplibregl.LngLat(lon, lat), items,
@@ -1477,8 +1480,8 @@ function sheetWait() {
   waits.set('sheet', state.planning && !!document.querySelector('#summary .subline.waitline'));
 }
 /** The wait box in the middle of the free map (beside / above the sheet), with Cancel – the app's onCancelRouting. */
-function waitCard(text: string) {
-  post({ id: 'routing', kind: 'hinweis', busy: true, tone: 'edit', title: text, buttons: [{ label: t('common_cancel'), act: cancelRouting }], at: mapMiddle });
+function waitCard(text: string, progress?: WaitProgress) {
+  post({ id: 'routing', kind: 'hinweis', busy: true, tone: 'edit', title: text, progress, buttons: [{ label: t('common_cancel'), act: cancelRouting }], at: mapMiddle });
 }
 function mapMiddle() {
   const st = $('stage').getBoundingClientRect(), sh = $('sheet').getBoundingClientRect(), bar = $('topbar').getBoundingClientRect();
@@ -1544,7 +1547,7 @@ async function changed() {
   if (few) { render(); return; }
   planGaps.clear(); // the last plan's gaps belong to other points
   // the app's long-route question first (routing/LongRoute): nothing is routed or downloaded until it is answered
-  const answer = await longRouteOk(engine, state.points, state.activity, before);
+  const answer = await longRouteOk(engine, state.points, state.activity, before, !!state.tour);
   if (stale()) return;
   if (answer === 'cancel') { await cancelLongRoute(); cancelLongRouteCamera(); return; }
   if (answer !== 'plan') { await startFresh(answer.fresh); return; }
@@ -1581,30 +1584,42 @@ async function planRun(rounds: number) {
   let wait = t('plan_calculating');
   const calcLook = (title: string): JobLook => ({ title, prio: 0, opens: false, action: cancelLook() });
   overlay.job('calc', 0, CALC_UNITS, calcLook(wait));
+  // the route's progress (owner 2026-11-18, München–Venedig): a thin bar by the km of the legs routed of the plan's
+  // length and "210 of 564 km · 0:42" – the bar moves when a leg is done (nothing invented), the clock each second
+  const t0 = performance.now();
+  let km: { doneM: number; totalM: number } | null = null;
+  const progressNow = (): WaitProgress | undefined => km && km.totalM > 0 ? { share: km.doneM / km.totalM,
+    line: t('plan_progress_km', String(Math.round(km.doneM / 1000)), String(Math.round(km.totalM / 1000)), elapsed(performance.now() - t0)) } : undefined;
   const show = () => {
     if (id !== state.latest || !state.planning) return;
     if (overlay.shown) { dismiss('routing'); return; }
     if (linkOpening && phoneWidth()) return; // a link on a phone: never a box over its route – the sheet's line says it
-    waitCard(wait);
+    waitCard(wait, progressNow());
   };
   let shown = false;
   const waitTimer = setTimeout(() => { shown = true; show(); }, WAIT_CARD_MS);
+  const clock = setInterval(() => { const p = progressNow(); if (p && id === state.latest && state.planning) setProgress('routing', p); }, 1000);
   const routed = state.points;
   const r = await engine.plan(routed, state.activity, state.sac, sharedPlan().pinned, (pr) => {
     if (id !== state.latest) return;
     if (pr.phase === 'download') {
       // the routing data: bytes received of the bytes needed (sizes from the files' index – worker.ts ensureParts)
+      km = null;
       overlay.remove('link');
       overlay.job('route', pr.done, pr.bytes, { ...loadLook(), action: cancelLook() });
     } else {
       overlay.finish('route');
-      if (pr.phase === 'legs') overlay.job('calc', 0, CALC_UNITS, calcLook(pr.text));
+      if (pr.phase === 'legs') {
+        if (pr.totalM != null && pr.doneM != null) km = { doneM: pr.doneM, totalM: pr.totalM };
+        overlay.job('calc', km && km.totalM > 0 ? Math.round((km.doneM / km.totalM) * CALC_UNITS) : 0, CALC_UNITS, calcLook(pr.text || t('plan_calculating')));
+      }
     }
     wait = pr.phase === 'download' ? `${t('maps_load_loading')} · ${t('maps_about_mb', Math.max(1, Math.round(pr.bytes / 1e6)))}`
-      : pr.phase === 'legs' ? pr.text : t('plan_calculating');
+      : pr.phase === 'legs' && pr.text ? pr.text : t('plan_calculating');
     if (shown) show();
   }, namesText(), rounds);
   clearTimeout(waitTimer);
+  clearInterval(clock);
   if (id !== state.latest) return; // a newer request supersedes this one (or Cancel dropped it)
   setPlanning(false);
   if (r.ok && r.plan?.slow) { askSlowPlan(r.plan.slow); render(); return; }
