@@ -58,7 +58,7 @@ object PmTiles {
                 if (h.size < HEADER_SIZE || String(h, 0, 7, Charsets.US_ASCII) != "PMTiles") throw IOException("not a PMTiles file")
                 if (h[7].toInt() != 3) throw IOException("PMTiles version ${h[7]} not supported (3 expected)")
                 val b = ByteBuffer.wrap(h).order(ByteOrder.LITTLE_ENDIAN)
-                b.position(8)
+                (b as java.nio.Buffer).position(8)  // Buffer's method: ByteBuffer.position(int) of JDK 9+ does not exist on Android 8-12
                 val l = LongArray(11) { b.long }
                 val u = { b.get().toInt() and 0xff }
                 return Header(l[0], l[1], l[2], l[3], l[4], l[5], l[6], l[7], l[8], l[9], l[10],
