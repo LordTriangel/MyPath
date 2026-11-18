@@ -485,7 +485,9 @@ and the commit history.
   `docs/design/map-access.md` (anonymous per-phone quota of new areas, supporter code, production key with rotation).
   Owner decides limit, supporter platform, timing. Production is not deployed yet (all released APKs use test); when it
   is, it carries everything already on test (e.g. A-014 no plain IPs / no invocation logs, 2e851ef) – the first
-  production deploy is part of the launch together with Google Play.## Later
+  production deploy is part of the launch together with Google Play.
+
+## Later
 - **Multi-day tours – concept complete, nothing built (owner 2026-11-17: every open point decided, „ansonsten haben wir alles“):** one plan + number of days + limits per day; Übernachtung (blue moon) / Hotel (green bed), grey moons worked out; way in ☰ → Mehrtagestour planen (GPX-Track laden / gespeicherte Route, „Noch etwas anhängen“); saving as every plan; the phone asks for maps at the first opening and picks a day. `docs/design/multi-day-tours.md`, sketches rounds 1–3 linked there (§10). Next: stage 0 (measure München–Venedig) when the owner says go. Touches shared code (`PlanCode`, `PlanEdits`) → laptop.
 - **Plan sheet "a third lower"** – reached only ~23 % (d2885035); more needs touch targets smaller than 48 dp, owner
   said no (2026-10-31).
