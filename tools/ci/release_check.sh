@@ -47,11 +47,12 @@ ok() { echo "  ✓ $*"; }
 bad() { echo "  ✗ $*"; fail=1; }
 blob() { git rev-parse -q --verify "$1:$2" 2>/dev/null || echo "-"; }
 # a shared file at a ref: in :app, or in :core once tools/dev/core_move.py moved it (old refs: old path, new refs: new path)
-appblob() { local b; b=$(blob "$1" "$SRC/$2"); [ "$b" = "-" ] && b=$(blob "$1" "$CORE_SRC/$2"); echo "$b"; }
+# (one search order everywhere: :core first, then :app)
+appblob() { local b; b=$(blob "$1" "$CORE_SRC/$2"); [ "$b" = "-" ] && b=$(blob "$1" "$SRC/$2"); echo "$b"; }
 
 # 1. routing fingerprint
 echo "1. Routing fingerprint"
-fpv() { { git show "$1:$SRC/routing/RoutingFingerprint.kt" 2>/dev/null || git show "$1:$CORE_SRC/routing/RoutingFingerprint.kt" 2>/dev/null; } | grep -E "const val (BROUTER_VERSION|PLANNER_VERSION)" | sed 's/^ *//'; }
+fpv() { { git show "$1:$CORE_SRC/routing/RoutingFingerprint.kt" 2>/dev/null || git show "$1:$SRC/routing/RoutingFingerprint.kt" 2>/dev/null; } | grep -E "const val (BROUTER_VERSION|PLANNER_VERSION)" | sed 's/^ *//'; }
 if [ "$(fpv "$APP")" = "$(fpv "$WEB")" ]; then ok "$(fpv "$APP" | tr '\n' ' ')"; else
   bad "versions differ:"; diff <(fpv "$APP") <(fpv "$WEB") | sed 's/^/      /'; fi
 for dir in app/src/main/assets/brouter app/libs; do

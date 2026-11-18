@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """core_move.py – moves pure Kotlin from :app to :core (docs/design/umbau-phase-1.md, piece B). stdlib only.
 
-  core_move.py plan  [--only pkg,pkg] [--files a/B.kt,c/D.kt] [--no-tests]   print the closed set that can move, the blocked
+  core_move.py plan  [--only pkg,pkg] [--files a/B.kt,c/D.kt] [--all-pure] [--no-tests]   print the closed set that can move, the blocked
                                                                                 candidates with their first reason, the tests
   core_move.py move  [same options] [--dry-run]                              do it: git mv + path rewrites (below)
   core_move.py lock                                                          rewrite web/engine/core-shared.lock (move does it)
@@ -11,7 +11,8 @@ The set (`plan`): app files of the candidate packages (CAND) and the hub files n
       use, no btools. use (unless in ALLOW_BTOOLS: BRouter jars are compileOnly in :core), no library :core does not have, and
   (b) reference – by import, same-package identifier, wildcard import or fully-qualified name – only files that are in
       the set too (or are in :core already: a second run builds on the first).
-`--only` narrows the packages, `--files` names exactly the candidates. Identifier matching is approximate: `plan` is a
+`--only` narrows the packages, `--files` names exactly the candidates, `--all-pure` makes EVERY app file a candidate (Compose / Android
+files fall out by rule (a), what hangs on them by rule (b)): the closure decides, not a hand list. Identifier matching is approximate: `plan` is a
 PROPOSAL, the compiler decides (a file :core refuses goes back with `git mv`; see the ends of `move`'s output).
 
 Tests move when they use at least one moved class and nothing that stays in :app (and no android / paparazzi), together with
@@ -29,7 +30,8 @@ tools/*.
 """
 import argparse, collections, json, os, re, subprocess, sys
 
-ROOT = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True).stdout.strip() or os.getcwd()
+# the repo root from where THIS script lives (tools/dev/core_move.py), never from the working directory
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 APP_MAIN, CORE_MAIN = "app/src/main/java/com/onpath/app", "core/src/main/kotlin/com/onpath/app"
 APP_TEST, CORE_TEST = "app/src/test/java/com/onpath/app", "core/src/test/kotlin/com/onpath/app"
 CORE_KIT = "core/src/testkit/kotlin/com/onpath/app"
@@ -43,6 +45,9 @@ HUBS = [  # pure hub files outside the candidate packages (the paper: "the pure 
     "data/Tour.kt", "recording/GpsStatus.kt", "recording/MoveWatch.kt", "recording/PointFilter.kt",
     "debug/Problems.kt", "data/TourJson.kt", "data/DataNames.kt", "data/StorageGate.kt", "recording/FixRules.kt",
     "ui/StopTokens.kt", "update/AppVersions.kt", "poi/Poi.kt",
+    # pure files that block many others (piece C0); `plan --all-pure` does not need this list at all
+    "data/MultiDay.kt", "poi/PoiKinds.kt", "poi/PoiFilter.kt", "data/LastActivity.kt", "data/TourPlan.kt", "data/FollowFile.kt",
+    "recording/AscentCounter.kt", "data/Prefs.kt",
 ]
 ALLOW_BTOOLS = {"suggest/NetReader.kt", "routing/Junctions.kt", "routing/Rd5Parts.kt"}  # BRouter jars: compileOnly in :core
 ANDROID = re.compile(r"^(android\.|androidx\.|org\.maplibre\.|com\.google\.android)")
@@ -219,6 +224,24 @@ def closure(model, candidates):
     return ok, why
 
 
+SCOPE = set(CAND) | {"data", "debug", "poi", "recording"}  # packages whose pure files move on their own (phase 1)
+
+
+def prune(model, ok):
+    """--all-pure: every app file was a candidate, but only the packages of the cut (SCOPE) and the hub files move on their
+    own; a pure file of ui/, map/, update/ ... moves only when a moved file needs it (so Compose-free helpers of `ui` come
+    along, the rest of `map/` waits for its own phase)."""
+    hub = {f"{APP_MAIN}/{h}" for h in HUBS}
+    keep = {p for p in ok if p in hub or model.rel(p).split("/")[0] in SCOPE}
+    work = list(keep)
+    while work:
+        for q in model.deps(work.pop())[0]:
+            if q in ok and q not in keep:
+                keep.add(q)
+                work.append(q)
+    return keep
+
+
 def root_cause(p, why, seen=()):
     r = why.get(p, "")
     m = re.match(r"needs (\S+)", r)
@@ -241,13 +264,15 @@ def candidates(model, only, files):
         return out
     pk = lambda p: model.rel(p).split("/")[0]
     hub = {f"{APP_MAIN}/{h}" for h in HUBS}
-    out = [p for p in allapp if (pk(p) in CAND or p in hub) and "/" in model.rel(p)]
+    out = [p for p in allapp if (pk(p) in CAND or p in hub or ALL_PURE) and "/" in model.rel(p)]
     if only:
         out = [p for p in out if pk(p) in only]
     return out
 
 
 REASONS = {}
+ALL_PURE = False    # --all-pure: every app file is a candidate
+FORCED_STAY = {}    # test path -> why it must stay in :app (it reads a resource folder that cannot move)
 WEB_TESTS = set()   # [tests] of app/web-shared-files.txt: the planner compiles them as they are
 ALL_RES = []        # every resource folder (for the web-test rewrite check)
 
@@ -287,6 +312,9 @@ def plan_tests(model, moved):
     cand = set()
     for p in app_tests:
         s = model.tests[p]
+        if p in FORCED_STAY:
+            REASONS[p] = FORCED_STAY[p]
+            continue
         a = [n for n, _ in s.imports if n.startswith(TEST_ANDROID)] or [m.group(0) for m in re.finditer(r"\b(android|androidx)\.[a-z]+\.\w+", s.body)]
         if a:
             REASONS[p] = f"android: {a[0]}"
@@ -482,6 +510,23 @@ def mv(src, dst, dry):
     git("mv", src, dst)
 
 
+def preflight(moves):
+    """moves: [(src, dst)] of files. Stops BEFORE anything is moved when a destination exists (check first, then move)."""
+    clash = [d for _, d in moves if os.path.exists(os.path.join(ROOT, d))]
+    if clash:
+        sys.exit("core_move: destination exists already, nothing was moved: " + ", ".join(clash[:10]) + (" ..." if len(clash) > 10 else ""))
+
+
+def dir_moves(src, dst):
+    """The (file, destination) pairs mv_dir would do for a folder."""
+    out = []
+    for d, _, fs in os.walk(os.path.join(ROOT, src)):
+        for f in fs:
+            a = os.path.relpath(os.path.join(d, f), ROOT)
+            out.append((a, dst + "/" + os.path.relpath(a, src)))
+    return out
+
+
 def mv_dir(src, dst, dry):
     """git mv a folder; when dst exists already (a second run), move the files one by one – never nest dst/<d>/<d>."""
     if not os.path.isdir(os.path.join(ROOT, src)):
@@ -538,15 +583,32 @@ def solve(args, with_tests=True):
     excluded, tests, stays = set(), {}, set()
     for _ in range(20):
         ok, why2 = closure(model, [p for p in cand if p not in excluded])
+        if ALL_PURE:
+            why2.update({p: "pure, but outside the packages of the cut and no moved file needs it" for p in ok - prune(model, ok)})
+            ok = prune(model, ok)
         why = {**why2, **{p: why.get(p, "") for p in excluded}}
-        tests, stays = plan_tests(model, ok) if with_tests else ({}, set())
-        users = [(q, model.tests[q]) for q in stays] + list(model.atests.items())
+        tests, stays = plan_tests(model, ok) if with_tests else ({}, set(p for p in model.tests if p.startswith(APP_TEST + "/")))
+        # a resource folder that must stay in :app (a staying test or a tool reads the old place) cannot be read by a moved
+        # test: that test stays too (then the plan is made again)
+        forced = {}
+        for d, who in resource_dirs(model, tests)[1]:
+            for q in tests:
+                if any(resource_reads(model.tests[q].text, d)):
+                    forced[q] = f"reads resource folder {d}, which stays in :app (used by {who})"
+        if forced and not all(q in FORCED_STAY for q in forced):
+            FORCED_STAY.update(forced)
+            continue
+        # everything compiled in :app after the move can see only the PUBLIC declarations of the moved files: all staying main
+        # files (closure checks those), the unit tests that stay, every testkit file (compiled in both modules), androidTest
+        users = [(q, model.tests[q]) for q in model.tests if q.startswith(APP_TEST + "/") and tests.get(q) != "core"]
+        users += [(q, model.tests[q]) for q in model.tests if q.startswith(CORE_KIT + "/")]
+        users += list(model.atests.items())
         leaks = {}
         for p in ok:
             for d in model.main[p].internal:
                 for q, src in users:
                     if uses_symbol(src, model.main[p].pkg, d):
-                        leaks[p] = f"internal {d} is used by {os.path.basename(q)} (a test that stays in :app)"
+                        leaks[p] = f"internal {d} is used by {os.path.basename(q)} (compiled in :app after the move)"
                         break
                 if p in leaks:
                     break
@@ -627,6 +689,11 @@ def cmd_move(args):
     moved_rel = {model.rel(p) for p in ok}
     moved_test_rel = {model.rel(p) for p in tests}
     res, res_stay = resource_dirs(model, tests)
+    pre = [(p, main_dest(model, p)) for p in ok] + [(p, test_dest(model, p, k)) for p, k in tests.items()]
+    for d in res:
+        if os.path.isdir(os.path.join(ROOT, f"{APP_RES}/{d}")):
+            pre += dir_moves(f"{APP_RES}/{d}", f"{CORE_RES}/{d}")
+    preflight(pre)
     print(f"-- moving {len(ok)} main files")
     for p in sorted(ok):
         mv(p, main_dest(model, p), dry)
@@ -701,10 +768,13 @@ def main():
     ap.add_argument("cmd", choices=["plan", "move", "lock"])
     ap.add_argument("--only", help="comma separated packages")
     ap.add_argument("--files", help="comma separated files relative to the package root, e.g. suggest/X.kt,sync/Y.kt")
+    ap.add_argument("--all-pure", action="store_true", help="every app file is a candidate (the closure decides what can move)")
     ap.add_argument("--no-tests", action="store_true")
     ap.add_argument("--why-tests", action="store_true", help="plan: list the tests that use a moved class but stay, with the reason")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
+    global ALL_PURE
+    ALL_PURE = a.all_pure
     {"plan": cmd_plan, "move": cmd_move, "lock": lambda a: write_lock()}[a.cmd](a)
 
 

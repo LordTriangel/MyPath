@@ -58,7 +58,7 @@ javac -d "$W/stub" $(find "$HERE/stubs" -name '*.java')
 LIBS_EARLY=$(ls "$ROOT"/app/libs/*.jar | tr '\n' ':')
 javac -cp "$LIBS_EARLY" -d "$W/stub" "$ROOT/app/src/main/java/btools/router/OnPathHints.java"
 # the app's Kotlin sources live in :app (app/src/main/java) and :core (core/src/main/kotlin, tools/dev/core_move.py): one
-# merged view of symlinks, so the lists below do not care where a file is
+# merged view of symlinks (a file in both: :core wins, it is linked last), so the lists below do not care where a file is
 APPSRC="$W/appsrc"; rm -rf "$APPSRC"
 for B in app/src/main/java core/src/main/kotlin; do
   [ -d "$ROOT/$B/com/onpath/app" ] || continue

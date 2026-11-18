@@ -40,7 +40,10 @@ dependencies {
 
 animalsniffer {
     sourceSets = listOf(project.sourceSets.main.get())  // main only: tests run on the JVM
-    ignore("org.json.*", "btools.*")  // org.json is built into Android; BRouter ships in the app
+    // org.json is built into Android: the jar is compile-only here, so it must NOT count as "known" classes - the check has
+    // to compare every org.json call with Android's own org.json (which lacks put(String, float), toMap(), isEmpty() ...).
+    // The BRouter jars (compileOnly, in the app's APK) stay on the classpath, so btools.* needs no ignore.
+    excludeJars("json-*")
 }
 tasks.test { dependsOn("animalsnifferMain")
 
