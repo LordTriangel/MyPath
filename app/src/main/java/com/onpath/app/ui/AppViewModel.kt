@@ -429,6 +429,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         Problems.info("ui", "Developer tools unlocked (7 taps on the version)")
     }
 
+    /** Round trips („Rundtour von hier“, tour-suggestions.md §7 stage 4) – ui/suggest/SuggestSlice; Übernehmen → [planFromLine]. */
+    val suggest = com.onpath.app.ui.suggest.SuggestSlice(viewModelScope, com.onpath.app.ui.suggest.AppSuggestHost(app, prefs, { mapData.routingData },
+        fit = { followMe = false; freeLookAt = null; events += UiEvent.Fit(it) }, take = { pts, a, l, done -> if (a != activity) selectActivity(a); selectSac(l)
+            planFromLine(pts, com.onpath.app.data.RoutingTiles.forLine(pts, 1_000.0), a, l, done) }), prefs.suggestTest) { prefs.suggestTest = it }
     /** Last visit to Diagnostics: a serious problem after it shows red on the Settings list (owner). */
     var diagnosticsSeenMs by mutableStateOf(prefs.diagnosticsSeenMs)
         private set
@@ -1090,7 +1094,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val notRouted: NotRouted? get() = routeRun.notRouted
     /** What started the routing run: Cancel takes back only that ([com.onpath.app.domain.plan.RunCause]). */
     private val runCauses = com.onpath.app.domain.plan.RunCause()
-
 
     // --- saved state of the plan (menus / Manage routes) ---
     /** Name, tour id and points the plan was last saved or loaded as ([com.onpath.app.ui.plan.PlanDocument]: stored, linked, unsaved). */
@@ -3290,7 +3293,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-
     /**
      * The plan's first route is there: the map shows it whole – the same fit as "Show whole route" (north up, the
      * [FitPaddingRule] padding), once the sheet has grown to its route size. Not when the user took the map meanwhile,
@@ -5252,17 +5254,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
-     * Shown track → a plannable route with few route points (owner; routing/TrackToPlan): our router and the
-     * current activity re-trace the track; the result replaces the plan (Undo brings the old one back).
+     * The track sheet's "Als Plan übernehmen" (owner; routing/TrackToPlan): our router and the current activity re-trace
+     * the track; the result replaces the plan (Undo brings it back). An unsaved plan asks first ([unlessUnsaved], P3).
      */
-    /** The track sheet's "Als Plan übernehmen": an unsaved plan asks first ([unlessUnsaved], save paths P3). */
     fun planFromShown() = unlessUnsaved("Track → plan") { planFromShownNow() }
 
     private fun planFromShownNow() {
         val sh = shown ?: return
-        if (planFromTrackBusy) return
-        val track = sh.segments.flatten()
-        if (track.size < 2) return
+        val track = sh.segments.flatten().takeIf { it.size >= 2 } ?: return
         // an exported OnPath plan (gpx/PlanGpx): its <wpt> are the route points – the plan comes back exactly, with names
         com.onpath.app.gpx.PlanGpx.stopsOf(track, sh.waypoints)?.let { stops ->
             Problems.trace("plan", "Track → plan: the file's ${stops.size} route points (a plan GPX), no fitting")
@@ -5275,18 +5274,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             stops.forEachIndexed { i, w -> w.name?.let { rememberPlaceName(pts[i], it) } }
             return
         }
-        val act = activity; val level = sac
+        planFromLine(track, com.onpath.app.data.RoutingTiles.forLine(track, activity), activity, sac) { if (it) closeShown() }
+    }
+
+    /** [track] → a plan (routing/TrackToPlan) with [act] / [level], [parts] = its routing data; [done] true just before the plan replaces the old one, false when nothing changes. */
+    private fun planFromLine(track: List<GeoPoint>, parts: List<String>, act: Activity, level: Int, done: (Boolean) -> Unit) {
+        if (planFromTrackBusy) return done(false)
         // routing data along the track first: without it every leg fails
-        val missing = try { mapData.routingData.ensure(com.onpath.app.data.RoutingTiles.forLine(track, act)) } catch (e: Exception) {
+        val missing = try { mapData.routingData.ensure(parts) } catch (e: Exception) {
             Problems.warn("routing", "Routing data along the track not checked; planning from the track anyway", e); emptyList()
         }
-        if (missing.isNotEmpty()) {
-            sayError(Txt.s(Res.string.plan_from_track_wait), NoticePlace.MAP)
-            return
-        }
+        if (missing.isNotEmpty()) { sayError(Txt.s(Res.string.plan_from_track_wait), NoticePlace.MAP); return done(false) }
         planFromTrackBusy = true
         val cancel = com.onpath.app.routing.RouteCancel().also { planFromTrackCancel = it }
-        viewModelScope.launchSafe("app", "planFromShownNow") {
+        viewModelScope.launchSafe("app", "planFromLine") {
             val t0 = android.os.SystemClock.elapsedRealtime()
             val r = withContext(backgroundRouting) {
                 try {
@@ -5298,13 +5299,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 }
             }
             if (planFromTrackCancel === cancel) planFromTrackCancel = null
-            if (cancel.isCancelled) return@launchSafe // the user cancelled: nothing changes
+            if (cancel.isCancelled) return@launchSafe done(false) // the user cancelled: nothing changes
             planFromTrackBusy = false
-            if (r == null || r.points.size < 2) { sayError(Txt.s(Res.string.plan_from_track_failed), NoticePlace.MAP); return@launchSafe }
-            Problems.trace("plan", "Track → plan: ${track.size} track points → ${r.points.size} route points, follows " +
-                "${(r.follows * 100).toInt()} %, ${r.calls} routing calls, ${r.failedLegs} legs without a route, " +
-                "${android.os.SystemClock.elapsedRealtime() - t0} ms")
-            closeShown()
+            if (r == null || r.points.size < 2) { sayError(Txt.s(Res.string.plan_from_track_failed), NoticePlace.MAP); return@launchSafe done(false) }
+            Problems.trace("plan", "Track → plan: ${track.size} track points → ${r.points.size} route points, follows ${(r.follows * 100).toInt()} %, " +
+                "${r.calls} routing calls, ${r.failedLegs} legs without a route, ${android.os.SystemClock.elapsedRealtime() - t0} ms")
+            done(true)
             keepAsDraft("replaced by a track's plan")
             change { clear(); addAll(r.points) }
         }

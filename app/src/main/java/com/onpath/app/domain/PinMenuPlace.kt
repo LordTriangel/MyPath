@@ -62,7 +62,7 @@ object PinMenuPlace {
  * and for a picked search result (owner 2026-11-13). Pure.
  */
 object PinMenuItems {
-    enum class Row { START_HERE, GO_HERE, ADD, ADD_STOP, NEW_DESTINATION, FAVOURITE, HOME, GOOGLE, REMOVE_PIN }
+    enum class Row { START_HERE, ROUND_TRIP, GO_HERE, ADD, ADD_STOP, NEW_DESTINATION, FAVOURITE, HOME, GOOGLE, REMOVE_PIN }
 
     /**
      * @param emptyPlan no point yet; [startHere] false during a tour ([MapGestures.offersStartHere])
@@ -70,8 +70,11 @@ object PinMenuItems {
      * @param pin the found place's pin: the menu ends with "Nadel entfernen"
      * @param keep the place can be kept (owner 2026-11-15, „Orte merken“): after the route rows, behind a thin line,
      *   „☆ Merken“ and „⌂ Als Zuhause festlegen“ – what is about the place itself
+     * @param roundTrip the tour suggestions are on (developer switch, tour-suggestions.md §7 stage 4): „Rundtour von hier“
+     *   right after „Hier starten“ – wherever that row is offered (owner 2026-11-15)
      */
-    fun of(emptyPlan: Boolean, startHere: Boolean, menu: PlaceAddMenu.Menu?, pin: Boolean, keep: Boolean = false): List<Row> {
+    fun of(emptyPlan: Boolean, startHere: Boolean, menu: PlaceAddMenu.Menu?, pin: Boolean, keep: Boolean = false,
+           roundTrip: Boolean = false): List<Row> {
         fun row(i: PlaceAddMenu.Item) = when (i) {
             PlaceAddMenu.Item.ADD_STOP -> Row.ADD_STOP
             PlaceAddMenu.Item.NEW_DESTINATION -> Row.NEW_DESTINATION
@@ -81,7 +84,7 @@ object PinMenuItems {
         }
         val rows = mutableListOf<Row>()
         when {
-            emptyPlan -> { if (startHere) rows += Row.START_HERE; rows += Row.GO_HERE }
+            emptyPlan -> { if (startHere) { rows += Row.START_HERE; if (roundTrip) rows += Row.ROUND_TRIP }; rows += Row.GO_HERE }
             menu == null -> rows += Row.ADD
             else -> menu.main.mapTo(rows, ::row)
         }

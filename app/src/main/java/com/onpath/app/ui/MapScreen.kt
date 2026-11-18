@@ -440,8 +440,10 @@ private fun PlanMode(
                 // During a tour the way back to Navigate is the green "Navigation ›" at the bottom, in the plan sheet's foot
                 // and under a place card / shown tour too (owner 2026-11-06, C + F1: no status card with Weiter / Pause /
                 // Beenden over them any more – those are in Navigate).
-                // The place card (tapped POI / search result, ui/search) takes the sheet's place while open.
-                if (vm.cardPlace != null) {
+                // The place card (tapped POI / search result, ui/search) takes the sheet's place while open; so do the
+                // round-trip suggestions (ui/suggest, behind the developer switch).
+                if (vm.suggest.phase != null) com.onpath.app.ui.suggest.SuggestHostPanel(vm)
+                else if (vm.cardPlace != null) {
                     com.onpath.app.ui.search.PlaceCardHost(vm)
                     rec?.let { r ->
                         BackToNavigationButton({ backToNavigation(vm, r) },
@@ -451,6 +453,7 @@ private fun PlanMode(
                 else PlanBottom(vm, rec, onStartNavigation, onActivity, onEndTour, onRequestLocation)
             }
         })
+        com.onpath.app.ui.suggest.SuggestWishHost(vm) // the wish sheet of the round-trip suggestions while open
         com.onpath.app.ui.search.SearchHost(vm) // full-screen search view while open
     }
 }
@@ -688,6 +691,9 @@ private fun MapSync(vm: AppViewModel, c: MapController?, rec: RecState?, fix: an
     // Navigate draws the followed line, never a track only shown (field bug 2026-11-07: a 0 m done tour opened during the
     // tour left Navigate with the plan's points and no route – gpxLine)
     val gpx = gpxLine(vm.mode == AppMode.NAVIGATE, vm.shown?.segments, vm.followLine)
+    // the chosen round-trip suggestion's loop – only that one (ui/suggest)
+    val loop = vm.suggest.loop
+    LaunchedEffect(c, loop) { c.setTrack(MapController.SRC_SUGGEST, listOfNotNull(loop)) }
     LaunchedEffect(c, gpx) {
         c.setTrack(MapController.SRC_GPX, gpx.lines)
         val rides = if (gpx.track) vm.shown?.rides.orEmpty() else emptyList()

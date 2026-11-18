@@ -178,6 +178,8 @@ fun SettingsScreen(
     routingInfo: String? = null,
     /** Developer tools → Demo location (simulated GPS for screenshots); null = hidden. */
     demo: DemoUi? = null,
+    /** Developer tools → „Tourvorschläge (Test)“ (round trips, off by default); null = hidden. */
+    suggestTest: SuggestTestUi? = null,
     /** About → Licences: the list (fixed in screenshots); null = read from the APK's assets when opened. */
     licences: List<com.onpath.app.data.Licences.Entry>? = null,
     /** About → Licences open from the start (screenshots). */
@@ -296,7 +298,7 @@ fun SettingsScreen(
                             item { DiagnosticsSection(diagnosticsBusy, onExportDiagnostics, problems, onClearProblems, language.active, routingInfo, problemsOpen) }
                             if (devTools) item {
                                 DeveloperTools(devToolsOpen, mapServer, mapCells, dataBusy, onDownloadRouting, onImportData, checks, mapPackage, dataDir,
-                                    onTimeFormulas, testStyle, language, demo)
+                                    onTimeFormulas, testStyle, language, demo, suggestTest)
                             }
                         }
                         SettingsPage.PRIVACY -> item { PrivacySection() }
@@ -625,6 +627,7 @@ private fun DeveloperTools(
     testStyle: TestStyleUi? = null,
     language: LanguageUi = LanguageUi(),
     demo: DemoUi? = null,
+    suggestTest: SuggestTestUi? = null,
 ) {
     var open by remember { mutableStateOf(initiallyOpen) }
     Surface(shape = OnPathShapes.Card, color = OnPathColors.CardPaper, modifier = Modifier.warmShadow(OnPathShadow.LOW, OnPathShapes.Card)) {
@@ -648,6 +651,8 @@ private fun DeveloperTools(
                 if (onTimeFormulas == null) Text("Plan a route first.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 testStyle?.let { TestStyleRow(it) }
                 demo?.let { DemoRow(it) }
+                // the round-trip suggestions (docs/design/tour-suggestions.md §7 stage 4): off by default, as the planner's ?debug switch
+                suggestTest?.let { t -> SwitchRow(str(Res.string.suggest_ui_test), null, t.on, onChange = t.onChange) }
                 LanguageRow(language)
                 HorizontalDivider(Modifier.padding(vertical = 4.dp))
                 Text("Map data", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyMedium)
@@ -676,6 +681,9 @@ private fun DeveloperTools(
         }
     }
 }
+
+/** Developer tools → „Tourvorschläge (Test)“: the round-trip suggestions on / off ([com.onpath.app.ui.suggest.SuggestSlice.on]). */
+data class SuggestTestUi(val on: Boolean, val onChange: (Boolean) -> Unit)
 
 /**
  * Developer tools: the map test style (StyleLoader.DEV_STYLE, pushed by tools/dev/push_style.sh). [status] null = no

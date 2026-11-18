@@ -129,6 +129,8 @@
     <string name="suggest_ui_taking">Making the plan …</string>
     <string name="suggest_ui_test_on">Tour suggestions (test): on</string>
     <string name="suggest_ui_test_off">Tour suggestions (test): off</string>
+    <string name="suggest_ui_loading_routing">Loading route data …</string>
+    <string name="suggest_ui_test">Tour suggestions (test)</string>
     <plurals name="suggest_ui_count">
         <item quantity="one">one round trip</item>
         <item quantity="other">%1$s round trips</item>

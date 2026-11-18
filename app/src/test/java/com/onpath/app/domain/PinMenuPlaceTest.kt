@@ -72,6 +72,14 @@ class PinMenuPlaceTest {
     @Test fun emptyPlanDuringATourOffersNoStartHere() = assertEquals(listOf(Row.GO_HERE, Row.GOOGLE, Row.REMOVE_PIN),
         PinMenuItems.of(emptyPlan = true, startHere = MapGestures.offersStartHere(touring = true), menu = null, pin = true))
 
+    /** Tour suggestions on (developer switch): „Rundtour von hier“ directly after „Hier starten“ – only where that row is. */
+    @Test fun roundTripFollowsStartHere() {
+        assertEquals(listOf(Row.START_HERE, Row.ROUND_TRIP, Row.GO_HERE, Row.GOOGLE),
+            PinMenuItems.of(emptyPlan = true, startHere = true, menu = null, pin = false, roundTrip = true))
+        assertEquals(listOf(Row.GO_HERE, Row.GOOGLE), PinMenuItems.of(emptyPlan = true, startHere = false, menu = null, pin = false, roundTrip = true))
+        assertEquals(listOf(Row.ADD, Row.GOOGLE), PinMenuItems.of(emptyPlan = false, startHere = true, menu = PlaceAddMenu.menu(1, false, null), pin = false, roundTrip = true))
+    }
+
     @Test fun onePoint() = assertEquals(listOf(Row.ADD, Row.GOOGLE, Row.REMOVE_PIN),
         PinMenuItems.of(emptyPlan = false, startHere = true, menu = PlaceAddMenu.menu(1, false, null), pin = true))
 

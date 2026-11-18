@@ -321,6 +321,11 @@ class Prefs internal constructor(private val sp: SharedPreferences, filesDir: Fi
         get() = sp.getBoolean("devToolsUnlocked", false)
         set(v) = sp.edit().putBoolean("devToolsUnlocked", v).apply()
 
+    /** Developer tools → „Tourvorschläge (Test)“ (docs/design/tour-suggestions.md §7 stage 4): off by default. */
+    var suggestTest: Boolean
+        get() = sp.getBoolean("suggestTest", false)
+        set(v) = sp.edit().putBoolean("suggestTest", v).apply()
+
     /** Last visit to Settings → Diagnostics (ms): newer serious problems colour its list line red (owner). */
     var diagnosticsSeenMs: Long
         get() = sp.getLong("diagnosticsSeenMs", 0L)

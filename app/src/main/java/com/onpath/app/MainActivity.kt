@@ -295,6 +295,7 @@ class MainActivity : ComponentActivity() {
                                 onRemove = vm::removeTestStyle,
                                 onReload = vm::reloadMapStyle,
                             ),
+                            suggestTest = if (!vm.devToolsShown) null else com.onpath.app.ui.SuggestTestUi(vm.suggest.on, vm.suggest::switch),
                             demo = if (!vm.devToolsShown) null else com.onpath.app.ui.DemoUi(
                                 state = com.onpath.app.recording.DemoLocation.state.collectAsState().value,
                                 rideLabel = vm.demoLine()?.first,

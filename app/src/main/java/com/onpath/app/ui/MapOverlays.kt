@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Loop
 import androidx.compose.material.icons.outlined.Map
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.MyLocation
@@ -126,7 +127,8 @@ fun MapOverlayHost(
     vm.firstPointMenu?.let { p ->
         Anchored(c, p, cameraTick, topPx, bottomPx, onGone = { com.onpath.app.debug.Problems.trace("plan", "First-point menu closed: held spot left the visible map (onGone)"); vm.firstPointMenu = null }) {
             FirstPointMenu(MapGestures.fromMeBlocked(gps, vm.tracker.location.value != null),
-                onStartHere = { vm.startHere(p) }, onFromMe = { vm.routeFromMyLocation(p) }, startHere = startHere)
+                onStartHere = { vm.startHere(p) }, onFromMe = { vm.routeFromMyLocation(p) }, startHere = startHere,
+                onRoundTrip = if (vm.suggest.on) { { vm.closeMapOverlays("round trip from here"); vm.suggest.open(p, vm.activity, vm.sac) } } else null)
         }
     }
     vm.holdAddMenu?.let { a ->
@@ -168,7 +170,8 @@ fun MapOverlayHost(
                     vm.closeMapOverlays()
                     com.onpath.app.poi.PoiIntents.openInGoogleMaps(ctx, poi)
                 },
-                onRemovePin = if (pin) { { vm.closeMapOverlays("pin removed"); vm.removePin("its menu: Remove pin") } } else null)
+                onRemovePin = if (pin) { { vm.closeMapOverlays("pin removed"); vm.removePin("its menu: Remove pin") } } else null,
+                onRoundTrip = if (vm.suggest.on) { { vm.closeMapOverlays("round trip from a place"); vm.suggest.open(GeoPoint(poi.lat, poi.lon), vm.activity, vm.sac) } } else null)
         if (pin) {
             // the found place (owner 2026-11-13, "A mit Ausweich B"): above the pin, the map moved down when needed – else
             // the same rows as a card at the bottom
@@ -429,12 +432,15 @@ private const val HOLD_RING_DP = 12
 @Composable
 fun FirstPointMenu(fromMeBlocked: String?, onStartHere: () -> Unit, onFromMe: () -> Unit, modifier: Modifier = Modifier,
                    /** false during a tour ([MapGestures.offersStartHere]): only "Hierhin". */
-                   startHere: Boolean = true) {
+                   startHere: Boolean = true,
+                   /** „Rundtour von hier“ right after „Hier starten“ (tour suggestions on); null = not offered. */
+                   onRoundTrip: (() -> Unit)? = null) {
     MenuSurface(modifier) {
         Text(str(Res.string.plan_new_route), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 10.dp))
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         if (startHere) HoldMenuItem(Icons.Outlined.TripOrigin, str(Res.string.plan_start_here), onClick = onStartHere)
+        if (startHere && onRoundTrip != null) HoldMenuItem(Icons.Outlined.Loop, str(Res.string.suggest_ui_from_here), onClick = onRoundTrip)
         HoldMenuItem(Icons.Outlined.MyLocation, str(Res.string.plan_go_here), enabled = fromMeBlocked == null,
             supporting = fromMeBlocked, onClick = onFromMe)
     }
@@ -464,7 +470,9 @@ fun PoiMenu(poi: Poi, onAdd: () -> Unit, onGoogle: () -> Unit, modifier: Modifie
              * („★ Gemerkt“) – „☆ Merken“ / „⌂ Als Zuhause festlegen“ ([home] = it is home: „⌂ Zuhause entfernen“).
              */
             favourite: Boolean? = null, home: Boolean = false,
-            onFavourite: () -> Unit = {}, onHome: () -> Unit = {}) {
+            onFavourite: () -> Unit = {}, onHome: () -> Unit = {},
+            /** „Rundtour von hier“ right after „Hier starten“ (tour suggestions on, [PinMenuItems]); null = not offered. */
+            onRoundTrip: (() -> Unit)? = null) {
     val place = Place.fromPoi(poi)
     MenuSurface(modifier, card) {
         Column(Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 8.dp)) {
@@ -479,8 +487,9 @@ fun PoiMenu(poi: Poi, onAdd: () -> Unit, onGoogle: () -> Unit, modifier: Modifie
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         // the rows in their order (PinMenuItems): the same for a hold and for a picked search result (owner 2026-11-13)
-        for (r in PinMenuItems.of(emptyPlan, startHere, menu, pin = onRemovePin != null, keep = favourite != null)) when (r) {
+        for (r in PinMenuItems.of(emptyPlan, startHere, menu, pin = onRemovePin != null, keep = favourite != null, roundTrip = onRoundTrip != null)) when (r) {
             PinMenuItems.Row.START_HERE -> HoldMenuItem(Icons.Outlined.TripOrigin, str(Res.string.plan_start_here), onClick = onAdd)
+            PinMenuItems.Row.ROUND_TRIP -> HoldMenuItem(Icons.Outlined.Loop, str(Res.string.suggest_ui_from_here), onClick = { onRoundTrip?.invoke() })
             PinMenuItems.Row.GO_HERE -> HoldMenuItem(Icons.Outlined.MyLocation, str(Res.string.plan_go_here), enabled = fromMeBlocked == null,
                 supporting = fromMeBlocked, onClick = onFromMe)
             PinMenuItems.Row.ADD -> HoldMenuItem(Icons.Outlined.AddLocationAlt, addLabel, onClick = onAdd)

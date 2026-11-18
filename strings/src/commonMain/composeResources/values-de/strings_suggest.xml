@@ -127,6 +127,8 @@
     <string name="suggest_ui_taking">Plan wird erstellt …</string>
     <string name="suggest_ui_test_on">Tourvorschläge (Test): an</string>
     <string name="suggest_ui_test_off">Tourvorschläge (Test): aus</string>
+    <string name="suggest_ui_loading_routing">Wegedaten werden geladen …</string>
+    <string name="suggest_ui_test">Tourvorschläge (Test)</string>
     <plurals name="suggest_ui_count">
         <item quantity="one">eine Rundtour</item>
         <item quantity="other">%1$s Rundtouren</item>

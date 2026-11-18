@@ -58,6 +58,9 @@ class MapController(private val context: Context, val map: MapLibreMap, val styl
         const val NAV_ORIGINAL_COLOR = "#8A8F98" // grey: the original route while a new one is followed
         const val SRC_PLANNED = "planned-route"
         const val SRC_GPX = "gpx-track"
+        /** The chosen round-trip suggestion's loop (ui/suggest; only that one, owner 2026-11-17) – the planner's colour. */
+        const val SRC_SUGGEST = "suggest-loop"
+        const val SUGGEST_COLOR = "#335A85"
         /** Rides of a shown tour that are not counted (vehicle detection): grey dashed (bus / car), purple dashed (lift). */
         const val SRC_RIDES = "tour-rides"
         const val SRC_LIFTS = "tour-lifts"
@@ -192,6 +195,7 @@ class MapController(private val context: Context, val map: MapLibreMap, val styl
         addRideLine(SRC_RIDES, NAV_ORIGINAL_COLOR)
         addRideLine(SRC_LIFTS, GPX_COLOR)
         addLine(SRC_GPX, GPX_COLOR, 5f, casing = true)
+        addLine(SRC_SUGGEST, SUGGEST_COLOR, 5f, casing = true)
         addLine(SRC_REC, REC_COLOR, 4.5f, casing = true)
         addPlannedLayers()
         addDirectionArrows()

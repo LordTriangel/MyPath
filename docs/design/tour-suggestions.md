@@ -563,6 +563,23 @@ The owner decides when (2026-11-14: "wir warten noch, bis wir das auf den Planer
      addAll(points) }`), then the suggestion view closes.
   8. *Tests:* a VM test with a fake runner (wish → cards → take → plan points), screenshot tests of the sheet and a card
      (DE / EN / large), an E2E on the emulator with the Hilden test cell.
+- **Stage 4 UI built (IR 2026-11-18, branch `wip/ir-2026-11-18-app-suggest-ui`; behind the switch, off by default):**
+  slice `ui/suggest/SuggestSlice` (state: the wish, the phase WAIT / LOADING / CARDS / FAILED, light cards, the chosen
+  card's loop; one launch per wish – the runner cancels the old one; `routingToLoad` → `RoutingDataLoader.ensure` and a
+  wait of at most 3 min, then the run again; `cellsToFetch` → `SuggestFetch` on IO under the maps' Wi-Fi rule, then one
+  run again) behind `SuggestHost` (`AppSuggestHost` = AppSuggest + the routing loader; the camera and „Übernehmen“ from
+  the view model); `ui/suggest/SuggestSheet.kt` = the wish as a Material 3 dialog (sketch 5 B: activity as a plain label
+  with ▾ + T level, two `RangeSlider`s ½–8 h / 0–1500 m, Ziel `FilterChip`s, Abbrechen · OK) and the panel in the plan
+  sheet's place (MapScreen's mount, like the place card: head „3 Rundtouren“ · ✕, the wish line + „Wunsch ändern“, the
+  notes, cards 4 A with the sketch-7 pills, „Übernehmen“ on the chosen card; at most 58 % of the screen; Back closes);
+  map: one line `MapController.SRC_SUGGEST` (`suggest-loop`, #335A85, the planner's) for the chosen loop, the camera fits
+  it; menus: `FirstPointMenu` and `PinMenuItems.Row.ROUND_TRIP` right after „Hier starten“; „Übernehmen“ =
+  `AppViewModel.planFromLine` (the track sheet's TrackToPlan path, now shared with „Als Plan übernehmen“; routing data
+  1 km around the loop), the wish's activity set first; switch: Settings → Diagnostics → Developer tools →
+  „Tourvorschläge (Test)“ (`Prefs.suggestTest`). Tests: `SuggestSliceTest` (fake host), `SuggestScreenshotTest` (EN /
+  DE / DE 1.3), `PinMenuPlaceTest.roundTripFollowsStartHere`, E2E `RoundTripSuggestE2ETest` (hold → row → sheet → OK →
+  cards → second card's line drawn → Übernehmen; the run itself is a stand-in answer – the E2E map is Meran, which has
+  no suggest file; with the workflow's E10_N45.rd5 Übernehmen must give a round-trip plan).
 - **The real build:** this method written once in the shared Kotlin core and compiled for the browser like the router.
   Open: reading the network from BRouter's node cache in the browser, time and memory for bike wishes (200 000 nodes).
 - **The result list (owner 2026-11-15, sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9, variant A):** one
