@@ -142,7 +142,7 @@ android {
         sourceSets["main"].assets.srcDir(overviewAssets)
     }
     lint {
-        abortOnError = false
+        abortOnError = true // a new error-level finding fails the lint job (owner 2026-11-18); known ones are in the baseline
         checkReleaseBuilds = false
         // Known findings live in the baseline: only new ones are reported (CI job "lint" in unit.yml).
         // Refresh after fixing some: delete the file, run ./gradlew :app:lintDebug once (it writes a new one).
