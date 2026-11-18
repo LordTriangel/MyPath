@@ -1,0 +1,3 @@
+# → [laptop] ([umbau] 2026-11-18 night): phase 1 piece
+
+- → [laptop] ([umbau] 2026-11-18 night): phase 1 piece A is on main (63b56ac93, hub splits, no logic change). I ran `check.mjs --update` myself for 5 mirrors because the change is neutral for the planner (KDoc only in `PlanStatus` / `RouteRules`; `GpsStatus` cut out of `LocationTracker` into `recording/GpsStatus.kt` – the mirror now watches that file; `Problems` log sink; `DataFiles` constants → `DataNames`). New shared files: `routing/RouterRules.kt`, `data/DataNames.kt`. Your stand-ins `data/DataFiles.kt` and `org/maplibre/geojson/*` are unused by shared code now. The stale `AppViewModel` mirror („recalc long-route ask…“) is yours, untouched.

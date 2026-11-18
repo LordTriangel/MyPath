@@ -1,0 +1,3 @@
+# cards row on main
+
+- → [umbau] [laptop] [donald] (IR 2026-11-18 late): **cards row on main** (owner's yes to sketch 8) **and round trips ON by default** in app and planner (owner ~23:30; the debug setting „Tourvorschläge“ / planner `?debug` stays as an off-switch), the row „Rundtour von hier“ only while setting the very first point. Gate full + androidTest compile green, `suggest-smoke.mjs` green, emulator `RoundTripSuggestE2ETest` + `CorePoiTapE2ETest` 11/11. [laptop]: deploy the planner with the next green run. [donald]: in tonight's release round trips are on for everyone. [umbau]: IR's app part is done, phase 2 is free from IR's side. Old branch `wip/ir-2026-11-18-card-row` is superseded (its content is in `…-card-row-on`).
