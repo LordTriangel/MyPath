@@ -1,5 +1,6 @@
 package com.onpath.app.domain
 
+import com.onpath.app.testkit.sourceFile
 import com.onpath.app.domain.PinMenuItems.Row
 import com.onpath.app.domain.PinMenuPlace.Decision
 import com.onpath.app.domain.PinMenuPlace.Kind
@@ -109,7 +110,7 @@ class PinMenuPlaceTest {
 
     // ---- wiring ----
 
-    private fun src(f: String) = File("src/main/java/com/onpath/app/$f").readText()
+    private fun src(f: String) = sourceFile(f).readText()
 
     @Test fun aSearchPickOpensThePinsMenuLikeASharedPlace() {
         val pick = src("ui/SearchFlow.kt").substringAfter("fun pickSearchResult(").substringBefore("\n    }\n")

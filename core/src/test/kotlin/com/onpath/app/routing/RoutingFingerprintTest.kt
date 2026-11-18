@@ -9,11 +9,11 @@ import java.io.File
 
 /** The routing fingerprint (Settings → Diagnostics; docs/design/routing-fingerprint.md). */
 class RoutingFingerprintTest {
-    private val assets = File("src/main/assets/brouter")
+    private val assets = File("../app/src/main/assets/brouter")
     private fun read(name: String) = File(assets, name).readBytes()
 
     @Test fun brouterVersionIsTheJarsInAppLibs() {
-        val jars = File("libs").listFiles { f -> f.name.startsWith("brouter-") && f.name.endsWith(".jar") }.orEmpty()
+        val jars = File("../app/libs").listFiles { f -> f.name.startsWith("brouter-") && f.name.endsWith(".jar") }.orEmpty()
         assertTrue("BRouter jars in app/libs", jars.isNotEmpty())
         jars.forEach { assertTrue("${it.name} is BRouter ${RoutingFingerprint.BROUTER_VERSION}",
             it.name.endsWith("-${RoutingFingerprint.BROUTER_VERSION}.jar")) }

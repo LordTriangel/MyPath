@@ -359,7 +359,7 @@ def rewrite_test(text, loc, moved_rel, res_moved):
         return f"../{dest}/src/main/{sub}/com/onpath/app/{rel}"
     t = re.sub(r"(?<![\w.-])((?:app/)?)src/main/java/com/onpath/app/([\w/]+\.kt)", src_path, text)
     # File("src/main/java/com/onpath/app/$f") readers → sourceFile("$f")
-    t2 = re.sub(r'(?:java\.io\.)?File\(\s*"src/main/java/com/onpath/app/(\$\w+|\$\{[^}"]*\})"\s*\)', lambda m: f'sourceFile("{m.group(1)}")', t)
+    t2 = re.sub(r'(?:java\.io\.)?File\(\s*"src/main/java/com/onpath/app/(\$\w+|\$\{[^}"]*\})"\s*\)', lambda m: "sourceFile(%s)" % (m.group(1)[1:] if re.fullmatch(r"\$\w+", m.group(1)) else '"%s"' % m.group(1)), t)
     if t2 != t:
         t = t2
         if "import com.onpath.app.testkit.sourceFile" not in t and "package com.onpath.app.testkit" not in t:
@@ -371,6 +371,7 @@ def rewrite_test(text, loc, moved_rel, res_moved):
             t = re.sub(r'(?<![\w/.-])src/test/resources/' + re.escape(d) + r"\b", f"../core/src/test/resources/{d}", t)
     if loc == "core":  # what stays in :app (assets, resources, manifest) is one folder over
         t = re.sub(r'(?<![\w/.-])src/main/(assets|res|AndroidManifest)', r"../app/src/main/\1", t)
+        t = re.sub(r'File\("(libs|web-shared-files\.txt|lint-baseline\.xml)', r'File("../app/\1', t)
     return t
 
 
@@ -528,11 +529,21 @@ def cmd_move(args):
                 continue
             path = os.path.join(d, f)
             for i, line in enumerate(open(path, encoding="utf-8"), 1):
-                for m in re.finditer(r'src/main/java(?:/com/onpath/app(?:/(\w+)/?(?=["/ ]|$))?)?', line):
-                    if m.group(0) == "src/main/java" or (m.group(1) in pk_moved):
+                # a literal that is not a path to one .kt file (a folder, a root, a concatenation): the file may have moved
+                for m in re.finditer(r'src/main/java(?:/com/onpath/app(?:/[\w/$]*)?)?(?!/?[\w/$]*\.kt)', line):
+                    rest = m.group(0)[len("src/main/java/com/onpath/app/"):].split("/")[0]
+                    if m.group(0) == "src/main/java" or m.group(0).endswith("/app") or rest in pk_moved or not rest:
                         left += 1
                         print(f"  {os.path.relpath(path, ROOT)}:{i}: {line.strip()[:110]}")
                         break
+    for old, kind in sorted(tests.items()):
+        new = test_dest(model, old, kind)
+        for i, line in enumerate(open(os.path.join(ROOT, new), encoding="utf-8") if not dry else [], 1):
+            for m in re.finditer(r'File\("([^"$]*)"', line):
+                lit = m.group(1)
+                if lit and not lit.startswith(("../", "src/main/kotlin", "src/test/resources", "/", "build/", "http")):
+                    left += 1
+                    print(f"  {new}:{i}: File(\"{lit}\") – relative to the module folder: is it still right in :core?")
     if not left:
         print("  (none)")
     print("""-- next: verify (the compiler is the truth; a file :core refuses goes back with `git mv core/... app/...`)

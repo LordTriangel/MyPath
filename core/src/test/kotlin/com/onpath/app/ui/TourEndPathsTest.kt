@@ -52,7 +52,7 @@ class TourEndPathsTest {
      * recycle bin it is a normal tour, never "unfinished" again.
      */
     @Test fun deletingAnInterruptedTourMarksItDoneFirst() {
-        val vm = java.io.File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+        val vm = java.io.File("../app/src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
         val del = vm.substringAfter("fun deleteUnfinished(").substringBefore("\n    }\n")
         assertTrue(del, del.indexOf("\"done\"") in 0 until del.indexOf("setDeleted"))
     }

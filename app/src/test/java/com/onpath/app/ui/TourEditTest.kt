@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.sourceFile
 import com.onpath.app.domain.PlanGuidance
 import com.onpath.app.domain.RouteRules
 import com.onpath.app.routing.GeoPoint
@@ -18,7 +19,7 @@ import java.io.File
 class TourEditTest {
     private val a = GeoPoint(51.17, 6.93)
     private val b = GeoPoint(51.18, 6.94)
-    private fun src(f: String) = File("src/main/java/com/onpath/app/$f").readText()
+    private fun src(f: String) = sourceFile(f).readText()
     private val vm = src("ui/AppViewModel.kt")
 
     /** Saved → no question; new or changed → "Discard changes?" first. */

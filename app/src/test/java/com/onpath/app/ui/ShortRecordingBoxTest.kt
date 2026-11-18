@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.sourceFile
 import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -11,7 +12,7 @@ import org.junit.Test
  * (the controller's rules are in ShortRecordingTest / TourFlowPropertyTest).
  */
 class ShortRecordingBoxTest {
-    private fun src(f: String) = File("src/main/java/com/onpath/app/$f").readText()
+    private fun src(f: String) = sourceFile(f).readText()
     private val vm = src("ui/AppViewModel.kt")
 
     @Test fun theBoxBesideTheSavedBox_RueckgaengigAndOk() {

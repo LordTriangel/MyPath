@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.sourceFile
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import com.onpath.app.domain.MapGestures
@@ -13,7 +14,7 @@ import java.io.File
  * (2) every map control names itself on a long press, (3) secondary lines read on the way are readable.
  */
 class NoviceFixesTest {
-    private fun src(f: String) = File("src/main/java/com/onpath/app/$f").readText()
+    private fun src(f: String) = sourceFile(f).readText()
     private fun contrast(a: Color, b: Color): Double {
         val (hi, lo) = listOf(a.luminance(), b.luminance()).sortedDescending()
         return (hi + 0.05) / (lo + 0.05)

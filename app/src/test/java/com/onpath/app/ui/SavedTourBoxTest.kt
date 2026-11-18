@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.sourceFile
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -12,7 +13,7 @@ import java.io.File
  * nothing about the saved tour in the plan sheet or the mode pill.
  */
 class SavedTourBoxTest {
-    private fun src(f: String) = File("src/main/java/com/onpath/app/$f").readText()
+    private fun src(f: String) = sourceFile(f).readText()
     private val vm = src("ui/AppViewModel.kt")
 
     @Test fun theBoxAfterTheEndSheet() {

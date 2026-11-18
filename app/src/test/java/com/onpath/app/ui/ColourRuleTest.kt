@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.sourceFile
 import androidx.compose.ui.graphics.Color
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -13,7 +14,7 @@ import java.io.File
  * plans is blue (docs/design/flow-map.md "Colour rule audit").
  */
 class ColourRuleTest {
-    private fun src(path: String) = File("src/main/java/com/onpath/app/$path").readText()
+    private fun src(path: String) = sourceFile(path).readText()
 
     @Test fun primaryIsWalnutAndTheTwoActionColoursStay() {
         assertEquals(Color(0xFF4A3F37), OnPathColors.Walnut)

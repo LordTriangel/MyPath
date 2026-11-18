@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.sourceFile
 import com.onpath.app.domain.RouteRules
 import com.onpath.app.routing.GeoPoint
 import org.junit.Assert.assertFalse
@@ -17,7 +18,7 @@ class PlanActionsTest {
     private val a = GeoPoint(46.680, 11.140)
     private val b = GeoPoint(46.700, 11.120)
 
-    private fun src(f: String) = File("src/main/java/com/onpath/app/$f").readText()
+    private fun src(f: String) = sourceFile(f).readText()
     private val vm = src("ui/AppViewModel.kt")
     private val panel = src("ui/PlanPanel.kt")
 

@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.sourceFile
 import com.onpath.app.domain.StartCamera
 import com.onpath.app.domain.TakenPin
 import com.onpath.app.routing.GeoPoint
@@ -22,7 +23,7 @@ class FarDestinationTest {
     private val mechernich = Place("photon:1", "Mechernich", "place", 50.5947, 6.6517, sub = "town")
     private val at = GeoPoint(mechernich.lat, mechernich.lon)
 
-    private fun src(f: String) = File("src/main/java/com/onpath/app/$f").readText()
+    private fun src(f: String) = sourceFile(f).readText()
     private fun body(s: String, start: String) = s.substringAfter(start).substringBefore("\n    }\n")
 
     /** Cancel at the very-long-plan question undid the add: the place is no point any more → its pin comes back. */

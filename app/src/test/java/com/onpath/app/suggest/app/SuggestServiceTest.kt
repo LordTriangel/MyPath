@@ -141,7 +141,7 @@ class SuggestServiceTest {
 
     @Test fun fetchTakesOnlyTheSuggestFile() {
         val store = CellStore(File(tmp, "data").apply { mkdirs() })
-        val bin = File("src/test/resources/suggest/tiny-suggest.bin")
+        val bin = File("../core/src/test/resources/suggest/tiny-suggest.bin")
         val c = CellId(531, 342)
         fun manifest(id: CellId, withSuggest: Boolean) = CellManifest(id, CellApi.FORMAT, "2026-11-17-s9", null, null,
             listOfNotNull(CellManifest.File("base.pmtiles", 9_000_000, "0".repeat(64), "base"),

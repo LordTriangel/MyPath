@@ -281,7 +281,7 @@
       "blob": "0a7aafad67ff648db456e427b66584733514f4dd"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/data/Format.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/data/Format.kt",
       "what": "Format.number / Format.distance – numbers the page writes itself (leg distances, profile axis): decimal comma in German",
       "web": [
         "web/app/src/i18n.ts"
@@ -420,7 +420,7 @@
       "blob": "8f5d908fcc71f2b640e7b31fcf1e077968f46dbc"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/cells/PoiDensity.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/cells/PoiDensity.kt",
       "what": "the density limit for city POIs (app b71b1df9): KINDS / CAP / ALL_FROM / PROP and firstZooms; PoiTiles.densityZooms (one cell's POIs, \"dz\" only when later than the kind) – the web sets \"dz\" on each cell's pois.geojson (cells.ts loadPois)",
       "web": [
         "web/app/src/poidensity.ts",
@@ -712,7 +712,7 @@
         "/** The T level counts only for Hike (the bike profiles ignore it – same as BRouterEngine's own cache key). */"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/SlowPlan.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/SlowPlan.kt": {
       "blob": "2efd3f158775ca48d2d2fb32e3c5e517f5480f70",
       "perf": [
         "* A plan calculation that reaches its time limit ([RouteTimeLimit]) – owner 2026-11-02 / 03 (onpath.private#13, #21 B):",
@@ -762,7 +762,7 @@
       "blob": "37d32e72601298c3073d704989c47959cfebb21d",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/navigation/SpeedWindow.kt": {
+    "core/src/main/kotlin/com/onpath/app/navigation/SpeedWindow.kt": {
       "blob": "8bd749f5159b1c9c06370d50f33476b36ea507a5",
       "perf": [
         "class SpeedWindow(private val windowMs: Long = WINDOW_MS, private val fallbackMps: Double = FALLBACK_MPS) {",
@@ -777,7 +777,7 @@
         "var best = Double.MAX_VALUE"
       ]
     },
-    "app/src/main/java/com/onpath/app/data/Format.kt": {
+    "core/src/main/kotlin/com/onpath/app/data/Format.kt": {
       "blob": "aa590937851fe361f89c1d15951e621121a1146d",
       "perf": []
     },
@@ -862,7 +862,7 @@
       "blob": "f3b3191bf1121f3fe593f68dacb9b4867c9f833b",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/search/SearchText.kt": {
+    "core/src/main/kotlin/com/onpath/app/search/SearchText.kt": {
       "blob": "f8841b83815235f708604bb741d233546b0e3868",
       "perf": []
     },
@@ -913,7 +913,7 @@
         "private val pool: ExecutorService by lazy {"
       ]
     },
-    "app/src/main/java/com/onpath/app/search/AddressQuery.kt": {
+    "core/src/main/kotlin/com/onpath/app/search/AddressQuery.kt": {
       "blob": "cfa5a52bb938cc4abd03cf41c11e8d5af801989f",
       "perf": []
     },
@@ -949,7 +949,7 @@
         "private fun fit(s: String): String = if (s.length <= MAX_LEN + 15) s else s.take(MAX_LEN + 14).trimEnd() + \"…\""
       ]
     },
-    "app/src/main/java/com/onpath/app/search/SharedPlaceText.kt": {
+    "core/src/main/kotlin/com/onpath/app/search/SharedPlaceText.kt": {
       "blob": "cc2f7ad1eb46f842c8e6d7050d140c1377f4389d",
       "perf": []
     },
@@ -1013,7 +1013,7 @@
       "blob": "8bd85477c1b32fa4db38cb7ebe349998d4a5b539",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/sync/SyncCrypto.kt": {
+    "core/src/main/kotlin/com/onpath/app/sync/SyncCrypto.kt": {
       "blob": "98c91bea6c78193644b6e25ef836ff366d233961",
       "perf": [
         "var t = ByteArray(0)"
@@ -1197,7 +1197,7 @@
         "val navHoldMs: Int = HoldSetting.DEFAULT_MS,"
       ]
     },
-    "app/src/main/java/com/onpath/app/data/HoldSetting.kt": {
+    "core/src/main/kotlin/com/onpath/app/data/HoldSetting.kt": {
       "blob": "cfe0fde808fa366ee70021cba419f619f983124c",
       "perf": [
         "const val STEP_MS = 500",
@@ -1237,7 +1237,7 @@
         "if (line.size < 2 || waypoints.size < 2 || waypoints.size > MAX_STOPS) return null"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/RoutingFingerprint.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/RoutingFingerprint.kt": {
       "blob": "0b2b0c7d5cbe1f9d8f4321489e6fc670826991e0",
       "perf": []
     },
@@ -1253,11 +1253,11 @@
       "blob": "da0473777e0012de06d5d51d36e920985e23c11c",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/sync/SaveRule.kt": {
+    "core/src/main/kotlin/com/onpath/app/sync/SaveRule.kt": {
       "blob": "7bb98ba5026d477bc2ff90438075932a70100a6f",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/sync/SyncLimits.kt": {
+    "core/src/main/kotlin/com/onpath/app/sync/SyncLimits.kt": {
       "blob": "3cb012c76ff6b420b21034353224772894278f5d",
       "perf": [
         "* deleted ones (tombstones) and the history of copies do not count. Saving a NEW tour beyond [MAX_TOURS] is refused on",
@@ -1266,24 +1266,24 @@
         "fun canAdd(tours: Int): Boolean = tours < MAX_TOURS"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/LongIntMap.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/LongIntMap.kt": {
       "blob": "79ca53d9fbfd12a2f3702543044881b6c09ca295",
       "perf": [
         "/** Empty, and gives the memory back (the map stays usable). */"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/WayKinds.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/WayKinds.kt": {
       "blob": "01b733a9f82066ac42b148f1efe6dee2ff68ed77",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/suggest/WayNet.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/WayNet.kt": {
       "blob": "d1c3523ab570124cfd7fe4fa148da67d9e039fd2",
       "perf": [
         "/** Heap size of the arrays, spare room and adjacency included (bytes). */",
         "/** Heap of the arrays so far, with their spare room (bytes). */"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/NetReader.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/NetReader.kt": {
       "blob": "a843be8b5c8b92552a0acbfbd6d004f818dcdb99",
       "perf": [
         "private inner class Tiles(val rc: RoutingContext, private val budget: Long) {",
@@ -1297,7 +1297,7 @@
         "entFwd.copyOf(m), fwdKind.copyOf(fw), geoOff.copyOf(fw + 1), pool.copyOf(gN))"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/NetSearch.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/NetSearch.kt": {
       "blob": "d2ef4b7743d1e001305481df0b631360aa98f855",
       "perf": [
         "* expanded. Ties are broken by node number, as Python's heap of (cost, node) does. [withMetres] false: [metres]",
@@ -1315,33 +1315,33 @@
         "// above the limit = forbidden (profile). Preferred = the limit but at most T3: a marked T2/T3 trail beats the"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/SuggestFile.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/SuggestFile.kt": {
       "blob": "4e384d9fc5114fa6447f02aed79c47e6aba6dbf1",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/suggest/SuggestSettings.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/SuggestSettings.kt": {
       "blob": "84e4e9e3365b7cc9c62e69fbef2797b669d06c9c",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/suggest/SuggestGeo.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/SuggestGeo.kt": {
       "blob": "be2aaa10375f58fa912be6338ffe2906d7f5e901",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/suggest/PyIntSet.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/PyIntSet.kt": {
       "blob": "93e2cf16b5d0686ffa47c5a57aae23647bc6acd2",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/suggest/Character.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/Character.kt": {
       "blob": "6715e0d08981ffb1f153c4578da5963a927e26f8",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/suggest/Land.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/Land.kt": {
       "blob": "bafbddfbc9a4c12fa820fe649758b1fb9ce69d59",
       "perf": [
         "/** Gives the tables and the rim cache back (made again when needed, the same values). */"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/Named.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/Named.kt": {
       "blob": "88f9561590798692a64c0b59989adf04e361fee7",
       "perf": [
         "class DoubleList(capacity: Int = 64) {",
@@ -1350,7 +1350,7 @@
         "private var a = IntArray(capacity)"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/Facts.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/Facts.kt": {
       "blob": "aee13012d2fba1cd844602ba54d03b278f23e65a",
       "perf": [
         "// from grid to grid), then each grid's links together – only one grid's tables are in memory at a time",
@@ -1362,19 +1362,19 @@
         "pool = ByteArray(0)"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/Place.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/Place.kt": {
       "blob": "05c12b18beefef1481e3b8e8235e8704b114ef57",
       "perf": [
         "/** loops that fit but climb more than wished (generate.pool) */"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/Candidate.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/Candidate.kt": {
       "blob": "02d3008eb8f796fcf566887cdf927c505cfe7f6d",
       "perf": [
         "* One loop of the pool – ours or an official signed loop laid onto the network – with everything the judging, the"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/Generate.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/Generate.kt": {
       "blob": "f31388ac1bac1c5b75b8e5c6429bea24731f5193",
       "perf": [
         "* Building loops – one pool, one assembly routine (the POC's `generate.py`). Every loop is a list of turning points",
@@ -1385,17 +1385,17 @@
         "var w = Double.MAX_VALUE; var s = Double.MAX_VALUE; var e = -Double.MAX_VALUE; var n = -Double.MAX_VALUE"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/Official.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/Official.kt": {
       "blob": "6632c739fc0c452e5422e27716d7707666bd6995",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/suggest/Score.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/Score.kt": {
       "blob": "2348949c2110775776804dd802bf378cb67821da",
       "perf": [
         "if (s.length > 40 && \" · \" in s) s = s.split(\" · \", limit = 2)[1]"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/TourSuggester.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/TourSuggester.kt": {
       "blob": "410c03e8042880c4bb713b776cb1123df5b70e4b",
       "perf": [
         "/** What one wish gave: the shown suggestions first (in list order), then the rest of the pool by points. */",
@@ -1404,14 +1404,14 @@
         "cands = Generate(P, S).pool()"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/Aims.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/Aims.kt": {
       "blob": "d6daf88240f3c9de20dd76e462dadb8773af8c5f",
       "perf": [
         "var d = Double.MAX_VALUE",
         "var hit = Double.MAX_VALUE"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/SuggestText.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/SuggestText.kt": {
       "blob": "3c5c29f8144ef1a821a8605edb70ef0aa4f47bcf",
       "perf": []
     },
@@ -1481,7 +1481,7 @@
       "blob": "b3bd3558a5d98f651ee57116bc5c7696f65a5cdd",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/sync/SyncCryptoTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/sync/SyncCryptoTest.kt": {
       "blob": "dfe203e2b43e74fd4d401ad5395fed5b76aefbf7",
       "perf": [
         "assertEquals(\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\", Sha256.hash(ByteArray(0)).hex())",
@@ -1545,7 +1545,7 @@
         "val unknown = byteArrayOf(1, 9) + ByteArray(16) { 7 } + ByteArray(8) { 1 } + byteArrayOf(10, 0, 40, 2, 'h'.code.toByte(), 'i'.code.toByte())"
       ]
     },
-    "app/src/test/java/com/onpath/app/sync/SyncLimitsTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/sync/SyncLimitsTest.kt": {
       "blob": "cf94734e683e08a487eeded3003be8c0d13e05c9",
       "perf": [
         "assertEquals(250, SyncLimits.MAX_TOURS)"

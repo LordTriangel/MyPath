@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.sourceFile
 import com.onpath.app.domain.MapGestures
 import com.onpath.app.domain.PinMenuItems
 import com.onpath.app.map.CandidateMarker
@@ -17,7 +18,7 @@ import java.io.File
  * In Navigate pin and chip are hidden; while the plan cannot be edited (a track shown) the chip is hidden.
  */
 class FoundPlacePinTest {
-    private fun src(f: String) = File("src/main/java/com/onpath/app/$f").readText()
+    private fun src(f: String) = sourceFile(f).readText()
     private val vm = src("ui/AppViewModel.kt")
     private val overlays = src("ui/MapOverlays.kt")
     private fun body(s: String, start: String) = s.substringAfter(start).substringBefore("\n    }\n")
