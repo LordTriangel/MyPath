@@ -148,7 +148,15 @@ echo "gate: running ${CMD[*]} (in a Gradle slot of $WORK, $(_gradle_slot_count) 
 
 gradle_slot_take; WAIT=$GRADLE_SLOT_WAIT
 G0=$(date +%s)
-"${CMD[@]}"; grc=$?
+GLOG=$(mktemp)
+"${CMD[@]}" 2>&1 | tee "$GLOG"; grc=${PIPESTATUS[0]}
+# Files that move between modules / source folders leave Kotlin's incremental state stale: the compile then fails with
+# "Unresolved reference" although the code is right (seen 2026-11-19, rebuild phase 1). One retry without that state.
+if [ "$grc" != 0 ] && grep -q "compile.*Kotlin.* FAILED" "$GLOG" && grep -q "Unresolved reference" "$GLOG"; then
+  echo "gate: Kotlin compile failed with unresolved references – once more without incremental state"
+  "${CMD[@]}" -Pkotlin.incremental=false; grc=$?
+fi
+rm -f "$GLOG"
 G=$(( $(date +%s) - G0 ))
 gradle_slot_release
 [ "$grc" = 0 ] || rc=$grc
@@ -156,5 +164,5 @@ count_tests() { cat "$@" 2>/dev/null | grep -o '<testsuite [^>]*tests="[0-9]*"' 
 n=$(count_tests app/build/test-results/testDebugUnitTest/*.xml)
 nc=$(count_tests core/build/test-results/test/*.xml)
 echo "gate: $([ "$rc" = 0 ] && echo PASSED || echo FAILED) · $mode · $n app tests + $nc core tests · screenshots $([ "$paparazzi" = 1 ] && echo checked || echo skipped) · Gradle ${G} s, lock wait ${WAIT} s, total $(( $(date +%s) - T0 )) s"
-[ "$grc" != 0 ] && [ -d app/build/paparazzi/failures ] && echo "gate: screenshot differences in app/build/paparazzi/failures/"
+[ "$grc" != 0 ] && [ -n "$(ls -A app/build/paparazzi/failures/* 2>/dev/null)" ] && echo "gate: screenshot differences in app/build/paparazzi/failures/"
 exit $rc
