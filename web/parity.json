@@ -28,7 +28,7 @@
       "web": [
         "web/app/src/main.ts"
       ],
-      "blob": "230f50bc58e0782e343bc85de8a3c9a93eba67bb"
+      "blob": "8b28d0eeac067308bfa74d1447949aa40b43d88b"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/search/SearchSession.kt",
@@ -62,7 +62,7 @@
       "web": [
         "web/app/src/plans.ts"
       ],
-      "blob": "dc214084f5459728120102bf608f4cab07859f7b"
+      "blob": "064dc3bf82ef7f70707371772d74bbb1dd267a1e"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapFooter.kt",
@@ -74,13 +74,13 @@
       "blob": "4be358bb93dc974ba7016285e0149a9041afbabd"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/recording/LocationTracker.kt",
+      "app": "app/src/main/java/com/onpath/app/recording/GpsStatus.kt",
       "what": "GpsStatus names (engine stand-in recording/GpsStatus.kt)",
       "web": [
         "web/engine/src/main/kotlin/com/onpath/app/recording/GpsStatus.kt",
         "web/app/src/position.ts"
       ],
-      "blob": "80365fc08d7f3fa3096e72fda34db4db3832db6e"
+      "blob": "cdb0c3c4cfb30c02ee3b8953ef5b7f63760a6c75"
     },
     {
       "app": "app/src/main/java/com/onpath/app/map/LayerSettings.kt",
@@ -195,7 +195,7 @@
       "web": [
         "web/engine/src/main/kotlin/com/onpath/app/debug/Problems.kt"
       ],
-      "blob": "40101f1bc5335b6c374d0752e50a0e2fbd12d88a"
+      "blob": "826ac41caadaa14966beb023684199ff6412926d"
     },
     {
       "app": "app/src/main/java/com/onpath/app/debug/UserText.kt",
@@ -211,7 +211,7 @@
       "web": [
         "web/engine/src/main/kotlin/com/onpath/app/data/DataFiles.kt"
       ],
-      "blob": "b3ac63228bb81f89dfc4ec1e94ec0f550aa588be"
+      "blob": "525547e9371dbcb66c0d32a64b19ecf5bb2ef4d4"
     },
     {
       "app": "strings/src/androidMain/kotlin/com/onpath/strings/Txt.kt",
@@ -1142,7 +1142,7 @@
       "perf": []
     },
     "app/src/main/java/com/onpath/app/domain/PlanStatus.kt": {
-      "blob": "230f50bc58e0782e343bc85de8a3c9a93eba67bb",
+      "blob": "8b28d0eeac067308bfa74d1447949aa40b43d88b",
       "perf": [
         "* route. Keeps the highest value it gave – a new search inside the same leg (a retry) or a leg from the cache never"
       ]
@@ -1827,6 +1827,14 @@
     },
     "app/src/main/assets/style/f2/onpath.json": {
       "blob": "1c409cb28ff79aaf7c56578053c9e792a41f66c0",
+      "perf": []
+    },
+    "app/src/main/java/com/onpath/app/routing/RouterRules.kt": {
+      "blob": "ba283d44fdfd8411ad330f486ddb7e8e5c5e2f78",
+      "perf": []
+    },
+    "app/src/main/java/com/onpath/app/data/DataNames.kt": {
+      "blob": "c6d033829d8ec407cf86f595c43a5a4e64ff0c4c",
       "perf": []
     }
   }
