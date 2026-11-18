@@ -40,6 +40,8 @@ HUBS = [  # pure hub files outside the candidate packages (the paper: "the pure 
     "data/AppSettings.kt", "data/HoldSetting.kt",
     # piece A (untangling) creates these; they join the plan as soon as they exist
     "data/Tour.kt", "recording/GpsStatus.kt", "recording/MoveWatch.kt", "recording/PointFilter.kt",
+    "debug/Problems.kt", "data/TourJson.kt", "data/DataNames.kt", "data/StorageGate.kt", "recording/FixRules.kt",
+    "ui/StopTokens.kt", "update/AppVersions.kt", "poi/Poi.kt",
 ]
 ALLOW_BTOOLS = {"suggest/NetReader.kt", "routing/Junctions.kt", "routing/Rd5Parts.kt"}  # BRouter jars: compileOnly in :core
 ANDROID = re.compile(r"^(android\.|androidx\.|org\.maplibre\.|com\.google\.android)")
