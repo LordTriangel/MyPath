@@ -22,12 +22,15 @@ case "${1:-}" in
     mkdir -p "$WORK/emu-tmp"
     export ANDROID_TMP=$WORK/emu-tmp TMPDIR=$WORK/emu-tmp
     ONPATH_AGENT=${ONPATH_AGENT:-website-shot} nohup "$ROOT/tools/dev/device.sh" emulator -- "$SDK/emulator/emulator" \
-      -avd OnPath_Play36 -port 5600 -no-window -no-boot-anim -gpu swiftshader_indirect -no-audio -no-snapshot-save \
+      -avd OnPath_Play36 -port 5600 -no-window -no-boot-anim -gpu swangle_indirect -no-audio -no-snapshot-save \
       -memory 4096 > "$WORK/emu-tmp/website-shot-emu.log" 2>&1 &
     for _ in $(seq 1 90); do
       [ "$("${A[@]}" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ] && break; sleep 4
     done
     "${A[@]}" shell getprop sys.boot_completed | grep -q 1 || { echo "emulator did not boot – $WORK/emu-tmp/website-shot-emu.log"; exit 1; }
+    # swiftshader_indirect drew no labels / POI icons (2026-11-18, the 0.18.0 pictures); another session's size override
+    # broke the Meran setup – always start from the AVD's own screen
+    "${A[@]}" shell wm size reset; "${A[@]}" shell wm density reset
     if [ "${INSTALL:-0}" = 1 ]; then "${A[@]}" install -r "$ROOT/app/build/outputs/apk/debug/app-debug.apk"; fi
     echo "emulator $SERIAL ready" ;;
   setup)
