@@ -1,8 +1,9 @@
 // Round-trip suggestions in the planner (suggest.ts, WebSuggest.kt; docs/design/tour-suggestions.md §7 stage 3): with
 // the switch off nothing changes (no „Rundtour von hier“); on (the ?debug test setting) the first tap's menu has the row
 // right below „Hier starten“ → the wish (activity, two range sliders, five Ziel chips, Abbrechen · OK) → the wait →
-// cards (badge, km · h · ↑, at most 2 green + 2 yellow pills) with only the chosen loop on the map → „Übernehmen“ = a
-// normal round-trip plan. German and English words. Needs E5_N50.rd5 (Hilden) and the cells' suggest files
+// cards (badge, km · h · ↑, at most 2 green + 2 yellow pills) side by side in one row along the map's bottom edge
+// (sketch 8: the side panel stays the plan) with only the chosen loop on the map → „Übernehmen“ = a normal round-trip
+// plan. On a phone width: one card in front, the next looking in, a swipe chooses the card it rests on. German and English words. Needs E5_N50.rd5 (Hilden) and the cells' suggest files
 // (<dir>/10-x-y/suggest.bin, content 2) – skipped without them (says so).
 // Usage: node test/suggest-smoke.mjs [segmentsDir] [suggestFilesDir]
 import fs from 'node:fs';
@@ -34,8 +35,8 @@ const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=sw
 const fails = [];
 const check = (ok, what) => { console.log((ok ? 'ok   ' : 'FAIL ') + what); if (!ok) fails.push(what); };
 
-async function open(lang, on) {
-  const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+async function open(lang, on, viewport = { width: 1280, height: 860 }) {
+  const ctx = await browser.newContext({ viewport });
   if (on) await ctx.addInitScript(() => { try { localStorage.setItem('onpath.suggestTest', '1'); } catch { /* expected: no storage */ } });
   const page = await ctx.newPage();
   const errors = [];
@@ -94,9 +95,9 @@ try {
     await page.click('#sgOk');
     const waited = await page.waitForSelector('#suggestPanel .sgwait', { timeout: 5000 }).then(() => true, () => false);
     check(waited, 'the wait card while it computes');
-    await page.waitForSelector('#suggestPanel .sgcard', { timeout: 120_000 });
+    await page.waitForSelector('#suggestStrip .sgcard', { timeout: 120_000 });
     const ms = Date.now() - t0;
-    const cards = await page.$$eval('#suggestPanel .sgcard', (cs) => cs.map((c) => ({
+    const cards = await page.$$eval('#suggestStrip .sgcard', (cs) => cs.map((c) => ({
       badge: c.querySelector('.sgbadge')?.textContent, name: c.querySelector('.sgname')?.textContent,
       stats: c.querySelector('.sgstats')?.textContent, green: c.querySelectorAll('.sgpill[class*=" g"]').length,
       yellow: c.querySelectorAll('.sgpill[class*=" y"]').length, on: c.classList.contains('on') })));
@@ -105,26 +106,75 @@ try {
     check(cards.every((c) => /^\d+,\d km · \d+:\d\d h · ↑ \d+ m$/.test(c.stats ?? '')), `km · h · ↑ in German (${cards[0]?.stats})`);
     check(cards.every((c) => c.green <= 2 && c.yellow <= 2), 'at most 2 green + 2 yellow pills per card');
     check(cards[0].on && cards.filter((c) => c.on).length === 1, 'the first card is the chosen one');
+    const lay = await page.evaluate(() => {
+      const st = document.getElementById('suggestStrip').getBoundingClientRect(), sh = document.getElementById('sheet');
+      const stage = document.getElementById('stage').getBoundingClientRect(), row = document.querySelector('#suggestStrip .sgcards');
+      const cs = [...row.querySelectorAll('.sgcard')].map((c) => c.getBoundingClientRect());
+      return { bottomGap: stage.bottom - st.bottom, rightOfSheet: st.left >= sh.getBoundingClientRect().right, plan: !sh.classList.contains('suggest'),
+        oneRow: cs.every((r) => Math.abs(r.top - cs[0].top) < 2), snap: getComputedStyle(row).scrollSnapType,
+        takes: row.querySelectorAll('.sgtake').length, head: document.querySelector('#suggestStrip .sghead')?.textContent?.replace(/\s+/g, ' ').trim() };
+    });
+    check(lay.plan && lay.rightOfSheet && lay.bottomGap >= 0 && lay.bottomGap < 60, `the row along the map's bottom edge, the side panel stays the plan (${lay.bottomGap} px)`);
+    check(lay.oneRow && /x/.test(lay.snap) && lay.takes === cards.length, `cards side by side, scroll-snap (${lay.snap}), „Übernehmen“ on each`);
+    check(/^\d Rundtouren .*Wunsch ändern ✕$/.test(lay.head ?? ''), `small head (${lay.head})`);
+    if (process.env.SHOTS) { await page.waitForTimeout(800); await page.screenshot({ path: process.env.SHOTS + '/suggest-wide.png' }); } // SHOTS=<dir>: pictures to look at
     const lines = () => page.evaluate(async () => ((await window.__map.getSource('suggest-loop')?.getData())?.features ?? [])
       .filter((f) => f.geometry.type === 'LineString').map((f) => f.geometry.coordinates.length));
     const l1 = await lines();
     check(l1.length === 1 && l1[0] > 10, `only the chosen loop on the map (${l1.length} line, ${l1[0]} points)`);
     if (cards.length > 1) {
-      await page.click('#suggestPanel .sgcard:nth-of-type(2) .sgname');
+      await page.click('#suggestStrip .sgcard:nth-of-type(2) .sgname');
       await page.waitForTimeout(300);
-      const on = await page.$$eval('#suggestPanel .sgcard', (cs) => cs.map((c) => c.classList.contains('on')));
+      const on = await page.$$eval('#suggestStrip .sgcard', (cs) => cs.map((c) => c.classList.contains('on')));
       const l2 = await lines();
       check(on[1] && on.filter(Boolean).length === 1 && l2.length === 1 && l2[0] !== l1[0], 'a click on another card shows its loop, alone');
     }
     // „Übernehmen“ → a normal plan, round trip
-    await page.click('#suggestPanel .sgcard.on .sgtake');
-    const planned = await page.waitForFunction(() => !document.getElementById('suggestPanel') && document.querySelector('#summary .big')
+    await page.click('#suggestStrip .sgcard.on .sgtake');
+    const planned = await page.waitForFunction(() => !document.getElementById('suggestStrip') && document.querySelector('#summary .big')
       && document.body.dataset.planning !== '1' && window.__state.points.length >= 3, null, { timeout: 120_000 }).then(() => true, () => false);
     const st = await page.evaluate(() => ({ n: window.__state.points.length, round: window.__state.roundTrip,
       first: window.__state.points[0], last: window.__state.points[window.__state.points.length - 1] }));
     check(planned && st.round, `„Übernehmen“ → a normal round-trip plan (${st.n} points, round trip ${st.round})`);
     const bad = errors.filter((e) => !/Failed to load resource|favicon|\[Problems\] (TRACE|INFO)/.test(e));
     check(bad.length === 0, `no page errors (${bad.slice(0, 3).join(' | ')})`);
+    await ctx.close();
+  }
+  // ---- a phone width: the strip in the sheet's place, one card in front, a swipe chooses ----
+  {
+    const { ctx, page, errors } = await open('de', true, { width: 390, height: 844 });
+    await firstMenu(page);
+    await page.click('.pointmenu button:nth-of-type(2)');
+    await page.waitForSelector('#suggestPanel #sgOk');
+    await page.click('#sgOk');
+    await page.waitForSelector('#suggestStrip .sgcard', { timeout: 120_000 });
+    const ph = await page.evaluate(() => {
+      const st = document.getElementById('suggestStrip').getBoundingClientRect(), row = document.querySelector('#suggestStrip .sgcards');
+      const cs = [...row.querySelectorAll('.sgcard')].map((c) => c.getBoundingClientRect());
+      return { n: cs.length, left: st.left, right: innerWidth - st.right, bottom: innerHeight - st.bottom, h: st.height,
+        sheet: getComputedStyle(document.getElementById('sheet')).display, peek: cs[1] ? innerWidth - cs[1].left : 0,
+        dots: document.querySelectorAll('#suggestStrip .sgdots i').length };
+    });
+    check(ph.left === 0 && ph.right === 0 && ph.bottom === 0 && ph.sheet === 'none' && ph.h < 844 * 0.45,
+      `phone: a low strip at the bottom in the sheet's place (${Math.round(ph.h)} px high)`);
+    if (ph.n > 1) {
+      check(ph.peek >= 10 && ph.peek <= 30 && ph.dots === ph.n, `phone: the next card looks in (${Math.round(ph.peek)} px), ${ph.dots} dots`);
+      const lines = () => page.evaluate(async () => ((await window.__map.getSource('suggest-loop')?.getData())?.features ?? [])
+        .filter((f) => f.geometry.type === 'LineString').map((f) => JSON.stringify(f.geometry.coordinates[Math.floor(f.geometry.coordinates.length / 2)])));
+      const l1 = await lines();
+      await page.$eval('#suggestStrip .sgcards', (row) => row.scrollTo({ left: row.querySelectorAll('.sgcard')[1].offsetLeft - row.querySelector('.sgcard').offsetLeft }));
+      await page.waitForTimeout(600);
+      const st = await page.evaluate(() => ({ on: [...document.querySelectorAll('#suggestStrip .sgcard')].map((c) => c.classList.contains('on')),
+        dot: [...document.querySelectorAll('#suggestStrip .sgdots i')].findIndex((d) => d.classList.contains('on')) }));
+      const l2 = await lines();
+      if (process.env.SHOTS) await page.screenshot({ path: process.env.SHOTS + '/suggest-phone.png' });
+      check(st.on[1] && st.on.filter(Boolean).length === 1 && st.dot === 1 && l2.length === 1 && l2[0] !== l1[0], 'phone: a swipe to the second card shows its loop, alone');
+    }
+    await page.click('#suggestStrip #sgClose');
+    check(await page.evaluate(() => !document.getElementById('suggestStrip') && getComputedStyle(document.getElementById('sheet')).display !== 'none'),
+      'phone: ✕ gives the sheet back');
+    const bad = errors.filter((e) => !/Failed to load resource|favicon|\[Problems\] (TRACE|INFO)/.test(e));
+    check(bad.length === 0, `phone: no page errors (${bad.slice(0, 3).join(' | ')})`);
     await ctx.close();
   }
   // ---- English words ----
