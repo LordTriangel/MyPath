@@ -59,7 +59,7 @@ class OfflineIndex(val entries: List<Entry>, override val signature: String = ""
         const val POIS = "pois.geojson"
         const val TRAILS = "trailnames.geojson"
         const val BASE = "base.pmtiles"
-        const val OVERLAYS = com.onpath.app.data.DataFiles.OVERLAYS
+        const val OVERLAYS = com.onpath.app.data.DataNames.OVERLAYS
         private const val CACHE = "search-places-v1.tsv"
 
         /** Changes when any of the source files changes (size + modification time). */

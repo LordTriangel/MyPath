@@ -1077,7 +1077,7 @@ class MapCells(
             val m = api.manifest(c)
             if (m.cell != c) throw IllegalStateException("manifest is for ${m.cell}")
             if (m.format != CellApi.FORMAT) { set(c, CellState.Failed(Txt.s(Res.string.maps_err_other_version), false)); dequeue(c); return }
-            if (m.minApp != null && com.onpath.app.update.AppUpdater.isNewer(m.minApp, appVersion)) {
+            if (m.minApp != null && com.onpath.app.update.AppVersions.isNewer(m.minApp, appVersion)) {
                 set(c, CellState.Failed(Txt.s(Res.string.maps_err_needs_app, m.minApp), false)); dequeue(c); return
             }
             store.current()?.cell(c)?.takeIf { it.version == m.version }?.let { dequeue(c); set(c, CellState.Ready(it.version)); return }

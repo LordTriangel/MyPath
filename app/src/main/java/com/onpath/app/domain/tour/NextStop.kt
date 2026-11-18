@@ -4,7 +4,6 @@ import com.onpath.app.navigation.NavKind
 import com.onpath.app.navigation.NavSession
 import com.onpath.strings.*
 import com.onpath.app.ui.StopTokens
-import com.onpath.app.ui.label
 
 /**
  * The next plan stop on the turn card (owner 2026-11-03, the comparison page's card 1 – Wikiloc's "Zeller Horn in 50 m"):

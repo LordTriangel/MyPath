@@ -100,7 +100,7 @@ class DataFiles internal constructor(private val storage: DataStorage) {
 
     companion object {
         /** Format 2 (docs/design/map-data-size.md): routes, trails, paths, ways, trail names as one vector tile file. */
-        const val OVERLAYS = "overlays.pmtiles"
+        const val OVERLAYS = DataNames.OVERLAYS
 
         /** Map package format: 2 when [OVERLAYS] exists (it wins over leftover format-1 GeoJSON files), else 1. */
         fun formatOf(exists: (String) -> Boolean): Int = if (exists(OVERLAYS)) 2 else 1
@@ -141,7 +141,7 @@ class DataFiles internal constructor(private val storage: DataStorage) {
         }
 
         /** Written by tools/build_region.sh into the package: region, bbox, OSM date, size of every file. */
-        const val PACKAGE_FILE = "package.json"
+        const val PACKAGE_FILE = DataNames.PACKAGE_FILE
         const val ADB_COMMAND = "adb push onpath-data/. /sdcard/Android/data/com.onpath.app/files/onpath/"
     }
 }

@@ -191,7 +191,7 @@ object PlanAutoSave {
      * differs from what is stored; [changesASavedPlan] it belongs to a saved route; [fromDraft] it was loaded from
      * "Zuletzt". A plan from Zuletzt is saved (changed or not); a never-saved plan is saved; a saved plan changed since
      * updates that route in place like ☰ Plan speichern (owner 2026-11-07: no "Name (2)" copies) – its version before
-     * goes under Zuletzt ([com.onpath.app.ui.routes.RoutesState.keepReplaced]); a saved plan as it is: nothing.
+     * goes under Zuletzt ((`RoutesState.keepReplaced` in ui/routes)); a saved plan as it is: nothing.
      */
     fun atStart(points: Int, unsaved: Boolean, changesASavedPlan: Boolean, fromDraft: Boolean = false): AtStart = when {
         points < 2 -> AtStart.NOTHING

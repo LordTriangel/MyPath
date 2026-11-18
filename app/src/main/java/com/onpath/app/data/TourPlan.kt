@@ -40,8 +40,8 @@ data class TourPlan(
     fun toJson(): JSONObject = JSONObject().apply {
         name?.let { put("name", it) }
         put("activity", activity); put("sac", sac)
-        put("waypoints", JSONArray(TourDb.waypointsToJson(waypoints)))
-        put("pinned", JSONArray(TourDb.pinnedToJson(pinned)))
+        put("waypoints", JSONArray(TourJson.waypointsToJson(waypoints)))
+        put("pinned", JSONArray(TourJson.pinnedToJson(pinned)))
         put("line", JSONArray(lineToJson(line)))
         put("distance", distanceM); put("ascent", ascentM); put("descent", descentM); put("duration", durationS)
         sourceUuid?.let { put("source", it) }
@@ -56,8 +56,8 @@ data class TourPlan(
                 TourPlan(
                     name = if (o.has("name")) o.getString("name") else null,
                     activity = o.optString("activity", "HIKE").ifBlank { "HIKE" }, sac = o.optInt("sac", 2),
-                    waypoints = TourDb.jsonToWaypoints(o.optJSONArray("waypoints")?.toString()),
-                    pinned = TourDb.jsonToPinned(o.optJSONArray("pinned")?.toString()),
+                    waypoints = TourJson.jsonToWaypoints(o.optJSONArray("waypoints")?.toString()),
+                    pinned = TourJson.jsonToPinned(o.optJSONArray("pinned")?.toString()),
                     line = lineFromJson(o.optJSONArray("line")?.toString()),
                     distanceM = o.optDouble("distance", 0.0), ascentM = o.optDouble("ascent", 0.0),
                     descentM = o.optDouble("descent", 0.0), durationS = o.optDouble("duration", 0.0),

@@ -476,41 +476,16 @@ class TourDb internal constructor(context: Context, name: String = "onpath.db") 
 
         fun newUuid(): String = UUID.randomUUID().toString()
 
-        fun pinnedToJson(p: Set<Int>): String = JSONArray().apply { p.sorted().forEach { put(it) } }.toString()
+        fun pinnedToJson(p: Set<Int>): String = TourJson.pinnedToJson(p)
 
-        fun jsonToPinned(json: String?): Set<Int> {
-            if (json.isNullOrBlank()) return emptySet()
-            return try { JSONArray(json).let { a -> (0 until a.length()).map { a.getInt(it) }.toSet() } } catch (e: Exception) {
-                Problems.warn("db", "Stored pinned stops unreadable, dropped", e); emptySet()
-            }
-        }
+        fun jsonToPinned(json: String?): Set<Int> = TourJson.jsonToPinned(json)
+
         fun get(context: Context): TourDb =
             instance ?: synchronized(this) { instance ?: TourDb(context).also { instance = it } }
 
-        fun waypointsToJson(list: List<GpxWaypoint>): String = JSONArray().apply {
-            list.forEach { w ->
-                put(JSONObject().apply {
-                    put("lat", w.lat); put("lon", w.lon)
-                    w.name?.let { put("name", it) }
-                    w.ele?.let { put("ele", it) }
-                })
-            }
-        }.toString()
+        fun waypointsToJson(list: List<GpxWaypoint>): String = TourJson.waypointsToJson(list)
 
-        fun jsonToWaypoints(json: String?): List<GpxWaypoint> {
-            if (json.isNullOrBlank()) return emptyList()
-            return try {
-                val a = JSONArray(json)
-                (0 until a.length()).map { i ->
-                    val o = a.getJSONObject(i)
-                    GpxWaypoint(
-                        o.getDouble("lat"), o.getDouble("lon"),
-                        if (o.has("name")) o.getString("name") else null,
-                        if (o.has("ele")) o.getDouble("ele") else null,
-                    )
-                }
-            } catch (e: Exception) { Problems.warn("db", "Stored waypoint list unreadable, waypoints dropped", e); emptyList() }
-        }
+        fun jsonToWaypoints(json: String?): List<GpxWaypoint> = TourJson.jsonToWaypoints(json)
     }
 }
 

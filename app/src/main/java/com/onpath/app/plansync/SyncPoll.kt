@@ -4,7 +4,7 @@ import com.onpath.app.sync.SyncRound
 
 /**
  * Sync while the app stays open (owner 2026-10-30: "fully automatic, like WhatsApp Web"): a route saved in the browser
- * arrives without leaving the app. Pure rule, the clock comes from outside ([com.onpath.app.ui.AppViewModel] drives it).
+ * arrives without leaving the app. Pure rule, the clock comes from outside (`AppViewModel` drives it).
  *
  * - **When:** the app is on screen, paired, no tour is recording, and My routes or Settings → Browser sync is shown
  *   ([wanted]; owner 2026-10-30: not on the Plan map – the pass on open covers that). The app in the background polls

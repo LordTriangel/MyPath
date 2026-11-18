@@ -47,7 +47,7 @@ object DataImporter {
             // offline address search: addresses.sqlite, or one file per map cell in addresses/
             name.endsWith(".sqlite") && parent == "addresses" -> "addresses/$name"
             name == "addresses.sqlite" -> name
-            name == DataFiles.PACKAGE_FILE -> name // which package the files belong to (consistency check)
+            name == DataNames.PACKAGE_FILE -> name // which package the files belong to (consistency check)
             name.endsWith(".json") && (parent == "styles" || name.startsWith("onpath")) -> "styles/$name"
             else -> null
         }

@@ -11,21 +11,6 @@ import java.io.File
 import java.util.concurrent.CopyOnWriteArrayList
 import android.os.Process
 
-/** Whether the storage holding the offline data is there right now; [whenReady] runs a block once it is. */
-interface StorageGate {
-    fun ready(): Boolean
-    /** Runs [block] once the storage is ready: at once when it is, else later on a background thread. */
-    fun whenReady(block: () -> Unit)
-
-    companion object {
-        /** Always there (tests, internal folders). */
-        val ALWAYS = object : StorageGate {
-            override fun ready() = true
-            override fun whenReady(block: () -> Unit) = block()
-        }
-    }
-}
-
 /**
  * Where the offline data lives (map cells, styles, routing parts, the search's address files – `…/Android/data/
  * com.onpath.app/files/onpath`) and whether that shared storage is there yet.
