@@ -32,6 +32,11 @@ flyover. Transfer a plan by QR code, or pair your browser and phone to sync save
 the way and see distance, climbing and time for each day. The tour syncs to your paired phone, where you pick a day
 and follow it; the maps along the whole route download by themselves on Wi-Fi.
 
+**Round trips from where you are.** Hold the map and choose "Round trip from here". Say how long you want to be out
+and what you like – nature, quiet paths, water, a destination such as a summit or a hut. OnPath suggests a few loops,
+signposted trails among them; swipe through the cards, see each loop on the map and take the one you like as your plan.
+In the browser planner and in the app.
+
 ## On the way
 
 - **Change the plan and carry on.** Add a café, shorten the route or choose a different way home.
@@ -92,7 +97,7 @@ You need **Android 8 or newer**. There is no iPhone app.
   Review it before sharing.
 
 Current limitations include the early map-service setup, downloads that can take a few minutes for a new area,
-round-trip suggestions that are still in testing and not switched on yet, and limited field testing across devices. Offline spoken directions require
+round-trip suggestions that are new and little tested, and limited field testing across devices. Offline spoken directions require
 a suitable text-to-speech voice installed on the phone. The [project status](docs/project-status.md) and
 [backlog](docs/backlog.md) track ongoing work.
 
