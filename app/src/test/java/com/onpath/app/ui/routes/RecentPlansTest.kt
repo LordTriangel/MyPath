@@ -9,13 +9,16 @@ import com.onpath.app.routing.Activity
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.PlannedRoute
 import com.onpath.app.testkit.JdbcTours
+import com.onpath.app.testkit.ManualExecutor
 import com.onpath.app.testkit.OwnComposeSnapshot
 import com.onpath.app.testkit.ProblemsRule
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -30,7 +33,8 @@ import org.junit.Test
  * Zuletzt and the recycle bin as the user's actions ([RecentPlans], cleanup piece 4) against the real tables
  * ([JdbcTours]): what the view model's source text was pinned for before – the draft is written before the plan
  * leaves the map, the name follows – is checked here as behaviour, with the failures (a full database, a tour gone).
- * Everything runs on the test thread (an unconfined scope), so the order of the writes is the order of the lines.
+ * Everything runs on the test thread (an unconfined scope), so the order of the writes is the order of the lines – but
+ * the core rule "written before the plan leaves the map" is checked with dispatchers that run only on demand.
  */
 class RecentPlansTest {
     @get:Rule val composeState = OwnComposeSnapshot()
@@ -91,20 +95,34 @@ class RecentPlansTest {
     /**
      * Tester review 2026-11-07: the draft is written BEFORE the plan leaves the map – not after a wait of up to 5 s for a
      * place name in the background (a kill in that window lost the plan). The name follows as a rename.
+     * The view model's thread and the IO thread are two [ManualExecutor]s here that run nothing by themselves: when
+     * keep() is back and neither has run a task, the row must be there – a write moved into background work (a launch,
+     * the io block) would not be.
      */
     @Test fun theDraftIsWrittenBeforeThePlanLeavesTheMapAndTheNameFollows() {
-        recent().keep(leaving(pts(51.0, 51.1)), "cleared")
-        // keep() is back, the name has not come: the row is there, under its date name, and holds the Zuletzt place
-        val row = drafts().single()
-        assertEquals("Route 18 Nov, 10:12", row.name)
-        assertEquals(listOf(51.0 to 7.0, 51.1 to 7.0), RoutesState.keyOf(row))
-        assertEquals(row.id, routes.recentId)
-        assertEquals(1, host.refreshes)
-        assertEquals(listOf("times ${row.id}"), host.log)
-        host.name.complete("Algund → Meran")
-        assertEquals("Algund → Meran", drafts().single().name)
-        assertEquals("the list shows the new name", 2, host.refreshes)
-        assertTrue(problems.none())
+        val main = ManualExecutor("main"); val io = ManualExecutor("io")
+        val onDemand = CoroutineScope(Job() + main.asCoroutineDispatcher())
+        /** Background work runs now, both threads, until nothing waits. */
+        fun background() { while (main.runAll() + io.runAll() > 0) { /* each may hand work to the other */ } }
+        try {
+            RecentPlans(routes, store, host, onDemand, io.asCoroutineDispatcher(), 60_000L).keep(leaving(pts(51.0, 51.1)), "cleared")
+            // keep() is back and NO background task has run: the row is there, under its date name, and holds the place
+            val row = drafts().single()
+            assertEquals("Route 18 Nov, 10:12", row.name)
+            assertEquals(listOf(51.0 to 7.0, 51.1 to 7.0), RoutesState.keyOf(row))
+            assertEquals(row.id, routes.recentId)
+            assertEquals(1, host.refreshes)
+            assertTrue("nothing ran in the background yet", host.log.isEmpty())
+            assertEquals("the name work waits", 1, main.size); assertEquals(0, io.size)
+            background()
+            assertEquals("the model times, then the wait for the name", listOf("times ${row.id}"), host.log)
+            assertEquals("Route 18 Nov, 10:12", drafts().single().name)
+            host.name.complete("Algund → Meran")
+            background()
+            assertEquals("Algund → Meran", drafts().single().name)
+            assertEquals("the list shows the new name", 2, host.refreshes)
+            assertTrue(problems.none())
+        } finally { onDemand.cancel() }
     }
 
     @Test fun aNameThatNeverComesLosesNothing() {

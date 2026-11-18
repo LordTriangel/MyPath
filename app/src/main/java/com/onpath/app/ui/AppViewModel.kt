@@ -27,7 +27,6 @@ import com.onpath.app.data.RoutingDataNotice
 import com.onpath.app.debug.Problems
 import com.onpath.app.domain.AppMode
 import com.onpath.app.domain.HoldPaths
-import com.onpath.app.domain.LinkOpen
 import com.onpath.app.domain.NewPlanNote
 import com.onpath.app.domain.NotRouted
 import com.onpath.app.domain.OfflineReady
@@ -83,7 +82,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
@@ -4059,24 +4057,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             }
             Problems.trace("plan", "Plan saved at the tour start as \"$name\" (save_overwrite, ${pts.size} points)")
             overwriteSaved(name) { before?.let { (old, segments) -> recent.keepReplaced(old, segments) } }
-        }
-    }
-
-    /** The version of a saved route that a tour start just replaced: under Zuletzt with its name, line and points. */
-    private fun keepReplacedVersion(old: Tour, segments: List<List<TrackPoint>>) {
-        val key = com.onpath.app.ui.routes.RoutesState.keyOf(old)
-        viewModelScope.launchSafe("app", "keepReplacedVersion") {
-            val id = withContext(Dispatchers.IO) {
-                runCatching {
-                    routes.keepReplaced(key) {
-                        db.insertTour(TourKind.PLANNED, old.name, old.activity, old.sac, old.distanceM, old.ascentM, old.descentM,
-                            old.durationS, segments, old.waypoints, pinned = old.pinned, draft = true, difficulty = old.difficulty)
-                    }
-                }.onFailure { Problems.error("db", "The saved route's version before the tour start could not be kept under Zuletzt", it) }
-                    .getOrNull()
-            }
-            if (id != null) { Problems.trace("plan", "Version before the tour start kept under Zuletzt: \"${old.name}\", ${key.size} points"); refreshTours() }
-            else Problems.trace("plan", "Version before the tour start not added to Zuletzt: these points are there already (a saved route or a draft)")
         }
     }
 

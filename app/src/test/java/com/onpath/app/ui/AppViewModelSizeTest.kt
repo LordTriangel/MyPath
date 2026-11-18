@@ -21,8 +21,9 @@ class AppViewModelSizeTest {
         /**
          * After cleanup piece 4: slice 1 (Zuletzt + recycle bin → ui/routes/RecentPlans) 5,970 → 5,900; slice 2 (sync
          * triggers → ui/sync/SyncDriver, plan links → ui/sync/PlanLinkFlow) → 5,826; slice 3 (the plan's points, history,
-         * pins and saved link with their storing → ui/plan/PlanDocument) → 5,812.
+         * pins and saved link with their storing → ui/plan/PlanDocument) → 5,812; the review's dead copy and unused
+         * imports out → 5,792.
          */
-        const val MAX_LINES = 5_812
+        const val MAX_LINES = 5_792
     }
 }
