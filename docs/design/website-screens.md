@@ -49,6 +49,11 @@ Keep the column right: a new snapshot test for a screen of a step → add its na
 - **The inn on the way:** Gasthof Hochmuth on the Meraner Höhenweg, found offline and added "Als Zwischenstopp" (F).
 - **The lift (H03):** the Korblift / chairlift Algund → Vellau before the start, so the ride check shows a real ride.
 - **The bike route (E-Bike):** Meran → Etschradweg → Algund / Naturns.
+- **The 3D pictures B09 / B10:** Partschins → Partschinser Wasserfall → Tablander Alm (Wandern T2).
+- **The multi-day tour (B11–B14):** the Meraner Höhenweg as a ring from Gasthof Hochmuth (Leiteralm, Hochganghaus,
+  Giggelberg, Hochforch, Unterstell, Katharinaberg, Eishof, Stettiner Hütte, Pfelders, Ulfas; Wandern T3, ~94 km, title
+  „Meraner Höhenweg“), 5 days at most 8 h; nights Unterstell, Eishof (its hotel), Pfelders, one left open. mehrtage's
+  München–Venedig lies outside the local map store (the pictures need the map cells around Meran).
 - **Plausible numbers** (no 19-minute tour with 710 hm). Every picture DE + EN.
 
 ## A – First start and setup (app)
@@ -74,6 +79,10 @@ Keep the column right: a new snapshot test for a screen of a step → add its na
 | B08 | `B08-web-3d-route-ueber-meran` | 3D showcase: a hike route above Algund, Meran, Dorf Tirol and Schenna behind (owner's example) | – · home hero / store S6 candidate, film 1 | – | `terrainview.ts` |
 | B09 | `B09-web-3d-partschins-grosses-profil` | 3D with the big profile and its steepness colours | – · route-planen candidate | – | `terrainview.ts`, `profile.ts` |
 | B10 | `B10-web-3d-abfliegen-partschins` | during the flyover: Pause · Stopp · 1×, the dot on the route and in the profile | – · film 1 | – | `flyover.ts` |
+| B11 | `B11-web-mehrtagestour-planen` | „Mehrtagestour planen“ (header): the guide – 1 · Route ✓ Meraner Höhenweg, „Noch etwas anhängen:“ GPX-Track laden / Gespeicherte Route öffnen, 2 · „Weiter: Tage festlegen“ | web-mehrtage · route-planen (mehrtägig) | – | `multiday.ts`, `main.ts` |
+| B12 | `B12-web-als-mehrtagestour-planen` | Speichern ▾ on the planned Höhenweg: „Als Mehrtagestour planen“ | web-mehrtage-menue · route-planen (mehrtägig) | – | `main.ts` (`saveMenu`) |
+| B13 | `B13-web-tage-festlegen` | the days box: name, „Höchstens 8 h pro Tag“, 5 Tage with − / +, „≈ 18,8 km · ↑ 1084 m · 7 h 00 min pro Tag“ | web-mehrtage-tage · route-planen (mehrtägig) | – | `multiday.ts` (`daysBox`) |
+| B14 | `B14-web-mehrtagestour-uebersicht` | the overview: Meraner Höhenweg · 5 Tage, one row per day; on the map blue moons (Unterstell, Pfelders), the green bed (Hotel: Eishof), a grey moon (night not decided); day borders in the profile | web-mehrtage-uebersicht · home, route-planen (mehrtägig) | – | `multiday.ts`, `main.ts`, `profile.ts` |
 
 ## C – Pair browser and phone (planner + app)
 
