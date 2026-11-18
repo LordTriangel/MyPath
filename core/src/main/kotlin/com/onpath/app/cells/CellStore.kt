@@ -51,7 +51,7 @@ class CellStore(
     private val freeSpace: (File) -> Long = { it.usableSpace },
 ) {
     /** Tests only: runs after the generation folders were listed and before they are read (a clean-up racing a reader). */
-    internal var afterList: ((List<String>) -> Unit)? = null
+    var afterList: ((List<String>) -> Unit)? = null
     val root = File(dataDir, "cells")
     val storeDir = File(root, "store")
     val downloadDir = File(root, "download")
@@ -735,7 +735,7 @@ class CellStore(
                 for (id in e.tileId until e.tileId + e.runLength) {
                     val (z, x, y) = PmTiles.tileIdToZxy(id)
                     if (!cell.ownsTile(z, x, y)) continue
-                    id8.clear(); id8.putLong(id); md.update(id8.array())
+                    (id8 as java.nio.Buffer).clear(); id8.putLong(id)  // Buffer.clear(): ByteBuffer.clear() of JDK 9+ is missing on Android 8-12; md.update(id8.array())
                     md.update(seen.getOrPut(e.offset) { one.digest(r.tileBytes(e)) })
                 }
             }
@@ -760,7 +760,7 @@ class CellStore(
         private fun hex(b: ByteArray) = b.joinToString("") { "%02x".format(it) }
 
         /** Tests: forget what is known about [storeDir] (the next read lists and reads it again). */
-        internal fun forget(storeDir: File) { cache.remove(storeDir.absolutePath) }
+        fun forget(storeDir: File) { cache.remove(storeDir.absolutePath) }
         private const val MB = 1_048_576L
         /** Kept free besides the new generation (the phone needs room to work). */
         const val MARGIN = 32L * MB

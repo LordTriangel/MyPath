@@ -327,27 +327,7 @@
             column="41"/>
     </issue>
 
-    <issue
-        id="UsableSpace"
-        message="Consider also using `StorageManager#getAllocatableBytes` and `allocateBytes` which will consider clearable cached data"
-        errorLine1="    private val freeSpace: (File) -> Long = { it.usableSpace },"
-        errorLine2="                                                 ~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/onpath/app/cells/CellStore.kt"
-            line="41"
-            column="50"/>
-    </issue>
 
-    <issue
-        id="UsableSpace"
-        message="Consider also using `StorageManager#getAllocatableBytes` and `allocateBytes` which will consider clearable cached data"
-        errorLine1="    private val freeSpace: (File) -> Long = { it.usableSpace },"
-        errorLine2="                                                 ~~~~~~~~~~~">
-        <location
-            file="src/main/java/com/onpath/app/cells/CellStore.kt"
-            line="41"
-            column="50"/>
-    </issue>
 
 
     <issue

@@ -49,7 +49,7 @@
       "blob": "e3048a0c5121953fc1a98c760add8bac31338471"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/routing/PlanPoints.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/routing/PlanPoints.kt",
       "what": "dropIndex / shift (Points drag, per pointer move)",
       "web": [
         "web/app/src/sortable.ts"
@@ -101,7 +101,7 @@
       "blob": "493b82c82c60a5b671f0bcdfaaccc7423a34749b"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/poi/PinnedPoiKinds.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/poi/PinnedPoiKinds.kt",
       "what": "which POI kind a pinned point shows: SAME_SPOT_M, isPoiKind, lookup, byIndex",
       "web": [
         "web/app/src/poipin.ts",
@@ -135,7 +135,7 @@
       "blob": "7ce48f20b9046bf9ebc1fa440f9c34a7269aa6de"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/cells/CellMath.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/cells/CellMath.kt",
       "what": "z10 cell of a tile (one owner per tile)",
       "web": [
         "web/app/src/cells.ts"
@@ -256,12 +256,12 @@
       "blob": "9c76e0a2cfc6cedd6c386b87e71d72ea2a38029d"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/cells/CellStore.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/cells/CellStore.kt",
       "what": "region packages: a z7 package owns the tiles z7–9 under it (base, overlays, hillshade = region-shade); cells z10+",
       "web": [
         "web/app/src/cells.ts"
       ],
-      "blob": "4f7f9fa5121452326e3a69e1fd116d6fdb57f907"
+      "blob": "0e1665e9c079100695422db5c21233a2740e5418"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/CellCard.kt",
@@ -411,7 +411,7 @@
       "blob": "8cf36ab390dde82bfaf06cd5bf93499d1c6db016"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/domain/PinMenuPlace.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/domain/PinMenuPlace.kt",
       "what": "the found place's menu (app 6714ad6f, owner 2026-11-13 „A mit Ausweich B“): PinMenuPlace.decide / cardPan (above the pin, the map moved down; under it; else a card at the bottom), PinMenuItems.of (the rows' order, Remove pin last; no „⋯ Mehr“ since 2026-11-15); FAVOURITE / HOME after the route rows (keep, owner 2026-11-15 „Orte merken“)",
       "web": [
         "web/app/src/pinmenu.ts",
@@ -474,7 +474,7 @@
       "blob": "9e8660ea0cc6564a5e555952cd8a440f61db19b8"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/domain/PlanGuidance.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/domain/PlanGuidance.kt",
       "why": "plan ⇄ navigation (web: plan only)",
       "blob": "a2155713c9b5e2283f7a2b7db81034f5c488f8c5"
     },
@@ -499,12 +499,12 @@
       "blob": "82cabf5a76b5d8bf569ec38e1928c2a4ee55dfd0"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/domain/PointsDeleteGuard.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/domain/PointsDeleteGuard.kt",
       "why": "safe ✕ in the Points list",
       "blob": "2e4ab495820704eb57fe8b33a93fb3732dcaedad"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/routing/PlanLinks.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/routing/PlanLinks.kt",
       "why": "plan links into the app (web: PlanCode)",
       "blob": "dbb85f63ff3a53cd27e94955e0978db344464a8f"
     },
@@ -539,7 +539,7 @@
       "blob": "f041cce0af794490a4716c3863be925621f3cf37"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/cells/CellApi.kt",
+      "app": "core/src/main/kotlin/com/onpath/app/cells/CellApi.kt",
       "why": "doorman request / status shapes the web proxy and areas.ts use (web/host/src/maps.js)",
       "blob": "a484b612d6ab3b9315d78eca1dc088208a0e76d1"
     }
@@ -560,7 +560,7 @@
         "* @param sacLimit hiking difficulty limit 1..5 (SAC T1..T5), only used for HIKE."
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/Rd5Parts.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/Rd5Parts.kt": {
       "blob": "b7ec78d4b0a0439e5adc700d340e002bd16c0711",
       "perf": [
         "const val INDEX_BYTES = 200",
@@ -590,7 +590,7 @@
         "val a = cache.getOrPut(cols[9]) { attrs(parseTags(cols[9])) }"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/WaypointSnap.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/WaypointSnap.kt": {
       "blob": "16d81f9b8796e1ec97be181021cb80cf3ed67e7b",
       "perf": [
         "const val MAX_MOVE_M = 1000.0",
@@ -631,11 +631,11 @@
         "// keep parsed profiles of several activities in memory"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/StraightLineEngine.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/StraightLineEngine.kt": {
       "blob": "6f6f3ba3497664221309fc21fd9f0b479860cff6",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/routing/RouteTimeLimit.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/RouteTimeLimit.kt": {
       "blob": "097af462b87a65f7ff0b7b5edaf2de14ac65cdf7",
       "perf": [
         "* BRouter's search time limit for one request, by straight-line distance and profile.",
@@ -648,7 +648,7 @@
         "* Limit for a request through [waypoints] (straight-line sum of the legs); [rounds] periods after \"Weiter warten\""
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/TurnDetector.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/TurnDetector.kt": {
       "blob": "dc8e79c9ed4e1918a463c784395a5d7d6ce11874",
       "perf": []
     },
@@ -687,7 +687,7 @@
         "const val PLAN_LIMIT_MS = 10 * 60_000L"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/LegCache.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/LegCache.kt": {
       "blob": "cafbd677a9cc24c3a28691cf4db73a6aabbbb958",
       "perf": [
         "* from here at once). Same points = same legs = same route: the cache only saves time, a fresh start gives the identical",
@@ -724,7 +724,7 @@
         "class TimeLimit(val rounds: Int) : Exception(\"Route calculation reached its time limit ($rounds period(s))\")"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/WaypointInsertion.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/WaypointInsertion.kt": {
       "blob": "65e1a772d4f33af8081e1c1053acf674b948d8e8",
       "perf": [
         "var bestCost = Double.MAX_VALUE",
@@ -732,17 +732,17 @@
         "var bestD = Double.MAX_VALUE"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/PlanEdits.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/PlanEdits.kt": {
       "blob": "1c033499f4298198bb4306633264c82401f18e4e",
       "perf": [
         "var bestCost = Double.MAX_VALUE"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/RouteSummary.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/RouteSummary.kt": {
       "blob": "35029d127c7be762a68ebb2c9b86134fa892b8b3",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/navigation/JunctionCues.kt": {
+    "core/src/main/kotlin/com/onpath/app/navigation/JunctionCues.kt": {
       "blob": "7341c276f21ca4b55f509f5248d581ee41733407",
       "perf": [
         "* - Cue once, a time before the junction at the current speed: bike [LEAD_S] ([MIN_LEAD_M]…[MAX_LEAD_M]), on foot",
@@ -758,7 +758,7 @@
       "blob": "ba340a51711dba1ed444f14bc063ab9787b40b43",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/navigation/JogRule.kt": {
+    "core/src/main/kotlin/com/onpath/app/navigation/JogRule.kt": {
       "blob": "37d32e72601298c3073d704989c47959cfebb21d",
       "perf": []
     },
@@ -802,7 +802,7 @@
         "/** Highest flat speed of e-bikes at any level (km/h): the assist limit. */"
       ]
     },
-    "app/src/main/java/com/onpath/app/time/RouteTimes.kt": {
+    "core/src/main/kotlin/com/onpath/app/time/RouteTimes.kt": {
       "blob": "038b7c8d9bb0e71cbcfc6c8272d718617d58d9b1",
       "perf": []
     },
@@ -836,7 +836,7 @@
         "?.take(MAX_DESCRIPTION)?.trim()?.takeIf { it.isNotEmpty() }"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/PlanPoints.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/PlanPoints.kt": {
       "blob": "7301c5f0ca06814840aa55f5d45fd83bdf5bcc94",
       "perf": [
         "var best = Double.MAX_VALUE"
@@ -896,7 +896,7 @@
         "const val PLACES_LIMIT = 5"
       ]
     },
-    "app/src/main/java/com/onpath/app/search/BaseMapPlaces.kt": {
+    "core/src/main/kotlin/com/onpath/app/search/BaseMapPlaces.kt": {
       "blob": "cf8e84875a59b5b107238aaacabdf2aefb1698ed",
       "perf": []
     },
@@ -917,7 +917,7 @@
       "blob": "cfa5a52bb938cc4abd03cf41c11e8d5af801989f",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/search/AddPreview.kt": {
+    "core/src/main/kotlin/com/onpath/app/search/AddPreview.kt": {
       "blob": "52985c65da9b1f5a417ab9238d00236715bf2af4",
       "perf": []
     },
@@ -975,7 +975,7 @@
         "val path = title.trim().replace(' ', '_').split('#', limit = 2).let { parts ->"
       ]
     },
-    "app/src/main/java/com/onpath/app/domain/RouteWarnings.kt": {
+    "core/src/main/kotlin/com/onpath/app/domain/RouteWarnings.kt": {
       "blob": "d1af9e57296b94b6c090bf7ede4d43a248fa23db",
       "perf": [
         "const val MAX_ITEMS = 3",
@@ -986,14 +986,14 @@
         "return items.take(MAX_ITEMS).joinToString(\" · \") + if (more > 0) \" +$more\" else \"\""
       ]
     },
-    "app/src/main/java/com/onpath/app/domain/PlaceAddMenu.kt": {
+    "core/src/main/kotlin/com/onpath/app/domain/PlaceAddMenu.kt": {
       "blob": "89f8e61d89ed0043c7925f6a0f3bba8849757dbc",
       "perf": [
         "var insert = Double.MAX_VALUE",
         "var detour = Double.MAX_VALUE"
       ]
     },
-    "app/src/main/java/com/onpath/app/domain/LocateDistance.kt": {
+    "core/src/main/kotlin/com/onpath/app/domain/LocateDistance.kt": {
       "blob": "a4fb4972052cf96e2dec5d5af6cdf29bc5b0cad0",
       "perf": []
     },
@@ -1001,11 +1001,11 @@
       "blob": "02902d35f3a30dd29c34a56b5304211c4b11d909",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/gpx/GpxWriter.kt": {
+    "core/src/main/kotlin/com/onpath/app/gpx/GpxWriter.kt": {
       "blob": "292aed365996b033db237a183b9f8fd0c20e69b1",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/gpx/SportType.kt": {
+    "core/src/main/kotlin/com/onpath/app/gpx/SportType.kt": {
       "blob": "f4c8b2d7dd72d824c0fcf58e7d52fc49be88691e",
       "perf": []
     },
@@ -1092,7 +1092,7 @@
       "blob": "7eeaf2fb9cb1f7acb22d85c9143faad8c2e022aa",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/sync/TrackCode.kt": {
+    "core/src/main/kotlin/com/onpath/app/sync/TrackCode.kt": {
       "blob": "017fff5885189c234de4c193359f05c1508e9138",
       "perf": [
         "const val MAX_POINTS = 200_000",
@@ -1137,7 +1137,7 @@
         "else (RETRY_MS shl (failures - 1).coerceIn(0, 10)).coerceAtMost(MAX_RETRY_MS)"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/LongRoute.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/LongRoute.kt": {
       "blob": "34084104a7bf35caac8aa4fa2ceb5d6dfbbee16d",
       "perf": []
     },
@@ -1147,18 +1147,18 @@
         "* route. Keeps the highest value it gave – a new search inside the same leg (a retry) or a leg from the cache never"
       ]
     },
-    "app/src/main/java/com/onpath/app/domain/PlanGaps.kt": {
+    "core/src/main/kotlin/com/onpath/app/domain/PlanGaps.kt": {
       "blob": "77cbe65a8797a5fd8481dbf7a1aa36774b1ccd49",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/routing/PlanReach.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/PlanReach.kt": {
       "blob": "835ceac3782bf6d1d4ad9767192d756a924db5d8",
       "perf": [
         "const val TRY_TIMEOUT_MS = 5_000L",
         "eng.route(ask, a, level, RouteLimits(TRY_TIMEOUT_MS, cancel))"
       ]
     },
-    "app/src/main/java/com/onpath/app/gpx/GpxParser.kt": {
+    "core/src/main/kotlin/com/onpath/app/gpx/GpxParser.kt": {
       "blob": "e5e37dc1f72c2d14f5fe0867a57fd404b966da8d",
       "perf": [
         "const val MAX_BYTES = 60L * 1024 * 1024",
@@ -1174,7 +1174,7 @@
         "return if (v.isNaN() || v < -limit || v > limit) null else v"
       ]
     },
-    "app/src/main/java/com/onpath/app/routing/TrackToPlan.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/TrackToPlan.kt": {
       "blob": "10c189429aa5eb3bc5aa03a7f121dafe0b01eb40",
       "perf": [
         "* two halves again. Repeat until every leg follows the track or [MAX_CALLS] routing calls are used. The track's points",
@@ -1186,11 +1186,11 @@
         "else engine.route(listOf(t[i], t[j]), activity, sacLimit, RouteLimits(LEG_TIMEOUT_MS, cancel))"
       ]
     },
-    "app/src/main/java/com/onpath/app/time/TimeEstimate.kt": {
+    "core/src/main/kotlin/com/onpath/app/time/TimeEstimate.kt": {
       "blob": "3ce7c7bed6f32b2d9786c19fed1beedf493715ca",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/data/AppSettings.kt": {
+    "core/src/main/kotlin/com/onpath/app/data/AppSettings.kt": {
       "blob": "a825d21d7b897c244a5e7ae549354371f9db88e9",
       "perf": [
         "* turn and on a tap; [PHONE] = no keep-screen-on, the phone's own timeout.",
@@ -1226,11 +1226,11 @@
       "blob": "2dfaad9e0739c2a172d6417608895a50f7d4922f",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/routing/ProfileData.kt": {
+    "core/src/main/kotlin/com/onpath/app/routing/ProfileData.kt": {
       "blob": "2e1f4f29dd8bb52c4090409b721625f2635b581d",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/gpx/PlanGpx.kt": {
+    "core/src/main/kotlin/com/onpath/app/gpx/PlanGpx.kt": {
       "blob": "36c890cfb757fd4f56463080608ae8d0c583c2ee",
       "perf": [
         "const val MAX_STOPS = 200",
@@ -1305,7 +1305,7 @@
         "// takes them out in the same order as Python's heapq – this one with half the levels of a binary heap"
       ]
     },
-    "app/src/main/java/com/onpath/app/suggest/RouterProfile.kt": {
+    "core/src/main/kotlin/com/onpath/app/suggest/RouterProfile.kt": {
       "blob": "1ea24631c4c515649016de38f71641b3aaf223fc",
       "perf": [
         "* the same parameters (SAC limit, e-bike power …), so the network's \"allowed\" is the router's verdict (a suggestion must",
@@ -1429,7 +1429,7 @@
         "assertEquals(Activity.entries.maxOf { OfflineCorridor.marginM(it) }, OfflineCorridor.MAX_M, 0.0)"
       ]
     },
-    "app/src/test/java/com/onpath/app/routing/PlanCodeTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/PlanCodeTest.kt": {
       "blob": "6d4aeb37388478b3dd4b1862c450c3335d081e53",
       "perf": [
         "assertEquals(PlanCode.MAX_POINTS, back.points.size)",
@@ -1473,11 +1473,11 @@
       "blob": "af8aa9327ce8b66fd076dc5bc278b0f5dec0b6eb",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/domain/PlaceAddMenuTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/domain/PlaceAddMenuTest.kt": {
       "blob": "d5eb155a169f997b4b5f8d07da5a44168ce109ec",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/domain/LocateDistanceTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/domain/LocateDistanceTest.kt": {
       "blob": "b3bd3558a5d98f651ee57116bc5c7696f65a5cdd",
       "perf": []
     },
@@ -1502,26 +1502,26 @@
         "assertEquals(SyncFormat.MAX_TITLE, SyncMerge.copyOf(item(1, 1, title = \"x\".repeat(200))).title!!.length)"
       ]
     },
-    "app/src/test/java/com/onpath/app/routing/LongRouteTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/LongRouteTest.kt": {
       "blob": "51f05a2b90a66d169197348fdc0a94b8b329c772",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/gpx/GpxParserTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/gpx/GpxParserTest.kt": {
       "blob": "2e17607de5d87b9f26a4682bad1b88b937458dee",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/gpx/SportTypeTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/gpx/SportTypeTest.kt": {
       "blob": "29444a253aa528221904de94b6b502db3782af93",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/routing/TrackToPlanTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/TrackToPlanTest.kt": {
       "blob": "b24fe1402b056b7f854cc5ad2d162e8375f9351d",
       "perf": [
         "assertTrue(r.calls <= TrackToPlan.MAX_CALLS)",
         "assertEquals(TrackToPlan.MAX_CALLS, TrackToPlan.maxCalls(10_000.0))"
       ]
     },
-    "app/src/test/java/com/onpath/app/domain/PlanGapsTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/domain/PlanGapsTest.kt": {
       "blob": "fdafb86c7803f98f2c2ffa308bdec0e60b8219fd",
       "perf": []
     },
@@ -1563,11 +1563,11 @@
       "blob": "f8ceb20079564e9119999ef312bb9653b639f626",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/gpx/PlanGpxTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/gpx/PlanGpxTest.kt": {
       "blob": "0fd68160c60aa9c01118b901a4e7f3a7215e1011",
       "perf": []
     },
-    "app/src/test/java/com/onpath/app/routing/PlanPointsTest.kt": {
+    "core/src/test/kotlin/com/onpath/app/routing/PlanPointsTest.kt": {
       "blob": "edd44f389fbee0d04843e6f543aeae7b1e7145dc",
       "perf": []
     },

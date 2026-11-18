@@ -104,15 +104,15 @@ fun RestView(ui: RestUi, onTap: () -> Unit, modifier: Modifier = Modifier) {
 /** The turn card's sign, large: roundabout drawing, turn arrow, or a flag for the destination (colour from LocalContentColor). */
 @Composable
 private fun RestSign(e: RestEvent, modifier: Modifier) = when {
-    e.roundabout != null -> RoundaboutSign(e.roundabout, e.angle, modifier)
-    e.kind != null -> Icon(turnIcon(e.kind), null, modifier = modifier)
+    e.roundabout != null -> RoundaboutSign(e.roundabout!!, e.angle, modifier)  // RestEvent is in :core: no smart cast
+    e.kind != null -> Icon(turnIcon(e.kind!!), null, modifier = modifier)
     else -> Icon(Icons.Filled.Flag, null, modifier = modifier)
 }
 
 /** "Right", "Roundabout · exit 2", "Destination". */
 internal fun restLabel(e: RestEvent): String = when {
-    e.roundabout != null -> JunctionCue.ROUNDABOUT.text(e.roundabout)
-    e.kind != null -> e.kind.label
+    e.roundabout != null -> JunctionCue.ROUNDABOUT.text(e.roundabout!!)
+    e.kind != null -> e.kind!!.label
     else -> Txt.s(Res.string.nav_rest_destination)
 }
 

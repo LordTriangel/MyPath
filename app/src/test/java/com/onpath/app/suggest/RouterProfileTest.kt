@@ -23,7 +23,7 @@ class RouterProfileTest {
     @Test fun keyValuesAreTheRoutersOwn() {
         val router = body("src/main/java/com/onpath/app/routing/BRouterEngine.kt",
             "private fun keyValues(activity: Activity, sacLimit: Int): MutableMap<String, String> {")
-        val copy = body("src/main/java/com/onpath/app/suggest/RouterProfile.kt",
+        val copy = body("../core/src/main/kotlin/com/onpath/app/suggest/RouterProfile.kt",
             "internal fun keyValues(activity: Activity, sacLimit: Int): MutableMap<String, String> {")
         assertEquals(router, copy)
         assertTrue(File("src/main/java/com/onpath/app/routing/BRouterEngine.kt").readText()

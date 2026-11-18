@@ -128,7 +128,7 @@ class PlanLinksTest {
 
     @Test fun manifestOpensPlannerLinksAsAppLinks() {
         // the camera hands the link to the app only with this filter; autoVerify for App Links (assetlinks.json on the host)
-        val manifest = File("src/main/AndroidManifest.xml").readText()
+        val manifest = File("../app/src/main/AndroidManifest.xml").readText()
         val filter = Regex("""<intent-filter android:autoVerify="true">(.*?)</intent-filter>""", RegexOption.DOT_MATCHES_ALL)
             .find(manifest)?.groupValues?.get(1) ?: error("no autoVerify intent filter")
         for (part in listOf("android.intent.action.VIEW", "android.intent.category.BROWSABLE", "android.intent.category.DEFAULT",

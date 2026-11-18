@@ -117,7 +117,7 @@ object TrackCode {
     }
 
     /** Douglas–Peucker on a local flat projection: keeps first, last and every point further than [tolM] off the line. */
-    internal fun simplify(s: List<TrackPt>, tolM: Double): List<TrackPt> {
+    fun simplify(s: List<TrackPt>, tolM: Double): List<TrackPt> {
         if (s.size < 3) return s
         val f = Geo.Flat(s[0].lat)
         val x = DoubleArray(s.size) { s[it].lon * f.kx }

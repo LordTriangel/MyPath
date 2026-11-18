@@ -33,7 +33,7 @@ import kotlin.random.Random
  */
 class NetReaderTest {
     private val segments = File(System.getenv("ONPATH_SEGMENTS") ?: (System.getProperty("user.home") + "/onpath-routing/segments"))
-    private val profiles = File("src/main/assets/brouter")
+    private val profiles = File("../app/src/main/assets/brouter")
     private val hilden = 6.9395 to 51.168
 
     private fun needData() = assumeTrue("no E5_N50.rd5 in $segments", File(segments, "E5_N50.rd5").isFile)

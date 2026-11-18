@@ -96,6 +96,11 @@ class Src:
             self.decls.add(m.group(2))
             if re.match(r"(?:@\w+(?:\([^)]*\))?\s+)*internal\s", head):
                 self.internal.add(m.group(2))
+        # `internal` MEMBERS (indented): a use of the class from another module cannot call them (name-based, conservative)
+        self.internal_members = {m.group(1) for m in re.finditer(
+            r"^[ \t]+(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:override|open|final|abstract|inline|suspend|operator|const|lateinit|tailrec)\s+)*internal\s+"
+            r"(?:(?:override|open|final|abstract|inline|suspend|operator|const|lateinit|tailrec|data|enum|class|object|interface)\s+)*"
+            r"(?:fun|val|var|class|object|interface)\s+(?:<[^>]*>\s*)?(?:[\w.<>?,\s]*?\.)?(\w+)", self.text, re.M)} - self.internal
         self.lines = self.text.count("\n") + 1
         self.has_test = "@Test" in self.text
 
@@ -191,6 +196,20 @@ def uses_symbol(src, pkg, name):
     return src.pkg == pkg or any(n == f"{pkg}.{name}" or (star and n == pkg) for n, star in src.imports)
 
 
+def internal_use(src, owner):
+    """The `internal` name of `owner` (a main file) that `src` could be using from another module, or None: src mentions a
+    declaration of owner (same package / import) AND the name of one of its internal declarations or members."""
+    if src.path == owner.path:
+        return None
+    names = owner.internal | owner.internal_members
+    hit = next((d for d in sorted(names) if uses_symbol(src, owner.pkg, d)), None)
+    if hit:
+        return hit
+    if names & src.tokens and any(uses_symbol(src, owner.pkg, d) for d in owner.decls - owner.internal):
+        return next(iter(sorted(names & src.tokens)))
+    return None
+
+
 def in_core(p):
     return p.startswith(CORE_MAIN + "/")
 
@@ -210,8 +229,8 @@ def closure(model, candidates):
         for p in sorted(ok):
             need, unres = model.deps(p)
             bad = [n for n in sorted(need) if not in_core(n) and n not in ok]
-            leak = [(d, q) for q in model.main if q not in ok and not in_core(q) and q != p
-                    for d in model.main[p].internal if uses_symbol(model.main[q], model.main[p].pkg, d)]
+            leak = [(internal_use(model.main[q], model.main[p]), q) for q in model.main if q not in ok and not in_core(q) and q != p]
+            leak = [(d, q) for d, q in leak if d]
             if leak and not bad and not unres:
                 ok.discard(p)
                 why[p] = f"internal {leak[0][0]} is used by {os.path.basename(leak[0][1])} (stays in :app)"
@@ -617,12 +636,10 @@ def solve(args, with_tests=True):
         users += list(model.atests.items())
         leaks = {}
         for p in ok:
-            for d in model.main[p].internal:
-                for q, src in users:
-                    if uses_symbol(src, model.main[p].pkg, d):
-                        leaks[p] = f"internal {d} is used by {os.path.basename(q)} (compiled in :app after the move)"
-                        break
-                if p in leaks:
+            for q, src in users:
+                d = internal_use(src, model.main[p])
+                if d:
+                    leaks[p] = f"internal {d} is used by {os.path.basename(q)} (compiled in :app after the move)"
                     break
         if not leaks:
             break

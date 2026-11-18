@@ -132,7 +132,7 @@ class LegFiles(
     }
 
     /** One stored leg. [data] = "part=version;…" ([partVersion]), [timeMs] = when it was routed. */
-    internal data class Entry(val key: LegCache.Key, val fingerprint: String, val data: String, val timeMs: Long, val leg: RouteResult)
+    data class Entry(val key: LegCache.Key, val fingerprint: String, val data: String, val timeMs: Long, val leg: RouteResult)
 
     companion object {
         /** Legs kept: a 35 km bike leg is ~50–100 KB – 40 MB hold dozens of long plans. */
@@ -150,7 +150,7 @@ class LegFiles(
          * [WayAttrs.code] ("=" the previous point's, empty none), turn = "code:exit:angle", shape exact. Doubles and
          * floats as Kotlin prints them (read back bit for bit: the same line).
          */
-        internal fun encode(e: Entry): String = buildString {
+        fun encode(e: Entry): String = buildString {
             val r = e.leg
             append(MAGIC).append('\n')
             append("key\t").append(e.key.fromLat).append('\t').append(e.key.fromLon).append('\t').append(e.key.toLat).append('\t')
@@ -183,7 +183,7 @@ class LegFiles(
         private fun shares(l: List<Share>) = l.joinToString(",") { "${it.key}=${it.meters}" }
 
         /** Reads [encode]; throws on anything odd (the caller deletes the file). */
-        internal fun decode(text: String): Entry {
+        fun decode(text: String): Entry {
             val lines = text.split('\n')
             require(lines.firstOrNull() == MAGIC) { "not a leg file" }
             val head = HashMap<String, List<String>>()

@@ -96,7 +96,7 @@ class RideViewTest {
             assertEquals("Save all, rides not counted", notCounted.title)
             assertEquals("Save only until 08:10", s.options.first { it.choice == RideChoice.UNTIL }.title)
             // the dialog reads them in composition, not the strings made with the summary
-            val dialog = java.io.File("src/main/java/com/onpath/app/ui/RideSummary.kt").readText()
+            val dialog = java.io.File("../app/src/main/java/com/onpath/app/ui/RideSummary.kt").readText()
             assertTrue(dialog.contains("Text(words(o.titleWords)") && dialog.contains("str(r.kind.res)"))
         } finally { java.util.Locale.setDefault(was) }
     }

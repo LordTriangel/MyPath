@@ -14,7 +14,7 @@ import java.io.File
  * (tools/make_style.py POI_TIERS) – otherwise a kind silently disappears at those zooms.
  */
 class PoiTilesStyleTest {
-    private val f2 = JSONObject(File("src/main/assets/style/f2/onpath.json").readText())
+    private val f2 = JSONObject(File("../app/src/main/assets/style/f2/onpath.json").readText())
     private val kinds = PoiKinds.all.map { it.key }.toSet()
 
     private fun strings(v: Any?): List<String> = when (v) {

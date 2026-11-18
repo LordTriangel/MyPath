@@ -217,8 +217,9 @@ object DemoLocation {
         accuracy = ACCURACY_M
         time = timeMs
         elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
-        if (f.bearingDeg != null && f.speedMs > 0) {
-            bearing = f.bearingDeg.toFloat(); speed = f.speedMs.toFloat()
+        val bearingDeg = f.bearingDeg  // a local val: DemoFix is in :core, no smart cast on its property
+        if (bearingDeg != null && f.speedMs > 0) {
+            bearing = bearingDeg.toFloat(); speed = f.speedMs.toFloat()
             bearingAccuracyDegrees = 5f; speedAccuracyMetersPerSecond = 0.3f
         } else speed = 0f
         f.ele?.let { e ->
