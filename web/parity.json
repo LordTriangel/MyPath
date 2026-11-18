@@ -511,7 +511,7 @@
     {
       "app": "app/src/main/java/com/onpath/app/search/SharedPlace.kt",
       "why": "Google Maps share (phone only)",
-      "blob": "26d89c64e0b82f55df74a226c51adebf8e23208e"
+      "blob": "56b4a3f2b4cd4868a6b2563cd53f43c6492f3b9f"
     },
     {
       "app": "app/src/main/java/com/onpath/app/routing/EngineProvider.kt",
@@ -688,20 +688,27 @@
       ]
     },
     "app/src/main/java/com/onpath/app/routing/LegCache.kt": {
-      "blob": "c5e6981e604c309aedf50f8f158bdc5f0698c930",
+      "blob": "cafbd677a9cc24c3a28691cf4db73a6aabbbb958",
       "perf": [
         "* from here at once). Same points = same legs = same route: the cache only saves time, a fresh start gives the identical",
         "* Kept in memory for the process, one per routing engine (the app: AppViewModel; the web planner: its page) – a router or",
         "* Behind the memory an optional [store] (owner 2026-11-07, \"saved routes load without routing again\"; the app:",
-        "class LegCache(private val capacity: Int = CAPACITY, private val store: LegStore? = null) {",
-        "private val map = object : LinkedHashMap<Key, RouteResult>(capacity + 1, 0.75f, true) {",
-        "override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Key, RouteResult>?) = size > capacity",
+        "class LegCache(private val capacity: Int = CAPACITY, private val store: LegStore? = null,",
+        "private val maxLinePoints: Int = MAX_LINE_POINTS) {",
+        "private val map = LinkedHashMap<Key, RouteResult>(minOf(capacity, 64) + 1, 0.75f, true)",
+        "/** Line points of the legs held (the memory bound beside [capacity], [maxLinePoints]). */",
+        "/** Keeps [leg] under [k] (under [lock]); the oldest legs go while more than [capacity] legs or [maxLinePoints] are held. */",
+        "while ((map.size > capacity || linePoints > maxLinePoints) && map.size > 1 && it.hasNext()) {",
         "/** The leg from memory, else a fresh one from the [store] (then kept in memory too); null = route it. */",
         "* \"Saved routes\"): memory or the [store], fresh or not; null = none known.",
         "/** Is the leg known fresh (memory or [store], then kept in memory) – a plan whose legs all are needs no router run. */",
         "* lies on the line, where the run's join put it). False = the leg is not in memory (a straight leg).",
         "/** Legs held now (in memory). */",
         "* Newer routing data (the same points may route differently now): every leg in memory goes. The [store] keeps its",
+        "* Legs kept: one per plan point of the largest plan ([PlanCode.MAX_POINTS]) – a multi-day tour of 189 points",
+        "const val CAPACITY = PlanCode.MAX_POINTS",
+        "* The memory bound: line points held in all legs (a point ~50 bytes → ~12 MB). München–Venedig, 594 km, is ~60 000",
+        "const val MAX_LINE_POINTS = 250_000",
         "/** The T level counts only for Hike (the bike profiles ignore it – same as BRouterEngine's own cache key). */"
       ]
     },
@@ -1164,13 +1171,15 @@
       ]
     },
     "app/src/main/java/com/onpath/app/routing/TrackToPlan.kt": {
-      "blob": "0c54a21f895775d2af38e70a517b2a44d06bca48",
+      "blob": "10c189429aa5eb3bc5aa03a7f121dafe0b01eb40",
       "perf": [
         "* two halves again. Repeat until every leg follows the track or [MAX_CALLS] routing calls are used. The track's points",
         "const val LEG_TIMEOUT_MS = 120_000L",
         "const val MAX_CALLS = 60",
-        "else engine.route(listOf(t[i], t[j]), activity, sacLimit, RouteLimits(LEG_TIMEOUT_MS, cancel))",
-        "while (todo.isNotEmpty() && calls < MAX_CALLS && !cancelled() && cancel?.isCancelled != true) {"
+        "* A long track's call budget: one per this many metres (stage 0, 2026-11-17: München–Venedig, 564 km, needed 351",
+        "/** The routing calls a track of [lengthM] may use: [MAX_CALLS], more for a long one ([CALL_PER_M]). */",
+        "fun maxCalls(lengthM: Double): Int = maxOf(MAX_CALLS, kotlin.math.ceil(lengthM / CALL_PER_M).toInt())",
+        "else engine.route(listOf(t[i], t[j]), activity, sacLimit, RouteLimits(LEG_TIMEOUT_MS, cancel))"
       ]
     },
     "app/src/main/java/com/onpath/app/time/TimeEstimate.kt": {
@@ -1479,9 +1488,10 @@
       "perf": []
     },
     "app/src/test/java/com/onpath/app/routing/TrackToPlanTest.kt": {
-      "blob": "8594b492d971cc0ae83dad770853ee865ae3f958",
+      "blob": "b24fe1402b056b7f854cc5ad2d162e8375f9351d",
       "perf": [
-        "assertTrue(r.calls <= TrackToPlan.MAX_CALLS)"
+        "assertTrue(r.calls <= TrackToPlan.MAX_CALLS)",
+        "assertEquals(TrackToPlan.MAX_CALLS, TrackToPlan.maxCalls(10_000.0))"
       ]
     },
     "app/src/test/java/com/onpath/app/domain/PlanGapsTest.kt": {
@@ -1547,7 +1557,7 @@
       "perf": []
     },
     "app/src/test/java/com/onpath/app/routing/LegCacheTest.kt": {
-      "blob": "22137e9c7d0397ea498af02e38dfa9b113cb4c17",
+      "blob": "751ffebe9ee6f07bcbf7678a8b7257371ba97788",
       "perf": [
         "* The leg cache (owner 2026-11-05, \"long bike routes faster\"): an edit routes only the legs it changed, same points give",
         "* the same route, the wait card's progress counts only the legs routed, Cancel and the time-limit question keep what",
@@ -1576,6 +1586,18 @@
         "run(e, cache, p[0], p[1], p[2], p[3]) // 3 legs, room for 2: 0 → 1 dropped",
         "assertEquals(2, cache.size)",
         "run(e, cache, p[0], p[1], p[2], p[3])",
+        "assertEquals(PlanCode.MAX_POINTS, LegCache.CAPACITY)",
+        "Planner(e, legs = cache).plan(pts, act, 2)",
+        "assertEquals(189, cache.size)",
+        "/** The memory bound: legs with many line points go, oldest first, before the count limit is reached. */",
+        "val cache = LegCache(capacity = 100, maxLinePoints = 25)",
+        "cache.put(p[0], p[1], act, 2, RouteResult(line(10), 1.0, 0.0, 0.0, 1.0))",
+        "cache.put(p[1], p[2], act, 2, RouteResult(line(10), 1.0, 0.0, 0.0, 1.0))",
+        "cache.put(p[2], p[3], act, 2, RouteResult(line(10), 1.0, 0.0, 0.0, 1.0)) // 30 points > 25: the first goes",
+        "assertNull(cache.get(p[0], p[1], act, 2))",
+        "cache.put(p[3], p[4], act, 2, RouteResult(line(40), 1.0, 0.0, 0.0, 1.0)) // alone above the bound: kept, the rest go",
+        "assertEquals(1, cache.size)",
+        "assertTrue(cache.get(p[3], p[4], act, 2) != null)",
         "Planner(e, legs = cache, progress = { d, t -> seen += d to t }).plan(listOf(p[0], p[1], p[2], p[3], p[4]), act, 2)",
         "Planner(e, legs = cache, progress = { d, t -> seen += d to t }).plan(listOf(p[0], p[1], p[2], p[4], p[5]), act, 2)",
         "assertEquals(\"p4 → p5 is new, the rest from the cache\", listOf(0 to 1, 1 to 1), seen)",
@@ -1762,6 +1784,18 @@
     },
     "app/src/main/assets/style/f2/onpath.json": {
       "blob": "1c409cb28ff79aaf7c56578053c9e792a41f66c0",
+      "perf": []
+    },
+    "app/src/main/java/com/onpath/app/search/SharedPlaceText.kt": {
+      "blob": "cc2f7ad1eb46f842c8e6d7050d140c1377f4389d",
+      "perf": []
+    },
+    "strings/src/commonMain/composeResources/values/strings_days.xml": {
+      "blob": "1c8d98a7a2c758c803c450374a8bf792c5ab64f5",
+      "perf": []
+    },
+    "strings/src/commonMain/composeResources/values-de/strings_days.xml": {
+      "blob": "610605fa54772da550658c68b7704227be3c8d92",
       "perf": []
     }
   }

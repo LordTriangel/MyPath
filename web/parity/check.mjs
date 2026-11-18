@@ -59,7 +59,8 @@ if (update) {
   if (!only.length) {
     m.shared = Object.fromEntries(shared.map((f) => [f, { blob: blob(f), perf: perfLines(f) }]));
   } else {
-    for (const f of only) if (m.shared?.[f]) m.shared[f] = { blob: blob(f), perf: perfLines(f) };
+    // a named file that is shared now (a new shared file) is recorded too, without touching the others
+    for (const f of only) if (m.shared?.[f] || shared.includes(f)) (m.shared ??= {})[f] = { blob: blob(f), perf: perfLines(f) };
   }
   fs.writeFileSync(manifestFile, JSON.stringify(m, null, 2) + '\n');
   console.log(`parity.json updated (${only.length ? only.join(', ') : 'everything'})`);
