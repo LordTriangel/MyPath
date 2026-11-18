@@ -25,7 +25,8 @@ import java.util.concurrent.TimeUnit
 /**
  * Round-trip suggestions on the phone (docs/design/tour-suggestions.md §7 stage 4), behind the developer switch: a hold
  * on the empty map → „Rundtour von hier“ (right under „Hier starten“) → the wish sheet → OK → the cards in the plan
- * sheet's place → a tap on the second card draws its loop (the one suggestion line on the map) → „Übernehmen“.
+ * sheet's place, side by side in one row (sketch 8) → a swipe to the second card draws its loop (the one suggestion
+ * line on the map) → „Übernehmen“.
  *
  * The method itself is not run here: the test map (Meran) has no suggest file, so the run is a stand-in answer
  * ([SuggestHost.suggest] replaced, everything else – camera, „Übernehmen“ through TrackToPlan – is the app's own).
@@ -60,8 +61,11 @@ class RoundTripSuggestE2ETest : E2EBase() {
         assertNotNull("the first card", findFresh(By.text("Runde am Hang"), 5_000))
         shot("suggest-cards")
 
-        clickText("Runde im Tal")
-        waitUntil("the second card chosen", 5_000) { read { it.suggest.chosen } == 1 }
+        // the cards sit side by side in one row (sketch 8): a swipe to the left brings the second card to the front
+        val first = findFresh(By.text("Runde am Hang"), 5_000)!!.visibleBounds
+        val (sw, _) = mapSize()
+        device.swipe((sw * 0.85f).toInt(), first.centerY(), (sw * 0.15f).toInt(), first.centerY(), 25)
+        waitUntil("the second card chosen by the swipe", 5_000) { read { it.suggest.chosen } == 1 }
         assertEquals("only the chosen loop is on the map", read { it.suggest.cards[1].points() }, read { it.suggest.loop })
         waitUntil("its line drawn by MapLibre", 10_000) { loopDrawn() }
         shot("suggest-loop")
@@ -69,7 +73,12 @@ class RoundTripSuggestE2ETest : E2EBase() {
         // the button may be recomposed under the finger's search (the camera fit moves the sheet): find it fresh, tap
         val take = Txt.s(Res.string.suggest_ui_take)
         waitUntil("„Übernehmen“ tapped", 10_000) {
-            runCatching { findFresh(By.text(take), 2_000)?.click() != null }.getOrDefault(false) // expected: a stale node – again
+            // every card has one (sketch 8): the chosen card's is the one shown whole, not the sliver of a card beside it
+            runCatching {
+                findFresh(By.text(take), 2_000) // a fresh look at the screen (the cache cleared) …
+                val b = device.findObjects(By.text(take)).map { it.visibleBounds }.maxByOrNull { it.width() } ?: return@runCatching false
+                device.click(b.centerX(), b.centerY()) // … then the widest one, by its place (a node may go stale)
+            }.getOrDefault(false) // expected: a stale node – again
         }
         if (realRouting) {
             waitUntil("the loop as a plan", 60_000) { waypointCount() >= 2 }

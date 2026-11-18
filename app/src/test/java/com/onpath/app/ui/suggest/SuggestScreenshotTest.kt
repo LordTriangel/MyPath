@@ -22,7 +22,7 @@ import java.util.Locale
 /**
  * The round-trip suggestions on the phone (tour-suggestions.md §7 stage 4): the wish sheet of sketch 5 B (Material 3
  * dialog, activity as plain labels, two range sliders, Ziel chips, Abbrechen · OK), the wait and the cards of sketch 4 A
- * with the pills of sketch 7 in the plan sheet's place. English, German, German at a larger font.
+ * with the pills of sketch 7 side by side in one row to swipe (sketch 8) in the plan sheet's place. English, German, German at a larger font.
  */
 object SuggestShots {
     private val at = GeoPoint(51.168, 6.9395)
@@ -50,12 +50,12 @@ object SuggestShots {
         }
     }
 
-    fun panel(paparazzi: Paparazzi, phase: SuggestPhase, notes: List<String> = emptyList()) = paparazzi.snapshot {
+    fun panel(paparazzi: Paparazzi, phase: SuggestPhase, notes: List<String> = emptyList(), chosen: Int = 0) = paparazzi.snapshot {
         OnPathTheme {
             Box(Modifier.fillMaxSize()) {
                 MapPlaceholder(Modifier.fillMaxSize())
                 Box(Modifier.align(Alignment.BottomCenter)) {
-                    SuggestPanel(SuggestPanelUi(phase, wishSummary(wish()), if (phase == SuggestPhase.CARDS) cards() else emptyList(), notes, chosen = 0),
+                    SuggestPanel(SuggestPanelUi(phase, wishSummary(wish()), if (phase == SuggestPhase.CARDS) cards() else emptyList(), notes, chosen = chosen),
                         SuggestPanelCallbacks())
                 }
             }
@@ -71,6 +71,8 @@ open class SuggestScreenshotTest {
     @Test fun wishSheetBike() = SuggestShots.dialog(paparazzi, Activity.BIKE_TREKKING)
     @Test fun waiting() = SuggestShots.panel(paparazzi, SuggestPhase.WAIT)
     @Test fun cards() = SuggestShots.panel(paparazzi, SuggestPhase.CARDS)
+    /** Swiped to the second card (sketch 8): it is in front, chosen; the first is off to the left, the third looks in. */
+    @Test fun cardsSecond() = SuggestShots.panel(paparazzi, SuggestPhase.CARDS, chosen = 1)
     @Test fun cardsMapUpdating() = SuggestShots.panel(paparazzi, SuggestPhase.CARDS, listOf(Txt.s(Res.string.suggest_note_map_updating)))
     @Test fun failed() = SuggestShots.panel(paparazzi, SuggestPhase.FAILED)
 }

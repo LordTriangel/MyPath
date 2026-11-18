@@ -1,6 +1,19 @@
 package com.onpath.app.ui.suggest
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,7 +56,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -65,7 +77,8 @@ import kotlin.math.roundToInt
  * The round-trip suggestions' screens (docs/design/tour-suggestions.md §7 stage 4; the planner's web/app/src/suggest.ts
  * is the model): the wish sheet of sketch 5 B as a Material 3 dialog – activity as plain labels (no icons, owner
  * 2026-11-17), time and ascent as two-handle range sliders, the Ziel chips, Abbrechen · OK – and the panel in the plan
- * sheet: the wait, then the cards of sketch 4 A with the pills of sketch 7 (≤ 2 green + ≤ 2 yellow, no bars).
+ * sheet: the wait, then the cards of sketch 4 A with the pills of sketch 7 (≤ 2 green + ≤ 2 yellow, no bars), side by side
+ * in one row to swipe (sketch 8, owner 2026-11-18).
  */
 
 /** Time text of the wish: „2–3 h“, halves with the language's mark („2,5–4 h“). */
@@ -204,54 +217,104 @@ class SuggestPanelCallbacks(
     val onClose: () -> Unit = {},
 )
 
+/** How far the next card looks in at the right edge of the row (sketch 8). */
+private val PEEK = 16.dp
+private val ROW_PAD = 14.dp
+private val CARD_GAP = 8.dp
+
 /**
- * The suggestions in the plan sheet's place (like the place card): the wait, or the cards under a head „3 Rundtouren“ ·
- * Wunsch ändern · ✕. At most ~58 % of the screen high, so the chosen loop stays visible above it; the cards scroll.
+ * The suggestions in the plan sheet's place (like the place card). The cards (sketch 8, owner 2026-11-18 „Ja, so
+ * bauen“): a low strip along the bottom – a small head „3 Rundtouren · Wunsch ändern · ✕“, the cards side by side in
+ * one row that snaps card by card (the next one looks in at the right), dots for where one is. The card in front is the
+ * chosen one: swiping to a card shows its loop on the map, alone, and the camera fits it above the strip. The wait and
+ * the failure stay a short panel with the wish in one line.
  */
 @Composable
 fun SuggestPanel(ui: SuggestPanelUi, cb: SuggestPanelCallbacks, modifier: Modifier = Modifier) {
-    val maxH = (LocalConfiguration.current.screenHeightDp * 0.58f).dp
     Surface(
-        modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp).navigationBarsPadding()
-            .warmShadow(OnPathShadow.HIGH, MaterialTheme.shapes.extraLarge),
-        shape = MaterialTheme.shapes.extraLarge, color = OnPathColors.Paper,
+        modifier.fillMaxWidth().warmShadow(OnPathShadow.HIGH, SheetShape),
+        shape = SheetShape, color = OnPathColors.Paper,
     ) {
-        Column(Modifier.heightIn(max = maxH).padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.navigationBarsPadding().padding(top = 4.dp, bottom = 8.dp)) {
+            Row(Modifier.padding(start = 16.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 val head = when (ui.phase) {
                     SuggestPhase.CARDS -> plural(Res.plurals.suggest_ui_count, ui.cards.size, ui.cards.size.toString())
                     else -> str(Res.string.suggest_ui_from_here)
                 }
-                Text(head, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(head, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (ui.phase == SuggestPhase.CARDS || ui.phase == SuggestPhase.FAILED)
+                    TextButton(colors = ActionButtons.editText(), onClick = cb.onChange, modifier = Modifier.heightIn(min = 48.dp)) {
+                        Text(str(Res.string.suggest_ui_change), maxLines = 1)
+                    }
                 IconButton(onClick = cb.onClose, modifier = Modifier.size(48.dp)) {
                     Icon(Icons.Filled.Close, contentDescription = str(Res.string.common_close))
                 }
             }
-            Column(Modifier.padding(end = 10.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                // the wish in one line, „Wunsch ändern“ beside it (the head keeps the count whole at a large font)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(ui.summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f))
-                    if (ui.phase == SuggestPhase.CARDS || ui.phase == SuggestPhase.FAILED)
-                        TextButton(colors = ActionButtons.editText(), onClick = cb.onChange, modifier = Modifier.heightIn(min = 48.dp)) {
-                            Text(str(Res.string.suggest_ui_change))
-                        }
-                }
-                when (ui.phase) {
-                    SuggestPhase.WAIT, SuggestPhase.LOADING -> Row(Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            when (ui.phase) {
+                SuggestPhase.WAIT, SuggestPhase.LOADING -> Column(Modifier.padding(horizontal = 16.dp)) {
+                    Summary(ui.summary)
+                    Row(Modifier.padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 3.dp, color = OnPathColors.ActionEdit)
                         Spacer(Modifier.width(12.dp))
                         Text(str(if (ui.phase == SuggestPhase.LOADING) Res.string.suggest_ui_loading_routing else Res.string.suggest_ui_wait),
                             style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                     }
-                    SuggestPhase.FAILED -> Note(str(Res.string.suggest_ui_failed))
-                    SuggestPhase.CARDS -> {
-                        ui.notes.forEach { Note(it) }
-                        ui.cards.forEachIndexed { i, c -> SuggestCardView(c, chosen = i == ui.chosen, taking = ui.taking && i == ui.chosen,
-                            onClick = { cb.onChoose(i) }, onTake = { cb.onTake(i) }) }
-                    }
+                }
+                SuggestPhase.FAILED -> Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Summary(ui.summary)
+                    Note(str(Res.string.suggest_ui_failed))
+                }
+                SuggestPhase.CARDS -> {
+                    if (ui.notes.isNotEmpty()) Column(Modifier.padding(horizontal = ROW_PAD).padding(bottom = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)) { ui.notes.forEach { Note(it) } }
+                    if (ui.cards.isNotEmpty()) CardRow(ui, cb)
                 }
             }
+        }
+    }
+}
+
+/** The sheet's shape: rounded at the top, flush with the screen's bottom edge (sketch 8). */
+private val SheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+
+@Composable
+private fun Summary(text: String) {
+    if (text.isNotBlank()) Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+/**
+ * The row of cards: one card in front, the next looking in by [PEEK]; it snaps card by card. Where it settles is the
+ * chosen card ([SuggestPanelCallbacks.onChoose]); a card chosen elsewhere (the first one, a tap on the peeking card)
+ * scrolls to the front.
+ */
+@Composable
+private fun CardRow(ui: SuggestPanelUi, cb: SuggestPanelCallbacks) {
+    val n = ui.cards.size
+    val pager = rememberPagerState(initialPage = ui.chosen.coerceIn(0, n - 1)) { n }
+    val chosenNow by rememberUpdatedState(ui.chosen)
+    val choose by rememberUpdatedState(cb.onChoose)
+    // the row → the slice: the card it settled on is the chosen one (its loop on the map)
+    LaunchedEffect(pager, n) {
+        snapshotFlow { pager.settledPage }.collect { p -> if (p in 0 until n && p != chosenNow) choose(p) }
+    }
+    // the slice → the row: a card chosen by a tap (or the first card after a run) comes to the front
+    LaunchedEffect(ui.chosen) {
+        if (ui.chosen in 0 until n && ui.chosen != pager.currentPage) pager.animateScrollToPage(ui.chosen)
+    }
+    HorizontalPager(
+        pager, Modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(start = ROW_PAD, end = PEEK + CARD_GAP),
+        pageSpacing = CARD_GAP, verticalAlignment = Alignment.Top,
+        beyondViewportPageCount = n, // every card composed: the strip keeps one height while swiping
+    ) { i ->
+        SuggestCardView(ui.cards[i], chosen = i == ui.chosen, taking = ui.taking && i == ui.chosen,
+            onClick = { cb.onChoose(i) }, onTake = { cb.onTake(i) })
+    }
+    if (n > 1) Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.Center) {
+        repeat(n) { i ->
+            Box(Modifier.padding(horizontal = 3.dp).size(6.dp).clip(CircleShape)
+                .background(if (i == ui.chosen) OnPathColors.ActionEdit else OnPathColors.Line))
         }
     }
 }
@@ -267,7 +330,10 @@ private fun Note(text: String) {
 fun cardStats(c: SuggestCard): String =
     "${Format.number(c.km, 1)} km · ${Format.durationShort(c.hours * 3600)} · ↑ ${c.ascent} m"
 
-/** One card (sketch 4 A): badge, title, numbers, the part on the signed loop, the text line (whole when chosen), the pills. */
+/**
+ * One compact card (sketch 8): badge and „Übernehmen“ on top (filled on the chosen card, outlined on the others), the
+ * title, km · h · ↑ (and the part on the signed loop), the text in one line, the pills.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SuggestCardView(c: SuggestCard, chosen: Boolean, taking: Boolean = false, onClick: () -> Unit = {}, onTake: () -> Unit = {}) {
@@ -276,28 +342,39 @@ fun SuggestCardView(c: SuggestCard, chosen: Boolean, taking: Boolean = false, on
         border = if (chosen) BorderStroke(2.dp, OnPathColors.ActionEdit) else BorderStroke(1.dp, OnPathColors.Line),
         modifier = Modifier.fillMaxWidth().semantics { selected = chosen }.clickable(role = Role.Button, onClick = onClick),
     ) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Badge(c.badge)
-            Text(c.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            Text(cardStats(c), style = MaterialTheme.typography.bodyMedium)
-            c.loopKm?.let {
-                Text(str(Res.string.suggest_ui_on_loop, Format.number(it, 1)), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(Modifier.padding(start = 12.dp, end = 8.dp, top = 4.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { Badge(c.badge) }
+                Spacer(Modifier.width(8.dp))
+                Take(chosen, taking, onTake)
             }
-            if (c.line.isNotBlank()) Text(c.line, style = MaterialTheme.typography.bodySmall,
-                maxLines = if (chosen) Int.MAX_VALUE else 1, overflow = TextOverflow.Ellipsis)
-            if (c.pills.isNotEmpty()) FlowRow(Modifier.padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
+            Text(c.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(end = 4.dp))
+            Text(buildAnnotatedString {
+                append(cardStats(c))
+                c.loopKm?.let { withStyle(SpanStyle(color = OnPathColors.InkMuted)) { append(" · " + str(Res.string.suggest_ui_on_loop, Format.number(it, 1))) } }
+            }, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(end = 4.dp))
+            if (c.line.isNotBlank()) Text(c.line, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(end = 4.dp))
+            if (c.pills.isNotEmpty()) FlowRow(Modifier.padding(top = 4.dp, end = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)) { c.pills.forEach { Pill(it) } }
-            if (chosen) Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.End) {
-                Button(colors = ActionButtons.edit(), onClick = onTake, enabled = !taking, modifier = Modifier.heightIn(min = 48.dp)) {
-                    if (taking) {
-                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
-                        Spacer(Modifier.width(8.dp))
-                        Text(str(Res.string.suggest_ui_taking))
-                    } else Text(str(Res.string.suggest_ui_take))
-                }
-            }
         }
+    }
+}
+
+/** „Übernehmen“ in the card's top row: filled on the chosen card, outlined on the others (sketch 8). */
+@Composable
+private fun Take(chosen: Boolean, taking: Boolean, onTake: () -> Unit) {
+    val pad = PaddingValues(horizontal = 14.dp)
+    if (chosen) Button(colors = ActionButtons.edit(), onClick = onTake, enabled = !taking, contentPadding = pad) {
+        if (taking) {
+            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+            Spacer(Modifier.width(8.dp))
+            Text(str(Res.string.suggest_ui_taking), maxLines = 1)
+        } else Text(str(Res.string.suggest_ui_take), maxLines = 1)
+    } else OutlinedButton(colors = ActionButtons.editOutlined(), onClick = onTake, contentPadding = pad,
+        border = BorderStroke(1.dp, OnPathColors.ActionEdit.copy(alpha = 0.55f))) {
+        Text(str(Res.string.suggest_ui_take), maxLines = 1)
     }
 }
 
