@@ -138,6 +138,38 @@ class MultiDayFlowTest {
         assertNull(f.nightOf(pts[2]))
     }
 
+    /**
+     * Robust first (coordinator 2026-11-18): the followed day's state is unreadable after a restart (corrupt prefs) while
+     * the plan on the map is that day – linked to the saved 3-day tour. It must never be saved over the whole tour: the
+     * start reloads the stored tour as the plan (MultiDaySlice.reloadsTour), and Save's "changed elsewhere" check saves a
+     * copy if it ever gets there (SaveRule.keepsOtherEdit: opened = the day's points, stored = the tour's).
+     */
+    @Test fun anUnreadableDayAfterARestartNeverOverwritesTheTour() {
+        val f = opened(flow())
+        f.tapDay(2)
+        val part = f.pickDay(f.plan(pts, Activity.BIKE_TOURING, 2, emptySet(), mapOf(3 to "Gasthof Post"))!!, pts)!!
+        // the app dies; the day's state is damaged on the disk
+        sp.edit().putString("planDayFollow", "{\"tour\": broken").apply()
+        val g = flow()
+        assertTrue("the loss is known", g.dayLost)
+        assertFalse(g.following)
+        val stored = pts.map { it.lat to it.lon }
+        val opened = part.points.map { it.lat to it.lon }
+        // the start reloads the whole stored tour …
+        assertTrue(com.onpath.app.ui.plan.MultiDaySlice.reloadsTour(dayLost = true, following = false, storedHasDays = true, opened, stored))
+        // … also when the day's state is simply missing (the plan's saved points are the day's, not the tour's)
+        assertTrue(com.onpath.app.ui.plan.MultiDaySlice.reloadsTour(dayLost = false, following = false, storedHasDays = true, opened, stored))
+        // never for the tour itself (its overview, edited or not), a followed day, or a normal route
+        assertFalse(com.onpath.app.ui.plan.MultiDaySlice.reloadsTour(dayLost = false, following = false, storedHasDays = true, stored, stored))
+        val snapped = stored.map { (la, lo) -> la + 0.0002 to lo } // ~22 m: the router put them onto their ways
+        assertFalse(com.onpath.app.ui.plan.MultiDaySlice.reloadsTour(dayLost = false, following = false, storedHasDays = true, snapped, stored))
+        assertFalse(com.onpath.app.ui.plan.MultiDaySlice.reloadsTour(dayLost = false, following = true, storedHasDays = true, opened, stored))
+        assertFalse(com.onpath.app.ui.plan.MultiDaySlice.reloadsTour(dayLost = true, following = false, storedHasDays = false, opened, stored))
+        // and Save, should it come first, writes a copy instead of the tour (the existing check of the view model's overwrite)
+        val key = com.onpath.app.sync.SaveRule::pointsKey
+        assertTrue(com.onpath.app.sync.SaveRule.keepsOtherEdit(key(opened), key(stored)))
+    }
+
     @Test fun unreadableStateNeverCrashes() {
         sp.edit().putString("planMultiDay", "{broken").putString("planDayFollow", "[]").apply()
         val f = flow()

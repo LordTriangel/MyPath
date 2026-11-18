@@ -84,6 +84,8 @@ class MultiDaySlice(
         vm.viewModelScope.launchSafe("app", "multiDayWriteBack") {
             snapshotFlow { vm.waypoints.toList() }.collect { pts -> flow.pointsChanged(pts, plan.pinned.toSet(), vm::stopName) }
         }
+        // a day of a tour whose followed-day state is gone: the whole stored tour again, never a day saved over it
+        reloadIfDayLost()
         // the overview's days, worked out off the main thread for each route of the tour
         vm.viewModelScope.launchSafe("app", "multiDayDays") {
             snapshotFlow { Triple(vm.route, flow.overview, flow.marks) }.collectLatest { (r, on, _) ->
@@ -94,6 +96,30 @@ class MultiDaySlice(
                 flow.show(v)
                 askMapsOnce(v)
             }
+        }
+    }
+
+    /**
+     * Robust first: after a restart the plan belongs to a saved multi-day tour but no followed day is known – its state was
+     * unreadable ([MultiDayFlow.dayLost]) or is missing while the plan was opened as other points than the tour's
+     * (a day's). Then the stored tour is loaded as the plan again (the plan on the map goes under Zuletzt when it has
+     * changes, as for every route opened) – a Save never writes a day's points over the whole tour. Not during a
+     * recording (the followed plan stays; Save's "changed elsewhere" check writes a copy then).
+     */
+    private fun reloadIfDayLost() {
+        val id = plan.linkId
+        if (flow.following || id < 0 || plan.points.size < 2) return
+        val opened = plan.savedPoints?.map { it.lat to it.lon } ?: return
+        vm.viewModelScope.launchSafe("app", "multiDayReload") {
+            val t = withContext(Dispatchers.IO) {
+                runCatching { db.getTour(id) }.onFailure { Problems.warn("db", "Saved route not read at the start – no multi-day check", it) }.getOrNull()
+            } ?: return@launchSafe
+            if (t.deletedMs != null || !reloadsTour(flow.dayLost, flow.following, t.days != null, opened, t.waypoints.map { it.lat to it.lon })) return@launchSafe
+            if (vm.recState.value != null) {
+                Problems.warn("plan", "Multi-day tour: the followed day is unknown after the restart, a tour records – plan kept, Save writes a copy"); return@launchSafe
+            }
+            Problems.warn("plan", "Multi-day tour: the followed day is unknown after the restart – the whole tour \"${t.name}\" is loaded again (never a day saved over it)")
+            vm.openTour(t)
         }
     }
 
@@ -326,4 +352,20 @@ class MultiDaySlice(
         }
     }
 
+    companion object {
+        /**
+         * The plan must be the stored multi-day tour again ([reloadIfDayLost]): it belongs to a saved route with days
+         * ([storedHasDays]), no day is followed, and either the followed day's state was lost ([dayLost]) or the plan was
+         * opened as other points ([opened]) than the tour's ([stored]) – a day's, whose state is missing. The tour's own
+         * points moved onto their ways by the router ([SAME_POINT_M]) are still the tour's. Pure – MultiDayFlowTest.
+         */
+        fun reloadsTour(dayLost: Boolean, following: Boolean, storedHasDays: Boolean, opened: List<Pair<Double, Double>>,
+                        stored: List<Pair<Double, Double>>): Boolean = storedHasDays && !following && (dayLost ||
+            opened.size != stored.size || opened.indices.any { i ->
+                Geo.distance(GeoPoint(opened[i].first, opened[i].second), GeoPoint(stored[i].first, stored[i].second)) > SAME_POINT_M
+            })
+
+        /** The router's snap moves a plan point at most about this far (a free point onto its way). */
+        const val SAME_POINT_M = 100.0
+    }
 }

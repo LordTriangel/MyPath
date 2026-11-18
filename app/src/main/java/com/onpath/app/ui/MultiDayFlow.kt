@@ -57,6 +57,13 @@ class MultiDayFlow(private val prefs: com.onpath.app.data.Prefs, private val lin
     var view by mutableStateOf<DaysView?>(null)
         private set
 
+    /**
+     * The followed day's state was there but unreadable at the start (corrupt prefs): the plan on the map may be a day of a
+     * tour that no longer knows it – never saved over the tour (MultiDaySlice reloads the stored tour).
+     */
+    var dayLost = false
+        private set
+
     /** The overview shows: a multi-day tour is the plan and no day is picked. */
     val overview: Boolean get() = tour.let { it != null && day == null && linkedId() == it.id }
 
@@ -255,6 +262,7 @@ class MultiDayFlow(private val prefs: com.onpath.app.data.Prefs, private val lin
         } catch (e: Exception) {
             Problems.error("plan", "Multi-day tour state unreadable after the restart – the plan shows without its days (the saved tour keeps them)", e)
             tour = null; day = null; marks = emptyMap()
+            dayLost = prefs.planDayFollow != null // a followed day lost: the start reloads the whole tour (MultiDaySlice)
         }
     }
 
