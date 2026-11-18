@@ -1,8 +1,11 @@
 package com.onpath.app.recording
 
 import com.onpath.app.gpx.TrackPoint
+import com.onpath.app.navigation.JunctionCues
+import com.onpath.app.navigation.SpeedWindow
 import com.onpath.app.routing.ArrivalGate
 import com.onpath.app.routing.GeoPoint
+import com.onpath.app.time.PauseReason
 
 /**
  * Everything [RecordingService] counts and remembers for one tour: the track and its totals (written back to the
@@ -74,8 +77,8 @@ internal class TourRun {
     }
 
     /** Vibration before junctions of the followed line + the next junction for the lock screen. */
-    val junctions = com.onpath.app.navigation.JunctionCues()
-    val junctionSpeeds = com.onpath.app.navigation.SpeedWindow()
+    val junctions = JunctionCues()
+    val junctionSpeeds = SpeedWindow()
     /** Line version whose junction count was traced. */
     var junctionsTracedVersion = Int.MIN_VALUE
 
@@ -86,7 +89,7 @@ internal class TourRun {
 
     /** Where the map areas ahead were last asked for (T5). */
     var t5LastAt: GeoPoint? = null
-    var estimatePaused: com.onpath.app.time.PauseReason? = null
+    var estimatePaused: PauseReason? = null
 
     /** False while the app is in Plan during the tour; a tour starts in Navigate. */
     var navigating = true

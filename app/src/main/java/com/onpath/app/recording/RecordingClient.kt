@@ -2,6 +2,7 @@ package com.onpath.app.recording
 
 import android.content.Context
 import android.content.Intent
+import com.onpath.app.debug.Problems
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -20,7 +21,7 @@ data class RecordingCommand(val action: String, val extras: Map<String, Any> = e
                 is Long -> i.putExtra(k, v)
                 is Boolean -> i.putExtra(k, v)
                 is Double -> i.putExtra(k, v)
-                else -> com.onpath.app.debug.Problems.error("recording", "Service command $action: the extra \"$k\" has a type that is not carried; sent without it")
+                else -> Problems.error("recording", "Service command $action: the extra \"$k\" has a type that is not carried; sent without it")
             }
         }
     }
@@ -53,13 +54,13 @@ data class RecordingCommand(val action: String, val extras: Map<String, Any> = e
 }
 
 /**
- * The contract between the app (view model, state holders) and the recording service (cleanup piece 5, code audit
- * 2026-11-12 point c): what the app may ask of the service – one function per Intent action – and what it reads from
- * it. The service is the only one that writes [state], [finished] and [startFailed]; the app says "seen" where it
- * used to clear the value itself. [ServiceRecordingClient] is the app's; tests take a fake (testkit).
+ * The contract between the app (view model, state holders) and the recording service: what the app may ask of the
+ * service – one function per Intent action – and what it reads from it. The service is the only one that writes
+ * [state], [finished] and [startFailed]; the app says "seen", it never clears the value itself.
+ * [ServiceRecordingClient] is the app's; tests take a fake (testkit).
  *
  * A command does not start a service that is not recording (except [start] / [continueTour]): the service stops
- * itself again. Callers that sent only during a tour still ask [state] first, as before.
+ * itself again. Callers that sent only during a tour still ask [state] first.
  */
 interface RecordingClient {
     /** The running tour (null = none). */

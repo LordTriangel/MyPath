@@ -2,6 +2,7 @@ package com.onpath.app.recording
 
 import com.onpath.app.data.AtomicFiles
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.Executor
 import java.util.concurrent.FutureTask
 import java.util.concurrent.TimeUnit
@@ -31,7 +32,7 @@ class LatestFileWriter(
         pending.set(null)
         submit {
             pending.set(null)
-            if (file.exists() && !file.delete()) onError(java.io.IOException("${file.name} not deleted"))
+            if (file.exists() && !file.delete()) onError(IOException("${file.name} not deleted"))
         }
     }
 
