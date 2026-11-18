@@ -2,7 +2,7 @@
 
 Captain, 2026-11-18, on the owner's word: "rethink a clean, maintainable and token-optimized structure, future safe,
 reduce testing time … considering the future need to also build for iOS. Propose a plan ready for execution."
-Status: **proposal – nothing starts before the owner's yes** (decisions in §6).
+Status: **go from the owner 2026-11-18 late – phases 0–4 in one run, back to back; 5a beside it** (decisions in §7: 1–4 yes, 5 not now).
 
 ## 1. What the code looks like today (measured on main, 0.18.0)
 

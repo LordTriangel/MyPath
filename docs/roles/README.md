@@ -10,8 +10,9 @@ from the repo – never from another session's chat.
 | **cloud-web** | cloud only | `onpath.earth`, `onpath.private` | [cloud-web.md](cloud-web.md) |
 | **captain** | cloud only | all, mostly read-only | [captain.md](captain.md) |
 | **IR** (tour suggestions, „Routenfinder“, since 2026-11-15) | donald, own worktree of `onpath-app` (`main`) | `tools/suggest-poc/`, `tools/*suggest*`, `app/…/suggest/`, `docs/design/tour-suggestions.md` | [start.md](start.md) + its latest `docs/history/handoff-ir-*.md` |
+| **umbau** (the rebuild of 2026-11, `docs/design/architecture-plan-2026-11.md`) | donald, own worktree of `onpath-app` (`main`) | module structure, `:core` / `:state`, tests and CI layout – by the plan's phases | [start.md](start.md) + the plan |
 | **mehrtage** (multi-day tours, since 2026-11-16) | donald, own worktree of `onpath-app` (`main`) | `routing/PlanDays.kt`, `PlanCode.kt`, `PlanEdits.kt`, `docs/design/multi-day-tours.md`; planner (`web/`) and phone parts by agreement | [start.md](start.md) + `docs/design/multi-day-tours.md` |
 
 Rules: one session per computer folder; two sessions never share a checkout (helpers use their own worktrees).
-Backlog tags = session names (`[donald]`, `[IR]`, `[mehrtage]`, `[laptop]` / `[cloud-plan]`, `[cloud-web]`, `[captain]`; the old `[cloud-app]` = donald).
+Backlog tags = session names (`[donald]`, `[IR]`, `[mehrtage]`, `[umbau]`, `[laptop]` / `[cloud-plan]`, `[cloud-web]`, `[captain]`; the old `[cloud-app]` = donald).
 Why it is set up this way, what was tested and what went wrong: [multi-agent-lernen.md](multi-agent-lernen.md).
