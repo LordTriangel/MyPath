@@ -242,7 +242,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val recent = com.onpath.app.ui.routes.RecentPlans(routes, routesStore, object : com.onpath.app.ui.routes.RecentPlansHost {
         override fun insertDraft(row: com.onpath.app.ui.routes.RecentPlans.DraftRow) =
             db.insertTour(TourKind.PLANNED, row.name, row.activity, row.sac, row.distanceM, row.ascentM, row.descentM, row.durationS,
-                row.segments, row.waypoints, pinned = row.pinned, draft = true, difficulty = row.difficulty)
+                row.segments, row.waypoints, pinned = row.pinned, draft = true, difficulty = row.difficulty, days = row.days)
         override fun storeTimes(id: Long, route: PlannedRoute?, activity: Activity) = storePlanTimes(id, route, activity)
         override suspend fun proposeName(points: List<GeoPoint>, route: PlannedRoute?) = this@AppViewModel.proposeName(points, route)
         override fun tourChanged(id: Long) = Backups.tourChanged(getApplication(), id)
@@ -1095,6 +1095,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** What started the routing run: Cancel takes back only that ([com.onpath.app.domain.plan.RunCause]). */
     private val runCauses = com.onpath.app.domain.plan.RunCause()
 
+    internal val multiDay = com.onpath.app.ui.plan.MultiDaySlice(this, plan, ::change, ::setSaved, ::rememberPlaceName, { mapData }) { nearbyNames }
     // --- saved state of the plan (menus / Manage routes) ---
     /** Name, tour id and points the plan was last saved or loaded as ([com.onpath.app.ui.plan.PlanDocument]: stored, linked, unsaved). */
     private val linkName: String? get() = plan.linkName
@@ -2966,7 +2967,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 // T4: the corridor – named after the plan's destination (round trip: its start) in the loading chip
                 // the last point: a round trip closes at its ① (also with stops on the way before the loop)
                 val dest = pts.lastOrNull()
-                mapData.routeComputed(it.points, post?.cells, dest, act)
+                if (multiDay.overview) mapData.corridorFollowsPlan(it.points, act) else mapData.routeComputed(it.points, post?.cells, dest, act) // a multi-day tour: its map question (§7)
                 if (take.freshen) freshenAfterRoute(it.points, post?.cells, act)
                 if (take.viaData) routingDataRouteChanged(it)
                 else if (standBefore != null && com.onpath.app.data.RoutingDataCheck.differs(standBefore, it.points))
@@ -3434,10 +3435,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      */
     private fun keepAsDraft(why: String) {
         val pts = waypoints.toList()
-        if (pts.size < 2) return
+        if (pts.size < 2 || multiDay.keepWhole()) return // a followed day: the whole multi-day tour goes under Zuletzt
         val r = route; val act = activity
         recent.keep(com.onpath.app.ui.routes.RecentPlans.Leaving(pts, planUnsaved, savedId, r, act, sac, savedStops(pts), pinnedIndices(),
-            defaultName(Txt.s(Res.string.msg_name_route))) { difficultyOf(r, act) }, why)
+            defaultName(Txt.s(Res.string.msg_name_route)), multiDay.daysFor(pts)) { difficultyOf(r, act) }, why)
     }
 
     /** My routes → Zuletzt → Speichern: the plan becomes saved (backup, browser sync); it shows "✓ Gerade gespeichert". */
@@ -3552,7 +3553,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     TourKind.PLANNED, title, act.name, level,
                     r?.distanceM ?: 0.0, r?.ascentM ?: 0.0, r?.descentM ?: 0.0, r?.durationS ?: 0.0,
                     listOf((r?.points ?: pts).map { TrackPoint(it.lat, it.lon, it.ele) }),
-                    stops, pinned = pins, difficulty = difficultyOf(r, act),
+                    stops, pinned = pins, difficulty = difficultyOf(r, act), days = multiDay.daysFor(pts),
                 ).also { storePlanTimes(it, r, act) }
             }.onFailure { Problems.error("db", "Saving a planned route failed", it) }.getOrNull()
         }
@@ -3580,7 +3581,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val pts = waypoints.toList()
         val old = savedName
         val id = savedId
-        if (pts.size < 2 || saving) return
+        if (pts.size < 2 || multiDay.overwriteWhole(name, then) || saving) return // a followed day: the whole multi-day tour
         if (old == null || id < 0) { saveRoute(name, then); return }
         saving = true
         val r = route
@@ -3607,7 +3608,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                             id, act.name, level,
                             r?.distanceM ?: 0.0, r?.ascentM ?: 0.0, r?.descentM ?: 0.0, r?.durationS ?: 0.0,
                             listOf((r?.points ?: pts).map { TrackPoint(it.lat, it.lon, it.ele) }),
-                            stops, pins, difficulty = difficultyOf(r, act),
+                            stops, pins, difficulty = difficultyOf(r, act), days = multiDay.daysFor(pts),
                         ).also {
                             if (it) { plannedTimes.remove(id); storePlanTimes(id, r, act) }
                             if (it && name != old) db.rename(id, name)
@@ -4864,7 +4865,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             // a done tour's row shows the overview's average speed (owner 2026-11-16) – from the stored times, read once
             val times = com.onpath.app.time.TourTimesStore(
                 File(getApplication<Application>().filesDir, com.onpath.app.time.TourTimesStore.FILE)).all()
-            val list = routes.load { t -> withModelTime(t).let { m ->
+            val list = routes.load { t -> multiDay.withMaps(withModelTime(t)).let { m ->
                 // a recorded tour's followed plan: a round trip for certain when its points end at its start (RoundTrip)
                 if (m.kind == TourKind.RECORDED && m.hasPlan) m.copy(roundTrip = runCatching { db.planPoints(m.id) }
                     .onFailure { e -> Problems.warn("routes", "The followed plan's points of tour ${m.id} not read – its row guesses from the track", e) }
@@ -4914,7 +4915,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 change { clear(); addAll(pts) }
                 t.waypoints.forEachIndexed { i, w -> w.name?.let { rememberPlaceName(pts[i], it) } }
                 // a stand-in (no stored route behind it): an unsaved plan – Los geht's saves it like every new plan
-                if (t.id >= 0) setSaved(t.name, t.id, pts) else setSaved(null, -1L, null)
+                if (t.id >= 0) setSaved(t.name, t.id, pts) else setSaved(null, -1L, null); multiDay.opened(t, pts)
                 events += UiEvent.Fit(segs.flatten().map { it.toGeo() })
                 syncRoutingCheck(t, pts)
                 if (duringTour && recState.value != null) enter(AppMode.NAVIGATE)
@@ -5713,7 +5714,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             cells.generation.drop(1).collectLatest { delay(5_000); search.prepare() }
         }
         // map cells (map-cells.md §9): Wi-Fi setting, relevance, cells still loading from the last run, T3 on fixes
-        mapData.start()
+        mapData.start(); multiDay.start() // multi-day tours: kept map areas, a followed day's write-back, the overview's days
         // a tour started indoors (owner): the fused position until its first GPS fix – off with that fix, a pause, the end
         viewModelScope.launchSafe("app", "start-up work") {
             var asked = false

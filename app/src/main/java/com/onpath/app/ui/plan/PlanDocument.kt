@@ -93,7 +93,18 @@ class PlanDocument(private val store: PlanStore) {
     }
 
     /** Undo / Redo show the snapped points too ([moves] old → new). */
-    fun snappedHistory(moves: Map<GeoPoint, GeoPoint>) = session.snapped(moves)
+    fun snappedHistory(moves: Map<GeoPoint, GeoPoint>) { session.snapped(moves); onSnapped?.invoke(moves) }
+
+    /** Multi-day tours (ui/plan/MultiDaySlice): the night marks are kept by value and follow a snap ([snappedHistory]). */
+    var onSnapped: ((Map<GeoPoint, GeoPoint>) -> Unit)? = null
+    /** Multi-day tours: the plan belongs to another saved route now ([setSaved]; -1 = none). */
+    var onLinked: ((Long) -> Unit)? = null
+
+    /**
+     * Undo / Redo start afresh – a multi-day tour's day becomes the plan, or the whole tour again: an Undo across that
+     * would put the other plan's points into this one.
+     */
+    fun forgetHistory() { session.forgetHistory(); history() }
 
     /** Every point reachable by Undo or Redo. */
     fun historyPoints(): Set<GeoPoint> = session.historyPoints()
@@ -150,5 +161,6 @@ class PlanDocument(private val store: PlanStore) {
     fun setSaved(name: String?, id: Long, points: List<GeoPoint>?) {
         linkName = name; linkId = id; savedPoints = points
         store.savedName = name; store.savedId = id; store.savedPoints = points
+        onLinked?.invoke(id)
     }
 }

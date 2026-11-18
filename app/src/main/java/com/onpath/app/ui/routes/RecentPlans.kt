@@ -76,6 +76,8 @@ class RecentPlans(
         val pins: Set<Int>,
         /** The date name it is kept under until a place name comes ("Route 26 Oct, 10:12"). */
         val dated: String,
+        /** A multi-day tour's days (stage 4) – kept with it; null = a normal plan. */
+        val days: com.onpath.app.data.MultiDay? = null,
         /** The difficulty level stored with it; asked only when a row is written. */
         val difficulty: () -> String?,
     )
@@ -85,6 +87,8 @@ class RecentPlans(
         val name: String, val activity: String?, val sac: Int,
         val distanceM: Double, val ascentM: Double, val descentM: Double, val durationS: Double,
         val segments: List<List<TrackPoint>>, val waypoints: List<GpxWaypoint>, val pinned: Set<Int>, val difficulty: String?,
+        /** A multi-day tour's days; null = a normal plan. */
+        val days: com.onpath.app.data.MultiDay? = null,
     )
 
     // ---------------- "Zuletzt" (owner 2026-11-06: no "Nicht gespeichert", like Komoot + recent plans) ----------------
@@ -109,7 +113,7 @@ class RecentPlans(
             routes.keepDraft(key, plan.unsaved, plan.savedId) {
                 host.insertDraft(DraftRow(plan.dated, plan.activity.name, plan.sac,
                     r?.distanceM ?: 0.0, r?.ascentM ?: 0.0, r?.descentM ?: 0.0, r?.durationS ?: 0.0,
-                    listOf((r?.points ?: pts).map { TrackPoint(it.lat, it.lon, it.ele) }), plan.stops, plan.pins, plan.difficulty()))
+                    listOf((r?.points ?: pts).map { TrackPoint(it.lat, it.lon, it.ele) }), plan.stops, plan.pins, plan.difficulty(), plan.days))
             }
         }.onFailure { Problems.error("db", "The plan could not be kept under Zuletzt", it) }.getOrNull()
         host.refreshTours() // the Zuletzt place changed hands either way (a draft replaced, a saved route there now)
@@ -135,7 +139,7 @@ class RecentPlans(
                 runCatching {
                     routes.keepReplaced(key) {
                         host.insertDraft(DraftRow(old.name, old.activity, old.sac, old.distanceM, old.ascentM, old.descentM,
-                            old.durationS, segments, old.waypoints, old.pinned, old.difficulty))
+                            old.durationS, segments, old.waypoints, old.pinned, old.difficulty, old.days))
                     }
                 }.onFailure { Problems.error("db", "The saved route's version before the tour start could not be kept under Zuletzt", it) }
                     .getOrNull()
