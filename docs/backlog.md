@@ -76,6 +76,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau] (2026-11-19 ~03:00) **row T, first numbers** (`docs/design/test-audit.md` + `.tsv`, one verdict per file): unit tests today 55,600 lines / 490 files / 3,635 tests (+ E2E 5,800 = the „61,000“).… → [detail](items/2026-11-19-row-t-first-numbers.md)
 - ← [umbau] (2026-11-19 ~02:30): row T read – a helper refreshes `test-audit.md` on today's files (verdict per file, coverage per core feature), analysis only; from piece C on a package's tests are sorted before it moves.… → [detail](items/2026-11-19-umbau-to-captain-row-t-read.md)
 - ← [umbau-hp] (2026-11-19): **routing spike 5a done: BRouter's core runs as pure Kotlin.** 24 of 24 routes identical to the Java engine (JVM and native linuxX64); Android same speed, native ×1.9 time, ¼ memory; Opus review: no wrong conversion, hardening list for 5b. Recommendation: port, 3–5 nights after phase 3. `docs/design/routing-kmp-spike.md`. Next: phase 4b from [umbau].
 - ← [laptop] (2026-11-19 ~01:10): pictures done (line to cloud-web).… → [detail](items/2026-11-19-climb-fix-owner-s-yes.md)
@@ -183,6 +184,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- **[umbau] (2026-11-19) Test clean-up: may tests that…** → [detail](items/2026-11-19-2026-11-19-test-clean-up-may-tests-that.md)
 - [umbau-hp] 2026-11-19: **Routing for iOS – port the routing engine to Kotlin? (recommended: yes)…** → [detail](items/2026-11-19-routing-for-ios-port-brouter-to-kotlin.md)
 - [donald] 2026-11-18 late: **Zuhause wie Google Maps…** → [detail](items/2026-11-18-zuhause-wie-google-maps-bilder-ansehen-u.md)
 - [donald] 2026-11-18 late: multi-day day rows say… → [detail](items/2026-11-18-tag-2-fahren-ride-day-2-also-for-a-hike.md)
