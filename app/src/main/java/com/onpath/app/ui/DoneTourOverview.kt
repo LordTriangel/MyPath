@@ -120,9 +120,8 @@ internal object ReviewText {
     fun note(t: Tour, r: TourReview): String? {
         val act = com.onpath.app.debug.enumOrNull<Activity>(t.activity, "routes")
         return listOfNotNull(
-            if (r.plannedS != null && r.neededS != null)
-                Txt.s(Res.string.routes_review_plan_note, com.onpath.app.time.TimeEstimate.hm(r.plannedS), com.onpath.app.time.TimeEstimate.hm(r.neededS))
-            else null,
+            r.plannedS?.let { p -> r.neededS?.let { n ->  // no smart cast on a property of :core's TourReview
+                Txt.s(Res.string.routes_review_plan_note, com.onpath.app.time.TimeEstimate.hm(p), com.onpath.app.time.TimeEstimate.hm(n)) } },
             act?.let { LastActivity.name(it, t.sac) },
             r.rank?.let { Txt.s(Res.string.routes_review_rank, it.place, it.of) },
         ).takeIf { it.isNotEmpty() }?.joinToString(" · ")
@@ -169,7 +168,7 @@ internal object ReviewText {
 
     /** The Details sheet's numbers (label, value) – only the known ones. */
     fun details(t: Tour, r: TourReview): List<Pair<String, String>> = listOfNotNull(
-        if (r.startMs != null && r.endMs != null) Txt.s(Res.string.routes_review_on_the_way) to clockRange(r.startMs, r.endMs) else null,
+        r.startMs?.let { s -> r.endMs?.let { e -> Txt.s(Res.string.routes_review_on_the_way) to clockRange(s, e) } },
         r.movingS?.let { Txt.s(Res.string.routes_review_moving) to time(it) },
         r.pauseS?.let { pausesLabel(r.pauseCount) to time(it) },
         r.avgKmh?.let { Txt.s(Res.string.routes_review_avg) to kmh(it) },

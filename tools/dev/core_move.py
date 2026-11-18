@@ -97,10 +97,12 @@ class Src:
             if re.match(r"(?:@\w+(?:\([^)]*\))?\s+)*internal\s", head):
                 self.internal.add(m.group(2))
         # `internal` MEMBERS (indented): a use of the class from another module cannot call them (name-based, conservative)
-        self.internal_members = {m.group(1) for m in re.finditer(
+        self.internal_members = {m.group(2) for m in re.finditer(
             r"^[ \t]+(?:@\w+(?:\([^)]*\))?\s+)*(?:(?:override|open|final|abstract|inline|suspend|operator|const|lateinit|tailrec)\s+)*internal\s+"
             r"(?:(?:override|open|final|abstract|inline|suspend|operator|const|lateinit|tailrec|data|enum|class|object|interface)\s+)*"
-            r"(?:fun|val|var|class|object|interface)\s+(?:<[^>]*>\s*)?(?:[\w.<>?,\s]*?\.)?(\w+)", self.text, re.M)} - self.internal
+            r"(fun|val|var|class|object|interface)\s+(?:<[^>]*>\s*)?(?:[\w.<>?,\s]*?\.)?(\w+)", self.text, re.M)} - self.internal
+        # an internal FUN counts as used only where it is called (a property of the same name elsewhere is not a use)
+        self.internal_funs = {m.group(1) for m in re.finditer(r"^[ \t]+(?:[\w@()]+\s+)*internal\s+(?:[\w]+\s+)*fun\s+(?:<[^>]*>\s*)?(?:[\w.<>?,\s]*?\.)?(\w+)", self.text, re.M)}
         self.lines = self.text.count("\n") + 1
         self.has_test = "@Test" in self.text
 
@@ -206,7 +208,9 @@ def internal_use(src, owner):
     if hit:
         return hit
     if names & src.tokens and any(uses_symbol(src, owner.pkg, d) for d in owner.decls - owner.internal):
-        return next(iter(sorted(names & src.tokens)))
+        for n in sorted(names & src.tokens):
+            if n not in owner.internal_funs or re.search(r"(?<![\w])" + re.escape(n) + r"\s*[(<{]|::" + re.escape(n), src.body):
+                return n
     return None
 
 
