@@ -93,7 +93,9 @@ class ProblemsTest {
     @Test fun fiftyThousandEventsAreCheapCappedAndExported() {
         val text = "y".repeat(200)
         val t0 = System.nanoTime()
-        repeat(50_000) { Problems.trace("gps", "event $it $text") }
+        // a flush every 10 000: the writer's queue holds 20 000 lines and drops more by design; before the log call went
+        // behind a sink, android.util.Log's stub slowed the loop enough for the writer to keep up – now it must be given time
+        repeat(50_000) { Problems.trace("gps", "event $it $text"); if (it % 10_000 == 9_999) EventLog.flush() }
         val callerMs = (System.nanoTime() - t0) / 1_000_000
         assertTrue("50 000 trace calls took $callerMs ms on the calling thread", callerMs < 3_000)
         Problems.flushForTest()
