@@ -52,7 +52,9 @@ async function open(ctxOpts, at, serverOpts) {
       if (c?.textContent && window.__statusLog.at(-1) !== '[busy] ' + c.textContent) window.__statusLog.push('[busy] ' + c.textContent);
       // the map of a new area loading: the load overlay with its percent (owner 2026-11-13)
       const o = document.querySelector('#mapnotes .mapnote.load');
-      const ot = o && `[busy] ${o.querySelector('.title')?.textContent} · ${o.querySelector('.pct')?.textContent}`;
+      // the calculation's running card has no percent (c11e4e72): its title alone
+      const op = o?.querySelector('.pct')?.textContent;
+      const ot = o && `[busy] ${o.querySelector('.title')?.textContent}${op ? ` · ${op}` : ''}`;
       if (ot && window.__statusLog.at(-1) !== ot) window.__statusLog.push(ot);
     }).observe(document.body, { subtree: true, childList: true, characterData: true }));
   });
@@ -179,7 +181,7 @@ const magenta = ([r, g, b]) => r - g > 50 && b - g > 40;
   const seen = await page.evaluate(() => window.__statusLog);
   check(seen.includes('[busy] Loading the routing engine…'), 'engine start: "Loading the routing engine…" with a spinner');
   check(seen.some((t) => /^\[busy\] Loading the map for your area · \d+\s?%$/.test(t)), `routing data: the overlay with a percent ("${seen.find((t) => t.includes('%')) ?? 'not seen'}")`);
-  check(seen.some((t) => /^\[busy\] Calculating the route…( · \d+\s?%)?$/.test(t)), 'routing: "Calculating the route…" (the app\'s plan_calculating) – the overlay\'s last phase or the wait box');
+  check(seen.some((t) => /^\[busy\] Calculating the route…( · \d+\s?%)?$/.test(t)), `routing: "Calculating the route…" (the app's plan_calculating) – the overlay's last phase or the wait box (${JSON.stringify(seen.filter((t) => !t.includes('Loading')).slice(0, 6))})`);
   check(!(await page.evaluate(() => document.getElementById('status').classList.contains('busy') || !!document.querySelector('#msgcards .msgcard.busy'))), 'after the plan: no spinner left');
   await ctx.close(); server.close();
 }
