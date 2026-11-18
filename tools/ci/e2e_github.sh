@@ -79,8 +79,9 @@ for f in glob.glob(sys.argv[1] + "/**/*.xml", recursive=True):
         n += 1
         fail = tc.find("failure") if tc.find("failure") is not None else tc.find("error")
         if fail is not None:
-            bad += 1
             msg = (fail.get("message") or fail.text or "").strip().splitlines()
+            if msg and "AssumptionViolatedException" in msg[0]: continue  # skipped on purpose (a tool, a download test)
+            bad += 1
             print("  ✗ %s#%s: %s" % (tc.get("classname"), tc.get("name"), msg[0][:200] if msg else ""))
 print("e2e_github: %d test case(s), %d failed" % (n, bad))
 PY
