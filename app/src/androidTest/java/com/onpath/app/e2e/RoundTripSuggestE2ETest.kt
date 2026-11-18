@@ -66,7 +66,11 @@ class RoundTripSuggestE2ETest : E2EBase() {
         waitUntil("its line drawn by MapLibre", 10_000) { loopDrawn() }
         shot("suggest-loop")
 
-        clickText(Txt.s(Res.string.suggest_ui_take))
+        // the button may be recomposed under the finger's search (the camera fit moves the sheet): find it fresh, tap
+        val take = Txt.s(Res.string.suggest_ui_take)
+        waitUntil("„Übernehmen“ tapped", 10_000) {
+            runCatching { findFresh(By.text(take), 2_000)?.click() != null }.getOrDefault(false) // expected: a stale node – again
+        }
         if (realRouting) {
             waitUntil("the loop as a plan", 60_000) { waypointCount() >= 2 }
             assertEquals("the suggestions closed", null, read { it.suggest.phase })

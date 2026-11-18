@@ -5,6 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import com.onpath.app.ui.AppViewModel
 
+/** After a card's tap: the panel's new height reaches the map's fit padding (MapScreen reports it after 120 ms). */
+private const val REFIT_MS = 400L
+
 /** The wish sheet while it is open ([SuggestSlice.wishOpen]); MapScreen composes it over the map. */
 @Composable
 fun SuggestWishHost(vm: AppViewModel) {
@@ -25,6 +28,8 @@ fun SuggestHostPanel(vm: AppViewModel) {
     BackHandler { s.close() }
     val planned = vm.waypoints.isNotEmpty()
     LaunchedEffect(planned) { if (planned && !s.taking) s.close() }
+    // the fit on a card's tap uses the sheet's height of that moment; once the panel has grown, fit again above it
+    LaunchedEffect(s.chosen, s.cards) { if (s.chosen >= 0) { kotlinx.coroutines.delay(REFIT_MS); s.refit() } }
     SuggestPanel(
         SuggestPanelUi(phase, s.wish?.let(::wishSummary).orEmpty(), s.cards, s.notes, s.chosen, s.taking),
         SuggestPanelCallbacks(onChoose = s::choose, onTake = s::take, onChange = s::change, onClose = s::close),

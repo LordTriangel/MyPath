@@ -92,8 +92,9 @@ class SavePathsTest {
 
     /** Making a plan of a track still replaces the plan in one Undo step (after the question above). */
     @Test fun planFromATrackIsOneUndoStep() {
-        val from = body("private fun planFromShownNow() {")
-        assertTrue(from.contains("change { clear(); addAll(pts) }") && from.contains("change { clear(); addAll(r.points) }"))
+        // a plan GPX's own points, else TrackToPlan in planFromLine (shared with the round-trip suggestions' „Übernehmen“)
+        assertTrue(body("private fun planFromShownNow() {").contains("change { clear(); addAll(pts) }"))
+        assertTrue(body("private fun planFromLine(").contains("change { clear(); addAll(r.points) }"))
     }
 
     /**

@@ -169,6 +169,9 @@ class SuggestSlice(private val scope: CoroutineScope, internal var host: Suggest
         host.fit(pts)
     }
 
+    /** The camera fits the chosen loop again (the panel's height settled: the room above it is known only then). */
+    fun refit() { loop?.let(host::fit) }
+
     /** „Übernehmen“: the chosen loop as a normal plan; the suggestions close once the plan is there. */
     fun take(i: Int) {
         val c = cards.getOrNull(i) ?: return
