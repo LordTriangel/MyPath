@@ -517,7 +517,9 @@ forms, both by the manifest's name + sha256 against the installed version's (`st
 sha256 of every file it was installed from, and `content`: a hash of the cell's own tiles per layer / of its POIs, taken
 from the verified download):
 - **tile layers and `pois.geojson`** with the installed sha256 are **not downloaded and not written to the download
-  folder**; the folder gets `reuse.json` (`{"from": "<installed version>", "files": [...]}`) and the join copies the
+  folder**; the folder's manifest is then `manifest.reuse.json` instead of `manifest.json` (`{"from": "<installed
+  version>", "files": [...], "manifest": "<manifest text>"}` – one file, written synced before the folder rename; an
+  app that does not know it finds no manifest, deletes the folder and loads the area again) and the join copies the
   cell's tiles / POIs of those layers from the current generation, like a kept cell's (`CellStore.Reuse`, `apply`).
   Before a layer counts, the cell's part of the current generation is read and hashed and must equal `content`
   (`CellStore.reusable`; real cell 23 MB: 55 ms on the PC) – a damaged store file is reported and downloaded;
@@ -525,9 +527,14 @@ from the verified download):
   size + sha256 checked (`MapCells.copyInstalled`); changed on the phone → reported and downloaded.
 
 Nothing installed, a cell installed before the hashes were kept (no `sha` in `store.json`), or a changed file →
-downloaded as before. The switch stays one generation rename: `apply` refuses a download whose `reuse.json` does not
-fit the installed cell (other version, other file, cell deleted – `ReuseException`, nothing written); the worker then
-deletes that download, reports it and asks for the area again, in full. The size shown and the progress count only what
+downloaded as before. The switch stays one generation rename: `apply` refuses a download whose note does not fit the
+installed cell (other version, other file, cell deleted) and any download in which a tile layer / the POIs of its
+manifest is neither a file nor left to the installed version (`ReuseException`, nothing written – a layer never goes
+missing silently); the worker then deletes that download, reports it and asks for the area again, in full (as the
+update it was, else as a refresh; an area that is not installed is dropped – the next point / route there asks).
+Known cost (follow-up, not built): the POI check reads the generation's whole `pois.geojson` once per generation
+(kept in memory per generation + file size / time, `poiHashesOf`) – with many areas tens of MB of JSON per refresh
+batch; a per-cell POI index or the POI tiles' hash would avoid it. The size shown and the progress count only what
 is downloaded; the trace says "Download finished: … (reused 6 files, 22.2 MB)". Storage: less than before (the reused
 layers are never on disk twice outside the generations).
 

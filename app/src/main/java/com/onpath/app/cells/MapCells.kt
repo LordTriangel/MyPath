@@ -588,6 +588,8 @@ class MapCells(
     private val damaged = HashSet<CellId>()
     /** Areas whose next download takes nothing from the installed version (a reuse failed, [applyDownloads]); worker only. */
     private val noReuse = HashSet<CellId>()
+    /** Why each area downloaded in this run was asked for (a download that cannot be joined is asked again the same way). */
+    private val askedAs = java.util.concurrent.ConcurrentHashMap<CellId, CellReason>()
 
     private val queueFile get() = File(store.root, "requests.json")
     private val usageFile get() = File(store.root, "usage.json")
@@ -688,8 +690,10 @@ class MapCells(
 
     /**
      * [CellStore.apply] for finished downloads. A download that left files to the installed version, and that version
-     * is not there any more as it needs it ([CellStore.ReuseException] – nothing was written, the map is as before), is
-     * deleted, reported and – still installed – asked for again, then in full ([noReuse]); the others are joined.
+     * is not there any more as it needs it, or that lacks a map layer ([CellStore.ReuseException] – nothing was written,
+     * the map is as before), is deleted, reported and – still installed – asked for again, then in full ([noReuse]): as
+     * the update it was ([askedAs]), else as a refresh. One that is not installed is dropped (the next point / route
+     * there asks again); the others are joined.
      * Returns the new generation and the downloads in it, null when none is left. Other failures throw as before.
      */
     private fun applyDownloads(add: List<CellStore.Download>): Pair<CellStore.Generation, List<CellStore.Download>>? {
@@ -700,8 +704,8 @@ class MapCells(
                 if (bad.isEmpty()) throw e
                 rest = rest - bad.toSet()
                 val ids = bad.map { it.manifest.cell }
-                Problems.warn("cells", "Map area(s) ${ids.joinToString { it.id }}: files kept from the installed map no longer fit " +
-                    "the download; not joined, loading in full", e)
+                Problems.warn("cells", "Map area(s) ${ids.joinToString { it.id }}: the download is not complete with the installed map " +
+                    "(a kept file no longer fits or a layer is missing); not joined, loading in full", e)
                 val inst = store.current()
                 ids.forEach { c ->
                     store.deleteDownloads(c)
@@ -710,7 +714,10 @@ class MapCells(
                     val old = inst?.cell(c)
                     if (old != null) set(c, CellState.Ready(old.version)) else update { it.remove(c) }
                 }
-                request(ids.filter { inst?.cell(it) != null }, CellReason.REFRESH, ownPoint = false)
+                val again = ids.filter { inst?.cell(it) != null }
+                val (updates, others) = again.partition { askedAs[it] == CellReason.UPDATE }
+                if (updates.isNotEmpty()) request(updates, CellReason.UPDATE, ownPoint = true) // the user's Update: as [outdated] cells are asked
+                if (others.isNotEmpty()) request(others, CellReason.REFRESH, ownPoint = false)
             }
         }
         return null
@@ -1101,9 +1108,9 @@ class MapCells(
                 }
                 before += f.size
             }
-            // what the folder leaves to the installed version – written (or removed) before the manifest that makes it complete
-            store.writeReuse(part, kept)
-            File(part, CellStore.MANIFEST).writeText(m.json)
+            // the manifest makes the folder complete: with what it leaves to the installed version in the same file, synced
+            store.writeManifest(part, m, kept)
+            askedAs[c] = p.reason
             val complete = store.completeDir(m)
             complete.deleteRecursively()
             if (!part.renameTo(complete)) throw java.io.IOException("could not finish the download folder")

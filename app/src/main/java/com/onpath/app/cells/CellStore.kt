@@ -101,7 +101,7 @@ class CellStore(
     /**
      * Files of a new version that were not downloaded because the installed version [from] has the same ones
      * (name + sha256): tile layers and the POIs ([names]), taken from the current generation when it is joined.
-     * Kept beside the download's manifest as [REUSE].
+     * Kept with the download's manifest in [MANIFEST_REUSE].
      */
     data class Reuse(val from: String, val names: Set<String>)
 
@@ -111,8 +111,9 @@ class CellStore(
     open class StoreException(message: String, cause: Throwable? = null) : IOException(message, cause)
 
     /**
-     * The downloads of [cells] leave files to an installed version that is not there (any more) as they need it:
-     * nothing was written; they must be loaded again in full.
+     * The downloads of [cells] cannot be joined as they are: they leave files to an installed version that is not
+     * there (any more) as they need it, or a map layer of their manifest is neither in the folder nor left to the
+     * installed version. Nothing was written; they must be loaded again in full.
      */
     class ReuseException(val cells: Set<CellId>, message: String) : StoreException(message)
 
@@ -235,10 +236,11 @@ class CellStore(
             IOException("data folder not readable (storage not ready): ${dataDir.path}"))
         val cur = current()
         val addIds = add.map { it.manifest.cell }.toSet()
-        // a download that leaves files to the installed version: only while exactly that version is installed with
-        // the same files – otherwise nothing is written (never a cell with a layer of another version, or without one)
-        add.filter { reuseProblem(it, cur) != null }.takeIf { it.isNotEmpty() }?.let { bad ->
-            throw ReuseException(bad.map { it.manifest.cell }.toSet(), bad.joinToString { "${it.manifest.cell}: ${reuseProblem(it, cur)}" })
+        // every map layer of a download's manifest is in its folder, or left to the installed version – and that only
+        // while exactly that version is installed with the same files. Otherwise nothing is written (never a cell with
+        // a layer of another version, or without one)
+        add.filter { downloadProblem(it, cur) != null }.takeIf { it.isNotEmpty() }?.let { bad ->
+            throw ReuseException(bad.map { it.manifest.cell }.toSet(), bad.joinToString { "${it.manifest.cell}: ${downloadProblem(it, cur)}" })
         }
         /** The current generation's file a download takes [n] from, null when it brought its own. */
         fun reused(d: Download, n: String): File? = if (d.reuse != null && n in d.reuse.names) cur?.dir?.let { File(it, n) } else null
@@ -471,8 +473,15 @@ class CellStore(
         return src.takeIf { it.isFile }
     }
 
-    /** Why [d]'s [Reuse] cannot be honoured against [cur], null when it can (or it has none). */
-    private fun reuseProblem(d: Download, cur: Generation?): String? {
+    /**
+     * Why [d] cannot be joined against [cur], null when it can: a map layer / the POIs of its manifest that is neither
+     * a file in its folder nor left to the installed version, or a [Reuse] that does not fit the installed cell.
+     */
+    private fun downloadProblem(d: Download, cur: Generation?): String? {
+        for (f in d.manifest.files) {
+            if (f.name !in LAYERS && f.name != POIS) continue
+            if (!File(d.dir, f.name).isFile && d.reuse?.names?.contains(f.name) != true) return "${f.name} is missing in the download"
+        }
         val r = d.reuse ?: return null
         val old = cur?.cell(d.manifest.cell) ?: return "version ${r.from} is not installed"
         if (old.version != r.from) return "version ${old.version} is installed, not ${r.from}"
@@ -563,13 +572,14 @@ class CellStore(
     fun pendingDownloads(): List<Download> = downloadDir.listFiles { f -> f.isDirectory }.orEmpty().flatMap { cellDir ->
         cellDir.listFiles { f -> f.isDirectory && !f.name.endsWith(".part") }.orEmpty().mapNotNull { dir ->
             try {
-                // an unreadable reuse note makes the whole download unreadable: without it a layer would simply be missing
-                val reuse = File(dir, REUSE).takeIf { it.isFile }?.let { f ->
-                    val o = JSONObject(f.readText())
+                // a folder that leaves files to the installed version has its manifest and that note in one file
+                val noted = File(dir, MANIFEST_REUSE)
+                if (noted.isFile) {
+                    val o = JSONObject(noted.readText())
                     val a = o.getJSONArray("files")
-                    Reuse(o.getString("from"), (0 until a.length()).map { a.getString(it) }.toSet())
-                }
-                Download(CellManifest.parse(File(dir, MANIFEST).readText()), dir, reuse)
+                    Download(CellManifest.parse(o.getString("manifest")), dir,
+                        Reuse(o.getString("from"), (0 until a.length()).map { a.getString(it) }.toSet()))
+                } else Download(CellManifest.parse(File(dir, MANIFEST).readText()), dir)
             } catch (e: Exception) {
                 Problems.warn("cells", "Downloaded map cell ${cellDir.name}/${dir.name} unreadable; deleted, loads again", e)
                 dir.deleteRecursively(); null
@@ -577,11 +587,21 @@ class CellStore(
         }
     }
 
-    /** Writes [reuse] beside the manifest of the download in [dir] ([REUSE]); null removes it. */
-    fun writeReuse(dir: File, reuse: Reuse?) {
-        val f = File(dir, REUSE)
-        if (reuse == null) { if (f.exists() && !f.delete()) throw IOException("could not remove ${f.name}"); return }
-        f.writeText(JSONObject().put("from", reuse.from).put("files", JSONArray(reuse.names.toList())).toString())
+    /**
+     * Writes the manifest that makes the download in [dir] complete – the last file before the folder is renamed;
+     * written to a temp file, synced, renamed ([AtomicFiles]). Without [reuse]: [MANIFEST]. With it: [MANIFEST_REUSE],
+     * the manifest and the note in ONE file under another name, so that the two can never be apart and an app that does
+     * not know the note (older, downgraded) finds no manifest, deletes the folder and loads the area again – instead of
+     * joining it without the layers it leaves out. Throws when it cannot be written.
+     */
+    @Throws(IOException::class)
+    fun writeManifest(dir: File, m: CellManifest, reuse: Reuse?) {
+        val plain = File(dir, MANIFEST)
+        val noted = File(dir, MANIFEST_REUSE)
+        val (write, other) = if (reuse == null) plain to noted else noted to plain
+        if (other.exists() && !other.delete()) throw IOException("could not remove ${other.name}")
+        AtomicFiles.writeText(write, if (reuse == null) m.json else
+            JSONObject().put("from", reuse.from).put("files", JSONArray(reuse.names.toList())).put("manifest", m.json).toString())
     }
 
     /** Deletes download folders of [id] (after joining, or when a cell is deleted). */
@@ -682,8 +702,11 @@ class CellStore(
 
         const val STORE_JSON = "store.json"
         const val MANIFEST = "manifest.json"
-        /** In a download folder: what it leaves to the installed version ([Reuse]) – `{"from": "<version>", "files": [...]}`. */
-        const val REUSE = "reuse.json"
+        /**
+         * In a download folder that leaves files to the installed version ([Reuse]), instead of [MANIFEST]:
+         * `{"from": "<version>", "files": [...], "manifest": "<the manifest's JSON text>"}` ([writeManifest]).
+         */
+        const val MANIFEST_REUSE = "manifest.reuse.json"
         const val POIS = "pois.geojson"
         /**
          * Tile layers of a format-2 map (style sources base, overlays, terrain, contours; region-shade = the region

@@ -107,8 +107,7 @@ class RealCellsTest {
         val copy = File(dir2, addr.name).also { it.parentFile.mkdirs() }
         store.installedFile(c, addr)!!.copyTo(copy)
         assertEquals(addr.sha256, com.onpath.app.net.HttpDownload.sha256Of(copy))
-        store.writeReuse(dir2, reuse)
-        File(dir2, CellStore.MANIFEST).writeText(m2.json)
+        store.writeManifest(dir2, m2, reuse)
         val g2 = store.apply(add = listOf(store.pendingDownloads().single()))
         assertEquals(m2.version, g2.cell(c)!!.version)
         assertEquals(g1.cell(c)!!.bytes, g2.cell(c)!!.bytes)

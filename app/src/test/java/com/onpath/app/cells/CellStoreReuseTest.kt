@@ -34,7 +34,7 @@ class CellStoreReuseTest {
     private fun withReuse(store: CellStore, d: CellStore.Download): CellStore.Download {
         val r = store.reusable(d.manifest)
         r?.names?.forEach { assertTrue(File(d.dir, it).delete()) }
-        store.writeReuse(d.dir, r)
+        store.writeManifest(d.dir, d.manifest, r)
         return d.copy(reuse = r)
     }
 
@@ -137,9 +137,46 @@ class CellStoreReuseTest {
         try { store.apply(add = listOf(d2)); fail() } catch (e: CellStore.ReuseException) { assertEquals(setOf(a), e.cells) }
         assertTrue(store.installed().isEmpty())
         // a broken note makes the download unreadable (it would otherwise be joined without the layers it leaves out)
-        File(d2.dir, CellStore.REUSE).writeText("{")
+        File(d2.dir, CellStore.MANIFEST_REUSE).writeText("{")
         assertEquals(emptyList<CellStore.Download>(), store.pendingDownloads().filter { it.manifest.cell == a })
         assertTrue(!d2.dir.exists())
+    }
+
+    /** A folder that lacks a map layer of its manifest – and no note leaves it to the installed version – is never joined. */
+    @Test fun aDownloadWithAMissingLayerIsRefused() {
+        val store = CellStore(tmp.newFolder("data"))
+        val fresh = download(store, b, "v1", "B")
+        File(fresh.dir, "base.pmtiles").delete()
+        try { store.apply(add = listOf(fresh)); fail() } catch (e: CellStore.ReuseException) { assertEquals(setOf(b), e.cells) }
+        assertNull(store.current())
+        val g1 = store.apply(add = listOf(download(store, a, "v1", "A")))
+        store.deleteDownloads(a)
+        val d2 = download(store, a, "v2", "A2")
+        File(d2.dir, "pois.geojson").delete()
+        try { store.apply(add = listOf(d2)); fail() } catch (e: CellStore.ReuseException) { assertEquals(setOf(a), e.cells) }
+        assertEquals(g1.number, store.current()!!.number)
+        assertEquals("v1", store.current()!!.cell(a)!!.version)
+    }
+
+    /**
+     * A folder that leaves files to the installed version is no complete download for an app that does not know that
+     * (older, downgraded: it reads manifest.json only, fails, deletes the folder and loads the area again); its
+     * manifest and the note are one file.
+     */
+    @Test fun aReuseFolderHasNoPlainManifest() {
+        val store = CellStore(tmp.newFolder("data"))
+        store.apply(add = listOf(download(store, a, "v1", "A")))
+        store.deleteDownloads(a)
+        val d2 = withReuse(store, download(store, a, "v2", "A", tags = mapOf("base.pmtiles" to "A2")))
+        assertTrue(!File(d2.dir, CellStore.MANIFEST).exists())
+        // the old reader, as it was
+        try { CellManifest.parse(File(d2.dir, CellStore.MANIFEST).readText()); fail() } catch (e: java.io.IOException) { /* expected: no manifest.json */ }
+        assertEquals(listOf(CellStore.MANIFEST_REUSE), d2.dir.list()!!.filter { it.endsWith(".json") && it != "pois.geojson" })
+        assertEquals(d2, store.pendingDownloads().single())
+        // without anything left to the installed version: the plain manifest, and the other name is gone
+        store.writeManifest(d2.dir, d2.manifest, null)
+        assertEquals(listOf(CellStore.MANIFEST), d2.dir.list()!!.filter { it.endsWith(".json") })
+        assertNull(store.pendingDownloads().single().reuse)
     }
 
     /** The address and suggest files lie beside the store: offered for a copy only when the installed version has that very file. */

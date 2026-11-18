@@ -224,11 +224,55 @@ class CellReuseTest {
         val dir = File(File(first.store.downloadDir, a.id), "v2")
         File(server.root, "cells/f2/${a.path}/v2").copyRecursively(dir)
         File(dir, "overlays.pmtiles").delete()
-        File(dir, "reuse.json").writeText("""{"from":"v0","files":["overlays.pmtiles"]}""")
+        // the manifest of such a folder has its own name, with the note in it (an app that does not know it never joins it)
+        val manifest = File(dir, "manifest.json")
+        File(dir, "manifest.reuse.json").writeText(JSONObject().put("from", "v0").put("files", org.json.JSONArray(listOf("overlays.pmtiles")))
+            .put("manifest", manifest.readText()).toString())
+        manifest.delete()
         val (mc, _) = run(data)
         waitFor("v2 in full") { mc.state(a) == CellState.Ready("v2") }
         assertEquals(all, fetched("v2"))
         assertMapIs(mc, "v2", tag = "T2", suggest = "s2")
         assertTrue(warnings().toString(), warnings().any { a.id in it.message && it.level == Problems.Level.WARN })
+    }
+
+    /**
+     * A "complete" download folder that lacks a map layer and says nothing about it (a power cut, a folder of another
+     * app version): never joined – the area would have no base map – but reported and loaded again in full.
+     */
+    @Test fun aCompleteFolderWithAMissingLayerIsNotJoinedAndTheAreaLoadsInFull() {
+        val data = tmp.newFolder("data")
+        val (first, scope) = installV1(data)
+        scope.cancel()
+        server.publish(a, "v2", tag = "T2", suggest = "s2")
+        val dir = File(File(first.store.downloadDir, a.id), "v2")
+        File(server.root, "cells/f2/${a.path}/v2").copyRecursively(dir)
+        File(dir, "base.pmtiles").delete()
+        val (mc, _) = run(data)
+        waitFor("v2 in full") { mc.state(a) == CellState.Ready("v2") }
+        assertEquals(all, fetched("v2"))
+        assertMapIs(mc, "v2", tag = "T2", suggest = "s2")
+        assertTrue(warnings().toString(), warnings().any { a.id in it.message && it.level == Problems.Level.WARN })
+    }
+
+    /**
+     * The user's Update stays an Update: downloaded during a tour with files left to the installed version, the note no
+     * longer fits when the tour ends → asked again as an update (the area shows as loading), in full.
+     */
+    @Test fun anUpdateWhoseKeptFilesNoLongerFitIsAskedAgainAsAnUpdate() {
+        val (mc, _) = installV1(tmp.newFolder("data"))
+        server.publish(a, "v2", tag = "T", suggest = "s2")
+        mc.holdUpdates = true
+        mc.request(listOf(a), CellReason.UPDATE, ownPoint = true)
+        waitFor("downloaded during the tour") { mc.state(a) == CellState.Downloaded }
+        assertEquals(setOf("suggest.bin"), fetched("v2"))
+        val note = File(File(File(mc.store.downloadDir, a.id), "v2"), "manifest.reuse.json")
+        note.writeText(JSONObject(note.readText()).put("from", "v0").toString())
+        mc.holdUpdates = false
+        waitFor("v2 in full") { mc.state(a) == CellState.Ready("v2") && mc.installed.value.single().version == "v2" }
+        assertEquals(all, fetched("v2"))
+        assertMapIs(mc, "v2", suggest = "s2")
+        val asked = Problems.events().map { it.message }.filter { it.startsWith("Requested 1 region(s)") }
+        assertEquals(asked.toString(), 2, asked.count { "(update)" in it })
     }
 }
