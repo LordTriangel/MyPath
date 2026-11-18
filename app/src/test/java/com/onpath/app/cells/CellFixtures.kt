@@ -21,24 +21,35 @@ object CellFixtures {
         (0 until s).flatMap { dx -> (0 until s).map { dy -> Triple(z, cell.x * s + dx, cell.y * s + dy) } }
     }
 
-    /** Writes the files of one cell version (as downloaded and verified) into [dir]; returns its manifest. */
+    /**
+     * Writes the files of one cell version (as downloaded and verified) into [dir]; returns its manifest. The content
+     * of every file follows from its tag alone: [tag], or the file's own in [tags] (manifest file name → tag) – two
+     * versions with the same tag for a file carry the same bytes (and sha256) there, like a partial rebuild on the
+     * server. [suggest]: the tag of a `suggest.bin` (null = a cell without one).
+     */
     fun cell(dir: File, cell: CellId, version: String, tag: String = "$cell@$version", pois: Int = 3, maxZ: Int = 12,
-             wayclass: String? = null): CellManifest {
+             wayclass: String? = null, tags: Map<String, String> = emptyMap(), suggest: String? = null): CellManifest {
+        fun tagOf(name: String) = tags[name] ?: tag
         dir.mkdirs()
         val files = JSONArray()
         for ((name, tt) in LAYERS) {
             val f = File(dir, name)
-            PmTiles.write(cellTiles(cell, maxZ).associateWith { (z, x, y) -> content(tag, name, z, x, y) }, f, tt.first, tt.second,
+            PmTiles.write(cellTiles(cell, maxZ).associateWith { (z, x, y) -> content(tagOf(name), name, z, x, y) }, f, tt.first, tt.second,
                 """{"vector_layers":[{"id":"${name.substringBefore('.')}"}]}""")
             files.put(fileJson(name, f, cell, version))
         }
         val b = cell.bbox
         val pts = (0 until pois).map { i -> (b[1] + (b[3] - b[1]) * (i + 1) / (pois + 1)) to (b[0] + (b[2] - b[0]) * (i + 1) / (pois + 1)) }
-        File(dir, "pois.geojson").writeText(geojson(pts, tag))
+        File(dir, "pois.geojson").writeText(geojson(pts, tagOf("pois.geojson")))
         files.put(fileJson("pois.geojson", File(dir, "pois.geojson"), cell, version))
         File(dir, "addresses").mkdirs()
-        val addr = File(dir, "addresses/${cell.id}.sqlite").apply { writeText("addresses of $tag") }
-        files.put(fileJson("addresses/${cell.id}.sqlite", addr, cell, version))
+        val addrName = "addresses/${cell.id}.sqlite"
+        val addr = File(dir, addrName).apply { writeText("addresses of ${tagOf(addrName)}") }
+        files.put(fileJson(addrName, addr, cell, version))
+        if (suggest != null) {
+            val f = File(dir, CellStore.SUGGEST).apply { writeText("suggest of $suggest") }
+            files.put(fileJson(CellStore.SUGGEST, f, cell, version))
+        }
         val m = JSONObject().put("cell", cell.id).put("format", 2).put("osm_date", version).put("built", "${version}T03:00:00Z")
             .put("min_app", "0.1.0").put("files", files).put("total_size", (0 until files.length()).sumOf { files.getJSONObject(it).getLong("size") })
         if (wayclass != null) m.put("wayclass", wayclass)

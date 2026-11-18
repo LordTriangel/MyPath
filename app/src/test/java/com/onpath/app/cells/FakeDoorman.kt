@@ -136,8 +136,9 @@ class FakeDoorman(val root: File, val key: String = "test-key", var buildPolls: 
     }
 
     /** Publishes a synthetic cell version under cells/f2/z/x/y/version/ (as the builder would). */
-    fun publish(cell: CellId, version: String, tag: String = "$cell@$version", wayclass: String? = null): CellManifest {
-        val m = CellFixtures.cell(File(root, "cells/f2/${cell.path}/$version"), cell, version, tag, wayclass = wayclass)
+    fun publish(cell: CellId, version: String, tag: String = "$cell@$version", wayclass: String? = null,
+                tags: Map<String, String> = emptyMap(), suggest: String? = null): CellManifest {
+        val m = CellFixtures.cell(File(root, "cells/f2/${cell.path}/$version"), cell, version, tag, wayclass = wayclass, tags = tags, suggest = suggest)
         versions[cell.id] = version
         polls.remove(cell.id)
         return m
