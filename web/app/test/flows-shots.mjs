@@ -1,7 +1,10 @@
 // The planner's flow pictures (docs/design/website-screens.md, flows B and the planner steps of C – round "Meran 0.17",
-// owner 2026-11-07): B01–B07, C01, C02, C06 at 1440 × 900 (deviceScaleFactor 2), DE + EN, against a local map store
+// owner 2026-11-07): B01–B14, C01, C02, C06 at 1440 × 900 (deviceScaleFactor 2), DE + EN, against a local map store
 // (cells) and BRouter segments. The hike: the A-019 plan link Vellau (Korblift) → Leiteralm, Wandern T2. The pairing is
 // real (the fake phone "Pixel 8" of sync-smoke against the host's mailbox code on a fake D1); the code is blurred anyway.
+// B09 / B10: Partschins → Partschinser Wasserfall → Tablander Alm. B11–B14 (multi-day tours): the Meraner Höhenweg as a
+// ring from Gasthof Hochmuth, 5 days (München–Venedig, mehrtage's scenario, lies outside the local map store).
+// Every shot first checks the words the picture must show (in the page's text) and stops when one is missing.
 // With --film it also records film scene 1 (`film-1-browser-planen`, 2560 × 1440, WebM → MP4 with ffmpeg when present).
 // With --probe it only prints the route's facts and bounds (check the route before taking pictures).
 // Re-run after a UI change – only the steps whose files changed are needed (the table in website-screens.md names them).
@@ -18,6 +21,10 @@ import { fakeD1 } from '../../host/test/fake-d1.js';
 
 const PLAN = 'AQUCAvCBugSuzocBqhD8AgMCHQBWZWxsYXUgS29yYmxpZnQgKFRhbHN0YXRpb24pAgoBTGVpdGVyYWxt'; // A-019: Vellau Korblift → Leiteralm, Hike T2
 const WAAL = 'AQUDAsTcuQTwjYgBqBnjPAIBB1dhYWx3ZWcCBwFWZWxsYXU'; // a second saved tour: Meran → Vellau „Waalweg“ (Hike T3)
+const PARTSCHINS = 'AQUCA-DvuQSQl4cBhA-tJtYSug4AAgsAUGFydHNjaGlucwIYAVBhcnRzY2hpbnNlciBXYXNzZXJmYWxsAg4CVGFibGFuZGVyIEFsbQ'; // Partschins → Wasserfall → Tablander Alm (Hike T2)
+// the Meraner Höhenweg, a ring from Gasthof Hochmuth over Hochganghaus, Giggelberg, Unterstell, Katharinaberg, Eishof,
+// Stettiner Hütte, Pfelders, Ulfas (Hike T3, ~94 km, title „Meraner Höhenweg“) – the multi-day pictures B11–B14
+const HOEHENWEG = 'AQUDDPiLugSE8YcBogbZH94K8yedLO898Q7VHK0ZuUWwL99M6GK6N7AHsFyWPLJgDOyUAauSAdlUAAABEU1lcmFuZXIgSMO2aGVud2VnAhEAR2FzdGhvZiBIb2NobXV0aAIKAUxlaXRlcmFsbQINAkhvY2hnYW5naGF1cwILA0dpZ2dlbGJlcmcCCgRIb2NoZm9yY2gCCwVVbnRlcnN0ZWxsAg4GS2F0aGFyaW5hYmVyZwIHB0Vpc2hvZgIRCFN0ZXR0aW5lciBIw7x0dGUCCQlQZmVsZGVycwIGClVsZmFzAhELR2FzdGhvZiBIb2NobXV0aA';
 const MERAN = { center: [11.135, 46.675], zoom: 12.6 }; // the empty start (B01): Meran, Algund, Vellau
 const here = path.dirname(fileURLToPath(import.meta.url));
 const argv = process.argv.slice(2);
@@ -80,9 +87,9 @@ class Phone {
 }
 
 /** The plan link opened and planned, hints gone, the page's own sync timer off (the pictures choose when it syncs). */
-async function planPage(ctx, lang) {
+async function planPage(ctx, lang, code = PLAN) {
   const page = await ctx.newPage();
-  await page.goto(url + `index.html?lang=${lang}#p=` + PLAN);
+  await page.goto(url + `index.html?lang=${lang}#p=` + code);
   await planned(page);
   await page.evaluate(() => clearInterval(window.__sync.timer));
   await quiet(page);
@@ -107,7 +114,55 @@ if (flag('--probe')) {
   await browser.close(); server.close(); process.exit(0);
 }
 
-const shot = async (page, name, lang) => { await page.waitForTimeout(400); await page.screenshot({ path: path.join(out, `${name}-${lang}.png`), timeout: 180_000 }); console.log(`  ${name}-${lang}.png`); };
+/** The words the picture must show, checked in the page's text (DE / EN) – a missing word stops the run. Nothing half
+ *  on screen either: no wait box or routing message left over. */
+async function expectWords(page, words, name) {
+  // a map note (map loading …) or a wait box goes by itself: wait for it, then none may be left
+  const notes = () => [...document.querySelectorAll('#mapnotes .mapnote, #msgcards .msgcard.busy')].filter((c) => c.offsetParent && !c.hidden)
+    .map((c) => c.innerText.replace(/\s+/g, ' '));
+  await page.waitForFunction(`(${notes})().length === 0`, null, { timeout: 60_000 }).catch(() => {});
+  const left = await page.evaluate(notes);
+  if (left.length) throw new Error(`${name}: a note / wait box is on screen: ${left.join(' | ')}`);
+  const missing = await page.evaluate((ws) => { const txt = [document.body.innerText, ...[...document.querySelectorAll('input')].filter((i) => i.offsetParent)
+      .map((i) => i.value || i.placeholder)].join(' ').replace(/\s+/g, ' ');
+    return ws.filter((w) => !txt.includes(w)); }, words);
+  if (missing.length) throw new Error(`${name}: missing on screen: ${missing.join(' | ')}`);
+  const cards = await page.evaluate(() => [...document.querySelectorAll('#msgcards .msgcard')].filter((c) => c.offsetParent)
+    .map((c) => ({ busy: c.classList.contains('busy'), text: c.innerText.replace(/\s+/g, ' ') })));
+  if (cards.some((c) => c.busy)) throw new Error(`${name}: a wait box is on screen: ${cards.map((c) => c.text).join(' | ')}`);
+  if (cards.length) console.log(`  (${name}: message on screen: ${cards.map((c) => c.text).join(' | ')})`);
+}
+const shot = async (page, name, lang, words = null) => { if (words) await expectWords(page, words[lang], name); await page.waitForTimeout(400); await page.screenshot({ path: path.join(out, `${name}-${lang}.png`), timeout: 180_000 }); console.log(`  ${name}-${lang}.png`); };
+
+// the words each picture must show (DE / EN) – the app's strings word for word
+const W = {
+  B01: { de: ['Orte oder Adressen suchen', 'Meine Touren', 'Mehrtagestour planen'], en: ['Search places or addresses', 'My tours', 'Plan a multi-day tour'] },
+  B02: { de: ['Vellau Korblift (Talstation)', 'Leiteralm', '4,5 km', 'Wandern · T2', 'Höhenprofil'], en: ['Vellau Korblift (Talstation)', 'Leiteralm', '4.5 km', 'Hike · T2', 'Elevation profile'] },
+  B04: { de: ['Abfliegen', '3D-Ansicht – nur zum Anschauen'], en: ['Fly along', '3D view – just for looking'] },
+  B06: { de: ['Teilen'], en: ['Share'] },
+  B07: { de: ['Meine Touren', 'In Bearbeitung', 'Waalweg', 'Vellau Korblift (Talstation) → Leiteralm'], en: ['My tours', 'In progress', 'Waalweg', 'Vellau Korblift (Talstation) → Leiteralm'] },
+  B08: { de: ['4,5 km', 'Abfliegen'], en: ['4.5 km', 'Fly along'] },
+  B09: { de: ['Partschins', 'Tablander Alm', 'Abfliegen', 'Höhenprofil'], en: ['Partschins', 'Tablander Alm', 'Fly along', 'Elevation profile'] },
+  B10: { de: ['Partschins', 'Tablander Alm'], en: ['Partschins', 'Tablander Alm'] },
+  B11: { de: ['Mehrtagestour planen', 'Meraner Höhenweg', 'Noch etwas anhängen:', 'GPX-Track laden', 'Gespeicherte Route öffnen', 'Weiter: Tage festlegen'],
+    en: ['Plan a multi-day tour', 'Meraner Höhenweg', 'Append more:', 'Load GPX track', 'Open saved route', 'Next: set the days'] },
+  B12: { de: ['Als Mehrtagestour planen', 'Gasthof Hochmuth', 'Pfelders'], en: ['Plan as multi-day tour', 'Gasthof Hochmuth', 'Pfelders'] },
+  B13: { de: ['Tage festlegen', 'Meraner Höhenweg', 'pro Tag', 'Fertig'], en: ['Set the days', 'Meraner Höhenweg', 'per day', 'Done'] },
+  B14: { de: ['Meraner Höhenweg', '5 Tage', 'Eishof', 'Pfelders'], en: ['Meraner Höhenweg', '5 days', 'Eishof', 'Pfelders'] },
+  C01: { de: ['Handy verbinden', 'Wie funktioniert das?'], en: ['Pair phone', 'How does it work?'] },
+  C02: { de: ['Handy verbinden', 'Prüfe:', 'die App zeigt dieselben Ziffern'], en: ['Pair phone', 'Check:', 'the app shows the same digits'] },
+  C06: { de: ['Pixel 8', 'Gespeichert'], en: ['Pixel 8', 'Saved'] },
+};
+const tick = async (page) => { await page.waitForTimeout(1500); await settle(page); };
+const fit = async (page) => { await page.click('#fitRoute').catch(() => {}); await tick(page); };
+/** The flyover started, held once for a sharp picture, then flying again (the bar shows Pause while flying). */
+async function flyHeld(page, ms) {
+  await page.click('#flyStart');
+  await page.waitForTimeout(ms);
+  await page.click('#flyPause'); await tick(page);
+  await page.click('#flyResume'); await page.waitForTimeout(150);
+}
+const flyStop = async (page) => { await page.click('#flyStop').catch(() => {}); await page.waitForTimeout(1500); };
 
 for (const [lang, locale] of [['de', 'de-DE'], ['en', 'en-GB']]) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, locale });
@@ -119,41 +174,36 @@ for (const [lang, locale] of [['de', 'de-DE'], ['en', 'en-GB']]) {
     await page.waitForFunction(() => document.body.dataset.engine === 'ready', null, { timeout: 120_000 });
     await quiet(page);
     await page.evaluate((v) => window.__map.jumpTo(v), MERAN);
-    await page.waitForTimeout(1500); await settle(page);
-    await shot(page, 'B01-web-start-leer', lang);
+    await tick(page);
+    await shot(page, 'B01-web-start-leer', lang, W.B01);
     await page.close();
   }
 
   const page = await planPage(ctx, lang);
-  if (want('B02')) await shot(page, 'B02-web-route-fertig', lang); // route, length · ↑ · ↓, points, profile along the bottom
+  if (want('B02')) await shot(page, 'B02-web-route-fertig', lang, W.B02); // route, length · ↑ · ↓, points, profile along the bottom
   if (want('B03')) { // the big profile with the cursor linked to the map (pointer over the profile, ~40 % along)
     const plot = page.locator('#bigProfile .bpplot svg').first();
     const b = await plot.boundingBox();
     if (b) { await page.mouse.move(b.x + b.width * 0.42, b.y + b.height * 0.5); await page.waitForTimeout(600); }
-    await shot(page, 'B03-web-grosses-profil', lang);
+    await shot(page, 'B03-web-grosses-profil', lang, { de: [...W.B02.de, ' · 1,9 km · '], en: [...W.B02.en, ' · 1.9 km · '] });
     await page.mouse.move(5, 5);
   }
   if (want('B04') || want('B05')) {
     await page.click('#terrain3d');
     await page.waitForTimeout(2500); await settle(page);
-    if (want('B04')) await shot(page, 'B04-web-3d-gelaende', lang); // the route in 3D, „▶ Abfliegen“ beside it
+    if (want('B04')) await shot(page, 'B04-web-3d-gelaende', lang, W.B04); // the route in 3D, „▶ Abfliegen“ beside it
     if (want('B05')) { // during the flyover: Pause / Stopp, 1× / 2×
-      await page.click('#flyStart');
-      await page.waitForTimeout(9000);
-      await page.evaluate(() => document.querySelector('#flyBar .flybtn')?.click()); // ❚❚ – hold the camera for a sharp picture
-      await page.waitForTimeout(1500); await settle(page);
-      await page.evaluate(() => document.querySelector('#flyBar .flybtn')?.click()); // ▶ again: the bar shows Pause while flying
-      await page.waitForTimeout(150);
+      await flyHeld(page, 9000);
       await shot(page, 'B05-web-3d-abfliegen', lang);
-      await page.evaluate(() => [...document.querySelectorAll('#flyBar .flybtn')].find((b) => /■/.test(b.textContent))?.click());
-      await page.waitForTimeout(1500);
+      await flyStop(page);
     }
-    await page.click('#terrain3d'); await page.waitForTimeout(1500); await settle(page);
+    await page.click('#terrain3d'); await page.waitForTimeout(1500);
+    await fit(page); // back to the whole route (3D leaves the camera where it was)
   }
   if (want('B06')) { // Teilen with the plan's QR code (the public plan link – harmless)
     await page.click('#share');
     await page.waitForSelector('dialog.share[open]'); await page.waitForTimeout(500);
-    await shot(page, 'B06-web-teilen-qr', lang);
+    await shot(page, 'B06-web-teilen-qr', lang, W.B06);
     await page.click('#closeShare');
   }
   if (want('C01')) { // the Phone window, not paired, „Wie funktioniert das?“ open
@@ -161,7 +211,7 @@ for (const [lang, locale] of [['de', 'de-DE'], ['en', 'en-GB']]) {
     await page.click('#phoneMenu [role=menuitem], #phoneMenu button').catch(() => {});
     await page.waitForSelector('dialog.phone[open] #howToggle', { timeout: 10_000 });
     await page.click('dialog.phone #howToggle'); await page.waitForTimeout(400);
-    await shot(page, 'C01-web-handy-fenster', lang);
+    await shot(page, 'C01-web-handy-fenster', lang, W.C01);
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
   }
   let phone = null;
@@ -171,7 +221,7 @@ for (const [lang, locale] of [['de', 'de-DE'], ['en', 'en-GB']]) {
     await page.waitForSelector('dialog.pair[open] #pairLink', { timeout: 30_000 });
     const code = (await page.inputValue('#pairLink')).split('#pair=')[1];
     await page.addStyleTag({ content: 'dialog.pair .qr svg, #pairLink { filter: blur(9px); }' });
-    if (want('C02')) await shot(page, 'C02-web-koppel-code', lang);
+    if (want('C02')) await shot(page, 'C02-web-koppel-code', lang, W.C02);
     phone = await new Phone('Pixel 8').init();
     await phone.pairDirect(code);
     await page.waitForFunction(() => document.getElementById('pairBody')?.textContent?.includes('Pixel 8'), null, { timeout: 30_000 });
@@ -191,7 +241,7 @@ for (const [lang, locale] of [['de', 'de-DE'], ['en', 'en-GB']]) {
     await page.evaluate(() => window.__sync.syncNow());
     await page.waitForTimeout(800);
     await seen(); await settle(page);
-    if (want('C06')) await shot(page, 'C06-web-aufs-handy-sichern', lang);
+    if (want('C06')) await shot(page, 'C06-web-aufs-handy-sichern', lang, W.C06);
   }
   if (want('B07')) { // Meine Touren with route pictures, „In Bearbeitung“ (no large overview in the planner, owner 2026-11-13)
     // a second saved tour (opened once here, so its row has its route picture), then the hike on the map again
@@ -203,9 +253,112 @@ for (const [lang, locale] of [['de', 'de-DE'], ['en', 'en-GB']]) {
     await page.click('#menuPlans');
     await page.waitForSelector('dialog.plans[open] #planList li', { timeout: 15_000 });
     await page.waitForTimeout(1200);
-    await shot(page, 'B07-web-meine-touren', lang);
+    await shot(page, 'B07-web-meine-touren', lang, W.B07);
+    await page.click('#closePlans').catch(() => {});
   }
+  await page.close();
+
+  if (want('B08')) { // 3D showcase: the hike above Algund, Meran, Dorf Tirol and Schenna behind (looking east-south-east)
+    const p = await planPage(ctx, lang);
+    await p.click('#bigProfile .bpclose').catch(() => {});
+    await p.click('#terrain3d'); await p.waitForTimeout(2500); await settle(p);
+    await p.evaluate(() => window.__map.jumpTo({ center: [11.135, 46.692], zoom: 12.8, pitch: 66, bearing: 72, padding: { left: 560, top: 0, right: 0, bottom: 0 } }));
+    await p.waitForTimeout(3000); await settle(p);
+    await shot(p, 'B08-web-3d-route-ueber-meran', lang, W.B08);
+    await p.click('#profileBig'); // the big profile open again (closing it is remembered) for the pictures after this
+    await p.waitForSelector('#bigProfile:not([hidden]) .bpplot svg', { timeout: 20_000 });
+    await p.close();
+  }
+  if (want('B09') || want('B10')) { // Partschins → Partschinser Wasserfall → Tablander Alm in 3D, the big profile below
+    const p = await planPage(ctx, lang, PARTSCHINS);
+    await p.click('#terrain3d'); await p.waitForTimeout(3000); await settle(p);
+    if (want('B09')) {
+      const b = await p.locator('#bigProfile .bpplot svg').first().boundingBox();
+      if (b) { await p.mouse.move(b.x + b.width * 0.55, b.y + b.height * 0.5); await p.waitForTimeout(600); }
+      await shot(p, 'B09-web-3d-partschins-grosses-profil', lang, W.B09);
+      await p.mouse.move(5, 5);
+    }
+    if (want('B10')) { // during the flyover: Pause · Stopp · 1×, the dot on the route and in the profile
+      await flyHeld(p, 12_000);
+      await shot(p, 'B10-web-3d-abfliegen-partschins', lang, W.B10);
+      await flyStop(p);
+    }
+    await p.close();
+  }
+  if (['B11', 'B12', 'B13', 'B14'].some(want)) await multiDayShots(ctx, lang);
   await ctx.close();
+}
+
+/** B11–B14, multi-day tours (docs/design/multi-day-tours.md §3): the Meraner Höhenweg (a ring, ~94 km) made a 5-day
+ *  tour – the way in from the header and from Speichern ▾, the days box, the overview with the nights on the map. */
+async function multiDayShots(ctx, lang) {
+  const de = lang === 'de';
+  const p = await planPage(ctx, lang, HOEHENWEG);
+  await fit(p);
+  const menuItem = async (label) => { await p.waitForSelector('.holdpopup .pointmenu', { timeout: 10_000 });
+    await p.locator('.holdpopup .pointmenu button', { hasText: label }).first().click(); };
+  const pressPin = (name) => p.evaluate((nm) => [...document.querySelectorAll('.pin')].find((e) => e.title.includes(nm))
+    ?.dispatchEvent(new MouseEvent('click', { bubbles: true })), name);
+  const nights = (kind) => p.evaluate((k) => window.__days.lastView?.ends.filter((e) => e.kind === k).length ?? 0, kind);
+  const settled = () => p.waitForFunction(() => document.body.dataset.planning !== '1' && !!document.querySelector('#summary .big'), null, { timeout: 180_000 });
+
+  if (want('B12')) { // Speichern ▾ on any plan: „Als Mehrtagestour planen“
+    await p.click('#saveMore');
+    await p.waitForSelector('#saveMenu:not([hidden]) #planAsTourItem');
+    await p.waitForTimeout(400);
+    await shot(p, 'B12-web-als-mehrtagestour-planen', lang, W.B12);
+    await p.keyboard.press('Escape'); await p.waitForTimeout(300);
+    if (await p.locator('#saveMenu:not([hidden])').count()) await p.click('#saveMore');
+  }
+  // B11: the header's „Mehrtagestour planen“ → the guide: 1 · Route ✓ (the Höhenweg) + „Noch etwas anhängen“, 2 · Tage
+  await p.click('#menuMultiDay');
+  await p.waitForSelector('#tourGuide:not([hidden])');
+  await p.waitForFunction(() => !document.getElementById('tgNext')?.disabled, null, { timeout: 60_000 });
+  await tick(p);
+  if (want('B11')) await shot(p, 'B11-web-mehrtagestour-planen', lang, W.B11);
+
+  // B13: „Weiter: Tage festlegen“ → the days box: the name, at most 8 h per day, 5 days, „≈ … pro Tag“
+  await p.click('#tgNext');
+  await p.waitForSelector('dialog.daysbox[open]');
+  await p.fill('#dbHours', '8');
+  await p.waitForFunction(() => /\d/.test(document.getElementById('dbSuggest')?.textContent ?? ''), null, { timeout: 20_000 }).catch(() => {});
+  for (let k = 0; k < 10; k++) {
+    const n = Number((await p.textContent('#dbN')).match(/\d+/)?.[0] ?? 0);
+    if (n === 5) break;
+    await p.click(n < 5 ? '#dbPlus' : '#dbMinus'); await p.waitForTimeout(200);
+  }
+  await p.waitForFunction(() => /^5\b/.test(document.getElementById('dbN')?.textContent ?? '') && document.getElementById('dbPer')?.textContent?.includes('≈'), null, { timeout: 20_000 });
+  await p.evaluate(() => document.activeElement?.blur()); // no focus ring, no spinner in the hours field
+  await p.waitForTimeout(400);
+  if (want('B13')) await shot(p, 'B13-web-tage-festlegen', lang, W.B13);
+  await p.click('#dbDone');
+  await p.waitForFunction(() => window.__days.lastView?.days === 5, null, { timeout: 60_000 });
+
+  if (want('B14')) { // the overview: nights at two huts (blue moons), the Eishof with its hotel (a green bed), one night
+    // still open (a grey moon between Pfelders and the end: days 4 and 5 even out), 5 day rows
+    for (const name of ['Unterstell', 'Eishof', 'Pfelders']) {
+      const n0 = await nights('OVERNIGHT');
+      await pressPin(name);
+      await menuItem(de ? 'Übernachtung hier' : 'Overnight stop here');
+      await p.waitForFunction((n) => (window.__days.lastView?.ends.filter((e) => e.kind === 'OVERNIGHT').length ?? 0) > n, n0, { timeout: 60_000 });
+      await settled();
+    }
+    await p.evaluate(() => [...document.querySelectorAll('.pin.night')].find((e) => e.title.includes('Eishof'))
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    await menuItem(de ? 'Hotel hinterlegen' : 'Add hotel');
+    await p.waitForSelector('dialog.hoteldlg[open]');
+    await p.fill('#hotelQ', 'Eishof\nhttps://www.google.com/maps/place/Eishof/@46.75241,10.96968,17z');
+    await p.waitForSelector('#hotelRes button', { timeout: 10_000 });
+    await p.click('#hotelRes button');
+    await p.waitForFunction(() => window.__days.lastView?.ends.some((e) => e.kind === 'HOTEL'), null, { timeout: 60_000 });
+    await settled();
+    const v = await p.evaluate(() => window.__days.lastView.ends.map((e) => e.kind).join(','));
+    if (v !== 'OVERNIGHT,HOTEL,OVERNIGHT,PROPOSAL') throw new Error(`B14: the nights are ${v}`);
+    await p.keyboard.press('Escape');
+    await fit(p); await p.waitForTimeout(1500); await settle(p);
+    await shot(p, 'B14-web-mehrtagestour-uebersicht', lang, W.B14);
+  }
+  await p.close();
 }
 
 const filmDir = opt('--film');
