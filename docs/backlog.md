@@ -176,6 +176,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- [donald] 2026-11-18 late: **Zuhause wie Google Maps – Bilder ansehen und Ja sagen:** https://claude.ai/artifact/CLnVjK4GpJfq6CimtXfPae (branch `worktree-agent-a9bafbf61692b9077`, gate green). On his yes: merge, the laptop mirrors it in the planner.
 - [donald] 2026-11-18 late: multi-day day rows say **„Tag 2 fahren“ / „Ride day 2“ also for a hike** – keep, or „Tag 2 gehen / starten“ for hikes? Recommendation: one neutral word for all activities, „Tag 2 starten“ / „Start day 2“.
 - [donald] 2026-11-18 late: **delete the GitHub secret…** → [detail](items/2026-11-18-delete-the-github-secret-cf-start-token.md)
 - **[donald] Only our signed apps on the map server?…** → [detail](items/2026-11-07-only-our-signed-apps-on-the-map-server-o.md)
