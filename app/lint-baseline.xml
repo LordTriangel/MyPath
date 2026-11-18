@@ -136,34 +136,34 @@
     <issue
         id="LogNotTimber"
         message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
-        errorLine1="                Level.INFO -> Log.i(TAG, msg, t)"
-        errorLine2="                              ~~~~~~~~~~~~~~~~~~">
+        errorLine1="                Problems.Level.INFO -> Log.i(tag, msg, t)"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/onpath/app/debug/Problems.kt"
-            line="226"
-            column="31"/>
+            file="src/main/java/com/onpath/app/OnPathApp.kt"
+            line="18"
+            column="40"/>
     </issue>
 
     <issue
         id="LogNotTimber"
         message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
-        errorLine1="                Level.WARN -> Log.w(TAG, msg, t)"
-        errorLine2="                              ~~~~~~~~~~~~~~~~~~">
+        errorLine1="                Problems.Level.WARN -> Log.w(tag, msg, t)"
+        errorLine2="                                       ~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/onpath/app/debug/Problems.kt"
-            line="227"
-            column="31"/>
+            file="src/main/java/com/onpath/app/OnPathApp.kt"
+            line="19"
+            column="40"/>
     </issue>
 
     <issue
         id="LogNotTimber"
         message="Using &apos;Log&apos; instead of &apos;Timber&apos;"
-        errorLine1="                Level.ERROR, Level.CRASH -> Log.e(TAG, msg, t)"
-        errorLine2="                                            ~~~~~~~~~~~~~~~~~~">
+        errorLine1="                Problems.Level.ERROR, Problems.Level.CRASH -> Log.e(tag, msg, t)"
+        errorLine2="                                                              ~~~~~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/onpath/app/debug/Problems.kt"
-            line="228"
-            column="45"/>
+            file="src/main/java/com/onpath/app/OnPathApp.kt"
+            line="20"
+            column="63"/>
     </issue>
 
     <issue
