@@ -7,7 +7,9 @@ val root = rootDir.resolve("../..")
 val app = root.resolve("app/src/main/java/com/onpath/app")
 val core = root.resolve("core/src/main/kotlin/com/onpath/app")
 // a listed file lives in :core (core/src/main/kotlin) once it moved there (tools/dev/core_move.py), else in :app
-fun inModules(rel: String, coreDir: File, appDir: File): File = coreDir.resolve(rel).takeIf { it.isFile } ?: appDir.resolve(rel)
+// (a listed file that is nowhere fails the build – never skipped silently)
+fun inModules(rel: String, vararg dirs: File): File =
+    dirs.map { it.resolve(rel) }.firstOrNull { it.isFile } ?: error("app/web-shared-files.txt lists $rel, but it is in none of: ${dirs.joinToString()}")
 val stubs = root.resolve("tools/routing/jvm-test/stubs")
 
 // The app files the engine compiles as they are, and the app's own unit tests for them (they run on the plain JVM
@@ -151,7 +153,7 @@ kotlin.sourceSets["main"].kotlin.srcDir(generateStrings)
 
 tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") { source(appFiles.map { inModules(it, core, app) }) }
 tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileTestKotlin") {
-    source(appTests.map { inModules(it, root.resolve("core/src/test/kotlin/com/onpath/app"), root.resolve("app/src/test/java/com/onpath/app")) })
+    source(appTests.map { inModules(it, root.resolve("core/src/test/kotlin/com/onpath/app"), root.resolve("core/src/testkit/kotlin/com/onpath/app"), root.resolve("app/src/test/java/com/onpath/app")) })
 }
 // app tests read the BRouter profiles from the app module's path (RouteWarningsTest: src/main/assets/brouter/*.brf);
 // the engine's tests run in web/engine, so the profiles are copied there first (git-ignored, the app's files as they are)

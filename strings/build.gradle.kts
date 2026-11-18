@@ -15,7 +15,7 @@ kotlin {
     }
     // :core (plain JVM, no Android) reads the texts too: Txt + XmlStrings sit in a source set shared by the Android and
     // the JVM target; the @Composable str() / plural() stay in androidMain.
-    jvm()
+    jvm { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
     sourceSets {
         val jvmSharedMain by creating { dependsOn(commonMain.get()) }
         androidMain.get().dependsOn(jvmSharedMain)

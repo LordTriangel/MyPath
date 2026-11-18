@@ -4,6 +4,7 @@
   core_move.py plan  [--only pkg,pkg] [--files a/B.kt,c/D.kt] [--no-tests]   print the closed set that can move, the blocked
                                                                                 candidates with their first reason, the tests
   core_move.py move  [same options] [--dry-run]                              do it: git mv + path rewrites (below)
+  core_move.py lock                                                          rewrite web/engine/core-shared.lock (move does it)
 
 The set (`plan`): app files of the candidate packages (CAND) and the hub files named in the paper (HUBS) that
   (a) have no android. / androidx. / org.maplibre. / com.google.android. import or fully-qualified use, no BuildConfig / R.
@@ -104,6 +105,7 @@ class Model:
         for p, s in self.main.items():
             for d in s.decls:
                 self.sym[(s.pkg, d)].add(p)
+        self.atests = {p: Src(p) for p in kt_files("app/src/androidTest")}  # emulator tests: always stay in :app
         self.tsym = collections.defaultdict(set)
         for p, s in self.tests.items():
             for d in s.decls:
@@ -246,6 +248,8 @@ def candidates(model, only, files):
 
 
 REASONS = {}
+WEB_TESTS = set()   # [tests] of app/web-shared-files.txt: the planner compiles them as they are
+ALL_RES = []        # every resource folder (for the web-test rewrite check)
 
 
 def plan_tests(model, moved):
@@ -292,6 +296,9 @@ def plan_tests(model, moved):
         if bad:
             REASONS[p] = f"uses {os.path.basename(bad[0])}" + (f" (+{len(bad) - 1})" if len(bad) > 1 else "")
             continue
+        if model.rel(p) in WEB_TESTS and rewrite_test(s.text, "core", {model.rel(m) for m in moved}, ALL_RES) != s.text:
+            REASONS[p] = "listed in app/web-shared-files.txt [tests] and would need a path rewrite (the planner runs it from web/engine)"
+            continue
         cand.add(p)
     changed = True
     while changed:
@@ -315,15 +322,41 @@ def plan_tests(model, moved):
                 work.append(q)
     for p in movers | need:
         go[p] = "core"
-    # a helper that a test staying in :app also uses must be visible to both
-    stayers = set(app_tests) - set(go)
-    for p in list(go):
-        if p not in movers and any(p in tref[q] for q in stayers):
-            go[p] = "kit"
-    # a mover that a stayer needs (not a helper) cannot move
-    for p in list(go):
-        if p in movers and any(p in tref[q] for q in stayers):
-            go[p] = "kit"
+    # Fixed point: a helper (no @Test) that a staying test also uses goes to core/src/testkit (compiled by both modules) and
+    # so does everything it needs; a test CLASS never goes to testkit - if a staying test needs it, it stays in :app, and
+    # everything that needs it stays with it (an app test cannot see core's tests).
+    while True:
+        changed = False
+        stayers = set(app_tests) - set(go)
+        for p in list(go):
+            if p not in go:
+                continue
+            by = sorted(q for q in stayers if p in tref[q])
+            if by and model.tests[p].has_test:
+                REASONS[p] = f"test class needed by staying {os.path.basename(by[0])}"
+                del go[p]
+                changed = True
+            elif by and go[p] != "kit":
+                go[p] = "kit"
+                changed = True
+        for p in list(go):
+            if p not in go:
+                continue
+            bad = [q for q in tref[p] if q not in go and not core_like(q)]
+            if go[p] == "kit":  # compiled in both modules: may only need other kit files, never a core test class
+                bad += [q for q in tref[p] if q in go and go[q] == "core" and model.tests[q].has_test]
+            if bad:
+                REASONS[p] = f"needs {os.path.basename(bad[0])} (stays in :app)"
+                del go[p]
+                changed = True
+                continue
+            if go[p] == "kit":
+                for q in tref[p]:
+                    if q in go and go[q] != "kit":
+                        go[q] = "kit"
+                        changed = True
+        if not changed:
+            break
     return go, set(app_tests) - set(go)
 
 
@@ -335,16 +368,32 @@ def main_dest(model, p):
     return f"{CORE_MAIN}/{model.rel(p)}"
 
 
-def resource_dirs(model, moved_tests):
-    """First-level folders of app/src/test/resources that a moved test reads."""
+def resource_reads(text, d):
+    """Does the test text really READ the resource folder d (a File path or a class-loader resource name)?"""
+    file_read = re.search(r"src/test/resources/" + re.escape(d) + r"\b", text)
+    loader = re.search(r'getResource(?:AsStream)?\([^\n]{0,80}?"/?' + re.escape(d) + r'/', text)
+    return bool(file_read), bool(loader)
+
+
+def resource_dirs(model, moved_tests, report=False):
+    """First-level folders of app/src/test/resources: (move, stays) – move when a moved test reads it and nothing that stays
+    (a staying test's File path, a tool under tools/) still uses the old place; stays = [(folder, 'used by …')]."""
     base = os.path.join(ROOT, APP_RES)
-    out = []
-    if os.path.isdir(base):
-        for d in sorted(os.listdir(base)):
-            pat = re.compile(r'["/]' + re.escape(d) + r'(/|")')
-            if any(pat.search(model.tests[p].text) for p in moved_tests):
-                out.append(d)
-    return out
+    move, stays = [], []
+    if not os.path.isdir(base):
+        return move, stays
+    tool_files = []
+    for d, _, fs in os.walk(os.path.join(ROOT, "tools")):
+        tool_files += [os.path.join(d, f) for f in fs if f.endswith((".py", ".sh", ".kt", ".mjs", ".kts")) and f != "core_move.py"]
+    for d in sorted(os.listdir(base)):
+        if not any(any(resource_reads(model.tests[p].text, d)) for p in moved_tests):
+            continue
+        users = [model.rel(p) + " (test)" for p, s in model.tests.items()
+                 if p.startswith(APP_TEST + "/") and p not in moved_tests and resource_reads(s.text, d)[0]]
+        users += [os.path.relpath(f, ROOT) for f in tool_files
+                  if re.search(r"app/src/test/resources/" + re.escape(d) + r"\b", open(f, encoding="utf-8", errors="replace").read())]
+        (stays.append((d, ", ".join(users))) if users else move.append(d))
+    return move, stays
 
 
 def rewrite_test(text, loc, moved_rel, res_moved):
@@ -377,6 +426,47 @@ def rewrite_test(text, loc, moved_rel, res_moved):
     return t
 
 
+LOCK = "web/engine/core-shared.lock"
+
+
+def shared_list(section):
+    out, cur = [], ""
+    for line in read("app/web-shared-files.txt").split("\n"):
+        line = line.split("#")[0].strip()
+        if line.startswith("["):
+            cur = line
+        elif line and cur == f"[{section}]":
+            out.append(line)
+    return out
+
+
+def lock_hash():
+    """sha256 over the sorted (path NUL content NUL) of the core/ files the planner compiles ([files] / [tests] entries that
+    resolve into core/src/main|test|testkit). SharedFilesRuleTest recomputes the same."""
+    import hashlib
+    paths = [f"{CORE_MAIN}/{f}" for f in shared_list("files")] + \
+            [f"{b}/{f}" for f in shared_list("tests") for b in (CORE_TEST, CORE_KIT)]
+    paths = sorted(p for p in paths if os.path.isfile(os.path.join(ROOT, p)))
+    h = hashlib.sha256()
+    for p in paths:
+        h.update(p.encode() + b"\0" + open(os.path.join(ROOT, p), "rb").read() + b"\0")
+    return h.hexdigest(), len(paths)
+
+
+def write_lock(dry=False):
+    digest, n = lock_hash()
+    text = f"""# web/engine/core-shared.lock – a fingerprint of the core/ files the planner compiles (the entries of
+# app/web-shared-files.txt that live in core/src/main|test|testkit/kotlin), written by: python3 tools/dev/core_move.py lock
+# Why: web.yml's path filters and the engine cache key do not know core/** yet, so an edit of a shared file in core/ would
+# neither start the planner run nor change the cache key. This file is under web/engine/** (both know that), and
+# SharedFilesRuleTest fails when it is out of date.  It goes when web.yml knows core/**.
+sha256 {digest}
+"""
+    if not dry:
+        open(os.path.join(ROOT, LOCK), "w", encoding="utf-8").write(text)
+    print(f"-- {LOCK}: {n} core file(s) the planner compiles, sha256 {digest[:12]}")
+
+
 def git(*a, check=True):
     r = subprocess.run(["git", *a], cwd=ROOT, capture_output=True, text=True)
     if check and r.returncode:
@@ -390,6 +480,19 @@ def mv(src, dst, dry):
         return
     os.makedirs(os.path.join(ROOT, os.path.dirname(dst)), exist_ok=True)
     git("mv", src, dst)
+
+
+def mv_dir(src, dst, dry):
+    """git mv a folder; when dst exists already (a second run), move the files one by one – never nest dst/<d>/<d>."""
+    if not os.path.isdir(os.path.join(ROOT, src)):
+        print(f"  (skipped: {src} is not there)")
+        return
+    if not os.path.exists(os.path.join(ROOT, dst)):
+        return mv(src, dst, dry)
+    for d, _, fs in os.walk(os.path.join(ROOT, src)):
+        for f in fs:
+            a = os.path.relpath(os.path.join(d, f), ROOT)
+            mv(a, dst + "/" + os.path.relpath(a, src), dry)
 
 
 def lint_drop(moved_rel, dry):
@@ -428,8 +531,39 @@ def parity_rewrite(moved_main, moved_tests, dry):
     return n
 
 
+def solve(args, with_tests=True):
+    """closure + tests, repeated until no `internal` declaration of a moved file is used by a test that stays in :app
+    (staying unit tests and the emulator tests in app/src/androidTest see :core as another module)."""
+    model, cand, ok, why = build(args)
+    excluded, tests, stays = set(), {}, set()
+    for _ in range(20):
+        ok, why2 = closure(model, [p for p in cand if p not in excluded])
+        why = {**why2, **{p: why.get(p, "") for p in excluded}}
+        tests, stays = plan_tests(model, ok) if with_tests else ({}, set())
+        users = [(q, model.tests[q]) for q in stays] + list(model.atests.items())
+        leaks = {}
+        for p in ok:
+            for d in model.main[p].internal:
+                for q, src in users:
+                    if uses_symbol(src, model.main[p].pkg, d):
+                        leaks[p] = f"internal {d} is used by {os.path.basename(q)} (a test that stays in :app)"
+                        break
+                if p in leaks:
+                    break
+        if not leaks:
+            break
+        excluded |= set(leaks)
+        why.update(leaks)
+    else:
+        sys.exit("core_move: the internal-visibility loop did not settle")
+    return model, cand, ok, why, tests, stays
+
+
 def build(args):
     model = Model()
+    WEB_TESTS.update(shared_list("tests"))
+    base = os.path.join(ROOT, APP_RES)
+    ALL_RES[:] = sorted(os.listdir(base)) if os.path.isdir(base) else []
     only = set(args.only.split(",")) if args.only else None
     files = args.files.split(",") if args.files else None
     cand = candidates(model, only, files)
@@ -472,26 +606,27 @@ def report(model, cand, ok, why, tests, stays, show_tests=True):
             for p in sorted(stays):
                 if p in REASONS and model.tests[p].tokens & {d for q in ok for d in model.main[q].decls}:
                     print(f"  {model.rel(p)}: {REASONS[p]}")
-        print("== RESOURCE folders:", resource_dirs(model, tests) or "none")
+        mv_res, st_res = resource_dirs(model, tests)
+        print("== RESOURCE folders that move:", mv_res or "none")
+        for d, who in st_res:
+            print(f"   {d}: stays, used by {who}")
 
 
 def cmd_plan(args):
-    model, cand, ok, why = build(args)
-    tests, stays = ({}, set()) if args.no_tests else plan_tests(model, ok)
+    model, cand, ok, why, tests, stays = solve(args, not args.no_tests)
     global args_why_tests
     args_why_tests = args.why_tests
     report(model, cand, ok, why, tests, stays, not args.no_tests)
 
 
 def cmd_move(args):
-    model, cand, ok, why = build(args)
+    model, cand, ok, why, tests, stays = solve(args, not args.no_tests)
     if not ok:
         sys.exit("core_move: nothing movable")
-    tests, stays = ({}, set()) if args.no_tests else plan_tests(model, ok)
     dry = args.dry_run
     moved_rel = {model.rel(p) for p in ok}
     moved_test_rel = {model.rel(p) for p in tests}
-    res = resource_dirs(model, tests)
+    res, res_stay = resource_dirs(model, tests)
     print(f"-- moving {len(ok)} main files")
     for p in sorted(ok):
         mv(p, main_dest(model, p), dry)
@@ -500,7 +635,9 @@ def cmd_move(args):
         mv(p, test_dest(model, p, tests[p]), dry)
     print(f"-- moving resource folders {res}")
     for d in res:
-        mv(f"{APP_RES}/{d}", f"{CORE_RES}/{d}", dry)
+        mv_dir(f"{APP_RES}/{d}", f"{CORE_RES}/{d}", dry)
+    for d, who in res_stay:
+        print(f"  resource folder {d} stays in :app (used by {who})")
     # path literals in every test of both modules (+ moved ones read from their new place)
     print("-- rewriting path literals in tests")
     changed = 0
@@ -517,8 +654,12 @@ def cmd_move(args):
                 with open(os.path.join(ROOT, new), "w", encoding="utf-8") as f:
                     f.write(text)
     print(f"-- {changed} test file(s) rewritten")
+    for old, s in model.tests.items():
+        if old not in tests and model.rel(old) in WEB_TESTS and rewrite_test(s.text, "app", moved_rel, res) != s.text:
+            print(f"  WARNING: {model.rel(old)} is listed in app/web-shared-files.txt [tests] and now has a rewritten path – check web/engine test")
     n = lint_drop(moved_rel, dry)
     print(f"-- app/lint-baseline.xml: {n} issue(s) of moved files dropped")
+    write_lock(dry)
     n = parity_rewrite(moved_rel, moved_test_rel, dry)
     print(f"-- web/parity.json: {n} key(s) renamed")
     # leftovers that need a human
@@ -557,14 +698,14 @@ def cmd_move(args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["plan", "move"])
+    ap.add_argument("cmd", choices=["plan", "move", "lock"])
     ap.add_argument("--only", help="comma separated packages")
     ap.add_argument("--files", help="comma separated files relative to the package root, e.g. suggest/X.kt,sync/Y.kt")
     ap.add_argument("--no-tests", action="store_true")
     ap.add_argument("--why-tests", action="store_true", help="plan: list the tests that use a moved class but stay, with the reason")
     ap.add_argument("--dry-run", action="store_true")
     a = ap.parse_args()
-    {"plan": cmd_plan, "move": cmd_move}[a.cmd](a)
+    {"plan": cmd_plan, "move": cmd_move, "lock": lambda a: write_lock()}[a.cmd](a)
 
 
 if __name__ == "__main__":

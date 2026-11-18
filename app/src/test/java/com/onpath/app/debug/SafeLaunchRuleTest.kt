@@ -15,7 +15,7 @@ class SafeLaunchRuleTest {
         val hits = Sources.kotlinFiles().asSequence().flatMap { f ->
             f.readLines().mapIndexedNotNull { i, line ->
                 val code = line.substringBefore("//")
-                if ("viewModelScope.launch(" in code || "viewModelScope.launch {" in code) "${f.name}:${i + 1}" else null
+                if ("viewModelScope.launch(" in code || "viewModelScope.launch {" in code) "${Sources.appRoots.firstOrNull { r -> f.startsWith(r) }?.let { r -> f.relativeTo(r) } ?: f.name}:${i + 1}" else null
             }
         }.toList()
         assertEquals("use launchSafe or a reported scope: $hits", emptyList<String>(), hits)

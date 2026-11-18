@@ -25,7 +25,7 @@ over the loops, map data of 2026-11-16:
 
 **Reference runs** (`reference.py`): per wish the whole pool – line (lon / lat), origin, raw place values, five axes,
 points, hard-rule reason, chosen, numbers – plus the wish and the place's yardstick (`low`, `high`, `top`, way out).
-In git (1.2 MB gzip): `app/src/test/resources/suggest/reference/` – six case starts (hilden-wandern, heide-wandern,
+In git (1.2 MB gzip): `core/src/test/resources/suggest/reference/` – six case starts (hilden-wandern, heide-wandern,
 nordkirchen-rad-3h, zons-rad-3h, meran-flach, dhuenn-rad-350) and five official loops' wishes (NRW: Teutoschleife
 Dörenther Klippen, Unterwegs in Monschau [35], Naafbachtal-Route; RLP: Traumpfad Saynsteig, [AK4] Blick über
 Altenkirchen). All 15 case starts + the five: `~/onpath-suggest-poc/reference/` (2.2 MB, outside git). The runs are

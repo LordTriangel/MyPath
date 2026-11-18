@@ -1,7 +1,7 @@
 """The expected results of the app's port of the graph routines (app/src/main/java/com/onpath/app/suggest/NetSearch.kt)
 on a small fixed network, computed by the POC's own code (net.py, generate.assemble / cut_spurs).
 
-    python3 tools/suggest-poc/port_parity.py > app/src/test/resources/suggest/net-parity.txt
+    python3 tools/suggest-poc/port_parity.py > core/src/test/resources/suggest/net-parity.txt
 
 NetSearchParityTest reads the file and must get the same numbers. Run it again whenever net.py or the loop assembly
 changes (the network is generated from a fixed seed, nothing here depends on map data).

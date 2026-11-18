@@ -2,7 +2,7 @@
 """The frozen POC's reference outputs for the Kotlin port (stage 0 of the build plan, see FROZEN.md).
 
     SUGGEST_FILE=1 SUGGEST_FILES=~/onpath-suggest-poc/suggest-file/cells-c2 \
-    python3 tools/suggest-poc/reference.py app/src/test/resources/suggest/reference       the wishes kept in git
+    python3 tools/suggest-poc/reference.py core/src/test/resources/suggest/reference       the wishes kept in git
     python3 tools/suggest-poc/reference.py ~/onpath-suggest-poc/reference --all          every case start too
 
 Run with SUGGEST_FILE=1 and the suggest files the port reads (content 2, with the AIMS section): then the POC takes

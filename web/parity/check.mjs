@@ -43,9 +43,14 @@ function sharedFiles() {
   const rows = fs.readFileSync(path.join(repo, 'app/web-shared-files.txt'), 'utf8').split('\n').map((l) => l.replace(/#.*/, '').trim()).filter(Boolean)
     .flatMap((l) => (l.startsWith('[') ? ((section = l), []) : [[section, l]]));
   // a file lives in :core (core/src/main/kotlin) once tools/dev/core_move.py moved it there, else in :app
-  const home = (coreDir, appDir, f) => (fs.existsSync(path.join(repo, coreDir + f)) ? coreDir : appDir) + f;
-  const main = rows.filter(([s]) => s === '[files]').map(([, f]) => home('core/src/main/kotlin/com/onpath/app/', 'app/src/main/java/com/onpath/app/', f));
-  const tests = rows.filter(([s]) => s === '[tests]').map(([, f]) => home('core/src/test/kotlin/com/onpath/app/', 'app/src/test/java/com/onpath/app/', f));
+  // a listed file that is in none of the places is an error, never skipped (the engine build fails the same way)
+  const home = (dirs, f) => {
+    const hit = dirs.find((d) => fs.existsSync(path.join(repo, d + f)));
+    if (!hit) throw new Error(`app/web-shared-files.txt lists ${f}, but it is in none of: ${dirs.join(', ')}`);
+    return hit + f;
+  };
+  const main = rows.filter(([s]) => s === '[files]').map(([, f]) => home(['core/src/main/kotlin/com/onpath/app/', 'app/src/main/java/com/onpath/app/'], f));
+  const tests = rows.filter(([s]) => s === '[tests]').map(([, f]) => home(['core/src/test/kotlin/com/onpath/app/', 'core/src/testkit/kotlin/com/onpath/app/', 'app/src/test/java/com/onpath/app/'], f));
   const dir = (d, re) => fs.readdirSync(path.join(repo, d)).filter((f) => re.test(f)).sort().map((f) => `${d}/${f}`);
   return [...main, ...tests, 'app/src/main/java/btools/router/OnPathHints.java',
     ...dir('strings/src/commonMain/composeResources/values', /\.xml$/), ...dir('strings/src/commonMain/composeResources/values-de', /\.xml$/),

@@ -56,8 +56,27 @@ class SharedFilesRuleTest {
         assertTrue(bad.joinToString("\n"), bad.isEmpty())
     }
 
+    /**
+     * web.yml does not know core/** yet (its path filters and the engine cache key): an edit of a shared file that lives in
+     * core/ would neither start the planner run nor change the cache key. web/engine/core-shared.lock is under web/engine/**
+     * and holds a fingerprint of those files (tools/dev/core_move.py lock). Goes when web.yml knows core/**.
+     */
+    @Test fun coreFilesThePlannerCompilesMatchTheLock() {
+        val paths = (files.map { "core/src/main/kotlin/com/onpath/app/$it" } +
+            tests.flatMap { t -> listOf("core/src/test/kotlin/com/onpath/app/$t", "core/src/testkit/kotlin/com/onpath/app/$t") })
+            .filter { File("../$it").isFile }.sorted()
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        for (p in paths) { md.update(p.toByteArray()); md.update(0); md.update(File("../$p").readBytes()); md.update(0) }
+        val got = md.digest().joinToString("") { "%02x".format(it) }
+        val want = File("../web/engine/core-shared.lock").readLines().firstOrNull { it.startsWith("sha256 ") }?.removePrefix("sha256 ")?.trim()
+        assertTrue("core/ files the planner compiles changed – run python3 tools/dev/core_move.py lock and commit web/engine/core-shared.lock",
+            got == want)
+    }
+
     @Test fun everySharedTestExists() {
-        val missing = tests.filter { !File("src/test/java/com/onpath/app/$it").isFile && !File("../core/src/test/kotlin/com/onpath/app/$it").isFile }
+        val missing = tests.filter { t ->
+            listOf("src/test/java", "../core/src/test/kotlin", "../core/src/testkit/kotlin").none { File("$it/com/onpath/app/$t").isFile }
+        }
         assertTrue("$missing", missing.isEmpty())
     }
 }

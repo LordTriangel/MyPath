@@ -1,0 +1,6 @@
+# web/engine/core-shared.lock – a fingerprint of the core/ files the planner compiles (the entries of
+# app/web-shared-files.txt that live in core/src/main|test|testkit/kotlin), written by: python3 tools/dev/core_move.py lock
+# Why: web.yml's path filters and the engine cache key do not know core/** yet, so an edit of a shared file in core/ would
+# neither start the planner run nor change the cache key. This file is under web/engine/** (both know that), and
+# SharedFilesRuleTest fails when it is out of date.  It goes when web.yml knows core/**.
+sha256 a49625f109ee89b2d9149517e056f2efd8f11ae3e5684f1565ac159670b0967f

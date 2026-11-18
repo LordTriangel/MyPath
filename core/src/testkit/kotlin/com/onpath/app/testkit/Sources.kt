@@ -17,10 +17,14 @@ object Sources {
     val appRoots: List<File> = existing(
         "src/main/java/com/onpath/app", "../app/src/main/java/com/onpath/app",
         "src/main/kotlin/com/onpath/app", "../core/src/main/kotlin/com/onpath/app",
-    )
+    ).also {
+        // a test started from another folder would scan nothing and pass: fail loudly instead
+        require(it.size >= 2) { "Sources: expected the main sources of :app and :core next to the working directory ${File(".").canonicalPath}, found $it" }
+    }
 
     /** All main source roots (`src/main/java` with `btools`, `src/main/kotlin`) of both modules. */
     val roots: List<File> = existing("src/main/java", "../app/src/main/java", "src/main/kotlin", "../core/src/main/kotlin")
+        .also { require(it.size >= 2) { "Sources: expected the main source roots of :app and :core, found $it" } }
 
     /** A file below com/onpath/app, e.g. `routing/BreakdownRules.kt`: whichever module has it. */
     fun file(rel: String): File =

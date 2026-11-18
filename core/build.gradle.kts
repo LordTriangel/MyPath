@@ -3,6 +3,7 @@
 // Android build ("core tests in about a minute"). Dependencies: only what the moved code uses.
 plugins {
     id("org.jetbrains.kotlin.jvm")
+    id("ru.vyarus.animalsniffer")
 }
 
 kotlin {
@@ -18,6 +19,10 @@ java {
 sourceSets.test { kotlin.srcDir("src/testkit/kotlin") }
 
 dependencies {
+    // Android API 26 (minSdk): :core compiles against the JDK, so a JDK-only call (InputStream.readAllBytes, ...) would
+    // compile, pass the JVM tests and crash on Android 8-12. Animal Sniffer checks the main classes against this signature
+    // (check / :core:test run it, so gate.sh does too). The app uses no core library desugaring: the plain signature.
+    signature("com.toasttab.android:gummy-bears-api-26:0.12.0@signature")
     // the texts; Gradle picks the JVM variant here and the Android variant for :app (one copy in the APK)
     api(project(":strings"))
     api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
@@ -33,7 +38,12 @@ dependencies {
     testImplementation(fileTree(mapOf("dir" to "../app/libs", "include" to listOf("*.jar"))))
 }
 
-tasks.test {
+animalsniffer {
+    sourceSets = listOf(project.sourceSets.main.get())  // main only: tests run on the JVM
+    ignore("org.json.*", "btools.*")  // org.json is built into Android; BRouter ships in the app
+}
+tasks.test { dependsOn("animalsnifferMain")
+
     // like :app (app/build.gradle.kts testOptions): UTC, English, the texts straight from the XML files
     systemProperty("user.timezone", "UTC")
     systemProperty("user.language", "en")
@@ -41,6 +51,8 @@ tasks.test {
     systemProperty("onpath.stringsDir", rootProject.file("strings/src/commonMain/composeResources").absolutePath)
 }
 
+// Single test runs: `:app:testDebugUnitTest --tests X` also runs the whole :core:test first (the dependency below);
+// `-Ponpath.coreTests=explicit` switches that off (tools/ci/gate.sh does, and names :core:test with its own filter).
 // The name CI knows: `./gradlew testDebugUnitTest` (unit.yml) picks this up beside the app's own. :app:testDebugUnitTest
 // (release.yml, the gate) depends on :core:test (app/build.gradle.kts), so a `--tests` filter on the app task never
 // reaches the core task and cannot fail it.

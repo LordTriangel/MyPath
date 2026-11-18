@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Small fixtures for the Kotlin core's unit tests (app/src/test/resources/suggest/), made by the POC's own code:
+"""Small fixtures for the Kotlin core's unit tests (core/src/test/resources/suggest/), made by the POC's own code:
 
-    python3 tools/suggest-poc/port/fixtures.py app/src/test/resources/suggest
+    python3 tools/suggest-poc/port/fixtures.py core/src/test/resources/suggest
 
   tiny-suggest.bin   suggest_file.pack of a small cell (the format's self-test dict) – SuggestFileTest
   pyset-order.txt    CPython's iteration order of int sets after adds / removes / unions – PyIntSetTest

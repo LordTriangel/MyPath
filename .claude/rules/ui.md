@@ -5,6 +5,8 @@ paths:
   - "core/src/main/kotlin/com/onpath/app/domain/**"
   - "core/src/test/kotlin/com/onpath/app/domain/**"
   - "app/src/test/java/com/onpath/app/ui/**"
+  - "core/src/main/kotlin/com/onpath/app/ui/**"
+  - "core/src/test/kotlin/com/onpath/app/ui/**"
   - "app/src/test/snapshots/**"
   - "strings/**"
   - "docs/design/ui-style.md"
