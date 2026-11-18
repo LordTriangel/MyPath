@@ -422,8 +422,8 @@ check(await page.evaluate(() => { const p = document.getElementById('undoPill'),
   'phone: the undo pill under the bar\'s right end, clear of the sheet (or hidden: nothing to undo / the sheet pulled up)');
 await page.click('#menuBtn');
 const pm = await page.$$eval('#mainMenu .pb', (bs) => bs.filter((b) => b.getClientRects().length > 0).map((b) => b.id || 'link'));
-check(JSON.stringify(pm) === JSON.stringify(['newPlan', 'menuPlans', 'menuImportGpx', 'menuSavePlan', 'menuSaveAs', 'menuExportGpx', 'syncBadge', 'menuPhone', 'menuAboutP', 'link']),
-  'phone: Plan ▾ lists New · My tours · Import GPX · Save · Save as · Export GPX · To phone · Phone connection · Help · the app ' + JSON.stringify(pm));
+check(JSON.stringify(pm) === JSON.stringify(['newPlan', 'menuPlans', 'menuMultiDay', 'menuPlanAsTour', 'menuImportGpx', 'menuSavePlan', 'menuSaveAs', 'menuExportGpx', 'syncBadge', 'menuPhone', 'menuAboutP', 'link']),
+  'phone: Plan ▾ lists New · My tours · Multi-day tour · Plan as multi-day tour · Import GPX · Save · Save as · Export GPX · To phone · Phone connection · Help · the app ' + JSON.stringify(pm));
 await page.keyboard.press('Escape');
 // open on start (owner 2026-11-07: points and profile shown, the sheet can be folded)
 check(await page.isVisible('#points'), 'phone: the Points shown on start');
