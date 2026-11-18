@@ -72,7 +72,7 @@ class PinMenuPlaceTest {
     @Test fun emptyPlanDuringATourOffersNoStartHere() = assertEquals(listOf(Row.GO_HERE, Row.GOOGLE, Row.REMOVE_PIN),
         PinMenuItems.of(emptyPlan = true, startHere = MapGestures.offersStartHere(touring = true), menu = null, pin = true))
 
-    /** Tour suggestions on (developer switch): „Rundtour von hier“ directly after „Hier starten“ – only where that row is. */
+    /** Tour suggestions on (the default since 2026-11-18): „Rundtour von hier“ directly after „Hier starten“ – only where that row is. */
     @Test fun roundTripFollowsStartHere() {
         assertEquals(listOf(Row.START_HERE, Row.ROUND_TRIP, Row.GO_HERE, Row.GOOGLE),
             PinMenuItems.of(emptyPlan = true, startHere = true, menu = null, pin = false, roundTrip = true))
@@ -80,7 +80,13 @@ class PinMenuPlaceTest {
         assertEquals(listOf(Row.ADD, Row.GOOGLE), PinMenuItems.of(emptyPlan = false, startHere = true, menu = PlaceAddMenu.menu(1, false, null), pin = false, roundTrip = true))
     }
 
-    @Test fun onePoint() = assertEquals(listOf(Row.ADD, Row.GOOGLE, Row.REMOVE_PIN),
+    /** Owner 2026-11-18: „Rundtour von hier“ only for the very first point – a plan with a point never offers it. */
+    @Test fun noRoundTripOnceThePlanHasAPoint() {
+        for (pin in listOf(false, true)) for (n in 1..3) assertEquals(false, Row.ROUND_TRIP in PinMenuItems.of(emptyPlan = false, startHere = true,
+            menu = PlaceAddMenu.menu(n, false, null), pin = pin, roundTrip = true))
+    }
+
+    @Test fun onePoint() =assertEquals(listOf(Row.ADD, Row.GOOGLE, Row.REMOVE_PIN),
         PinMenuItems.of(emptyPlan = false, startHere = true, menu = PlaceAddMenu.menu(1, false, null), pin = true))
 
     /** Owner 2026-11-15: both add rows always, the likelier first – nothing under „⋯ Mehr“. */

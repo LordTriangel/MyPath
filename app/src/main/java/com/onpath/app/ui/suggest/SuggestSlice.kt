@@ -92,12 +92,13 @@ interface SuggestHost {
  * in the plan sheet ([phase]) → a tap shows that card's loop on the map ([loop], only that one) → „Übernehmen“ = a normal
  * plan. Holds only light cards ([SuggestCard]: a line, numbers, words), never a run's network or place.
  *
- * Behind the developer switch „Tourvorschläge (Test)“ ([on], off by default – Settings → Diagnostics → Developer tools).
+ * On for everyone since 2026-11-18 (owner); the developer switch „Tourvorschläge“ ([on], Settings → Diagnostics →
+ * Developer tools) turns it off.
  * Main thread; the work runs in [SuggestHost.suggest] (the runner: a background thread, one run at a time).
  */
-class SuggestSlice(private val scope: CoroutineScope, internal var host: SuggestHost, on: Boolean = false,
+class SuggestSlice(private val scope: CoroutineScope, internal var host: SuggestHost, on: Boolean = true,
                    private val onSwitch: (Boolean) -> Unit = {}) {
-    /** The developer switch: the menus offer „Rundtour von hier“ only while it is on. */
+    /** The developer switch (on by default): the menus offer „Rundtour von hier“ only while it is on. */
     var on by mutableStateOf(on)
         private set
 

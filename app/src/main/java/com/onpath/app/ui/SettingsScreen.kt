@@ -178,7 +178,7 @@ fun SettingsScreen(
     routingInfo: String? = null,
     /** Developer tools → Demo location (simulated GPS for screenshots); null = hidden. */
     demo: DemoUi? = null,
-    /** Developer tools → „Tourvorschläge (Test)“ (round trips, off by default); null = hidden. */
+    /** Developer tools → „Tourvorschläge“ (round trips, on by default – the off-switch); null = hidden. */
     suggestTest: SuggestTestUi? = null,
     /** About → Licences: the list (fixed in screenshots); null = read from the APK's assets when opened. */
     licences: List<com.onpath.app.data.Licences.Entry>? = null,
@@ -651,7 +651,7 @@ private fun DeveloperTools(
                 if (onTimeFormulas == null) Text("Plan a route first.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 testStyle?.let { TestStyleRow(it) }
                 demo?.let { DemoRow(it) }
-                // the round-trip suggestions (docs/design/tour-suggestions.md §7 stage 4): off by default, as the planner's ?debug switch
+                // the round-trip suggestions (docs/design/tour-suggestions.md §7 stage 4): on by default since 2026-11-18, an off-switch as the planner's ?debug one
                 suggestTest?.let { t -> SwitchRow(str(Res.string.suggest_ui_test), null, t.on, onChange = t.onChange) }
                 LanguageRow(language)
                 HorizontalDivider(Modifier.padding(vertical = 4.dp))
@@ -682,7 +682,7 @@ private fun DeveloperTools(
     }
 }
 
-/** Developer tools → „Tourvorschläge (Test)“: the round-trip suggestions on / off ([com.onpath.app.ui.suggest.SuggestSlice.on]). */
+/** Developer tools → „Tourvorschläge“: the round-trip suggestions on / off ([com.onpath.app.ui.suggest.SuggestSlice.on]). */
 data class SuggestTestUi(val on: Boolean, val onChange: (Boolean) -> Unit)
 
 /**

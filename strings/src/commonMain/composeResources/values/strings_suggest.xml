@@ -127,10 +127,10 @@
     <string name="suggest_ui_on_loop">%1$s km of it on the signed loop</string>
     <string name="suggest_ui_failed">No suggestions right now – please try again.</string>
     <string name="suggest_ui_taking">Making the plan …</string>
-    <string name="suggest_ui_test_on">Tour suggestions (test): on</string>
-    <string name="suggest_ui_test_off">Tour suggestions (test): off</string>
+    <string name="suggest_ui_test_on">Tour suggestions: on</string>
+    <string name="suggest_ui_test_off">Tour suggestions: off</string>
     <string name="suggest_ui_loading_routing">Loading route data …</string>
-    <string name="suggest_ui_test">Tour suggestions (test)</string>
+    <string name="suggest_ui_test">Tour suggestions</string>
     <plurals name="suggest_ui_count">
         <item quantity="one">one round trip</item>
         <item quantity="other">%1$s round trips</item>

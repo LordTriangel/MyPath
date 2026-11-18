@@ -2,8 +2,11 @@
 // hier“ under „Hier starten“ → the wish (sketch 5 B: activity as plain labels, time and ascent as two-handle range
 // sliders, Ziel chips, Abbrechen · OK) → a wait card → the cards (sketch 4 A + the pills of sketch 7: badge, km · h · ↑,
 // the text line, at most 2 green + 2 yellow pills) → „Übernehmen“ = a normal plan (the planner's plan-from-track path,
-// round trip). On the map only the chosen card's loop (owner 2026-11-17). The method runs in the engine worker
-// (WebSuggest.kt). Behind a switch that is OFF by default: ?debug → „Tourvorschläge (Test)“ (this browser only).
+// round trip). On the map only the chosen card's loop (owner 2026-11-17). The cards (sketch 8, owner 2026-11-18 „Ja, so
+// bauen“): side by side in one row along the map's bottom edge, the side panel stays the plan; on a phone a low strip
+// with one card in front and the next looking in – swiping to a card or clicking it shows its loop. The method runs in
+// the engine worker (WebSuggest.kt). On for everyone since 2026-11-18 (owner); ?debug → „Tourvorschläge: an“ is the
+// off-switch (this browser only).
 import type * as maplibregl from 'maplibre-gl';
 import type { GeoJSONSource } from 'maplibre-gl';
 import type { EngineClient } from './engine/client';
@@ -17,9 +20,9 @@ import './suggest.css';
 type LatLon = [number, number];
 
 const KEY = 'onpath.suggestTest';
-/** The switch (this browser only): off unless the test setting turned it on. */
+/** The switch (this browser only): on unless the ?debug setting turned it off ('0'; an old '1' = on). */
 export function suggestOn(): boolean {
-  try { return localStorage.getItem(KEY) === '1'; } catch { return false; } // expected: storage blocked = off
+  try { return localStorage.getItem(KEY) !== '0'; } catch { return true; } // expected: storage blocked = the default, on
 }
 
 /** ?debug: one small button that switches the feature on / off (reloads – the page sets it up at start). */
@@ -31,7 +34,7 @@ export function installSuggestSwitch(debug: boolean) {
   b.className = 'suggestswitch';
   b.textContent = t(suggestOn() ? 'suggest_ui_test_on' : 'suggest_ui_test_off');
   b.onclick = () => {
-    try { if (suggestOn()) localStorage.removeItem(KEY); else localStorage.setItem(KEY, '1'); }
+    try { if (suggestOn()) localStorage.setItem(KEY, '0'); else localStorage.removeItem(KEY); }
     catch (e) { problem('suggest', 'test setting not stored', e); }
     location.reload();
   };
@@ -75,6 +78,7 @@ const hText = (h: number) => (h % 1 === 0 ? String(h) : number(h, 1));
 export function setupSuggest(host: SuggestHost) {
   const { map } = host;
   let panel: HTMLElement | null = null;
+  let stripSize: ResizeObserver | null = null;
   let wish: { activity: Activity; sac: number; h: [number, number]; up: [number, number]; ziel: Set<string>; at: LatLon; name?: string } | null = null;
   let cards: Card[] = [];
   let chosen = -1;
@@ -103,22 +107,42 @@ export function setupSuggest(host: SuggestHost) {
       (map.getSource('suggest-loop') as GeoJSONSource).setData({ type: 'FeatureCollection', features: feats });
       if (fit && c && c.coords.length) {
         const lo = c.coords.map((p) => p[1]), la = c.coords.map((p) => p[0]);
-        map.fitBounds([[Math.min(...lo), Math.min(...la)], [Math.max(...lo), Math.max(...la)]], { padding: host.fitPadding(), maxZoom: 15, duration: 300 });
+        map.fitBounds([[Math.min(...lo), Math.min(...la)], [Math.max(...lo), Math.max(...la)]], { padding: padding(), maxZoom: 15, duration: 300 });
       }
     } catch (e) { problem('suggest', 'loop not drawn', e); }
   }
 
-  function close() {
-    run++;
+  /** The planner's fit padding, its bottom clear of the cards' strip (the loop above it, never under it). */
+  function padding(): maplibregl.PaddingOptions {
+    const p = { ...host.fitPadding() };
+    const stage = map.getContainer().parentElement?.getBoundingClientRect();
+    if (panel?.id === 'suggestStrip' && stage) {
+      const r = panel.getBoundingClientRect();
+      // at least 120 px of map stay between the paddings, or fitBounds does not move at all
+      const room = Math.max(0, stage.height - (p.top ?? 0) - 120);
+      p.bottom = Math.min(Math.max(p.bottom ?? 0, stage.bottom - r.top + 24), room);
+    }
+    return p;
+  }
+
+  /** The panel (in the sheet) or the strip (over the map) goes; the sheet is the plan again. */
+  function unmount() {
     panel?.remove(); panel = null;
     document.getElementById('sheet')?.classList.remove('suggest');
+    document.body.classList.remove('suggest-strip');
+    stripSize?.disconnect(); stripSize = null;
+  }
+
+  function close() {
+    run++;
+    unmount();
     cards = []; chosen = -1;
     (map.getSource('suggest-loop') as GeoJSONSource | undefined)?.setData(empty());
   }
 
   function mount(html: string): HTMLElement {
     const sheet = document.getElementById('sheet')!;
-    panel?.remove();
+    unmount();
     const p = document.createElement('div');
     p.id = 'suggestPanel';
     p.innerHTML = html;
@@ -235,39 +259,96 @@ export function setupSuggest(host: SuggestHost) {
     p.querySelector<HTMLButtonElement>('#sgChange')!.onclick = () => wish && openWish(wish.at, wish.name);
   }
 
+  /**
+   * The cards (sketch 8): one row along the bottom of the map area – a small head „3 Rundtouren · Wunsch ändern · ✕“,
+   * the cards side by side (scroll-snap), dots on a phone. Clicking a card, the arrow keys, or – where one card is in
+   * front at a time (a phone) – swiping to it chooses it: its loop alone on the map, the camera above the strip.
+   */
   function showCards(r: Answer) {
-    const p = mount(`<div class="sghead"><b>${esc(tp('suggest_ui_count', cards.length, cards.length))}</b>
+    unmount();
+    const p = document.createElement('section');
+    p.id = 'suggestStrip';
+    p.setAttribute('aria-label', tp('suggest_ui_count', cards.length, cards.length));
+    p.innerHTML = `<div class="sghead"><b>${esc(tp('suggest_ui_count', cards.length, cards.length))}</b>
+        <span class="sgsum">${esc(summary())}</span><span class="sgsp"></span>
         <button type="button" class="sgtext" id="sgChange">${esc(t('suggest_ui_change'))}</button>
         <button type="button" class="iconbtn" id="sgClose" aria-label="${esc(t('common_close'))}">✕</button></div>
-      <div class="sgsum muted small">${esc(summary())}</div>
       ${(r.notes ?? []).map((n) => `<div class="sgnote">${esc(n)}</div>`).join('')}
-      <div class="sgcards" role="list"></div>`);
+      <div class="sgcards" role="list"></div>
+      <div class="sgdots" aria-hidden="true">${cards.length > 1 ? cards.map(() => '<i></i>').join('') : ''}</div>`;
+    map.getContainer().parentElement!.append(p);
+    document.body.classList.add('suggest-strip');
+    panel = p;
+    // its height for the map's credits above it (--strip-h)
+    stripSize = new ResizeObserver(() => document.body.style.setProperty('--strip-h', `${p.offsetHeight}px`));
+    stripSize.observe(p);
     p.querySelector<HTMLButtonElement>('#sgClose')!.onclick = () => close();
     p.querySelector<HTMLButtonElement>('#sgChange')!.onclick = () => wish && openWish(wish.at, wish.name);
-    const list = p.querySelector<HTMLDivElement>('.sgcards')!;
+    const row = p.querySelector<HTMLDivElement>('.sgcards')!;
+    const dots = [...p.querySelectorAll<HTMLElement>('.sgdots i')];
+    const els: HTMLDivElement[] = [];
+    const mark = () => {
+      els.forEach((el, k) => { el.classList.toggle('on', k === chosen); el.setAttribute('aria-current', String(k === chosen)); });
+      dots.forEach((el, k) => el.classList.toggle('on', k === chosen));
+    };
+    /** one card in front at a time (a phone): the row's scroll position is the choice */
+    const oneAtATime = () => els.length > 0 && els[0].offsetWidth > row.clientWidth / 2;
+    const front = (i: number, smooth = true) => {
+      const el = els[i];
+      if (!el) return;
+      const pad = parseFloat(getComputedStyle(row).paddingLeft) || 0;
+      const left = el.offsetLeft - els[0].offsetLeft, right = left + el.offsetWidth + 2 * pad;
+      // wide: only when the card is not wholly in view; a phone: always to the front
+      if (oneAtATime() || left < row.scrollLeft || right > row.scrollLeft + row.clientWidth)
+        row.scrollTo({ left, behavior: smooth ? 'smooth' : 'auto' });
+    };
+    const pick = (i: number, scroll = true) => {
+      if (i < 0 || i >= cards.length) return;
+      if (scroll) front(i);
+      if (chosen === i) return;
+      chosen = i;
+      mark();
+      drawMap(true);
+    };
     cards.forEach((c, i) => {
       const d = document.createElement('div');
-      d.className = 'sgcard' + (i === chosen ? ' on' : '');
+      d.className = 'sgcard';
       d.setAttribute('role', 'listitem');
       d.tabIndex = 0;
-      d.innerHTML = `<span class="sgbadge ${c.badge ? 'signed' : 'own'}">${esc(c.badge ? t('suggest_ui_badge_signed', c.badge) : t('suggest_ui_badge_own'))}</span>
+      d.innerHTML = `<div class="sgtop"><span class="sgbadge ${c.badge ? 'signed' : 'own'}">${esc(c.badge ? t('suggest_ui_badge_signed', c.badge) : t('suggest_ui_badge_own'))}</span>
+          <button type="button" class="sgtake">${esc(t('suggest_ui_take'))}</button></div>
         <div class="sgname">${esc(c.name)}</div>
-        <div class="sgstats">${esc(`${number(c.km, 1)} km · ${hm(c.hours)} h · ↑ ${c.ascent} m`)}</div>
-        ${c.loopKm != null ? `<div class="sgfrom muted small">${esc(t('suggest_ui_on_loop', number(c.loopKm, 1)))}</div>` : ''}
+        <div class="sgstats">${esc(`${number(c.km, 1)} km · ${hm(c.hours)} h · ↑ ${c.ascent} m`)}${c.loopKm != null
+          ? ` <span class="sgfrom">· ${esc(t('suggest_ui_on_loop', number(c.loopKm, 1)))}</span>` : ''}</div>
         ${c.line ? `<div class="sgline">${esc(c.line)}</div>` : ''}
-        ${c.pills.length ? `<div class="sgpills">${c.pills.map((x) => `<span class="sgpill ${x.c}">${esc(x.t)}</span>`).join('')}</div>` : ''}
-        <div class="sgcardfoot"><button type="button" class="sgtake">${esc(t('suggest_ui_take'))}</button></div>`;
-      const pick = () => {
-        if (chosen === i) return;
-        chosen = i;
-        list.querySelectorAll('.sgcard').forEach((el, k) => el.classList.toggle('on', k === i));
-        drawMap(true);
-      };
-      d.onclick = pick;
-      d.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } };
+        ${c.pills.length ? `<div class="sgpills">${c.pills.map((x) => `<span class="sgpill ${x.c}">${esc(x.t)}</span>`).join('')}</div>` : ''}`;
+      d.onclick = () => pick(i);
       d.querySelector<HTMLButtonElement>('.sgtake')!.onclick = (e) => { e.stopPropagation(); void take(c, e.currentTarget as HTMLButtonElement); };
-      list.append(d);
+      row.append(d);
+      els.push(d);
     });
+    row.onkeydown = (e) => {
+      if (e.target instanceof HTMLButtonElement) return;
+      const here = els.indexOf((e.target as HTMLElement).closest('.sgcard') as HTMLDivElement);
+      const i = e.key === 'ArrowRight' ? chosen + 1 : e.key === 'ArrowLeft' ? chosen - 1 : e.key === 'Enter' || e.key === ' ' ? here : -1;
+      if (i < 0 || i >= cards.length) return;
+      e.preventDefault();
+      pick(i);
+      els[i].focus({ preventScroll: true });
+    };
+    // a swipe: where the row comes to rest is the card in front (only where one card is in front at a time)
+    let rest = 0;
+    row.addEventListener('scroll', () => {
+      clearTimeout(rest);
+      rest = window.setTimeout(() => {
+        if (!oneAtATime()) return;
+        const step = els.length > 1 ? els[1].offsetLeft - els[0].offsetLeft : 1;
+        const atEnd = row.scrollLeft > 0 && row.scrollLeft >= row.scrollWidth - row.clientWidth - 2;
+        pick(atEnd ? els.length - 1 : Math.round(row.scrollLeft / step), false);
+      }, 90);
+    }, { passive: true });
+    mark();
+    front(chosen, false);
   }
 
   /** „Übernehmen“: the loop as a normal plan – the planner's plan-from-track path (TrackToPlan), closed as a round trip. */
