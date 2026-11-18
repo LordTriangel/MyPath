@@ -299,8 +299,13 @@ class TourDb internal constructor(context: Context, name: String = "onpath.db") 
         segments: List<List<TrackPoint>>, waypoints: List<GpxWaypoint>, pinned: Set<Int> = emptySet(),
         /** [Tour.difficulty] of the new version; null = not known (the old level would describe the old line). */
         difficulty: String? = null,
-        /** [Tour.days] of the new version (null = a normal route: no days any more). */
+        /**
+         * [Tour.days] of the new version; null keeps the stored days (a synced multi-day plan routed afterwards, an
+         * older caller) – never wiped by a write that does not know them. [clearDays]: the new version has none (a plan
+         * from the browser that is no multi-day tour any more).
+         */
         days: MultiDay? = null,
+        clearDays: Boolean = false,
     ): Boolean {
         val db = writableDatabase
         db.beginTransaction()
@@ -309,7 +314,7 @@ class TourDb internal constructor(context: Context, name: String = "onpath.db") 
                 put("activity", activity); put("sac", sac); put("distance", distance); put("ascent", ascent)
                 put("descent", descent); put("duration", duration); put("waypoints", waypointsToJson(waypoints))
                 put("pinned", pinnedToJson(pinned)); put("difficulty", difficulty)
-                if (days != null) put("days", days.toJson()) else putNull("days")
+                if (days != null) put("days", days.toJson()) else if (clearDays) putNull("days")
             }, "id=? AND kind=? AND deleted_at IS NULL", arrayOf(id.toString(), TourKind.PLANNED.name))
             if (n == 0) return false
             db.delete("points", "tour_id=?", arrayOf(id.toString()))

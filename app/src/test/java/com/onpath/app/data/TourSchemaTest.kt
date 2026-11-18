@@ -236,6 +236,19 @@ class TourSchemaTest {
         }
     }
 
+    /**
+     * A synced multi-day plan is stored, then routed and stored again by callers that do not know its days (the view
+     * model's routing of synced plans): replacePlanned keeps the days unless told to clear them (a plan from the browser
+     * that is no multi-day tour any more – DbTourStore.replacePlan).
+     */
+    @Test fun replacingAPlannedRouteNeverWipesItsDaysUnasked() {
+        val db = java.io.File("src/main/java/com/onpath/app/data/TourDb.kt").readText()
+        assertTrue(db.substringAfter("fun replacePlanned(").substringBefore("\n    }\n")
+            .contains("if (days != null) put(\"days\", days.toJson()) else if (clearDays) putNull(\"days\")"))
+        val store = java.io.File("src/main/java/com/onpath/app/plansync/DbTourStore.kt").readText()
+        assertTrue(store.contains("clearDays = plan.days == null"))
+    }
+
     /** The service checks the row with every stats save and on the end of the tour. */
     @Test fun theServiceRescuesWhenTheRowIsGone() {
         val svc = java.io.File("src/main/java/com/onpath/app/recording/RecordingService.kt").readText()

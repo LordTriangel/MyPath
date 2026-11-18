@@ -35,7 +35,7 @@ class DbTourStore(
 
     override fun replacePlan(t: Tour, plan: PlanContent): Boolean =
         db.replacePlanned(t.id, plan.activity.name, plan.sac, Geo.length(plan.points), 0.0, 0.0, 0.0,
-            listOf(plan.points.map { TrackPoint(it.lat, it.lon) }), plan.stops, plan.pinned, days = plan.multiDay)
+            listOf(plan.points.map { TrackPoint(it.lat, it.lon) }), plan.stops, plan.pinned, days = plan.multiDay, clearDays = plan.days == null)
             .also { if (it) Backups.tourChanged(context, t.id) }
 
     override fun addTrack(name: String, track: TrackContent): Tour {
