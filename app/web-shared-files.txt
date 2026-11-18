@@ -30,6 +30,7 @@ navigation/JogRule.kt
 navigation/SpeedWindow.kt
 data/Geo.kt
 data/Format.kt
+data/DataNames.kt
 time/PaceModel.kt
 time/RouteTimes.kt
 routing/PlanCode.kt
