@@ -265,8 +265,6 @@
     <string name="nav_hold_hint">Press and hold</string>
     <string name="nav_stopped_since_head">Stopped since %1$s</string>
     <string name="nav_stopped_since">since %1$s</string>
-    <string name="nav_stopped_line">Recording and guidance are resting</string>
-    <string name="nav_stopped_line_free">Recording is resting</string>
     <string name="nav_so_far">So far %1$s</string>
     <string name="nav_on_the_way_for">%1$s h on the way</string>
 </resources>

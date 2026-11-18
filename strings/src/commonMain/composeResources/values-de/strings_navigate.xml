@@ -264,8 +264,6 @@
     <string name="nav_hold_hint">Gedrückt halten</string>
     <string name="nav_stopped_since_head">Angehalten seit %1$s</string>
     <string name="nav_stopped_since">seit %1$s</string>
-    <string name="nav_stopped_line">Aufzeichnung und Navigation ruhen</string>
-    <string name="nav_stopped_line_free">Aufzeichnung ruht</string>
     <string name="nav_so_far">Bisher %1$s</string>
     <string name="nav_on_the_way_for">seit %1$s h unterwegs</string>
 </resources>

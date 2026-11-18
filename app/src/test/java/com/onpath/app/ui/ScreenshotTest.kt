@@ -783,8 +783,8 @@ class ScreenshotTest {
     fun navigatePausedOpen() = paparazzi.snapshot { NavFrame(pausedUi, actions = true) }
 
     /**
-     * Locked and stopped (owner 2026-11-07, "Anhalten" variant 5): the card's head "⏸ Angehalten seit 14:32 –
-     * Aufzeichnung und Navigation ruhen", a thin line, the numbers, "Bisher 5,3 km · in Bewegung 1:12"; at the bottom the
+     * Locked and stopped (owner 2026-11-07, "Anhalten" variant 5): the card's head "⏸ Angehalten seit 14:32"
+     * (no calm line under it, owner 2026-11-18), a thin line, the numbers, "Bisher 5,3 km · in Bewegung 1:12"; at the bottom the
      * pale held buttons "▶ Weiter" (pale green too, owner 2026-11-08) over "■ Tour beenden | ✎ Planen" (EN in one row).
      */
     @Test fun navigatePausedLocked() = paparazzi.snapshot { NavFrame(pausedUi) }
@@ -810,7 +810,7 @@ class ScreenshotTest {
     /** The lock off, stopped: "▶ Weiter · ■ Tour beenden · ✎ Planen" as plain buttons – ending only out of a stop. */
     fun navigateLockOffPaused() = paparazzi.snapshot { NavFrame(pausedUi, lock = false) }
 
-    /** A free tour stopped: "Aufzeichnung ruht" (no route to stand still); no moving time → "seit 0:30 h unterwegs". */
+    /** A free tour stopped: the same head, no route numbers; no moving time → "seit 0:30 h unterwegs". */
     fun navigateFreePaused() = paparazzi.snapshot {
         NavFrame(NavUi(recordedM = 2_150.0, elapsedS = 1820, paused = true, pausedSinceMs = STOPPED_AT))
     }

@@ -2,14 +2,13 @@ package com.onpath.app.ui
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import java.util.TimeZone
 
 /**
  * The stopped head's words (owner 2026-11-07, "Anhalten" variant 5 – it replaced the pause band): since when the tour
- * stands still – the clock time the stop began, not a running duration – and what rests.
+ * stands still – the clock time the stop began, not a running duration.
  */
 class StoppedTextTest {
     private val berlin = TimeZone.getTimeZone("Europe/Berlin")
@@ -22,9 +21,12 @@ class StoppedTextTest {
         assertEquals("24 h, no seconds", "00:05", StoppedText.since(1_794_009_900_000L, TimeZone.getTimeZone("UTC")))
     }
 
-    @Test fun aFreeTourRestsOnlyTheRecording() {
-        assertTrue("free tour: \"Aufzeichnung ruht\"", StoppedText.freeLine(free = true))
-        assertFalse("with a route: \"Aufzeichnung und Navigation ruhen\"", StoppedText.freeLine(free = false))
+    /** Owner 2026-11-18: no calm line under the head – "Aufzeichnung und Navigation ruhen" / "Aufzeichnung ruht" are gone. */
+    @Test fun theCalmLineIsGone() {
+        for (dir in listOf("values", "values-de")) {
+            val xml = File("../strings/src/commonMain/composeResources/$dir/strings_navigate.xml").readText()
+            assertFalse("$dir: nav_stopped_line", xml.contains("nav_stopped_line"))
+        }
     }
 
     /** Owner 2026-11-07: the stop state is "Anhalten" / "Angehalten" everywhere it means this state – never "Pause". */
@@ -36,7 +38,6 @@ class StoppedTextTest {
         assertEquals("Angehalten", v("nav_status_paused"))
         assertEquals("Angehalten", v("nav_rec_paused_title"))
         assertEquals("Angehalten seit %1\$s", v("nav_stopped_since_head"))
-        assertEquals("Aufzeichnung und Navigation ruhen", v("nav_stopped_line"))
         assertEquals("Tour beenden", v("nav_end_tour"))
         // the other meanings stay: the estimate stands still, breaks
         assertEquals("Zeit pausiert", v("nav_time_paused"))

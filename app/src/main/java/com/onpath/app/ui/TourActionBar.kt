@@ -147,13 +147,11 @@ fun TourBottomBar(paused: Boolean, onPause: (Boolean) -> Unit, onEnd: () -> Unit
     else TourBottomBarRow(paused, onPause, onEnd, onPlan, modifier, null, held)
 }
 
-/** The stopped head's words (pure, unit-tested): since when the tour stands still, and what rests. */
+/** The stopped head's words (pure, unit-tested): since when the tour stands still. */
 object StoppedText {
     /** The clock time the stop began – "Angehalten seit 14:32" (24 h, the phone's time zone; [zone] for tests). */
     fun since(sinceMs: Long, zone: java.util.TimeZone = java.util.TimeZone.getDefault()): String =
         java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT).apply { timeZone = zone }.format(java.util.Date(sinceMs))
-    /** A free tour (no route followed) rests only the recording; with a route the guidance rests too. */
-    fun freeLine(free: Boolean): Boolean = free
 }
 
 /** [TourBottomBar]'s buttons; [held] = this button wants a hold ([holdHint]: the hint on an early release). */

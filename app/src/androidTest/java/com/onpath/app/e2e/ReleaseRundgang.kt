@@ -39,7 +39,7 @@ import com.onpath.strings.routes_overview_follow
 import com.onpath.strings.routes_act_chip_desc
 import com.onpath.strings.routes_act_all
 import com.onpath.strings.common_ok
-import com.onpath.strings.nav_stopped_line
+import com.onpath.strings.nav_status_paused
 import com.onpath.strings.nav_arrived_title
 import com.onpath.strings.nav_end_tour
 import com.onpath.strings.nav_keep_recording
@@ -617,14 +617,14 @@ class ReleaseRundgang : E2EBase() {
         shot("1-far-start")
         scenario.onActivity { vm(it).pauseRecording(true) }
         waitUntil("paused", 10_000) { com.onpath.app.recording.RecordingService.state.value?.paused == true }
-        assertNotNull("the stopped head", findFresh(By.text(Txt.s(Res.string.nav_stopped_line)), 10_000))
+        assertNotNull("the stopped head", findFresh(By.textStartsWith(Txt.s(Res.string.nav_status_paused)), 10_000))
         assertTrue("paused: the question is hidden", goneFresh(By.text(NavText.LEAD), 5_000))
         assertTrue("…but not answered or dropped", (nav()?.prompt as? NavPrompt.FarStart)?.id == asked)
         shot("2-paused-calm")
         scenario.onActivity { vm(it).pauseRecording(false) }
         waitUntil("recording again", 10_000) { com.onpath.app.recording.RecordingService.state.value?.paused == false }
         assertNotNull("Weiter: the question is back", findFresh(By.text(NavText.LEAD), 10_000))
-        assertTrue("the stopped head is gone", goneFresh(By.text(Txt.s(Res.string.nav_stopped_line)), 5_000))
+        assertTrue("the stopped head is gone", goneFresh(By.textStartsWith(Txt.s(Res.string.nav_status_paused)), 5_000))
         shot("3-asked-again")
     }
 

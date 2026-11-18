@@ -604,7 +604,7 @@ internal fun NavStatusCard(ui: NavUi, onResume: () -> Unit, profileOpen: Boolean
       val tight = CardFit.tight(ui, maxWidth, canOpen)
       Column {
         // stopped (owner 2026-11-08, v6): the stopped block over the whole card width – the calm line never hidden
-        if (ui.paused && ui.recordedM != null) StoppedHead(ui.pausedSinceMs, free = ui.toGo == null)
+        if (ui.paused && ui.recordedM != null) StoppedHead(ui.pausedSinceMs)
         Row(Modifier.heightIn(min = 56.dp).padding(start = if (ui.activity != null) 8.dp else 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
             verticalAlignment = Alignment.CenterVertically) {
             // the activity first (owner: a wrong activity is a disaster); its own 48 dp target opens the check sheet
@@ -1276,20 +1276,18 @@ private fun SplitLine(line: String, style: androidx.compose.ui.text.TextStyle, c
 }
 
 /**
- * The status card's head while a tour is stopped (owner 2026-11-07, "Anhalten"; 2026-11-08 v6: "Aufzeichnung und
- * Navigation ruhen" never showed on a 1080 px phone – beside the activity and the arrival clock it never fitted on one
- * line): over the card's full width on top – a walnut ⏸ and "Angehalten seit 14:32" (the clock time the stop began,
- * [StoppedText]; too long for one line: "Angehalten" over "seit 14:32"), under it the calm line (free tour: "Aufzeichnung
- * ruht"; may wrap, never hidden), a thin line, then the card's usual row.
+ * The status card's head while a tour is stopped (owner 2026-11-07, "Anhalten"): over the card's full width on top – a
+ * walnut ⏸ and "Angehalten seit 14:32" (the clock time the stop began, [StoppedText]; too long for one line:
+ * "Angehalten" over "seit 14:32"), a thin line, then the card's usual row. No calm line under the head (owner
+ * 2026-11-18: "Aufzeichnung und Navigation ruhen" / "Aufzeichnung ruht" dropped).
  */
 @Composable
-private fun StoppedHead(sinceMs: Long?, free: Boolean) {
+private fun StoppedHead(sinceMs: Long?) {
     val headStyle = MaterialTheme.typography.titleMedium.copy(fontFeatureSettings = "tnum", fontWeight = FontWeight.SemiBold)
     val word = str(Res.string.nav_status_paused)
     val clock = sinceMs?.let { StoppedText.since(it) }
     val head = clock?.let { str(Res.string.nav_stopped_since_head, it) } ?: word
     val since = clock?.let { str(Res.string.nav_stopped_since, it) }
-    val line = str(if (StoppedText.freeLine(free)) Res.string.nav_stopped_line_free else Res.string.nav_stopped_line)
     val tm = rememberTextMeasurer()
     val iconPx = with(androidx.compose.ui.platform.LocalDensity.current) { 28.dp.roundToPx() }
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 10.dp)) {
@@ -1305,8 +1303,6 @@ private fun StoppedHead(sinceMs: Long?, free: Boolean) {
                     modifier = Modifier.padding(start = 28.dp))
             }
         }
-        Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2,
-            modifier = Modifier.padding(start = 28.dp))
         androidx.compose.material3.HorizontalDivider(Modifier.padding(top = 8.dp), thickness = 1.dp,
             color = OnPathColors.Walnut.copy(alpha = 0.15f))
     }

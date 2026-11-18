@@ -1184,8 +1184,7 @@ class CoreFieldE2ETest : E2EBase() {
             waitUntil("paused", 10_000) { com.onpath.app.recording.RecordingService.state.value?.paused == true }
             assertNotNull("Weiter at the bottom", findFresh(By.text(Txt.s(Res.string.common_resume)), 5_000))
             // the stopped head in the status card (owner 2026-11-07, "Anhalten" variant 5): "Angehalten seit 14:32" – or
-            // "Angehalten" over "seit 14:32" at large font. Its line "… ruhen" shows only where it fits on one line beside the
-            // activity and the arrival (not on a 1080 px emulator), so the head is what is checked.
+            // "Angehalten" over "seit 14:32" at large font (no calm line under it since owner 2026-11-18).
             assertNotNull("the stopped head in the card",
                 findFresh(By.textStartsWith(Txt.s(Res.string.nav_status_paused)), 5_000))
             clickText(Txt.s(Res.string.nav_end_tour))

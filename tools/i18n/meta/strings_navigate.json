@@ -1275,20 +1275,6 @@
     "confidence": "sicher",
     "max": 14
   },
-  "nav_stopped_line": {
-    "area": "Navigate (stopped)",
-    "context": "Calm line under the stopped head in the status card: what stands still while a tour with a route is stopped. Dropped where it does not fit on one line.",
-    "priority": 1,
-    "confidence": "sicher",
-    "max": 36
-  },
-  "nav_stopped_line_free": {
-    "area": "Navigate (stopped)",
-    "context": "The same for a free tour (no route followed): only the recording rests.",
-    "priority": 1,
-    "confidence": "sicher",
-    "max": 36
-  },
   "nav_so_far": {
     "area": "Navigate (stopped)",
     "context": "Last line of the stopped status card: the distance recorded so far, %1$s = '5.3 km'. Followed by ' · moving 1:12'.",

@@ -11,8 +11,8 @@ import java.util.Locale
 
 /**
  * Navigate's status card at a real phone's size (1080 × 2400, 420 dpi) with the arrival clock "Ankunft 16:40", moving and
- * stopped, in DE, EN and DE at the largest font (owner 2026-11-08, v6 + v7): the stopped head and its calm line over the
- * full width (0.17.5 hid "Aufzeichnung und Navigation ruhen" here), and at a large font the arrival under the numbers –
+ * stopped, in DE, EN and DE at the largest font (owner 2026-11-08, v6 + v7): the stopped head over the full width (its
+ * calm line "Aufzeichnung und Navigation ruhen" dropped, owner 2026-11-18), and at a large font the arrival under the numbers –
  * never "↓…" or "km…" ([CardFit]).
  */
 abstract class StatusCardPhoneShots(private val locale: Locale) {
