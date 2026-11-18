@@ -51,16 +51,14 @@ class SavePathsTest {
 
     /**
      * Tester review 2026-11-07: the draft is written BEFORE the plan leaves the map – not after a wait of up to 5 s for a
-     * place name in the background (a kill in that window lost the plan). The name follows (RoutesFlowPropertyTest
-     * .theDraftIsWrittenBeforeTheNameAndANameThatNeverComesLosesNothing).
+     * place name in the background (a kill in that window lost the plan). The write, its order and the name that follows
+     * are behaviour tests now (RecentPlansTest.theDraftIsWrittenBeforeThePlanLeavesTheMapAndTheNameFollows,
+     * .aNameThatNeverComesLosesNothing); here only that the view model hands the plan over on the calling thread.
      */
-    @Test fun theDraftIsWrittenBeforeThePlanLeavesTheMap() {
+    @Test fun thePlanIsHandedToZuletztBeforeItLeavesTheMap() {
         val keep = body("private fun keepAsDraft(why: String) {")
-        val write = keep.indexOf("routes.keepDraft(")
-        assertTrue(keep, write >= 0)
-        assertTrue("written before any background work", keep.indexOf("launchSafe") < 0 || write < keep.indexOf("launchSafe"))
-        assertTrue("written before the name wait", write < keep.indexOf("NAME_WAIT_MS"))
-        assertTrue("the place name follows as a rename", keep.contains("routes.renameDraft("))
+        assertTrue(keep, keep.contains("recent.keep("))
+        assertFalse("handed over at once, no background work before it", keep.contains("launch"))
     }
 
     /** Pixel review 2026-11-06: the demo ride ends with its tour – "DEMO" / "Sim" do not stay (DemoLocationTest). */
@@ -98,11 +96,17 @@ class SavePathsTest {
         assertTrue(from.contains("change { clear(); addAll(pts) }") && from.contains("change { clear(); addAll(r.points) }"))
     }
 
-    /** Process death / app update mid-plan: every edit writes the points, the next start reads them. */
+    /**
+     * Process death / app update mid-plan: every edit writes the points, the next start reads them – behaviour now
+     * (ui/plan/PlanDocumentTest.everyEditIsStoredAndTheNextStartReadsIt, .everyOtherWayThePointsChangeIsStoredToo,
+     * .theSavedLinkSurvivesTheProcessAndCanBeTakenAway, on the real preferences). Here only the wiring: the view model's
+     * plan is that document on the app's preferences, and every edit goes through it.
+     */
     @Test fun thePlanSurvivesTheProcess() {
-        assertTrue(body("private fun change(").contains("prefs.planWaypoints = waypoints.toList()"))
-        assertTrue(vm.contains("val waypoints = mutableStateListOf<GeoPoint>().apply { addAll(prefs.planWaypoints) }"))
-        assertTrue(vm.contains("private var savedPoints by mutableStateOf(prefs.planSavedPoints)"))
+        assertTrue(vm.contains("private val plan = com.onpath.app.ui.plan.PlanDocument(com.onpath.app.ui.plan.PrefsPlanStore(prefs))"))
+        assertTrue(vm.contains("val waypoints get() = plan.points"))
+        assertTrue(body("private fun change(").contains("plan.edit(block)"))
+        assertFalse("no second place that writes the plan's preferences", vm.contains("prefs.planWaypoints") || vm.contains("prefs.planSavedPoints"))
     }
 
     /** Backups, "Export all" and the browser sync carry saved items only – no plan under Zuletzt (owner 2026-11-06). */

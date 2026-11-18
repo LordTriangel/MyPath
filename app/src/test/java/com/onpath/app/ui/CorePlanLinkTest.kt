@@ -55,14 +55,14 @@ class CorePlanLinkTest {
             assertEquals(LinkOpen.AFTER_TOUR, RouteRules.linkOpen(true, plan, null, link))
     }
 
-    /** The wiring the pure rules cannot see (the view model needs Android): checked in the source. */
+    /**
+     * A broken link says so and changes nothing: behaviour now (ui/sync/PlanLinkFlowTest.aBrokenLinkSaysSoAndChangesNothing –
+     * the red line on the map, the problem log, nothing opened). Here the wiring only the source shows: the view model
+     * hands every link to that flow, and MainActivity looks for a plan link first.
+     */
     @Test fun brokenLinkSaysSoAndChangesNothing() {
         val vm = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
-        val receive = vm.substringAfter("fun receivePlanLink(").substringBefore("fun pastedPlanLink(")
-        val broken = receive.substringAfter("Found.Broken ->").substringBefore("Found.Plan ->")
-        assertTrue(broken, "sayError(Txt.s(Res.string.msg_plan_link_unreadable), NoticePlace.MAP)" in broken)
-        assertTrue(broken, "Problems.warn(" in broken)
-        assertTrue(broken, "return" in broken && "change" !in broken && "waypoints" !in broken)
+        assertTrue("fun receivePlanLink(found: com.onpath.app.routing.PlanLinks.Found, via: String) = links.receive(found, via)" in vm)
         // MainActivity checks for a plan link before the place / GPX handling (a planner link is no Google place)
         val act = File("src/main/java/com/onpath/app/MainActivity.kt").readText().substringAfter("private fun handleIntent(")
         assertTrue(act.indexOf("planLinkOf(intent)") in 0 until act.indexOf("sharedPlaceOf(intent)"))

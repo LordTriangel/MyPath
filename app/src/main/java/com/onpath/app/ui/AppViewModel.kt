@@ -27,7 +27,6 @@ import com.onpath.app.data.RoutingDataNotice
 import com.onpath.app.debug.Problems
 import com.onpath.app.domain.AppMode
 import com.onpath.app.domain.HoldPaths
-import com.onpath.app.domain.LinkOpen
 import com.onpath.app.domain.NewPlanNote
 import com.onpath.app.domain.NotRouted
 import com.onpath.app.domain.OfflineReady
@@ -83,7 +82,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filterNotNull
@@ -105,7 +103,6 @@ import com.onpath.app.domain.plan.LivePlanRows
 import com.onpath.app.domain.plan.RouteBack
 import com.onpath.app.domain.plan.RouteRun
 import com.onpath.app.domain.plan.RoutingSpot
-import com.onpath.app.domain.plan.PlanSession
 import com.onpath.app.domain.tour.QuietGate
 
 /** A track shown on the map (imported GPX, recorded or saved tour). */
@@ -232,7 +229,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * My routes' state and decisions ([com.onpath.app.ui.routes.RoutesState], audit package 4 stage 3): open, tab, the
      * list, Zuletzt, the "✓ Gerade gespeichert" mark; the database behind a small store. The names below forward to it.
      */
-    private val routes = com.onpath.app.ui.routes.RoutesState(object : com.onpath.app.ui.routes.RoutesStore {
+    private val routesStore = object : com.onpath.app.ui.routes.RoutesStore {
         override fun listTours() = db.listTours()
         override fun listDeleted() = db.listDeleted()
         override fun setDraft(id: Long, draft: Boolean) = db.setDraft(id, draft)
@@ -240,10 +237,31 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         override fun loadSegments(id: Long) = db.loadSegments(id)
         override fun deleteForGood(id: Long) { db.deleteTour(id) }
         override fun rename(id: Long, name: String) = db.rename(id, name)
-    }, recent = prefs.zuletztId).also {
+    }
+    private val routes = com.onpath.app.ui.routes.RoutesState(routesStore, recent = prefs.zuletztId).also {
         it.onClosed = { routesNote = null } // the line at the top lasts until My routes is left
         it.onRecent = { id -> prefs.zuletztId = id } // the Zuletzt row survives an app start
     }
+    /**
+     * Zuletzt and the recycle bin as the user's actions ([com.onpath.app.ui.routes.RecentPlans], cleanup piece 4): a plan
+     * that leaves the map is kept, Zuletzt → Speichern / Löschen, the bin's list, Restore, Delete now. The names below
+     * ([keepAsDraft], [saveDraft], [recycleBin] …) forward to it.
+     */
+    private val recent = com.onpath.app.ui.routes.RecentPlans(routes, routesStore, object : com.onpath.app.ui.routes.RecentPlansHost {
+        override fun insertDraft(row: com.onpath.app.ui.routes.RecentPlans.DraftRow) =
+            db.insertTour(TourKind.PLANNED, row.name, row.activity, row.sac, row.distanceM, row.ascentM, row.descentM, row.durationS,
+                row.segments, row.waypoints, pinned = row.pinned, draft = true, difficulty = row.difficulty)
+        override fun storeTimes(id: Long, route: PlannedRoute?, activity: Activity) = storePlanTimes(id, route, activity)
+        override suspend fun proposeName(points: List<GeoPoint>, route: PlannedRoute?) = this@AppViewModel.proposeName(points, route)
+        override fun tourChanged(id: Long) = Backups.tourChanged(getApplication(), id)
+        override fun purged(uuid: String) = Backups.purge(getApplication(), listOf(uuid))
+        override fun syncChanged(why: String) = sync.changed(why)
+        override fun refreshTours() = this@AppViewModel.refreshTours()
+        override fun problem(text: String) { routesProblem = text }
+        override var trimmed: Boolean
+            get() = prefs.zuletztTrimmed
+            set(v) { prefs.zuletztTrimmed = v }
+    }, viewModelScope, Dispatchers.IO)
     /**
      * My routes' map pictures (owner 2026-11-13, L1: a square map + the route left of each row): files by uuid
      * ([com.onpath.app.map.RouteThumbs], `files/thumbs/`, not backed up), made in the background by [thumbMaker] after
@@ -838,11 +856,47 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var screenRest by mutableStateOf(false)
 
     // --- planning ---
-    val waypoints = mutableStateListOf<GeoPoint>().apply { addAll(prefs.planWaypoints) }
-    /** The plan being edited: points, Undo / Redo, pinned points, the one-point rule's start ([PlanSession]). */
-    private val plan = PlanSession(waypoints, prefs.planPinned)
-    /** Pinned (POI) points, kept by value ([PlanSession.pinned]). */
-    private val pinned: MutableSet<GeoPoint> get() = plan.pinned
+    /**
+     * The plan on the map as one object ([com.onpath.app.ui.plan.PlanDocument], cleanup piece 4): its points, Undo / Redo,
+     * the pinned points and the saved route it belongs to – written to the preferences as it changes, read back at start.
+     */
+    private val plan = com.onpath.app.ui.plan.PlanDocument(com.onpath.app.ui.plan.PrefsPlanStore(prefs))
+    /** The plan's points ([com.onpath.app.ui.plan.PlanDocument.points]). */
+    val waypoints get() = plan.points
+    /** Pinned (POI) points, kept by value ([com.onpath.app.ui.plan.PlanDocument.pinned]). */
+    private val pinned: Set<GeoPoint> get() = plan.pinned
+    /**
+     * Plan links in and out ([com.onpath.app.ui.sync.PlanLinkFlow], cleanup piece 4): a link opened in OnPath, what the
+     * last link brought (its name, its points), a plan sent as a link. [receivePlanLink] … forward to it.
+     * Declared up here, above the init blocks: a route result at start reaches it ([com.onpath.app.ui.sync.PlanLinkFlow.snapped]).
+     */
+    private val links = com.onpath.app.ui.sync.PlanLinkFlow(object : com.onpath.app.ui.sync.PlanLinkHost {
+        override fun backToMap() {
+            routesOpen = false; showSettings = false; offlineResult = null; timeDetails = null; routeDetailsOpen = false; searchOpen = false
+            closeMapOverlays()
+        }
+        override fun sayError(text: String, place: NoticePlace) { this@AppViewModel.sayError(text, place) }
+        override fun receivePairing(secret: ByteArray, via: String) { this@AppViewModel.receivePairing(secret, via) }
+        override fun openSyncSettings() { openSettings(SettingsPage.SYNC) }
+        override suspend fun startModeKnown() {
+            if (!this@AppViewModel.startModeKnown) androidx.compose.runtime.snapshotFlow { this@AppViewModel.startModeKnown }.first { it }
+        }
+        override fun navigating(): Boolean = navigating(recState.value != null)
+        override fun planPoints(): List<GeoPoint> = waypoints.toList()
+        override fun savedPoints(): List<GeoPoint>? = this@AppViewModel.savedPoints
+        override fun open(plan: com.onpath.app.routing.SharedPlan, via: String) { if (shown != null) closeShown(); openSharedPlan(plan, via) }
+        override fun share(link: String, title: String?) {
+            val send = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, link)
+                title?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
+            }
+            events += UiEvent.Share(Intent.createChooser(send, Txt.s(Res.string.plan_share_plan)))
+        }
+        override var storedLinkPoints: List<GeoPoint>?
+            get() = prefs.planLinkPoints
+            set(v) { prefs.planLinkPoints = v }
+    }, viewModelScope)
     fun pinnedIndices(): Set<Int> = plan.pinnedIndices()
     /**
      * POI kinds of pinned points (owner 2026-11-10, variant A: the POI symbol stays, a blue ring + badge around it):
@@ -884,10 +938,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
     /** Followed routes replaced by plan edits during the tour (Undo takes them back exactly, Bug 02). */
     private val followHistory = FollowHistory()
-    var canUndo by mutableStateOf(false)
-        private set
-    var canRedo by mutableStateOf(false)
-        private set
+    val canUndo: Boolean get() = plan.canUndo
+    val canRedo: Boolean get() = plan.canRedo
     /**
      * Plan panel size (full / compact / mini / rolled up), kept while the app runs: a plan opens at the summary step
      * (owner 2026-10-31); rolled up by the user it stays rolled up through route updates until opened again.
@@ -1049,20 +1101,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
 
     // --- saved state of the plan (menus / Manage routes) ---
-    /** Name, tour id and points the plan was last saved or loaded as; the plan is unsaved when its points differ. */
-    private var linkName by mutableStateOf(prefs.planSavedName)
-    private var linkId = prefs.planSavedId
-    private var savedPoints by mutableStateOf(prefs.planSavedPoints)
-    /**
-     * The plan still belongs to that saved route (RouteRules.linkedToSaved): after Clear or with every point replaced
-     * it is a new plan – no saved name, Save asks for a new name; Undo back to the old points restores the link.
-     */
-    private val planLinked: Boolean get() = RouteRules.linkedToSaved(waypoints, savedPoints)
+    /** Name, tour id and points the plan was last saved or loaded as ([com.onpath.app.ui.plan.PlanDocument]: stored, linked, unsaved). */
+    private val linkName: String? get() = plan.linkName
+    private val linkId: Long get() = plan.linkId
+    private val savedPoints: List<GeoPoint>? get() = plan.savedPoints
+    /** The plan still belongs to that saved route (after Clear or with every point replaced it is a new plan). */
+    private val planLinked: Boolean get() = plan.linked
     /** Name the plan was saved / loaded as, while it still belongs to that route. */
-    val savedName: String? get() = linkName.takeIf { planLinked }
-    private val savedId: Long get() = if (planLinked) linkId else -1L
+    val savedName: String? get() = plan.savedName
+    private val savedId: Long get() = plan.savedId
     /** The plan has a route worth keeping that differs from the last save / load (RouteRules.isUnsaved). */
-    val planUnsaved: Boolean get() = RouteRules.isUnsaved(waypoints, savedPoints)
+    val planUnsaved: Boolean get() = plan.unsaved
     /** Save's name dialog while open (owner 2026-10-31: Save always asks for the name; [requestSave], [requestCopyRoute]). */
     var saveAsk by mutableStateOf<SaveAsk?>(null)
         private set
@@ -1709,8 +1758,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (WholeRoute.firstRoute(before.size, waypoints.size)) routeEvent(RouteRun.Event.FitNext)
         routingSpot = RoutingSpot.of(before, waypoints)
         cellsForNewPoints(before, waypoints)
-        canUndo = plan.canUndo; canRedo = plan.canRedo
-        prefs.planWaypoints = waypoints.toList()
         prunePinned()
         routeEvent(RouteRun.Event.PlanEdited)
         val split = splitOf(before, waypoints.toList())
@@ -1813,9 +1860,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (back != null) {
             Problems.trace("plan", "Route back to the start: yes – plan = position → start")
             val before = waypoints.toList()
-            waypoints.clear(); waypoints.addAll(back)
+            this.plan.replace(back)
             cellsForNewPoints(before, waypoints)
-            prefs.planWaypoints = waypoints.toList()
             prunePinned()
             routeEvent(RouteRun.Event.PlanEdited)
             recalc()
@@ -1868,7 +1914,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 (if (auto) "only the start this rule put in" else "right where I stand") + ": the plan empties (field bug 2026-11-06)")
             routeBackAsk = false
             plan.empty()
-            prefs.planWaypoints = emptyList()
             return // endGuidanceIfPlanEmpty: the guidance ends, the recording goes on
         }
         val goal = left!!
@@ -1883,14 +1928,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         pendingSplit = null // a whole new plan from here, nothing of it passed
         plan.fromHere(pos, goal)
         cellsForNewPoints(before, waypoints)
-        prefs.planWaypoints = waypoints.toList()
         Problems.trace("plan", "One point left during the tour: plan = position → that point (like Hierhin)")
     }
 
-    /** Forget pinned points that are neither planned nor reachable by undo/redo ([PlanSession.prunePinned]). */
-    private fun prunePinned() {
-        if (plan.prunePinned()) prefs.planPinned = pinned
-    }
+    /** Forget pinned points that are neither planned nor reachable by undo/redo (stored when some went). */
+    private fun prunePinned() = plan.prunePinned()
 
     private fun set(list: List<GeoPoint>) = change { clear(); addAll(list) }
 
@@ -1900,7 +1942,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * @param lineSnapM "on the line" distance, ~24 dp in metres at the current zoom.
      */
     fun addPoint(p: GeoPoint, lineSnapM: Double = 30.0, onPoi: Boolean = false) {
-        if (onPoi) { pinned += p; prefs.planPinned = pinned }
+        if (onPoi) plan.pin(p)
         val ins = insertionFor(p, lineSnapM)
         if (ins.decision.kind == WaypointInsertion.Kind.ON_THE_WAY)
             Problems.trace("plan", "New point on the way there (led to a route never reached): a stop before ①, the tour " +
@@ -2141,7 +2183,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         rememberPlaceName(p, com.onpath.app.search.Place.fromPoi(poi).title())
         rememberPoiKind(p, poi.kind)
         val pin = takePin(poi.lat, poi.lon)
-        pinned += p; prefs.planPinned = pinned
+        plan.pin(p)
         val before = waypoints.size
         if (candidate) fittingPlaceAdd { edit(p) } else edit(p)
         pinTaken = pin?.let { TakenPin(it, p) }
@@ -2280,7 +2322,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         rememberPlaceName(p, com.onpath.app.search.Place.fromPoi(poi).title())
         rememberPoiKind(p, poi.kind)
         val pin = takePin(poi.lat, poi.lon)
-        pinned += p; prefs.planPinned = pinned
+        plan.pin(p)
         change { add(GeoPoint(loc.latitude, loc.longitude)); add(p) }
         pinTaken = pin?.let { TakenPin(it, p) }
         Problems.trace("plan", "Go here from my location: \"${poi.name ?: poi.kind}\" (plan 0 → ${waypoints.size} points)")
@@ -2574,7 +2616,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             when (role) { PlaceRole.START -> startAtPoint(idx); PlaceRole.DESTINATION -> makeDestination(idx); PlaceRole.SMART -> Unit }
             return@fittingPlaceAdd
         }
-        pinned += p; prefs.planPinned = pinned
+        plan.pin(p)
         when (role) {
             // No timed notices (owner rule): the named marker and the new line show what happened.
             PlaceRole.SMART -> addPoint(p, onPoi = true)
@@ -2648,13 +2690,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         routingSpot = RoutingSpot.of(before, prev)
         val split = splitOf(before, prev)
         plan.replace(prev)
-        canUndo = plan.canUndo; canRedo = plan.canRedo
         // the plan an open question was about is gone; one point left where I stand asks nothing (standing on it counts it
         // as passed, so the split says NothingAhead – GitHub run 2026-11-07, as for edits in change())
         routeBackAsk = split == TourSplit.Outcome.NothingAhead && !plan.leftIsHere(myPosition())
         oneLeftGoesFromHere(before)
         closePointMenu("undo / redo"); firstPointMenu = null; holdAddMenu = null; cancelHoldMeasure(what)
-        prefs.planWaypoints = waypoints.toList()
         routeEvent(RouteRun.Event.PlanEdited)
         planChanged()
         endGuidanceIfPlanEmpty()
@@ -3091,16 +3131,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val far = res.far
         if (far.isNotEmpty()) Problems.trace("routing", "Route does not reach point(s) ${far.sorted().joinToString { "${it + 1}" }}")
         val snapped = res.points.takeIf { res.moved } ?: return
-        for (i in snapped.indices) if (snapped[i] != routed[i]) waypoints[i] = snapped[i]
+        plan.moveSnapped(routed, snapped)
         aliasSnappedLegs(routed, snapped, res.activity, res.sac)
         if (routed.size >= 2 && !RouteRules.isUnsaved(routed, savedPoints)) setSaved(linkName, linkId, snapped)
-        linkTitle?.let { (title, at) -> if (at == routed) linkTitle = title to snapped }
-        linkPoints?.let { at -> if (at.map { it.lat to it.lon } == routed.map { it.lat to it.lon }) linkPoints = snapped }
+        links.snapped(routed, snapped)
         val moves = WaypointSnap.moves(routed, snapped)
-        plan.snapped(moves)
+        plan.snappedHistory(moves)
         // an open menu follows its point to the snapped position (it must still find it for Delete)
         pointMenuTarget = pointMenuTarget?.afterSnap(moves)
-        prefs.planWaypoints = waypoints.toList()
     }
 
     /**
@@ -3384,7 +3422,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** How long the dialog waits for the place proposal of a new route's name (it shows the date name meanwhile). */
-    private val NAME_WAIT_MS = 5_000L
+    private val NAME_WAIT_MS = com.onpath.app.ui.routes.RecentPlans.NAME_WAIT_MS
 
     // a plan from "Zuletzt" is no saved route: Save makes a new one (and the draft goes – [insertPlanned])
     private fun currentSaveMode() =
@@ -3399,74 +3437,22 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * A plan worth keeping that leaves the map unsaved ([planUnsaved]: never saved, or a saved plan changed – its original
-     * stays as it is) goes under My routes → Zuletzt, no question ([Drafts]). The same points twice (Undo, clear again)
-     * make no second entry; exactly one plan stays under Zuletzt – this one, the one worked on last, the draft before it
-     * goes to the recycle bin; a plan saved as it is takes the place as that saved route (owner 2026-11-12,
-     * [com.onpath.app.ui.routes.RoutesState.keepDraft]).
+     * stays as it is) goes under My routes → Zuletzt, no question: written at once, before it leaves the map
+     * ([com.onpath.app.ui.routes.RecentPlans.keep]).
      */
     private fun keepAsDraft(why: String) {
         val pts = waypoints.toList()
-        val unsaved = planUnsaved
-        val saved = savedId
         if (pts.size < 2) return
-        val r = route
-        val act = activity; val level = sac
-        val stops = savedStops(pts); val pins = pinnedIndices()
-        val dated = defaultName(Txt.s(Res.string.msg_name_route))
-        val key = pts.map { it.lat to it.lon }
-        // written NOW, under the date name, before the plan leaves the map (tester review 2026-11-07: it waited up to 5 s
-        // for a place name in the background, and a kill in that window lost the plan). One row on the calling thread –
-        // the plan points in the prefs go with the clear right after this, so the database must hold them first.
-        val id = runCatching {
-            // not twice: no second draft with these points, none for a saved route with them (RoutesState)
-            routes.keepDraft(key, unsaved, saved) {
-                db.insertTour(TourKind.PLANNED, dated, act.name, level,
-                    r?.distanceM ?: 0.0, r?.ascentM ?: 0.0, r?.descentM ?: 0.0, r?.durationS ?: 0.0,
-                    listOf((r?.points ?: pts).map { TrackPoint(it.lat, it.lon, it.ele) }), stops, pinned = pins, draft = true,
-                    difficulty = difficultyOf(r, act),
-                )
-            }
-        }.onFailure { Problems.error("db", "The plan could not be kept under Zuletzt", it) }.getOrNull()
-        refreshTours() // the Zuletzt place changed hands either way (a draft replaced, a saved route there now)
-        if (id == null) return
-        Problems.trace("plan", "Plan kept under Zuletzt ($why): \"$dated\", ${pts.size} points")
-        // then the model times and the place name ("Algund → Meran"); nothing fits in time → the date name stays
-        viewModelScope.launchSafe("app", "nameDraft") {
-            withContext(Dispatchers.IO) { storePlanTimes(id, r, act) }
-            val proposed = withTimeoutOrNull(NAME_WAIT_MS) { proposeName(pts, r) }
-            val renamed = withContext(Dispatchers.IO) {
-                runCatching { routes.renameDraft(id, dated, proposed) }
-                    .onFailure { Problems.warn("db", "The plan under Zuletzt keeps its date name (rename failed)", it) }.getOrDefault(false)
-            }
-            if (renamed) { Problems.trace("plan", "Zuletzt: \"$dated\" → \"$proposed\""); refreshTours() }
-        }
+        val r = route; val act = activity
+        recent.keep(com.onpath.app.ui.routes.RecentPlans.Leaving(pts, planUnsaved, savedId, r, act, sac, savedStops(pts), pinnedIndices(),
+            defaultName(Txt.s(Res.string.msg_name_route))) { difficultyOf(r, act) }, why)
     }
 
     /** My routes → Zuletzt → Speichern: the plan becomes saved (backup, browser sync); it shows "✓ Gerade gespeichert". */
-    fun saveDraft(t: Tour) {
-        viewModelScope.launchSafe("app", "saveDraft") {
-            val ok = withContext(Dispatchers.IO) {
-                runCatching { routes.saveDraft(t.id) }.onFailure { Problems.error("db", "A plan under Zuletzt could not be saved", it) }.getOrDefault(false)
-            }
-            if (!ok) { routesProblem = Txt.s(Res.string.msg_route_save_failed); return@launchSafe }
-            Problems.trace("plan", "Zuletzt → saved: \"${t.name}\"")
-            routes.markSaved(t.id)
-            Backups.tourChanged(getApplication(), t.id)
-            sync.changed("plan saved from Zuletzt")
-            refreshTours()
-        }
-    }
+    fun saveDraft(t: Tour) = recent.saveDraft(t)
 
     /** My routes → Zuletzt → Löschen: to the recycle bin at once, no question (owner 2026-11-06). */
-    fun deleteDraft(t: Tour) {
-        viewModelScope.launchSafe("app", "deleteDraft") {
-            val ok = withContext(Dispatchers.IO) {
-                runCatching { routes.toBin(t.id) }
-                    .onFailure { Problems.error("db", "A plan under Zuletzt could not be moved to the recycle bin", it) }.getOrDefault(false)
-            }
-            if (ok) { Problems.trace("plan", "Zuletzt → recycle bin: \"${t.name}\""); refreshTours() }
-        }
-    }
+    fun deleteDraft(t: Tour) = recent.deleteDraft(t)
 
     /**
      * The plan on the map for My routes (owner 2026-11-06 23:00: "unter Zuletzt ‚gerade in Bearbeitung', dann weiß ich, dass
@@ -3688,8 +3674,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun setSaved(name: String?, id: Long, points: List<GeoPoint>?) {
-        linkName = name; linkId = id; savedPoints = points
-        prefs.planSavedName = name; prefs.planSavedId = id; prefs.planSavedPoints = points
+        plan.setSaved(name, id, points)
         // saved at the tour start / on the way: the tour's copy knows its route and name now
         if (recState.value != null && followFromPlan && followLine != null && !followIsTrack) recopyFollowedPlan()
     }
@@ -3912,7 +3897,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      */
     private suspend fun proposeName(pts: List<GeoPoint>, r: PlannedRoute?): String? {
         if (pts.size < 2) return null
-        linkTitle?.let { (title, at) -> if (at == pts) return title }
+        links.title(pts)?.let { return it }
         val line = r?.points?.takeIf { it.size >= 2 } ?: pts
         val startName = stopName(pts.first()); val endName = stopName(pts.last())
         val via = pts.subList(1, pts.size - 1).mapNotNull { stopName(it) }
@@ -4071,25 +4056,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     .getOrNull()
             }
             Problems.trace("plan", "Plan saved at the tour start as \"$name\" (save_overwrite, ${pts.size} points)")
-            overwriteSaved(name) { before?.let { (old, segments) -> keepReplacedVersion(old, segments) } }
-        }
-    }
-
-    /** The version of a saved route that a tour start just replaced: under Zuletzt with its name, line and points. */
-    private fun keepReplacedVersion(old: Tour, segments: List<List<TrackPoint>>) {
-        val key = com.onpath.app.ui.routes.RoutesState.keyOf(old)
-        viewModelScope.launchSafe("app", "keepReplacedVersion") {
-            val id = withContext(Dispatchers.IO) {
-                runCatching {
-                    routes.keepReplaced(key) {
-                        db.insertTour(TourKind.PLANNED, old.name, old.activity, old.sac, old.distanceM, old.ascentM, old.descentM,
-                            old.durationS, segments, old.waypoints, pinned = old.pinned, draft = true, difficulty = old.difficulty)
-                    }
-                }.onFailure { Problems.error("db", "The saved route's version before the tour start could not be kept under Zuletzt", it) }
-                    .getOrNull()
-            }
-            if (id != null) { Problems.trace("plan", "Version before the tour start kept under Zuletzt: \"${old.name}\", ${key.size} points"); refreshTours() }
-            else Problems.trace("plan", "Version before the tour start not added to Zuletzt: these points are there already (a saved route or a draft)")
+            overwriteSaved(name) { before?.let { (old, segments) -> recent.keepReplaced(old, segments) } }
         }
     }
 
@@ -4966,7 +4933,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 val pts = t.waypoints.map { GeoPoint(it.lat, it.lon) }
                 // stop names and POI pins saved with the plan come back too – the pins
                 // before the points, so the first route already passes them exactly (recalc reads them at once)
-                t.pinned.mapNotNull { pts.getOrNull(it) }.takeIf { it.isNotEmpty() }?.let { pinned += it; prefs.planPinned = pinned }
+                t.pinned.mapNotNull { pts.getOrNull(it) }.takeIf { it.isNotEmpty() }?.let { plan.pin(it) }
                 // during a tour: the loaded route is followed from its point ① (owner 2026-11-03), not from the position
                 loadedOnTheWay = duringTour && recState.value != null
                 // saved routes load without routing again (owner 2026-11-07): its legs from the leg store, else its line
@@ -5047,89 +5014,56 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /**
      * Saved routes and imported tracks ⇄ the paired browser. Runs in the background (plansync/PlanSync): at start,
      * back in the app, after a change here, when the network is back, about every 15 s while the app stays open on
-     * My routes / Browser sync ([syncPoll]), on pull to refresh in My routes → Planned ([pullSync]) and right away when one of them opens – never during a recording (after the tour).
+     * My routes / Browser sync ([syncDriver]), on pull to refresh in My routes → Planned ([pullSync]) and right away when one of them opens – never during a recording (after the tour).
      */
     val sync = com.onpath.app.plansync.PlanSync(app, com.onpath.app.plansync.DbTourStore(app, db) { a -> planFactors(a) },
         recording = { recState.value != null }, onReport = ::syncReport)
 
-    /** Routes from the browser not opened yet (My routes → Planned: a "New" / "Changed" tag – RouteTag); read once at start. */
-    val syncMarks: kotlinx.coroutines.flow.StateFlow<Map<String, com.onpath.app.plansync.SyncMark>> get() = sync.files.marks.state
-
-    /** Opened (load as plan / open the track): the route's "New from / Changed in the browser" mark goes. */
-    private fun syncMarkSeen(t: Tour) {
-        if (t.uuid.isEmpty() || t.uuid !in syncMarks.value) return
-        viewModelScope.launchSafe("app", "syncMarkSeen", Dispatchers.IO) { sync.files.marks.remove(t.uuid) }
-    }
-
-    /** Sync while the app stays open (owner: automatic like WhatsApp Web): every 15 s, back-off when offline. */
-    private val syncPoll = com.onpath.app.plansync.SyncPoll()
-
-    /** Pull to refresh in My routes → Planned runs: the spinner shows until its pass reports ([syncReport]). */
-    var syncPulling by mutableStateOf(false)
-        private set
-    private var syncPullTimeout: kotlinx.coroutines.Job? = null
-
     /**
-     * My routes → Planned pulled down (owner 2026-11-13, only offered when paired): a pass now, the spinner until it
-     * ends. During a tour or while the server asked for quiet nothing is asked and the spinner stops at once
-     * ([com.onpath.app.plansync.SyncPoll.pullStarts]).
+     * When the sync runs and what follows a pass ([com.onpath.app.ui.sync.SyncDriver], cleanup piece 4): the triggers
+     * while the app is open, pull to refresh, the "New / Changed" marks, a pass's report. The names below forward to it.
      */
-    fun pullSync() {
-        if (!com.onpath.app.plansync.SyncPoll.pullStarts(sync.state.value.paired, recording = recState.value != null,
-                quiet = sync.quiet())) return
-        syncPulling = true
-        syncPoll.requested(android.os.SystemClock.elapsedRealtime())
-        sync.request("pulled", manual = true)
-        // never a spinner that stays: a pass that hangs in the network ends by itself, this is only the net under it
-        syncPullTimeout?.cancel()
-        syncPullTimeout = viewModelScope.launchSafe("app", "pullSync timeout") { delay(PULL_SPIN_MAX_MS); syncPulling = false }
-    }
-
-    init {
-        viewModelScope.launchSafe("app", "start-up work", Dispatchers.IO) { sync.files.marks.all() } // marks.txt → syncMarks (small file, never throws)
-        sync.start()
-        // a tour ended: what waited for it comes now
-        viewModelScope.launchSafe("app", "start-up work") {
-            var was = recState.value != null
-            recState.collect { s -> if (was && s == null) sync.request("tour ended"); was = s != null }
-        }
-        // on screen, paired, no tour, My routes / Browser sync shown (not the Plan map): a pass about every 15 s (SyncPoll)
-        viewModelScope.launchSafe("app", "start-up work") {
-            val screen = androidx.compose.runtime.snapshotFlow {
-                appOnScreen to com.onpath.app.plansync.SyncPoll.routesScreen(routesOpen, showSettings,
-                    settingsPage == SettingsPage.SYNC)
+    private val syncDriver = com.onpath.app.ui.sync.SyncDriver(
+        engine = object : com.onpath.app.ui.sync.SyncEngine {
+            override val state get() = sync.state
+            override val marks get() = sync.files.marks.state
+            override fun loadMarks() { sync.files.marks.all() }
+            override fun markSeen(uuid: String) { sync.files.marks.remove(uuid) }
+            override fun start() { sync.start() }
+            override fun quiet() = sync.quiet()
+            override fun busy() = sync.busy()
+            override fun request(why: String, manual: Boolean) { sync.request(why, manual) }
+            override fun poll(why: String) = sync.poll(why)
+        },
+        host = object : com.onpath.app.ui.sync.SyncHost {
+            override val screen = androidx.compose.runtime.snapshotFlow {
+                appOnScreen to com.onpath.app.plansync.SyncPoll.routesScreen(routesOpen, showSettings, settingsPage == SettingsPage.SYNC)
             }
-            combine(screen, recState, sync.state) { (visible, routesScreen), rec, st ->
-                com.onpath.app.plansync.SyncPoll.wanted(visible, st.paired, recording = rec != null, routesScreen)
-            }.distinctUntilChanged().collectLatest { on ->
-                if (!on) return@collectLatest
-                while (isActive) {
-                    val wait = syncPoll.waitMs(android.os.SystemClock.elapsedRealtime())
-                    when {
-                        wait > 0 -> delay(wait)
-                        sync.poll("poll") -> syncPoll.requested(android.os.SystemClock.elapsedRealtime())
-                        else -> delay(com.onpath.app.plansync.SyncPoll.BUSY_RECHECK_MS) // a pass runs or waits
-                    }
-                }
-            }
-        }
-        // My routes / its Planned tab / Settings → Browser sync opened: pull right away (owner 2026-10-30), debounced
-        viewModelScope.launchSafe("app", "start-up work") {
-            var before = com.onpath.app.plansync.SyncPoll.Shown.OTHER
-            androidx.compose.runtime.snapshotFlow {
+            override val shown = androidx.compose.runtime.snapshotFlow {
                 com.onpath.app.plansync.SyncPoll.shown(appOnScreen, routesOpen, routesTab == RoutesTab.PLANNED, showSettings,
                     settingsPage == SettingsPage.SYNC)
-            }.collect { now ->
-                val why = com.onpath.app.plansync.SyncPoll.opened(before, now)
-                before = now
-                val t = android.os.SystemClock.elapsedRealtime()
-                if (why != null && syncPoll.openDue(t, sync.state.value.paired, recording = recState.value != null, busy = sync.busy())) {
-                    syncPoll.requested(t)
-                    sync.request(why)
-                }
             }
-        }
-    }
+            override fun ended() { sayInfo(Txt.s(Res.string.sync_ended), NoticePlace.SETTINGS) }
+            override fun placesChanged() { savedPlaces = null }
+            override fun toursChanged(toRoute: List<Long>) { refreshTours(); followSyncedSavedPlan(); routeSyncedPlans(toRoute) }
+            override fun newerData(tiles: List<String>) { refreshRoutingTiles(tiles, "a plan from the browser was routed with newer data") }
+        },
+        recording = recState.map { it != null }, isRecording = { recState.value != null },
+        scope = viewModelScope, io = Dispatchers.IO, clock = { android.os.SystemClock.elapsedRealtime() })
+
+    /** Routes from the browser not opened yet (My routes → Planned: a "New" / "Changed" tag – RouteTag); read once at start. */
+    val syncMarks: kotlinx.coroutines.flow.StateFlow<Map<String, com.onpath.app.plansync.SyncMark>> get() = syncDriver.marks
+
+    /** Opened (load as plan / open the track): the route's "New from / Changed in the browser" mark goes. */
+    private fun syncMarkSeen(t: Tour) = syncDriver.markSeen(t.uuid)
+
+    /** Pull to refresh in My routes → Planned runs: the spinner shows until its pass reports. */
+    val syncPulling: Boolean get() = syncDriver.pulling
+
+    /** My routes → Planned pulled down (owner 2026-11-13, only offered when paired): a pass now, the spinner until it ends. */
+    fun pullSync() = syncDriver.pull()
+
+    init { syncDriver.start() }
 
     /** Pairing with a browser: [PairingFlow] (the pairing half of the sync), forwarded member by member. */
     private val pairing by lazy {
@@ -5170,23 +5104,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun unpair() = pairing.unpair()
     private fun receivePairing(secret: ByteArray, via: String) = pairing.receivePairing(secret, via)
 
-    /** A sync pass ended (main thread): new / changed routes into My routes, plans from the browser routed. */
-    private fun syncReport(r: com.onpath.app.plansync.PlanSync.Report) {
-        val res = r.result
-        syncPoll.passEnded(android.os.SystemClock.elapsedRealtime(), com.onpath.app.plansync.SyncPoll.ok(r))
-        if (r.manual) { syncPulling = false; syncPullTimeout?.cancel() } // pull to refresh: its pass ended (or was skipped)
-        if (r.ended) sayInfo(Txt.s(Res.string.sync_ended), NoticePlace.SETTINGS)
-        // Pair during a tour: only the handshake ran – Browser sync / ☰ show "Routes sync after the tour" (State.afterTour)
-        // Zuhause / favourites from the browser: read them again (the place menu and the empty search show them)
-        if (res?.placesChanged == true) savedPlaces = null
-        if (res?.toursChanged == true) {
-            refreshTours()
-            followSyncedSavedPlan()
-            routeSyncedPlans(res.toRoute)
-        }
-        // a plan from the browser was routed with newer routing data than the phone's: get it now, not after 35 days
-        res?.newerData?.takeIf { it.isNotEmpty() }?.let { refreshRoutingTiles(it, "a plan from the browser was routed with newer data") }
-    }
+    /** A sync pass ended (main thread): new / changed routes into My routes, plans from the browser routed ([syncDriver]). */
+    private fun syncReport(r: com.onpath.app.plansync.PlanSync.Report) { syncDriver.onReport(r) }
 
     /**
      * A saved route opened as the plan: when it is a synced plan, the grey line if the browser routed it with another
@@ -5281,58 +5200,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------- plan links (A-005: routing/PlanLinks, docs/core-features.md C15) ----------------
 
-    /** Name a plan link brought, for the Save dialog while the plan still has the link's points. */
-    private var linkTitle: Pair<String, List<GeoPoint>>? = null
-    /** The points the last plan link brought (after snapping): while the plan is unchanged, the next link needs no question. */
-    private var linkPoints: List<GeoPoint>? = prefs.planLinkPoints
-        set(v) { field = v; prefs.planLinkPoints = v }
-
     /**
      * A plan link opened in OnPath (camera / QR code, a tapped link, shared text, pasted into the search box; [via] for
-     * the log): back to the map in Plan and loaded like a saved route – "Replace current route?" first when the plan has
-     * unsaved changes. During a tour it is not loaded (the followed route stays) and a grey line says so. A broken link
-     * changes nothing and says so in one red line.
+     * the log): back to the map in Plan and loaded like a saved route. During a tour it is not loaded (the followed route
+     * stays) and a line says so. A broken link changes nothing and says so in one red line.
      */
-    fun receivePlanLink(found: com.onpath.app.routing.PlanLinks.Found, via: String) {
-        routesOpen = false; showSettings = false; offlineResult = null; timeDetails = null; routeDetailsOpen = false; searchOpen = false
-        closeMapOverlays()
-        val plan = when (found) {
-            is com.onpath.app.routing.PlanLinks.Found.Broken -> {
-                Problems.warn("plan", "Plan link ($via) could not be read: cut off, damaged or a newer format")
-                sayError(Txt.s(Res.string.msg_plan_link_unreadable), NoticePlace.MAP)
-                return
-            }
-            is com.onpath.app.routing.PlanLinks.Found.Plan -> found.plan
-            // a pairing link of the web planner ("Pair phone" in its header): Settings → Browser sync asks first (A-007)
-            is com.onpath.app.routing.PlanLinks.Found.Pairing -> { receivePairing(found.secret, via); return }
-            is com.onpath.app.routing.PlanLinks.Found.BrokenPairing -> {
-                Problems.warn("sync", "Pairing link ($via) could not be read: cut off or a newer version")
-                openSettings(SettingsPage.SYNC)
-                sayError(Txt.s(Res.string.sync_link_broken), NoticePlace.SETTINGS)
-                return
-            }
-        }
-        viewModelScope.launchSafe("app", "receivePlanLink") {
-            // Cold start: the start mode (Plan / Navigate, an unfinished tour) is decided after a database check
-            if (!startModeKnown) androidx.compose.runtime.snapshotFlow { startModeKnown }.first { it }
-            when (RouteRules.linkOpen(navigating(recState.value != null), waypoints.toList(), savedPoints, plan.points, linkPoints)) {
-                LinkOpen.AFTER_TOUR -> {
-                    Problems.info("plan", "Plan link ($via, ${plan.points.size} points) not opened: a tour is running")
-                    sayError(Txt.s(Res.string.msg_plan_link_after_tour), NoticePlace.MAP)
-                }
-                // the current plan goes under "Zuletzt" (owner 2026-11-06) – no question any more
-                LinkOpen.ASK_FIRST, LinkOpen.NOW -> { if (shown != null) closeShown(); openSharedPlan(plan, via) }
-            }
-        }
-    }
+    fun receivePlanLink(found: com.onpath.app.routing.PlanLinks.Found, via: String) = links.receive(found, via)
 
     /** Text pasted into the search box: a plan link opens the plan (true); anything else is a search (false). */
-    fun pastedPlanLink(text: String): Boolean {
-        val found = com.onpath.app.routing.PlanLinks.fromText(text) ?: return false
-        search.clear()
-        receivePlanLink(found, "pasted")
-        return true
-    }
+    fun pastedPlanLink(text: String): Boolean = links.pasted(text) { search.clear() }
 
     /** Puts a plan from a link into the plan: points, activity, T level, point names, pinned points – a new, unsaved plan. */
     private fun openSharedPlan(plan: com.onpath.app.routing.SharedPlan, via: String = "after asking") {
@@ -5342,13 +5218,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         activity = plan.activity; prefs.activity = plan.activity
         sac = plan.sac.coerceIn(1, 5); prefs.sac = sac
         // pins before the points: the first route already passes them exactly (recalc reads them at once)
-        if (load.pinned.isNotEmpty()) { pinned += load.pinned; prefs.planPinned = pinned }
+        if (load.pinned.isNotEmpty()) this.plan.pin(load.pinned)
         keepAsDraft("replaced by a plan link")
         change { clear(); addAll(load.points) }
         load.names.forEach { (p, n) -> rememberPlaceName(p, n) }
         setSaved(null, -1, null) // not in My routes yet: Save asks for a name
-        linkTitle = plan.title?.let { it to load.points }
-        linkPoints = load.points
+        links.opened(plan.title, load.points)
         Problems.info("plan", "Plan link opened ($via): ${load.points.size} points, ${plan.activity.name}" +
             (if (plan.activity == Activity.HIKE) " T${plan.sac}" else "") + ", ${load.pinned.size} pinned, ${load.names.size} names")
         // the map shows the plan (field A-019: it stayed where it was): its points now, the whole route once computed;
@@ -5369,8 +5244,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (waypoints.size < 2) return
         val pts = waypoints.toList()
         // the route's name: as saved, else the name a link brought while its points are unchanged
-        val title = savedName ?: linkTitle?.takeIf { it.second == pts }?.first
-        sendPlanLink(com.onpath.app.routing.PlanLinks.share(pts, activity, sac, pinnedIndices(), ::stopName, title), pts.size, title)
+        val title = savedName ?: links.title(pts)
+        links.share(com.onpath.app.routing.PlanLinks.share(pts, activity, sac, pinnedIndices(), ::stopName, title), pts.size, title)
     }
 
     /**
@@ -5382,18 +5257,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val pts = t.waypoints.map { GeoPoint(it.lat, it.lon, it.ele) }
         val names = t.waypoints.associate { GeoPoint(it.lat, it.lon, it.ele) to it.name }
         val act = activityOrNull(t.activity) ?: Activity.HIKE
-        sendPlanLink(com.onpath.app.routing.PlanLinks.share(pts, act, t.sac, t.pinned, { names[it] }, t.name), pts.size, t.name)
-    }
-
-    private fun sendPlanLink(plan: com.onpath.app.routing.SharedPlan, count: Int, title: String?) {
-        val link = com.onpath.app.routing.PlanLinks.link(plan)
-        Problems.trace("plan", "Plan shared as a link: $count points, ${link.length} characters")
-        val send = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, link)
-            title?.let { putExtra(Intent.EXTRA_SUBJECT, it) }
-        }
-        events += UiEvent.Share(Intent.createChooser(send, Txt.s(Res.string.plan_share_plan)))
+        links.share(com.onpath.app.routing.PlanLinks.share(pts, act, t.sac, t.pinned, { names[it] }, t.name), pts.size, t.name)
     }
 
     private fun showTrack(s: ShownTrack) {
@@ -5437,8 +5301,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             val pts = stops.map { GeoPoint(it.lat, it.lon) }
             closeShown()
             // pinned route points come back pinned (review routing L1)
-            com.onpath.app.gpx.PlanGpx.pinnedOf(stops).forEach { pinned += pts[it] }
-            prefs.planPinned = pinned
+            plan.pin(com.onpath.app.gpx.PlanGpx.pinnedOf(stops).map { pts[it] })
             keepAsDraft("replaced by a track's plan")
             change { clear(); addAll(pts) }
             stops.forEachIndexed { i, w -> w.name?.let { rememberPlaceName(pts[i], it) } }
@@ -5499,57 +5362,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------- recycle bin + backup (docs/core-features.md C11) ----------------
 
-    /**
-     * Once after the update to the one-plan rule (owner 2026-11-12): the drafts an older version collected under
-     * Zuletzt go to the recycle bin, all but the newest – nothing is lost for good. Guarded by a pref, idempotent anyway.
-     */
-    private fun trimZuletztOnce() {
-        if (prefs.zuletztTrimmed) return
-        viewModelScope.launchSafe("app", "trimZuletztOnce", Dispatchers.IO) {
-            val gone = runCatching { routes.trimDrafts() }
-                .onFailure { Problems.warn("routes", "Zuletzt: older plans not moved to the recycle bin – tried again at the next start", it) }
-                .getOrNull() ?: return@launchSafe
-            prefs.zuletztTrimmed = true
-            if (gone > 0) {
-                Problems.info("routes", "Zuletzt keeps one plan now (owner 2026-11-12): $gone older plan(s) moved to the recycle bin")
-                refreshTours()
-            } else Problems.trace("routes", "Zuletzt keeps one plan now: nothing older to move")
-        }
-    }
-
     /** Recycle bin list (My routes → ⋮ → Recycle bin); null = closed. */
-    var recycleBin by mutableStateOf<List<Tour>?>(null)
+    var recycleBin: List<Tour>?
+        get() = recent.bin
+        set(v) { recent.bin = v }
 
-    fun openRecycleBin() {
-        viewModelScope.launchSafe("app", "openRecycleBin") {
-            recycleBin = withContext(Dispatchers.IO) {
-                runCatching { db.listDeleted() }.onFailure { Problems.error("db", "Recycle bin could not be read", it) }.getOrDefault(emptyList())
-            }
-        }
-    }
+    fun openRecycleBin() = recent.openBin()
 
     /** Recycle bin → Restore: back into My routes (and its file out of Deleted/); a draft becomes the Zuletzt plan. */
-    fun restoreFromBin(t: Tour) {
-        viewModelScope.launchSafe("app", "restoreFromBin") {
-            val ok = withContext(Dispatchers.IO) {
-                runCatching { routes.restore(t.id) }.onFailure { Problems.error("db", "Restoring from the recycle bin failed", it) }.getOrDefault(false)
-            }
-            if (ok) { Backups.tourChanged(getApplication(), t.id); sync.changed("restored from the recycle bin") }
-            else routesProblem = Txt.s(Res.string.msg_tour_restore_failed, t.name)
-            openRecycleBin(); refreshTours()
-        }
-    }
+    fun restoreFromBin(t: Tour) = recent.restore(t)
 
     /** Recycle bin → Delete now (asked first): gone for good, its backup file too. */
-    fun deleteForever(t: Tour) {
-        viewModelScope.launchSafe("app", "deleteForever") {
-            val ok = withContext(Dispatchers.IO) {
-                runCatching { db.deleteTour(t.id) }.onFailure { Problems.error("db", "Deleting a tour for good failed", it) }.isSuccess
-            }
-            if (ok) { Backups.purge(getApplication(), listOf(t.uuid)); sync.changed("deleted for good") }
-            openRecycleBin()
-        }
-    }
+    fun deleteForever(t: Tour) = recent.deleteForever(t)
 
     /** "Export all": one ZIP with every tour and plan as GPX, handed to the share sheet (Files, Drive, mail …). */
     fun exportAll() {
@@ -5656,7 +5480,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         Backups.init(app)
         Backups.purgeAndSync(app) // 30-day recycle bin, files for tours that have none yet
         checkRestoreOffer()
-        trimZuletztOnce()
+        recent.trimOnce()
         // a failed backup is said until OK is tapped (no silent loss); then it counts as seen
         viewModelScope.launchSafe("app", "start-up work") {
             Backups.failure.collect { text ->
@@ -5960,8 +5784,6 @@ private const val ARRIVAL_MAX_WAIT_MS = 20_000L
 private const val SCRUB_HOLD_MS = 4000L
 /** Routing data: checked at most this often after a route (ms), and refreshed when older than this (days). */
 private const val ROUTING_CHECK_MS = 12 * 3600_000L
-/** Pull to refresh: the spinner stops after this at the latest. */
-private const val PULL_SPIN_MAX_MS = 30_000L
 private const val ROUTING_MAX_AGE_DAYS = 35
 /** Free look in Navigate ends after walking this far from where the map was turned / moved by hand. */
 private const val FREE_LOOK_BACK_M = 25.0
