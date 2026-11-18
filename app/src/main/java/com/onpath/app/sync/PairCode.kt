@@ -68,7 +68,7 @@ class SyncKeys(secret: ByteArray) {
 }
 
 /** Base64url without padding (RFC 4648 §5), small and platform free (the same alphabet as PlanCode). */
-internal object B64 {
+object B64 {
     private const val ABC = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
     fun isCodeChar(c: Char) = c in 'A'..'Z' || c in 'a'..'z' || c in '0'..'9' || c == '-' || c == '_'

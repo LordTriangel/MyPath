@@ -22,7 +22,7 @@ import com.onpath.app.time.PauseReason
  * – both have their own new-tour / continue path (`trip-pace.json`); the point queue – its waiting points carry their
  * own tour id and are still written after the tour ended.
  */
-internal class TourRun {
+class TourRun {
     /** Number of the next point in the database ([com.onpath.app.data.TourDb]); a new tour starts at 0. */
     var seq = 0
     /** Track piece of the next point; a new piece after a pause, a long GPS gap, a switch demo ↔ real GPS. */
