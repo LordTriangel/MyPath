@@ -1111,5 +1111,11 @@
     "context": "Background loads details: one load of the action is done",
     "priority": 2,
     "confidence": "sicher"
+  },
+  "wait_late": {
+    "area": "Wait window / background loads",
+    "context": "Wait window: the running step is past its own estimate (instead of a frozen time left)",
+    "priority": 2,
+    "confidence": "sicher"
   }
 }

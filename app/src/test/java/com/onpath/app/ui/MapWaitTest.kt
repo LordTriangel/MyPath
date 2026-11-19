@@ -67,7 +67,8 @@ class MapWaitTest {
         assertEquals(12 * mb + MapLoads.ESTIMATED_REGION_BYTES, ui.bytes)
         assertEquals("one region still prepared: that is the running step", MapLoadUi.Kind.PREPARING, ui.kind)
         assertEquals("1 map area · ≈ 9 MB", MapLoads.askText(1, MapLoads.ESTIMATED_REGION_BYTES))
-        assertNull(w.update(listOf(a, b), mapOf(a to CellState.Ready("v"), b to CellState.Ready("v")), emptyMap(), null, null, 1000))
+        assertEquals(100, w.update(listOf(a, b), mapOf(a to CellState.Ready("v"), b to CellState.Ready("v")), emptyMap(), null, null, 1000)!!.percent)
+        assertNull(w.update(listOf(a, b), mapOf(a to CellState.Ready("v"), b to CellState.Ready("v")), emptyMap(), null, null, 2000))
     }
 
     /** Map and routing data: one row „loading map + routing data“; the routing file's rewrite is part of the join. */
@@ -83,7 +84,8 @@ class MapWaitTest {
             routing(10 * mb, 10 * mb).copy(writing = true, written = 0.5), null, 5_000)!!
         assertEquals(MapLoadUi.Kind.FINISHING, joining.kind)
         // all there
-        assertNull(w.update(listOf(a), mapOf(a to CellState.Ready("v")), emptyMap(), null, null, 6_000))
+        assertEquals(100, w.update(listOf(a), mapOf(a to CellState.Ready("v")), emptyMap(), null, null, 6_000)!!.percent)
+        assertNull(w.update(listOf(a), mapOf(a to CellState.Ready("v")), emptyMap(), null, null, 7_000))
     }
 
     @Test fun onlyRoutingData() {

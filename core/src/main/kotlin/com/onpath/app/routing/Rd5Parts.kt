@@ -243,13 +243,18 @@ object Rd5Parts {
                 out.write(index)
                 val all = present.sumOf { src.size(it) }
                 var w = 0L
-                written(0, all)
+                var told = false
+                // the file is written whatever its reporter does; a failing one is said once
+                fun tell() { try { written(w, all) } catch (e: Exception) {
+                    if (!told) { told = true; com.onpath.app.debug.Problems.warn("routing", "Routing file rewrite progress not reported", e) }
+                } }
+                tell()
                 for (i in present) {
                     val before = out.channel.position()
                     parts.getValue(i).copyTo(out)
                     val got = out.channel.position() - before
                     if (got != src.size(i)) throw java.io.IOException("part $i of ${dest.name}: $got bytes instead of ${src.size(i)}")
-                    w += got; written(w, all)
+                    w += got; tell()
                 }
                 out.write(tail)
                 out.fd.sync()

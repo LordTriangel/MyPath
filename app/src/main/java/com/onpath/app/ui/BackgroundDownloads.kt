@@ -17,6 +17,7 @@ import com.onpath.app.cells.MapCells
 import com.onpath.app.data.RoutingDataLoader
 import com.onpath.app.domain.ActionPercent
 import com.onpath.app.domain.CellProgress
+import com.onpath.app.domain.PrepareProgress
 import com.onpath.app.domain.StepShares
 import com.onpath.app.ui.progress.BesideDetails
 import com.onpath.app.ui.progress.BesideRow
@@ -81,18 +82,24 @@ class BackgroundProgress(private val action: ActionPercent = BackgroundAction.sh
 
         /**
          * The background loads of the cell [states] (those in [waitedFor] are the wait window's, not the sign's): each
-         * where it stands over its own steps ([CellProgress], the learned [shares]; [joining] = the pieces in of the areas
-         * joined now). An [installed] area only asked for a newer version ([CellState.Requested]: the server has not
-         * answered) is no loading yet.
+         * where it stands over its own steps ([CellProgress], the learned [shares]; an area still prepared by the
+         * server's time left at [now] – [prepare]; [joining] = the pieces in of the areas joined now). An [installed]
+         * area only asked for a newer version ([CellState.Requested]: the server has not answered) is no loading yet.
          */
         fun cellItems(
             states: Map<CellId, CellState>, waitedFor: Set<CellId>, installed: Set<CellId> = emptySet(),
-            shares: StepShares = StepShares.DEFAULT, joining: MapCells.Joining? = null, size: (CellId) -> Long?,
-        ): List<ActionPercent.Item> =
-            states.filter { (c, s) -> c !in waitedFor && loading(s) && !(c in installed && s == CellState.Requested) }.map { (c, s) ->
+            shares: StepShares = StepShares.DEFAULT, joining: MapCells.Joining? = null,
+            prepare: PrepareProgress? = null, now: Long = 0L, size: (CellId) -> Long?,
+        ): List<ActionPercent.Item> {
+            val on = states.filter { (c, s) -> c !in waitedFor && loading(s) && !(c in installed && s == CellState.Requested) }
+            prepare?.keep(on.keys.map { "cell:${it.id}" }.toSet())
+            return on.map { (c, s) ->
+                val key = "cell:${c.id}"
                 val total = (s as? CellState.Downloading)?.totalBytes?.takeIf { it > 0 } ?: size(c) ?: 0L
-                ActionPercent.Item("cell:${c.id}", total, CellProgress.fraction(s, shares, joining?.takeIf { c in it.cells }?.fraction ?: 0.0))
+                ActionPercent.Item(key, total, CellProgress.fraction(s, shares, joining?.takeIf { c in it.cells }?.fraction ?: 0.0,
+                    prepare?.fraction(key, s, now)))
             }
+        }
 
         /** Routing data loading: its bytes, then the rewrite of its file – the download and join steps' shares. */
         fun routingItem(r: RoutingDataLoader.Status, shares: StepShares = StepShares.DEFAULT): ActionPercent.Item {
@@ -106,6 +113,8 @@ class BackgroundProgress(private val action: ActionPercent = BackgroundAction.sh
 /** The one action of the app: the sign beside the map and the notification feed the same, so they say the same number. */
 object BackgroundAction {
     val shared = ActionPercent()
+    /** The areas the server prepares: their progress by its time left – the same for the sign and the notification. */
+    val prepare = PrepareProgress()
 }
 
 /**

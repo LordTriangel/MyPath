@@ -43,6 +43,19 @@ class BackgroundDownloadsTest {
         assertEquals(5.0 / 7 + 2.0 / 7 * 0.5, BackgroundProgress.routingItem(r.copy(doneBytes = 10 * mb, writing = true, written = 0.5), s).fraction, 1e-9)
     }
 
+    /** Areas queued / prepared on the server: the sign moves by the server's time left – no 0 % that stands for minutes. */
+    @Test fun preparingOnTheServerMovesThePercent() {
+        val p = BackgroundProgress(ActionPercent())
+        val prep = com.onpath.app.domain.PrepareProgress()
+        val states = mapOf(a to CellState.Queued(2, 240), b to CellState.Building("base", 0.0, 240))
+        val shown = (0 until 120 step 10).map { t ->
+            p.update(BackgroundProgress.cellItems(states, emptySet(), prepare = prep, now = t * 1000L) { 10 * mb }, 2, 0)!!.percent
+        }
+        for (i in 1 until shown.size) assertTrue("moves on, never back: $shown", shown[i] > shown[i - 1] || shown[i] == shown[i - 1] && i % 2 == 0)
+        assertTrue("moving: $shown", shown.last() >= 9)
+        assertTrue("inside the prepare share: $shown", shown.last() < 30)
+    }
+
     /** A check for a newer version of an installed area (just asked, the server has not answered) is no loading. */
     @Test fun checkingInstalledAreaIsNotLoading() {
         val states = mapOf(a to CellState.Requested, b to CellState.Requested, c to CellState.Building("base", 0.2, 60))

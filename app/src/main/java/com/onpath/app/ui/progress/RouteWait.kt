@@ -18,9 +18,9 @@ import com.onpath.app.routing.PlanPointRow
 import com.onpath.strings.*
 
 /** The route's wait window: the ONE bar, the legs + „prüfen“ as steps (at most 3 shown), the time left. */
-data class RouteWaitUi(val percent: Int, val steps: List<WaitStep>, val secondsLeft: Int?) {
+data class RouteWaitUi(val percent: Int, val steps: List<WaitStep>, val secondsLeft: Int?, val late: Boolean = false) {
     val window: WaitWindowUi get() = WaitWindowUi(WaitSign.ROUTE, Txt.s(Res.string.wait_title_route), percent, steps,
-        secondsLeft?.let(TimeLeft::text))
+        if (late) TimeLeft.LATE else secondsLeft?.let(TimeLeft::text))
 }
 
 /**
@@ -35,14 +35,17 @@ class RouteWait(private val memory: ProgressMemory) {
     private var startMs = -1L
     private var checkFromMs = -1L
     private var sawShare = false
+    private var gen: Int? = null
 
     /**
      * [routing]: a run is on; [progress] = legs done / legs to route (null = not known yet); [share] = the legs' share
      * 0..1 ([com.onpath.app.domain.WaitBar], null = not known, or every leg routed); [labels] = the legs' names when known.
-     * Null = no run.
+     * [gen] = the run's generation (RouteRun.gen): a new run while one is on (an edit, an activity change, routing data
+     * arriving – routing stays on) starts afresh, the old one teaches nothing. Null = no run.
      */
-    fun update(routing: Boolean, progress: Pair<Int, Int>?, share: Float?, labels: List<String>?, now: Long): RouteWaitUi? {
+    fun update(routing: Boolean, progress: Pair<Int, Int>?, share: Float?, labels: List<String>?, now: Long, gen: Int): RouteWaitUi? {
         if (!routing) { finish(now); return null }
+        if (this.gen != gen) { reset(); this.gen = gen }
         if (startMs < 0) startMs = now
         if (share != null) sawShare = true
         val total = (progress?.second ?: 0).coerceAtLeast(1)
@@ -61,10 +64,10 @@ class RouteWait(private val memory: ProgressMemory) {
             val expected = legsMs * check / legs
             maxOf(expected - (now - checkFromMs), expected / 2).toLong()
         } else if (legsFrac > 0.02) ((gone / legsFrac) * ((done + 1.0) / total - legsFrac)).toLong().coerceAtLeast(0) else null
-        val pct = bar.next(raw, stepEnd, stepLeftMs, now)
+        val pct = bar.next(raw, stepEnd, stepLeftMs, now, stepStart = if (checking) legs else legs * done / total)
         val names = labels?.takeIf { it.size == total } ?: (1..total).map { Txt.s(Res.string.wait_leg, it) }
         val rows = names.map { it to null } + ((if (checking) Txt.s(Res.string.wait_step_checking) else Txt.s(Res.string.wait_step_check)) to null)
-        return RouteWaitUi(pct, WaitSteps.of(rows, if (checking) total else done), TimeLeft.seconds(bar.share, gone, null))
+        return RouteWaitUi(pct, WaitSteps.of(rows, if (checking) total else done), TimeLeft.seconds(bar.share, gone, null), bar.late)
     }
 
     /** The run ended: its legs' and check's times teach the check's share; the next run starts afresh. */
@@ -73,8 +76,10 @@ class RouteWait(private val memory: ProgressMemory) {
         if (checkFromMs > startMs) try {
             memory.routeCheck = RouteShares.learn(memory.routeCheck, checkFromMs - startMs, now - checkFromMs)
         } catch (e: Exception) { Problems.warn("routing", "Route wait: the check's share not learned", e) }
-        bar = OneBar(); startMs = -1L; checkFromMs = -1L; sawShare = false
+        reset()
     }
+
+    private fun reset() { bar = OneBar(); startMs = -1L; checkFromMs = -1L; sawShare = false }
 
     companion object {
         /**
@@ -99,16 +104,17 @@ class RouteWait(private val memory: ProgressMemory) {
 @Composable
 fun RouteWaitWindow(
     memory: ProgressMemory, routing: Boolean, slow: Boolean, progress: Pair<Int, Int>?, share: Float?, labels: List<String>?,
-    onCancel: () -> Unit,
+    gen: Int, onCancel: () -> Unit,
 ) {
     val wait = remember(memory) { RouteWait(memory) }
     var ui by remember { mutableStateOf<RouteWaitUi?>(null) }
     val p by rememberUpdatedState(progress)
     val s by rememberUpdatedState(share)
     val l by rememberUpdatedState(labels)
+    val g by rememberUpdatedState(gen)
     LaunchedEffect(routing) {
         while (true) {
-            ui = wait.update(routing, p, s, l, android.os.SystemClock.uptimeMillis())
+            ui = wait.update(routing, p, s, l, android.os.SystemClock.uptimeMillis(), g)
             if (!routing) break
             kotlinx.coroutines.delay(TICK_MS)
         }

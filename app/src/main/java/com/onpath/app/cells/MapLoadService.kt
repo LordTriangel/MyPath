@@ -110,7 +110,8 @@ class MapLoadService : Service() {
         val routing = try { AppRouting.get(this).status?.takeIf { it.phase == RoutingDataLoader.Phase.LOADING } } catch (e: Exception) {
             Problems.warn("cells", "Routing data state unreadable for the loading notification", e); null
         }
-        val items = BackgroundProgress.cellItems(cells.states.value, emptySet(), installed, shares, cells.joining.value, cells::knownSize) +
+        val items = BackgroundProgress.cellItems(cells.states.value, emptySet(), installed, shares, cells.joining.value,
+            BackgroundAction.prepare, android.os.SystemClock.uptimeMillis(), cells::knownSize) +
             listOfNotNull(routing?.let { BackgroundProgress.routingItem(it, shares) })
         BackgroundAction.shared.update(items)
     } catch (e: Exception) {

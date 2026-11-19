@@ -310,7 +310,7 @@ class MapDataFlow(
         // none – never the map for here, MapLoadWait): the modal shows (again), over all regions asked for so far
         if (waits) {
             jobWaited = true
-            if (loadModalFor.isEmpty()) { endWait(0L, done = false); loadBySearch = false }
+            if (loadModalFor.isEmpty()) { mapWaits.drop(); loadBySearch = false }
             if (j.why == com.onpath.app.cells.CellWhy.SEARCHED) loadBySearch = true
             loadModalFor = loadModalFor + j.cells
         }
@@ -322,8 +322,12 @@ class MapDataFlow(
     private var loadModalFor by mutableStateOf<Set<com.onpath.app.cells.CellId>>(emptySet())
     /** The open card's job was waited for in the modal: when it is all there it simply goes – no "Map ready" card. */
     private var jobWaited by mutableStateOf(false)
-    /** The wait the window shows now – one per wait ([MapWait]: the ONE bar, the steps, the measured step times). */
-    private var wait: MapWait? = null
+    /** The window's waits, one per job ([MapWaits]: the ONE bar, the steps, the measured step times, the handover to B). */
+    private val mapWaits = MapWaits({ progressMemory.shares }, learn = { d ->
+        progressMemory.shares = progressMemory.shares.learn(d)
+        Problems.trace("cells", "Wait window done: " + d.entries.joinToString { (s, ms) -> "${s.name.lowercase()} $ms ms" } +
+            " → shares ${progressMemory.shares.encode()}")
+    })
     /** The window waits for the first map of the user's area ([FirstMapCard.waits]): Cancel stops that job. */
     private var firstMapWait by mutableStateOf(false)
     /** The learned shares of time of the wait window's steps – also the sign's and the notification's ([ProgressMemory]). */
@@ -343,39 +347,28 @@ class MapDataFlow(
      * (and the wait is over when everything is there: the learned shares take its step times, [StepShares.learn]).
      */
     fun mapLoadUi(states: Map<com.onpath.app.cells.CellId, com.onpath.app.cells.CellState>, now: Long): MapLoadUi? {
-        if (mode != AppMode.PLAN) { firstMapWait = false; return endWait(now, done = false) }
+        if (mode != AppMode.PLAN) { firstMapWait = false; return mapWaits.tick(null, now) { null } }
         val sizes = cells.installed.value.associate { it.id to it.totalBytes }
         val job = cellJob
         val first = loadModalFor.isEmpty() && !routingModal && job != null &&
             FirstMapCard.waits(job, states, sizes, viewWithoutDetail, cells.downloadsAvailable)
-        if (first != firstMapWait) { endWait(now, done = false); firstMapWait = first }
+        firstMapWait = first
         val focus = if (first) job!!.cells.toSet() else if (cells.downloadsAvailable) loadModalFor else emptySet()
         // routing data in the same window: its bytes in the loading step, its rewrite in the join step
         val r = if (routingModal) routingData.status.also { if (it == null) routingModal = false } else null
-        if (focus.isEmpty() && r == null && wait == null) return null
-        val w = wait ?: MapWait(progressMemory.shares).also { wait = it }
-        val ui = try { w.update(focus, states, sizes, r, cells.joining.value, now) } catch (e: Exception) {
-            Problems.warn("cells", "Wait window not updated; it shows again with the next state", e); null
+        // one wait per job: the first map's job, or what the modal waits for; none = the window is away (the wait kept)
+        val key: Any? = when {
+            first -> "first" to job!!.cells.toSet()
+            loadModalFor.isNotEmpty() || routingModal || r != null -> "modal"
+            else -> null
         }
-        if (ui == null) { if (!first) loadModalFor = emptySet(); endWait(now, done = true) }
+        val ui = mapWaits.tick(key, now) { w -> w.update(focus, states, sizes, r, cells.joining.value, now) }
+        if (ui == null && key == "modal") loadModalFor = emptySet() // everything there
         return ui
     }
 
-    /** The wait ends; [done] = everything arrived: its measured step times teach the shares (cancelled / failed: nothing). */
-    private fun endWait(now: Long, done: Boolean): MapLoadUi? {
-        val w = wait ?: return null
-        wait = null
-        if (done && w.started) try {
-            val d = w.durations(now)
-            progressMemory.shares = progressMemory.shares.learn(d)
-            Problems.trace("cells", "Wait window done: " + d.entries.joinToString { (s, ms) -> "${s.name.lowercase()} $ms ms" } +
-                " → shares ${progressMemory.shares.encode()}")
-        } catch (e: Exception) { Problems.warn("cells", "Wait window step times not learned", e) }
-        return null
-    }
-
     /** Modal (failed) → Close: the modal goes; the card shows the failure with Retry. */
-    fun hideLoadModal() { loadModalFor = emptySet(); routingModal = false; endWait(0L, done = false) }
+    fun hideLoadModal() { loadModalFor = emptySet(); routingModal = false; mapWaits.drop() }
 
     // ---------------- routing data (loaded by the app itself, also on a fresh install) ----------------
 
@@ -520,7 +513,7 @@ class MapDataFlow(
      * follows, a searched place's ring goes, points set stay, the camera stays.
      */
     fun cancelLoadModal() {
-        endWait(0L, done = false)
+        mapWaits.drop()
         // the first map of the area (owner 2026-11-19: the first-map card is this window now): Cancel stops that job
         if (firstMapWait) { firstMapWait = false; Problems.trace("cells", "First map cancelled in the wait window"); cancelCellLoading(); return }
         val job = cellJob
@@ -800,7 +793,8 @@ class MapDataFlow(
         // newer versions of installed areas: told in the sign's details (no second indicator on the map)
         val installed = cells.installed.value.map { it.id }.toSet()
         val shares = progressMemory.shares
-        val cellItems = BackgroundProgress.cellItems(states, emptySet(), installed, shares, cells.joining.value, cells::knownSize)
+        val cellItems = BackgroundProgress.cellItems(states, emptySet(), installed, shares, cells.joining.value,
+            BackgroundAction.prepare, android.os.SystemClock.uptimeMillis(), cells::knownSize)
         val r = routingData.status?.takeIf { it.phase == com.onpath.app.data.RoutingDataLoader.Phase.LOADING }
         val items = cellItems + listOfNotNull(r?.let { BackgroundProgress.routingItem(it, shares) })
         val newer = states.count { (c, s) ->

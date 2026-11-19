@@ -149,39 +149,51 @@ object WaitSteps {
  * The ONE bar of the wait window (owner 2026-11-18/19): 0–100 over all steps, never back, never standing. Fed about
  * every second with what is measured – [raw] 0..1 over the whole wait (each step its share × its own progress) – and
  * where the running step's part of the bar ends ([stepEnd], with what later steps already did). While the measurement
- * moves, the bar follows it. Between two measurements (a step that reports seldom or not at all) it creeps on by time
- * towards the running step's end: [stepLeftMs] (the step's own time left, when known) sets the pace, else
- * [DEFAULT_TAU_MS]. A step that takes much longer than its share (the number would stand at its end) borrows from the
- * rest of the bar, slowly ([STALL_MS] after the number last moved, at a pace that slows the longer the wait is) – never
- * to 100 before everything is there. One per wait; not thread-safe.
+ * moves, the bar follows it. When the number stood [STALL_MS], it creeps on by time towards the running step's end:
+ * [stepLeftMs] (the step's own time left, when known) sets the pace, else [DEFAULT_TAU_MS]; the last step creeps only to
+ * [FINAL_MARGIN] before the end, so whole percents are left for an overrun. A step that takes much longer than its
+ * share borrows from the rest of the bar, slower the longer the wait is ([late]: "dauert etwas länger…") – never 100
+ * before everything is there. A gap between two calls longer than [MAX_GAP_MS] (the screen was off, the poll stopped)
+ * moves nothing. One per wait; not thread-safe.
  */
 class OneBar {
     private var shown = 0.0
     private var lastMs = -1L
-    private var firstMs = -1L
+    private var activeMs = 0L
     private var lastPct = -1
     private var pctAt = 0L
+
+    /** The running step took longer than its share: the bar borrows from the rest – the time line says so. */
+    var late = false
+        private set
 
     /**
      * The bar 0..100 at [nowMs] (any steady clock). [finished]: everything is there – 100. [paused]: the wait stands
      * (offline, waiting for Wi-Fi, failed) – the bar stands too and says so in grey; no creep.
      */
-    fun next(raw: Double, stepEnd: Double, stepLeftMs: Long?, nowMs: Long, finished: Boolean = false, paused: Boolean = false): Int {
-        if (finished) { shown = 1.0; lastMs = nowMs; return 100 }
-        if (firstMs < 0) { firstMs = nowMs; pctAt = nowMs }
-        val cap = (stepEnd.coerceIn(0.0, 1.0) - MARGIN).coerceIn(0.0, END)
-        val dt = if (lastMs < 0 || paused) 0L else (nowMs - lastMs).coerceAtLeast(0L)
+    fun next(raw: Double, stepEnd: Double, stepLeftMs: Long?, nowMs: Long, finished: Boolean = false, paused: Boolean = false,
+             stepStart: Double = stepEnd - 0.1): Int {
+        if (finished) { shown = 1.0; lastMs = nowMs; late = false; return 100 }
+        val gap = if (lastMs < 0) 0L else (nowMs - lastMs).coerceAtLeast(0L)
+        val dt = if (paused || gap > MAX_GAP_MS) 0L else gap
+        if (lastMs < 0 || dt == 0L && gap > 0) pctAt = nowMs // a pause or a gap: the stand is counted afresh
         lastMs = nowMs
+        activeMs += dt
+        val end = stepEnd.coerceIn(0.0, 1.0)
+        val cap = (end - MARGIN).coerceIn(0.0, END)
+        // the last step creeps by time only half its part: the other half is left in whole percents for an overrun
+        val creepCap = (if (end >= 1.0 - 1e-9) minOf(end - FINAL_MARGIN, stepStart + (end - stepStart) / 2) else end - MARGIN).coerceIn(0.0, END)
         // the measurement, inside the running step's part
         var next = maxOf(shown, raw.coerceIn(0.0, 1.0).coerceAtMost(cap))
+        if ((next * 100).toInt() > lastPct) late = false
         // the number stood for a while: it creeps on towards the step's end; the step overran its share (no room left
-        // there): it borrows from the rest of the bar, slower and slower
+        // there): one whole percent from the rest of the bar now and then – the longer the wait, the slower
         if (dt > 0 && (next * 100).toInt() <= lastPct && nowMs - pctAt >= STALL_MS) {
             val tau = (stepLeftMs ?: DEFAULT_TAU_MS).coerceIn(MIN_TAU_MS, MAX_TAU_MS).toDouble()
-            if (next < cap) next += (cap - next) * (1 - exp(-dt / tau))
-            if ((next * 100).toInt() <= lastPct) {
-                val slow = maxOf(DEFAULT_TAU_MS, 2 * (nowMs - firstMs)).toDouble()
-                next += (END - next) * (1 - exp(-dt / slow))
+            if (next < creepCap) next += (creepCap - next) * (1 - exp(-dt / tau))
+            if ((next * 100).toInt() <= lastPct && next >= creepCap - 0.005) {
+                late = true
+                if (nowMs - pctAt >= maxOf(BORROW_MIN_MS, activeMs / 5)) next = maxOf(next, (lastPct + 1) / 100.0 + 1e-6)
             }
         }
         shown = next.coerceAtMost(END)
@@ -196,14 +208,20 @@ class OneBar {
     companion object {
         /** The bar stops this far before the running step's end until the step is really done. */
         const val MARGIN = 0.01
+        /** The last step creeps by time at most to this far before the end (whole percents left for an overrun). */
+        const val FINAL_MARGIN = 0.05
         /** Never further before everything is there. */
         const val END = 0.995
         /** The pace of the creep when the step's time left is unknown: 63 % of the way left in this time. */
         const val DEFAULT_TAU_MS = 30_000L
         const val MIN_TAU_MS = 3_000L
         const val MAX_TAU_MS = 30 * 60_000L
-        /** The number stood this long: it borrows from the rest of the bar. */
+        /** An overrun borrows a whole percent at most this often (later: every fifth of the wait so far). */
+        const val BORROW_MIN_MS = 8_000L
+        /** The number stood this long: it creeps / borrows. */
         const val STALL_MS = 2_000L
+        /** A longer gap between two calls (screen off, not polled) moves nothing and counts as no time. */
+        const val MAX_GAP_MS = 5_000L
     }
 }
 
@@ -224,6 +242,9 @@ object TimeLeft {
         return listOfNotNull(pace, stepLeftS?.coerceAtLeast(0)).maxOrNull()
     }
 
+    /** "dauert etwas länger…": the running step is past its own estimate ([OneBar.late]) – no frozen number. */
+    val LATE: String get() = Txt.s(Res.string.wait_late)
+
     /** "noch etwa 20 Sekunden" / "noch etwa 1 Minute" / "noch etwa 3 Minuten": seconds in fives, minutes rounded. */
     fun text(s: Int): String = when {
         s < 55 -> Txt.s(Res.string.wait_left_seconds, ((s + 4) / 5 * 5).coerceAtLeast(5))
@@ -238,9 +259,11 @@ object TimeLeft {
  * inside the join share. On the phone = 1. Pure.
  */
 object CellProgress {
-    fun fraction(s: CellState, shares: StepShares, joined: Double = 0.0): Double = when (s) {
-        CellState.None, CellState.Requested, is CellState.Queued, is CellState.Offline, is CellState.Failed -> 0.0
-        is CellState.Building -> shares.prepare * s.progress.coerceIn(0.0, 1.0)
+    /** [prepared]: the prepare step's own progress 0..1 by the server's time left ([PrepareProgress]); null = its progress only. */
+    fun fraction(s: CellState, shares: StepShares, joined: Double = 0.0, prepared: Double? = null): Double = when (s) {
+        CellState.None, CellState.Requested, is CellState.Queued -> shares.prepare * (prepared ?: 0.0).coerceIn(0.0, 1.0)
+        is CellState.Offline, is CellState.Failed -> shares.prepare * (prepared ?: 0.0).coerceIn(0.0, 1.0)
+        is CellState.Building -> shares.prepare * maxOf(prepared ?: 0.0, s.progress).coerceIn(0.0, 1.0)
         is CellState.WaitingForWifi -> shares.prepare
         is CellState.Downloading -> shares.prepare + shares.download *
             (if (s.totalBytes > 0) (s.doneBytes.toDouble() / s.totalBytes).coerceIn(0.0, 1.0) else 0.0)
@@ -259,6 +282,59 @@ object CellProgress {
 }
 
 /**
+ * The prepare step's own progress, per load (owner 2026-11-19 „prepare = the server's own progress / time left“): the
+ * time gone over the time gone + the server's time left (re-anchored with each new estimate, [defaultS] without one),
+ * never back, never quite 1 before the step ends. The wait window and the sign beside use it alike. Thread-safe.
+ */
+class PrepareProgress(private val defaultS: Int = DEFAULT_S) {
+    /** key → [anchored at, seconds left then, first seen, last seen] */
+    private val anchors = HashMap<String, LongArray>()
+    private val last = HashMap<String, CellState>()
+    private val shown = HashMap<String, Double>()
+
+    /** [key]'s prepare progress 0..1 at [now] in state [s]; null when [s] is no prepare state (offline / failed: held). */
+    @Synchronized
+    fun fraction(key: String, s: CellState, now: Long): Double? {
+        val eta = when (s) {
+            CellState.None, CellState.Requested -> null
+            is CellState.Queued -> s.etaS
+            is CellState.Building -> s.etaS
+            is CellState.Offline, is CellState.Failed -> return shown[key]
+            else -> return null
+        }
+        val a = anchors.getOrPut(key) { longArrayOf(now, (eta ?: defaultS).toLong(), now, now) }
+        // a new estimate from the server re-anchors; without one the first runs down
+        if (eta != null && s != last[key]) { a[0] = now; a[1] = eta.toLong() }
+        a[3] = now // the server prepares on while the screen is off: its time is wall time
+        last[key] = s
+        val gone = (now - a[2]) / 1000.0
+        val left = (a[1] - (now - a[0]) / 1000.0).coerceAtLeast(1.0)
+        val f = maxOf(shown[key] ?: 0.0, (gone / (gone + left)).coerceIn(0.0, 0.99))
+        shown[key] = f
+        return f
+    }
+
+    /** The server's time left for [key] (seconds), null when it is not prepared. */
+    @Synchronized
+    fun leftS(key: String, s: CellState, now: Long): Int? {
+        if (!(s == CellState.None || s == CellState.Requested || s is CellState.Queued || s is CellState.Building)) return null
+        val a = anchors[key] ?: return null
+        return (a[1] - (now - a[0]) / 1000.0).coerceAtLeast(0.0).toInt()
+    }
+
+    /** Only [keys] are still on their way: the others are forgotten. */
+    @Synchronized
+    fun keep(keys: Set<String>) {
+        anchors.keys.retainAll(keys); last.keys.retainAll(keys); shown.keys.retainAll(keys)
+    }
+
+    companion object {
+        /** Assumed preparing time when the server gives no estimate. */
+        const val DEFAULT_S = 180
+    }
+}
+
+/**
  * Form B's ONE number (owner 2026-11-19, „einfach nur Prozent, muss aber passen für die gesamte Aktion“): every load of
  * the action together – each item weighted by its size, an item that leaves counts as done – 0..100, never back. The
  * action ends when nothing loads ([update] with no items). Thread-safe (the sign and the notification share one).
@@ -269,11 +345,25 @@ class ActionPercent {
 
     private val items = LinkedHashMap<String, DoubleArray>() // key → [weight, fraction]
     private var held = 0
+    /** The wait window handed over at this percent ([seed]); the rest of the action moves on from there. */
+    private var floor = 0
+    private var floorRaw = -1.0
+    private var lastRaw = -1.0
+
+    /**
+     * The wait window (form A) closed while its loads go on (owner 2026-11-19 „A turns into B by itself“): the sign
+     * goes on from the window's [percent] – never below it, and moving with the rest of the action from there.
+     */
+    @Synchronized
+    fun seed(percent: Int) {
+        if (percent <= held) return
+        floor = percent.coerceIn(0, 99); floorRaw = lastRaw; held = floor
+    }
 
     /** The action's percent now; null when nothing loads (the action is over and forgotten). */
     @Synchronized
     fun update(active: List<Item>): Int? {
-        if (active.isEmpty()) { items.clear(); held = 0; return null }
+        if (active.isEmpty()) { items.clear(); held = 0; floor = 0; floorRaw = -1.0; lastRaw = -1.0; return null }
         val now = active.associateBy { it.key }
         for ((k, v) in items) if (k !in now) v[1] = 1.0
         for (i in active) {
@@ -282,8 +372,12 @@ class ActionPercent {
             v[1] = maxOf(v[1], i.fraction.coerceIn(0.0, 1.0))
         }
         val total = items.values.sumOf { it[0] }
-        val pct = if (total <= 0) 0 else (items.values.sumOf { it[0] * it[1] } / total * 100).toInt().coerceIn(0, 99)
-        held = maxOf(held, pct)
+        val raw = if (total <= 0) 0.0 else items.values.sumOf { it[0] * it[1] } / total
+        lastRaw = raw
+        if (floor > 0 && floorRaw < 0) floorRaw = raw
+        val pct = if (floor > 0) (floor + (raw - floorRaw).coerceAtLeast(0.0) / (1 - floorRaw).coerceAtLeast(1e-6) * (99 - floor)).toInt()
+            else (raw * 100).toInt()
+        held = maxOf(held, pct.coerceIn(0, 99))
         return held
     }
 
@@ -293,26 +387,38 @@ class ActionPercent {
     }
 }
 
-/** When each step of one wait began – the measured times [StepShares.learn] learns from. Pure (time passed in). */
+/**
+ * How long each step of one wait really ran – what [StepShares.learn] learns from. Ticked about every second: the time
+ * between two ticks counts into the step that ran, unless the wait was paused (offline, Wi-Fi) or the gap is longer
+ * than [OneBar.MAX_GAP_MS] (the screen was off, not polled) – such a wait teaches nothing ([hadPause]). Pure.
+ */
 class StepClock {
-    private val began = LinkedHashMap<LoadStep, Long>()
-    private var startMs = -1L
+    private val active = LinkedHashMap<LoadStep, Long>()
+    private var lastMs = -1L
+    private var step: LoadStep? = null
 
-    /** [step] runs at [nowMs]; the first call starts the clock. */
-    fun at(step: LoadStep, nowMs: Long) {
-        if (startMs < 0) startMs = nowMs
-        if (step !in began && began.keys.none { it.ordinal > step.ordinal }) began[step] = nowMs
+    /** The wait paused or was not watched for a while: its times are no measure of the steps. */
+    var hadPause = false
+        private set
+
+    /** [step] runs at [nowMs] ([running] false: the wait is paused). Steps never go back. */
+    fun at(step: LoadStep, nowMs: Long, running: Boolean = true) {
+        val prev = this.step
+        if (lastMs >= 0 && prev != null) {
+            val gap = nowMs - lastMs
+            if (running && gap in 0..OneBar.MAX_GAP_MS) active[prev] = (active[prev] ?: 0L) + gap else hadPause = true
+        }
+        if (!running) hadPause = true
+        else if (prev == null || step.ordinal >= prev.ordinal) { this.step = step; active.getOrPut(step) { 0L } }
+        lastMs = nowMs
     }
 
     /** A step ran (the wait was real). */
-    val started: Boolean get() = startMs >= 0
+    val started: Boolean get() = active.isNotEmpty()
 
-    /** Milliseconds since the first [at]; 0 before. */
-    fun elapsed(nowMs: Long): Long = if (startMs < 0) 0 else nowMs - startMs
+    /** The time the steps ran, ms. */
+    val elapsed: Long get() = active.values.sum()
 
-    /** How long each step ran until [endMs] (a step that never ran is missing). */
-    fun durations(endMs: Long): Map<LoadStep, Long> {
-        val e = began.entries.toList()
-        return e.mapIndexed { i, (s, t) -> s to ((if (i + 1 < e.size) e[i + 1].value else endMs) - t).coerceAtLeast(0) }.toMap()
-    }
+    /** How long each step ran (a step that never ran is missing). */
+    fun durations(): Map<LoadStep, Long> = active.toMap()
 }

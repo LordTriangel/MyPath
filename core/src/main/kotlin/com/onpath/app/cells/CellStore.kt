@@ -276,9 +276,11 @@ class CellStore(
             // the pieces' bytes: what [need] counts without the margin; [inPieces] = the pieces that are in
             val work = (need - MARGIN).coerceAtLeast(1L)
             var inPieces = 0L
-            fun tell(d: Long) = try { progress((inPieces + d).coerceAtMost(work), work) } catch (e: Exception) {
-                Problems.warn("cells", "Join progress not reported", e) // the join itself goes on
-            }
+            var told = false
+            fun tell(d: Long) { try { progress((inPieces + d).coerceAtMost(work), work) } catch (e: Exception) {
+                // the join itself goes on; said once, not every few MB
+                if (!told) { told = true; Problems.warn("cells", "Join progress not reported", e) }
+            } }
             tell(0)
             val bytes = HashMap<CellId, MutableMap<String, Long>>()
             val files = LinkedHashMap<String, Long>()

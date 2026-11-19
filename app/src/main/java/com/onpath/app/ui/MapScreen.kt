@@ -604,7 +604,8 @@ private fun PlanBottom(vm: AppViewModel, rec: RecState?, onStartNavigation: () -
     // a route that takes a while: the wait window (form A, owner 2026-11-19) – the legs as steps, Cancel; not over a question
     com.onpath.app.ui.progress.RouteWaitWindow(com.onpath.app.data.ProgressMemory.of(androidx.compose.ui.platform.LocalContext.current),
         vm.routing, slow = vm.routingSlow && vm.slowPlanAsk == null && vm.longRouteAsk == null, vm.routeProgress, vm.routeShare,
-        com.onpath.app.ui.progress.RouteWait.legLabels(rows, vm.waypoints.size, vm.routeProgress?.second), onCancel = vm::cancelRouting)
+        com.onpath.app.ui.progress.RouteWait.legLabels(rows, vm.waypoints.size, vm.routeProgress?.second), vm.planRun.routeRun.gen,
+        onCancel = vm::cancelRouting)
     // the "hold to set a point" line goes with any plan change (owner 2026-11-03)
     LaunchedEffect(vm.waypoints.toList()) { vm.tapHoldHint = false }
     PlanPanel(

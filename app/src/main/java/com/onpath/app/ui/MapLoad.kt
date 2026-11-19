@@ -15,6 +15,7 @@ import com.onpath.app.data.RoutingDataLoader
 import com.onpath.app.domain.CellProgress
 import com.onpath.app.domain.LoadStep
 import com.onpath.app.domain.OneBar
+import com.onpath.app.domain.PrepareProgress
 import com.onpath.app.domain.StepClock
 import com.onpath.app.domain.StepShares
 import com.onpath.app.domain.TimeLeft
@@ -55,6 +56,8 @@ data class MapLoadUi(
     val regionsDone: Int = 0,
     /** The step the wait is in when it pauses (offline, Wi-Fi) – its rows stay where they were; null = by [kind]. */
     val at: LoadStep? = null,
+    /** The running step is past its own estimate ([OneBar.late]): "dauert etwas länger…" instead of a frozen number. */
+    val late: Boolean = false,
 ) {
     /** FINISHING: everything is downloaded and is joined into the map / written into the routing file. */
     enum class Kind { PREPARING, LOADING, FINISHING, OFFLINE, WIFI, FAILED }
@@ -76,7 +79,7 @@ data class MapLoadUi(
         Kind.OFFLINE -> OFFLINE_TEXT
         Kind.WIFI -> WIFI_TEXT
         Kind.FAILED -> reason
-        else -> secondsLeft?.let(TimeLeft::text)
+        else -> if (late) TimeLeft.LATE else secondsLeft?.let(TimeLeft::text)
     }
 
     /**
@@ -116,19 +119,17 @@ data class MapLoadUi(
 
 /**
  * One wait for the map of a place, updated about every second (owner 2026-11-19 „each step measures itself“): the server
- * prepares the regions – its own time left –, the bytes download – real bytes of the map and the routing data –, the
- * map is joined in – the bytes of the pieces in ([MapCells.joining]) – and the routing file is rewritten – the bytes
- * written ([RoutingDataLoader.Status.written]). Each step weighs with its learned share ([shares]); the ONE bar follows
- * the measurement and creeps on by time between two ([OneBar]). [StepClock] measures how long each step really took –
- * what the shares learn from when the wait ends ([durations]). Pure (time passed in), unit-tested.
+ * prepares the regions – its own time left ([PrepareProgress]) –, the bytes download – real bytes of the map and the
+ * routing data –, the map is joined in – the bytes of the pieces in ([MapCells.joining]) – and the routing file is
+ * rewritten – the bytes written ([RoutingDataLoader.Status.written]). Each step weighs with its learned share
+ * ([shares]); the ONE bar follows the measurement and creeps on by time between two ([OneBar]). [StepClock] measures how
+ * long each step really ran – what the shares learn from when the wait ends ([durations], only a wait without a pause:
+ * [learnable]). When everything is there it shows one last picture at 100 %, then null. Pure (time passed in).
  */
-class MapWait(private val shares: StepShares = StepShares.DEFAULT, private val defaultBuildS: Int = DEFAULT_BUILD_S) {
+class MapWait(private val shares: StepShares = StepShares.DEFAULT, defaultBuildS: Int = DEFAULT_BUILD_S) {
     private val bar = OneBar()
     private val clock = StepClock()
-    /** Per region still prepared: when its server estimate was anchored, the seconds left then, when it was first seen. */
-    private val prep = HashMap<CellId, LongArray>()
-    private val prepShown = HashMap<CellId, Double>()
-    private val last = HashMap<CellId, CellState>()
+    private val prep = PrepareProgress(defaultBuildS)
     /** Routing data of this wait: its size and whether it was seen loading (gone = there). */
     private var routingBytes = 0L
     private var routingSeen = false
@@ -140,25 +141,43 @@ class MapWait(private val shares: StepShares = StepShares.DEFAULT, private val d
     private var joinAt = -1L
     private var joinDone = 0.0
     private var joinRate: Double? = null
+    private var speedAt = -1L
+    private var speedBytes = 0L
+    private var lastMs = -1L
+    private var last: MapLoadUi? = null
+    private var ended = false
 
     /**
      * The window for [focus] (the regions waited for, [sizes] = installed sizes), [routing] (null = no routing data
-     * waited for, or there), [joining] (what is joined into the map now) at [now] (uptime ms). Null = everything there.
+     * waited for, or there), [joining] (what is joined into the map now) at [now] (uptime ms). Everything there: one
+     * last picture at 100 %, then null.
      */
     fun update(
         focus: Collection<CellId>, states: Map<CellId, CellState>, sizes: Map<CellId, Long>,
         routing: RoutingDataLoader.Status?, joining: MapCells.Joining?, now: Long,
     ): MapLoadUi? {
+        if (ended) return null
+        // a gap (the screen was off, the window was hidden): the rates start their measuring afresh
+        if (lastMs >= 0 && now - lastMs > OneBar.MAX_GAP_MS) { rateAt = -1L; joinAt = -1L; speedAt = -1L }
+        lastMs = now
         if (routing != null) { routingSeen = true; routingBytes = maxOf(routingBytes, routing.totalBytes) }
         fun st(c: CellId): CellState = states[c] ?: if (c in sizes) CellState.Ready("") else CellState.Requested
         fun ready(s: CellState) = s is CellState.Ready || s == CellState.Downloaded
         val open = focus.filter { !ready(st(it)) }
-        if (open.isEmpty() && routing == null) return null
+        if (open.isEmpty() && routing == null) {
+            ended = true
+            // the end: the last picture at 100 % (the window does not linger at 97–99 %)
+            return last?.copy(kind = MapLoadUi.Kind.FINISHING, percent = bar.next(1.0, 1.0, null, now, finished = true),
+                secondsLeft = null, late = false, at = null)
+        }
         val map = focus.isNotEmpty()
         fun size(c: CellId) = MapLoads.knownBytes(states[c], sizes[c]) ?: MapLoads.ESTIMATED_REGION_BYTES
         val mapBytes = focus.sumOf(::size)
         // prepare: per region the server's time left (re-anchored with each new estimate), never back
-        val prepFrac = if (!map) 1.0 else focus.map { c -> prepareFraction(c, st(c), now) }.average()
+        val prepFrac = if (!map) 1.0 else focus.map { c ->
+            val s = st(c)
+            prep.fraction(c.id, s, now) ?: if (s is CellState.Offline || s is CellState.Failed) 0.0 else 1.0
+        }.average()
         // download: the real bytes of the map and the routing data
         val mapGot = focus.sumOf { c ->
             when (val s = st(c)) {
@@ -171,7 +190,6 @@ class MapWait(private val shares: StepShares = StepShares.DEFAULT, private val d
         val rGot = if (routing == null) rTotal else routing.doneBytes.coerceAtMost(rTotal)
         val allBytes = (mapBytes + rTotal).coerceAtLeast(1L)
         val dlFrac = ((mapGot + rGot).toDouble() / allBytes).coerceIn(0.0, 1.0)
-        measureRate(mapGot + rGot, now)
         // join: the pieces in of each region (map) and the routing file's bytes written
         val mapJoined = focus.sumOf { c ->
             when (val s = st(c)) {
@@ -186,8 +204,6 @@ class MapWait(private val shares: StepShares = StepShares.DEFAULT, private val d
             else -> 0.0
         }
         val joinFrac = ((mapJoined + rJoined) / allBytes).coerceIn(0.0, 1.0)
-        measureJoin(joinFrac, now)
-        joining?.let { j -> measureJoinSpeed(j.done, now) }
         // the steps there are (routing data only: no prepare) with their shares
         val steps = if (map) LoadStep.entries else listOf(LoadStep.DOWNLOAD, LoadStep.JOIN)
         val sum = steps.sumOf { shares.of(it) }
@@ -198,15 +214,6 @@ class MapWait(private val shares: StepShares = StepShares.DEFAULT, private val d
         // where the running step's part ends – with what later steps already did (routing data loads while the map is prepared)
         val stepEnd = steps.takeWhile { it != step }.sumOf { share(it) } + share(step) +
             steps.dropWhile { it != step }.drop(1).sumOf { share(it) * frac.getValue(it) }
-        // the step's own time left: the server's estimate, the bytes at the measured rate, the pieces at their pace
-        val stepLeftS: Int? = when (step) {
-            LoadStep.PREPARE -> focus.mapNotNull { c -> prepLeftS(c, st(c), now) }.maxOrNull()
-            LoadStep.DOWNLOAD -> rate?.takeIf { it > 0 }?.let { ((allBytes - mapGot - rGot) / it).toInt() }
-            // the pieces at their pace; not reported (yet): the map's size – the store is rewritten with the new areas –
-            // at this phone's measured join speed ([joinBytesPerS])
-            LoadStep.JOIN -> joinRate?.takeIf { it > 0 }?.let { ((1 - joinFrac) / it).toInt() }
-                ?: ((sizes.values.sum() + mapBytes) * (1 - joinFrac) / joinBytesPerS).toInt()
-        }
         // what happens: failed / offline / Wi-Fi first, else the running step
         val openStates = open.map(::st)
         val rp = routing?.phase
@@ -223,58 +230,39 @@ class MapWait(private val shares: StepShares = StepShares.DEFAULT, private val d
             else -> MapLoadUi.Kind.LOADING
         }
         val running = kind != MapLoadUi.Kind.FAILED && kind != MapLoadUi.Kind.OFFLINE && kind != MapLoadUi.Kind.WIFI
-        if (running) clock.at(step, now)
-        val pct = bar.next(raw, stepEnd, stepLeftS?.let { it * 1000L }, now, paused = !running)
-        val left = if (running) TimeLeft.seconds(bar.share, clock.elapsed(now), stepLeftS) else null
+        // paused: no step time, and the rates measure afresh afterwards
+        if (running) { measureRate(mapGot + rGot, now); measureJoin(joinFrac, now); joining?.let { j -> measureJoinSpeed(j.done, now) } }
+        else { rateAt = -1L; joinAt = -1L; speedAt = -1L }
+        clock.at(step, now, running)
+        // the step's own time left: the server's estimate, the bytes at the measured rate, the pieces at their pace
+        val stepLeftS: Int? = when (step) {
+            LoadStep.PREPARE -> focus.mapNotNull { c -> prep.leftS(c.id, st(c), now) }.maxOrNull()
+            LoadStep.DOWNLOAD -> rate?.takeIf { it > 0 }?.let { ((allBytes - mapGot - rGot) / it).toInt() }
+            // the pieces at their pace; not reported (yet): the map's size – the store is rewritten with the new areas –
+            // at this phone's measured join speed ([joinBytesPerS])
+            LoadStep.JOIN -> joinRate?.takeIf { it > 0 }?.let { ((1 - joinFrac) / it).toInt() }
+                ?: ((sizes.values.sum() + mapBytes) * (1 - joinFrac) / joinBytesPerS).toInt()
+        }
+        val pct = bar.next(raw, stepEnd, stepLeftS?.let { it * 1000L }, now, paused = !running,
+            stepStart = steps.takeWhile { it != step }.sumOf { share(it) })
+        val left = if (running) TimeLeft.seconds(bar.share, clock.elapsed, stepLeftS) else null
         val failed = openStates.filterIsInstance<CellState.Failed>()
         return MapLoadUi(kind, pct, left,
             reason = if (kind != MapLoadUi.Kind.FAILED) null else if (!map) RoutingLoads.FAILED_TEXT
                 else if (failed.any { it.retryable }) Txt.s(Res.string.maps_load_failed_retry) else failed.firstOrNull()?.message,
             retryable = kind == MapLoadUi.Kind.FAILED && (!map || failed.any { it.retryable }),
             regions = focus.size, bytes = mapBytes + rTotal, routing = routingSeen, regionsDone = focus.size - open.size,
-            at = step.takeIf { !running })
+            at = step.takeIf { !running }, late = running && bar.late).also { last = it }
     }
 
-    /** How long each step of this wait really took until [endMs] – what [StepShares.learn] learns from. */
-    fun durations(endMs: Long): Map<LoadStep, Long> = clock.durations(endMs)
+    /** How long each step of this wait really ran – what [StepShares.learn] learns from. */
+    fun durations(): Map<LoadStep, Long> = clock.durations()
 
-    /** The first [update] showed something (the wait was real, not a map already there). */
+    /** A step ran (the wait was real). */
     val started: Boolean get() = clock.started
 
-    private fun prepareFraction(c: CellId, s: CellState, now: Long): Double {
-        val v = when (s) {
-            CellState.None, CellState.Requested, is CellState.Queued, is CellState.Building -> {
-                val eta = when (s) { is CellState.Queued -> s.etaS; is CellState.Building -> s.etaS; else -> null }
-                val a = prep.getOrPut(c) { longArrayOf(now, (eta ?: defaultBuildS).toLong(), now) }
-                // a new estimate from the server re-anchors; without one the first runs down
-                if (eta != null && s != last[c]) { a[0] = now; a[1] = eta.toLong() }
-                last[c] = s
-                val gone = (now - a[2]) / 1000.0
-                val left = (a[1] - (now - a[0]) / 1000.0).coerceAtLeast(1.0)
-                (gone / (gone + left)).coerceIn(0.0, 0.99)
-            }
-            is CellState.Offline, is CellState.Failed -> 0.0
-            else -> 1.0
-        }
-        return maxOf(prepShown[c] ?: 0.0, v).also { prepShown[c] = it }
-    }
-
-    private fun prepLeftS(c: CellId, s: CellState, now: Long): Int? {
-        if (!(s == CellState.None || s == CellState.Requested || s is CellState.Queued || s is CellState.Building)) return null
-        val a = prep[c] ?: return null
-        return (a[1] - (now - a[0]) / 1000.0).coerceAtLeast(0.0).toInt()
-    }
-
-    private fun measureRate(bytes: Long, now: Long) {
-        if (rateAt < 0 || bytes < rateBytes) { rateAt = now; rateBytes = bytes; return }
-        val dt = (now - rateAt) / 1000.0
-        if (dt < 2) return
-        if (bytes > rateBytes) { val r = (bytes - rateBytes) / dt; rate = rate?.let { it * 0.7 + r * 0.3 } ?: r }
-        rateAt = now; rateBytes = bytes
-    }
-
-    private var speedAt = -1L
-    private var speedBytes = 0L
+    /** The wait ran without a pause or a gap: its times may teach the shares. */
+    val learnable: Boolean get() = clock.started && !clock.hadPause
 
     /** The phone's join speed from the store's reports (bytes written / s), kept for the next join without reports. */
     private fun measureJoinSpeed(done: Long, now: Long) {
@@ -283,6 +271,14 @@ class MapWait(private val shares: StepShares = StepShares.DEFAULT, private val d
         if (dt < 2 || done <= speedBytes) return
         joinBytesPerS = (joinBytesPerS * 0.7 + (done - speedBytes) / dt * 0.3).coerceIn(MIN_JOIN_BPS, MAX_JOIN_BPS)
         speedAt = now; speedBytes = done
+    }
+
+    private fun measureRate(bytes: Long, now: Long) {
+        if (rateAt < 0 || bytes < rateBytes) { rateAt = now; rateBytes = bytes; return }
+        val dt = (now - rateAt) / 1000.0
+        if (dt < 2) return
+        if (bytes > rateBytes) { val r = (bytes - rateBytes) / dt; rate = rate?.let { it * 0.7 + r * 0.3 } ?: r }
+        rateAt = now; rateBytes = bytes
     }
 
     private fun measureJoin(f: Double, now: Long) {
@@ -296,7 +292,7 @@ class MapWait(private val shares: StepShares = StepShares.DEFAULT, private val d
 
     companion object {
         /** Assumed preparing time when the server gives no estimate. */
-        const val DEFAULT_BUILD_S = 180
+        const val DEFAULT_BUILD_S = PrepareProgress.DEFAULT_S
         /** A step is done at this fraction (sums of bytes may miss a few). */
         const val DONE = 0.999
 

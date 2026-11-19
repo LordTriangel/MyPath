@@ -783,7 +783,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * effects, the run's job / cancel signal / wait card progress, Cancel and the two answers. Declared before init {}
      * (recalc() runs there, ViewModelInitOrderTest); the run's coroutine itself is [recalc]. The names below forward to it.
      */
-    private val planRun = com.onpath.app.ui.plan.PlanRunSlice(
+    val planRun = com.onpath.app.ui.plan.PlanRunSlice(
         runCauses = planRoute.runCauses,
         host = object : com.onpath.app.ui.plan.PlanRunHost {
             override fun points(): List<GeoPoint> = waypoints.toList()

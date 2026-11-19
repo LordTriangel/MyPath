@@ -158,6 +158,7 @@
     <string name="wait_left_seconds">about %1$d seconds left</string>
     <string name="wait_left_minute">about 1 minute left</string>
     <string name="wait_left_minutes">about %1$d minutes left</string>
+    <string name="wait_late">taking a bit longer…</string>
     <string name="wait_loading_pct">loading %1$d %</string>
     <string name="maps_phase_done">done</string>
 

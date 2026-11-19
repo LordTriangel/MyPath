@@ -232,7 +232,7 @@
         "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt",
         "web/app/src/plans.ts"
       ],
-      "blob": "ddefa56809ed0401d55059a762968c4b08532fb4"
+      "blob": "967c32d63ac8ebeff99819cc8ae40fafd0e15d19"
     },
     {
       "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddSlice.kt",
@@ -325,7 +325,7 @@
       "web": [
         "web/app/src/cells.ts"
       ],
-      "blob": "ab07505fa1bc0e3237e68451e7f8d0e12f4d9251"
+      "blob": "886e86d41b2349180ed5f39fd423734ce92026d9"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/CellCard.kt",
@@ -677,7 +677,7 @@
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/cells/CellStore.kt": {
-      "blob": "ab07505fa1bc0e3237e68451e7f8d0e12f4d9251",
+      "blob": "886e86d41b2349180ed5f39fd423734ce92026d9",
       "perf": [
         "* Kept in memory per store folder for the whole process ([cache]): a complete generation never changes after its",
         "val snap = cache[key]?.takeIf { it.epoch == e0 }",
@@ -1965,7 +1965,7 @@
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/routing/Rd5Parts.kt": {
-      "blob": "d3d1df16fc99ce6f9ae3eb228bd0445a98f7e2db",
+      "blob": "b512e1fa91b8b64ecbacdf1d7be42a06bd68dd85",
       "perf": [
         "const val INDEX_BYTES = 200",
         "const val CORRIDOR_MARGIN_M = OfflineCorridor.MAX_M",
@@ -3106,7 +3106,7 @@
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/domain/WaitProgress.kt": {
-      "blob": "9038c9555c1504b3610a98e8ce801d1e52bee4ec",
+      "blob": "7a03579176789810c1ad53581731894c923f4c0a",
       "perf": [
         "if (ran.size < 2 || sum < MIN_LEARN_MS) return this",
         "const val MIN_LEARN_MS = 2_000L",
@@ -3114,17 +3114,23 @@
         "const val MAX_CHECK = 0.40",
         "if (legsMs + checkMs < StepShares.MIN_LEARN_MS || checkMs <= 0) return bounded(check)",
         "fun bounded(check: Double): Double = if (check.isNaN()) DEFAULT_CHECK else check.coerceIn(MIN_CHECK, MAX_CHECK)",
-        "* [DEFAULT_TAU_MS]. A step that takes much longer than its share (the number would stand at its end) borrows from the",
-        "* rest of the bar, slowly ([STALL_MS] after the number last moved, at a pace that slows the longer the wait is) – never",
+        "* moves, the bar follows it. When the number stood [STALL_MS], it creeps on by time towards the running step's end:",
+        "* [stepLeftMs] (the step's own time left, when known) sets the pace, else [DEFAULT_TAU_MS]; the last step creeps only to",
+        "* before everything is there. A gap between two calls longer than [MAX_GAP_MS] (the screen was off, the poll stopped)",
+        "val dt = if (paused || gap > MAX_GAP_MS) 0L else gap",
         "if (dt > 0 && (next * 100).toInt() <= lastPct && nowMs - pctAt >= STALL_MS) {",
         "val tau = (stepLeftMs ?: DEFAULT_TAU_MS).coerceIn(MIN_TAU_MS, MAX_TAU_MS).toDouble()",
-        "val slow = maxOf(DEFAULT_TAU_MS, 2 * (nowMs - firstMs)).toDouble()",
+        "if (nowMs - pctAt >= maxOf(BORROW_MIN_MS, activeMs / 5)) next = maxOf(next, (lastPct + 1) / 100.0 + 1e-6)",
         "const val DEFAULT_TAU_MS = 30_000L",
         "const val MIN_TAU_MS = 3_000L",
         "const val MAX_TAU_MS = 30 * 60_000L",
+        "const val BORROW_MIN_MS = 8_000L",
         "const val STALL_MS = 2_000L",
+        "const val MAX_GAP_MS = 5_000L",
         "const val MIN_ELAPSED_MS = 3_000L",
-        "val pace = if (share >= MIN_SHARE && elapsedMs >= MIN_ELAPSED_MS) (elapsedMs / 1000.0 * (1 - share) / share).toInt() else null"
+        "val pace = if (share >= MIN_SHARE && elapsedMs >= MIN_ELAPSED_MS) (elapsedMs / 1000.0 * (1 - share) / share).toInt() else null",
+        "* than [OneBar.MAX_GAP_MS] (the screen was off, not polled) – such a wait teaches nothing ([hadPause]). Pure.",
+        "if (running && gap in 0..OneBar.MAX_GAP_MS) active[prev] = (active[prev] ?: 0L) + gap else hadPause = true"
       ]
     }
   }
