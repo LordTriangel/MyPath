@@ -12,6 +12,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -235,6 +236,24 @@ class NoStaleDownloadsTest {
         net.unmetered = true; mc.wifiOnly = false // any change wakes the worker
         waitFor("a loaded on Wi-Fi") { mc.state(a) == CellState.Ready("v1") }
         assertEquals(setOf(a, b), mc.notOnPhone(listOf(a, b, c)).let { setOf(a, b, c) - it.toSet() })
+    }
+
+    /**
+     * BUG (lost wake-up, found 2026-11-19 as the flake of [aMultiDayTourKeepsItsAreasAndWaitsForWifi]): [MapCells.request]
+     * for a cell already in the queue upgrades the entry (reason NEAR, ownPoint) but wakes the worker only when it ADDED a
+     * cell. A tour cell waiting for Wi-Fi that the position now needs stays waiting until the worker's next wake-up
+     * (IDLE_MS = 15 min, or any network / foreground change). Fix: wake() when an existing entry changed.
+     */
+    @Ignore("known bug in MapCells.request (no wake for an upgraded queue entry); remove when fixed")
+    @Test fun positionNeedingAWaitingTourCellWakesTheWorker() {
+        server.publish(a, "v1"); server.buildPolls = 0
+        val mc = cells(Net(unmetered = false))
+        mc.tourCells = setOf(a); mc.tourWifiCells = setOf(a)
+        mc.request(listOf(a), CellReason.CORRIDOR, ownPoint = false)
+        waitFor("a waits for Wi-Fi") { mc.state(a) is CellState.WaitingForWifi }
+        Thread.sleep(500) // the worker is idle now: every earlier wake-up is consumed
+        assertTrue(mc.request(listOf(a), CellReason.NEAR, ownPoint = true).isEmpty()) // already queued: upgraded, not added
+        waitFor("a loads on mobile data after the position needs it", 5_000) { mc.state(a) == CellState.Ready("v1") }
     }
 
     /** Settings → Offline maps: what waits is visible; "Cancel all" drops the queue, installed maps stay. */
