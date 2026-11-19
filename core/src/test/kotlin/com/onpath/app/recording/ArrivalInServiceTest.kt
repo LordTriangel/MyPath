@@ -25,6 +25,10 @@ class ArrivalInServiceTest {
         assertFalse(GuidanceGate.offRouteCheck(moving = false, arrived = false))
     }
 
+    /**
+     * Arrival is not checked in Plan (owner 2026-11-03) – it is checked again with the next fix after "Navigation fortsetzen" (no replay).
+     * (Was also ModeQuietTest.noArrivalInPlan, the same two calls: removed in the test clean-up G08, 2026-11-19.)
+     */
     @Test fun arrivalIsCheckedOnceNotPausedNotInPlan() {
         assertTrue(GuidanceGate.arrivalCheck(arrived = false, paused = false, planQuiet = false))
         assertFalse("asked once", GuidanceGate.arrivalCheck(arrived = true, paused = false, planQuiet = false))

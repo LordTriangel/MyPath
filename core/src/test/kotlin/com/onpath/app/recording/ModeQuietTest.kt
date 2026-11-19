@@ -29,12 +29,6 @@ class ModeQuietTest {
         assertEquals(Event.entries.toSet(), (navigation + Event.RECORDING_PROBLEM + Event.PAUSE_WALK_OFF).toSet())
     }
 
-    /** Arrival is not checked in Plan – it is checked again with the next fix after "Navigation fortsetzen" (no replay). */
-    @Test fun noArrivalInPlan() {
-        assertFalse(GuidanceGate.arrivalCheck(arrived = false, paused = false, planQuiet = true))
-        assertTrue(GuidanceGate.arrivalCheck(arrived = false, paused = false, planQuiet = false))
-    }
-
     /** An app event ("Kein Ziel mehr" after an edit in Plan, arrival) is not spoken in Plan. */
     @Test fun noAppEventVoiceInPlan() {
         assertFalse(GuidanceGate.appEventVoice(hasPhrase = true, voiceOn = true, planQuiet = true))
