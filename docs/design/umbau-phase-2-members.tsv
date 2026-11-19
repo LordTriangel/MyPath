@@ -1,0 +1,686 @@
+line	lines	kind	vis	name	state	type_or_signature	slice	touches	read_by_main	tests	e2e
+155	1	val	public	dataFiles		val dataFiles = DataFiles(app)	wiring: class head, data check, recorder, tour	Context	MainActivity,MapHost	0	0
+156	1	val	public	prefs		val prefs = Prefs(app)	wiring: class head, data check, recorder, tour	Context	MainActivity,MultiDaySlice	0	0
+162	1	val	private	helperScope		private val helperScope by lazy { viewModelScope.reported("app") }	wiring: class head, data check, recorder, tour	scope			
+163	1	val	private	db		private val db = TourDb.get(app)	wiring: class head, data check, recorder, tour	Context			
+165	5	init	public			init {	wiring: class head, data check, recorder, tour	prefs Problems			
+172	1	val	private	plannedTimes		private val plannedTimes = java.util.concurrent.ConcurrentHashMap<Long, Pair<Pair<com.onpath.app.time.Factors, Double>, Double>>()	wiring: class head, data check, recorder, tour	Context			
+173	1	val	public	tracker		val tracker = LocationTracker(app)	wiring: class head, data check, recorder, tour	Context	MainActivity,MapDataFlow,MapOverlays,MapScreen	0	1
+176	2	var	public	missing	state	var missing by mutableStateOf(dataFiles.missing())	wiring: class head, data check, recorder, tour		MainActivity,MapDataFlow,MultiDaySlice	0	0
+179	7	init	public			init {	wiring: class head, data check, recorder, tour	IO Main scope say			
+186	1	var	public	dataScreenDismissed	state	var dataScreenDismissed by mutableStateOf(false)	wiring: class head, data check, recorder, tour		MainActivity	0	0
+189	1	val	private	overviewBundled		private val overviewBundled: Boolean by lazy { "base.pmtiles" in com.onpath.app.map.Overview.bundled(getApplication()) }	wiring: class head, data check, recorder, tour	Context			
+195	1	val	public	blockingMissing		val blockingMissing: List<DataFiles.Check> get() = DataFiles.blocking(missing, overviewBundled, cells.downloadsAvailable)	wiring: class head, data check, recorder, tour	cells	MainActivity	0	0
+198	1	val	private	recording		private val recording: RecordingClient = ServiceRecordingClient(app)	wiring: class head, data check, recorder, tour	Context			
+202	1	val	public	tour		val tour = com.onpath.app.ui.tour.TourController(com.onpath.app.ui.tour.tourRecorder(recording))	wiring: class head, data check, recorder, tour	Context tour		0	0
+207	1	var	public	errorCard	state	var errorCard by mutableStateOf<String?>(null)	Notices		MainActivity,MapScreen,NavigateScreen,Notices	0	1
+209	1	var	public	routesNote	state	var routesNote by mutableStateOf<Notice?>(null)	Notices		MainActivity	0	0
+215	1	val	public	newPlanNote		val newPlanNote: NewPlanNote? get() = tour.newPlanNote	Notices	tour	NavigateScreen	0	0
+216	1	fun	public	dropNewPlanNote		fun dropNewPlanNote() = tour.dropNewPlanNote()	Notices	tour		0	0
+219	1	var	public	settingsNote	state	var settingsNote by mutableStateOf<Notice?>(null)	Notices		MainActivity	0	0
+224	9	val	private	routesStore		private val routesStore = object : com.onpath.app.ui.routes.RoutesStore {	wiring: routes store + RecentPlans host	Context db routes			
+233	4	val	private	routes		private val routes = com.onpath.app.ui.routes.RoutesState(routesStore, recent = prefs.zuletztId).also {	wiring: routes store + RecentPlans host	Context prefs routes			
+242	15	val	private	recent		private val recent = com.onpath.app.ui.routes.RecentPlans(routes, routesStore, object : com.onpath.app.ui.routes.RecentPlansHost {	wiring: routes store + RecentPlans host	IO scope Context db prefs routes sync Backups			
+263	1	val	public	thumbs		val thumbs by lazy { com.onpath.app.map.RouteThumbs(java.io.File(getApplication<Application>().filesDir, "thumbs")) }	RoutePictures (app helper)	Context	MainActivity	1	0
+264	2	var	public	thumbVersion	state	var thumbVersion by mutableStateOf(0)	RoutePictures (app helper)		MainActivity	0	0
+266	10	val	private	thumbMaker		private val thumbMaker by lazy {	RoutePictures (app helper)	Main scope Context service db routes			
+283	1	val	public	overviewPictures		val overviewPictures by lazy { com.onpath.app.map.OverviewPictures(java.io.File(getApplication<Application>().filesDir, "overviews")) }	RoutePictures (app helper)	Context		0	0
+284	10	val	private	overviewMaker		private val overviewMaker by lazy {	RoutePictures (app helper)	IO Main scope Context service db routes			
+300	20	fun	public	overviewShot		suspend fun overviewShot(t: Tour, segments: List<List<GeoPoint>>, tint: RouteShape.Tint, widthPx: Int, heightPx: Int,	RoutePictures (app helper)	IO Main Context db Problems bitmap	MainActivity	0	0
+322	1	val	public	thumbTimings		val thumbTimings: List<Long> get() = thumbMaker.timings.toList()	RoutePictures (app helper)			0	0
+325	3	var	public	routesOpen		var routesOpen: Boolean	fwd: routes	routes	MainActivity,Notices,SearchFlow	1	0
+329	3	var	public	routesTab		var routesTab: RoutesTab	fwd: routes	routes	MainActivity	0	0
+333	3	var	public	routesSort		var routesSort: com.onpath.app.domain.routes.RouteSort.Choice	fwd: routes	Context routes	MainActivity	0	0
+337	1	var	public	routesFavouritesOnly		var routesFavouritesOnly = false	fwd: routes		MainActivity	0	0
+339	2	var	public	mode	state	var mode by mutableStateOf(AppMode.PLAN)	TourSession: mode		MainActivity,MapDataFlow,MapScreen,MultiDaySlice,SearchFlow	1	1
+345	1	var	public	navStartZoom	state	var navStartZoom by mutableStateOf<Double?>(null)	TourSession: mode		MapScreen	0	0
+347	1	val	public	canEditMap		val canEditMap: Boolean get() = mode == AppMode.PLAN && shown == null	TourSession: mode		MapHost,MapOverlays,MapScreen,SearchFlow	0	1
+349	3	var	public	arrivalAsk		var arrivalAsk: Boolean	TourSession: mode	tour	MapScreen	0	0
+353	1	var	public	selectedPoi	state	var selectedPoi by mutableStateOf<com.onpath.app.poi.Poi?>(null)	TourSession: mode	Context	MapHost,MapScreen	0	0
+357	2	var	public	activity	state	var activity by mutableStateOf(prefs.activity)	PlanRoute: activity	prefs	Backups,MainActivity,MapDataFlow,MapOverlays,MapScreen,MultiDaySlice,NavigateScreen	3	2
+359	2	var	public	sac	state	var sac by mutableStateOf(prefs.sac)	PlanRoute: activity	prefs	Backups,MapOverlays,MapScreen,MultiDaySlice,NavigateScreen	0	1
+362	2	var	public	settings	state	var settings by mutableStateOf(prefs.settings)	Settings	prefs	MainActivity,MapDataFlow,MapHost,MapScreen,NavigateScreen	0	0
+369	2	var	public	syncNote	state	var syncNote by mutableStateOf<SyncNote?>(null)	Settings		MapScreen	0	0
+372	1	var	private	settingsShown	state	private var settingsShown by mutableStateOf(false)	Settings				
+373	3	var	public	showSettings		var showSettings: Boolean	Settings		MainActivity,NavigateScreen,Notices,SearchFlow	1	0
+380	2	var	public	settingsOnTheWay	state	var settingsOnTheWay by mutableStateOf(false)	Settings		MainActivity	0	0
+383	1	var	private	page	state	private var page by mutableStateOf<SettingsPage?>(null)	Settings				
+384	10	var	public	settingsPage		var settingsPage: SettingsPage?	Settings	sync	MainActivity	0	0
+396	2	var	public	routingInfo	state	var routingInfo by mutableStateOf<String?>(null)	Settings		MainActivity	0	0
+399	3	val	private	routingFingerprint		private val routingFingerprint by lazy {	Settings	Context			
+403	18	fun	private	loadRoutingInfo		private fun loadRoutingInfo() {	Settings	IO scope Context Problems			
+423	2	var	public	devToolsShown	state	var devToolsShown by mutableStateOf(DevToolsUnlock.shown(prefs.devToolsUnlocked))	Settings	prefs	MainActivity,MapHost,NavigateScreen	1	0
+426	5	fun	public	unlockDevTools		fun unlockDevTools() {	Settings	prefs Problems		0	0
+433	3	val	public	suggest		val suggest = com.onpath.app.ui.suggest.SuggestSlice(viewModelScope, com.onpath.app.ui.suggest.AppSuggestHost(app, prefs, { mapData.routingD	wiring: suggest	scope Context prefs cells events	MainActivity,MapOverlays,MapScreen,SuggestHosts,SuggestSlice	0	0
+437	2	var	public	diagnosticsSeenMs	state	var diagnosticsSeenMs by mutableStateOf(prefs.diagnosticsSeenMs)	Settings	prefs	MainActivity	0	0
+440	4	fun	private	markDiagnosticsSeen		private fun markDiagnosticsSeen() {	Settings	prefs			
+446	1	fun	public	openSettings		fun openSettings(page: SettingsPage? = null) { settingsPage = page; showSettings = true }	Settings		MapScreen	1	0
+449	4	fun	public	openSettingsOnTheWay		fun openSettingsOnTheWay() {	Settings	Problems		0	0
+455	1	fun	public	showAllSettings		fun showAllSettings() { settingsOnTheWay = false; settingsPage = null }	Settings			0	0
+458	1	fun	public	settingsBack		fun settingsBack() { if (settingsPage != null) settingsPage = null else showSettings = false }	Settings		MainActivity	0	0
+462	1	val	public	navHeadingUp		val navHeadingUp: Boolean get() = settings.navHeadingUp	MapView (camera, compass, scrub)		NavigateScreen	0	0
+468	1	val	public	headingUp		val headingUp: Boolean get() = navHeadingUp	MapView (camera, compass, scrub)		MapScreen	0	0
+470	1	var	public	northTick	state	var northTick by mutableIntStateOf(0)	MapView (camera, compass, scrub)		MapScreen	0	0
+472	1	var	public	recentreTick	state	var recentreTick by mutableIntStateOf(0)	MapView (camera, compass, scrub)		MapScreen	0	0
+480	5	fun	public	locate		fun locate() {	MapView (camera, compass, scrub)		MapScreen	0	0
+486	3	fun	private	setHeadingUp		private fun setHeadingUp(on: Boolean) {	MapView (camera, compass, scrub)	prefs			
+491	1	var	public	planGpsNote	state	var planGpsNote by mutableStateOf<PlanGps.Note?>(null)	MapView (camera, compass, scrub)		MapScreen	1	0
+492	2	var	public	planGpsNoteTick	state	var planGpsNoteTick by mutableStateOf(0)	MapView (camera, compass, scrub)		MapScreen	0	0
+499	3	fun	private	noPositionForEdit		private fun noPositionForEdit(note: PlanGps.Note, text: org.jetbrains.compose.resources.StringResource) {	MapView (camera, compass, scrub)	Txt say			
+503	4	fun	public	showPlanGpsNote		fun showPlanGpsNote(note: PlanGps.Note) {	MapView (camera, compass, scrub)	Problems	MapScreen	0	0
+508	18	fun	public	onCompass		fun onCompass(mapTurned: Boolean) {	MapView (camera, compass, scrub)	Context gps Txt Problems say	MapScreen	0	0
+527	1	var	private	scrubWasFollowing		private var scrubWasFollowing = false	MapView (camera, compass, scrub)				
+528	1	var	private	scrubEndJob		private var scrubEndJob: kotlinx.coroutines.Job? = null	MapView (camera, compass, scrub)				
+534	6	fun	public	navScrub		fun navScrub(p: GeoPoint) {	MapView (camera, compass, scrub)	Problems events		0	0
+541	9	fun	public	navScrubEnd		fun navScrubEnd() {	MapView (camera, compass, scrub)	scope		0	0
+552	6	fun	public	onReturnToApp		fun onReturnToApp() {	MapView (camera, compass, scrub)	gps cells sync	MapHost	0	0
+563	1	fun	public	onLeaveApp		fun onLeaveApp() { appOnScreen = false; mapData.onLeave() }	MapView (camera, compass, scrub)	cells	MapHost	0	0
+566	2	var	public	appOnScreen	state	var appOnScreen by mutableStateOf(true)	MapView (camera, compass, scrub)		MapHost	0	0
+572	1	val	public	cells		val cells: com.onpath.app.cells.MapCells by lazy { com.onpath.app.cells.AppCells.get(getApplication()) }	wiring: cells	Context cells	BackgroundDownloads,MainActivity,MapHost,MapScreen,MultiDaySlice	0	1
+577	5	fun	public	demoLine		fun demoLine(): Pair<String, List<GeoPoint>>? {	Demo (app helper)		MainActivity	0	0
+584	6	fun	public	startDemoRide		fun startDemoRide() {	Demo (app helper)	Context service say		0	0
+595	13	fun	public	startNavSim		fun startNavSim(line: List<GeoPoint>?) {	Demo (app helper)	Context service Problems plan say	NavigateScreen	0	0
+610	4	fun	public	recentRecordedTours		fun recentRecordedTours(): List<Tour> = tours.filter {	Demo (app helper)	Context service	MainActivity	0	0
+615	1	fun	public	demoTourLabel		fun demoTourLabel(t: Tour): String = "ride tour \"${t.name}\" (${"%.1f".format(Locale.ROOT, t.distanceM / 1000)} km, recorded times)"	Demo (app helper)		MainActivity	0	0
+618	13	fun	public	startDemoTour		fun startDemoTour(t: Tour) {	Demo (app helper)	IO scope Context service db Problems say	MainActivity	0	0
+633	1	var	private	navSimLine		private var navSimLine: List<GeoPoint>? = null	Demo (app helper)				
+640	8	fun	public	navSimFollow		fun navSimFollow(line: List<GeoPoint>?) {	Demo (app helper)	Context service	NavigateScreen	0	0
+650	4	fun	public	startDemoAtMapCentre		fun startDemoAtMapCentre() {	Demo (app helper)	Context service		0	0
+656	7	fun	public	requestCellAtMapCentre		fun requestCellAtMapCentre() {	Demo (app helper)	Context cells say	MainActivity	0	0
+665	27	val	private	mapData		private val mapData by lazy {	fwd: map data	scope Context service search say			
+692	1	fun	public	onMapStyleLoaded		fun onMapStyleLoaded(dir: java.io.File?) = mapData.onMapStyleLoaded(dir)	fwd: map data	cells	MapHost	0	0
+693	1	fun	public	rollbackMapCells		fun rollbackMapCells(dir: java.io.File?): Boolean = mapData.rollbackMapCells(dir)	fwd: map data	cells	MapHost	0	0
+694	1	val	public	cellJob		val cellJob: com.onpath.app.cells.CellJob? get() = mapData.cellJob	fwd: map data	Context cells	MapScreen	0	0
+695	1	val	public	hereAsk		val hereAsk: MapDataFlow.HereAsk? get() = mapData.hereAsk	fwd: map data	cells	MapScreen	0	0
+696	1	fun	public	answerHereAsk		fun answerHereAsk(load: Boolean) = mapData.answerHereAsk(load)	fwd: map data	cells	MapScreen	0	0
+697	2	fun	public	cellCardUi		fun cellCardUi(states: Map<com.onpath.app.cells.CellId, com.onpath.app.cells.CellState>,	fwd: map data	Context cells	MapScreen	0	0
+699	3	var	public	viewWithoutDetail		var viewWithoutDetail: Boolean	fwd: map data	cells	MapScreen	0	0
+702	1	fun	public	mapLoadUi		fun mapLoadUi(states: Map<com.onpath.app.cells.CellId, com.onpath.app.cells.CellState>, now: Long): MapLoadUi? = mapData.mapLoadUi(states, n	fwd: map data	Context cells	MapScreen	0	1
+704	4	fun	public	firstMapCard		fun firstMapCard(states: Map<com.onpath.app.cells.CellId, com.onpath.app.cells.CellState>,	fwd: map data	Context cells	MapScreen	0	0
+708	1	fun	public	hideLoadModal		fun hideLoadModal() = mapData.hideLoadModal()	fwd: map data	cells		0	0
+709	1	fun	public	cancelLoadModal		fun cancelLoadModal() = mapData.cancelLoadModal()	fwd: map data	cells		0	0
+710	1	val	public	loadAsk		val loadAsk: MapDataFlow.LoadAsk? get() = mapData.loadAsk	fwd: map data	cells	MapScreen	0	0
+711	1	fun	public	mapTapped		fun mapTapped(p: GeoPoint) = mapData.mapTapped(p)	fwd: map data	cells	MapHost	0	0
+712	1	fun	public	answerLoadAsk		fun answerLoadAsk(load: Boolean) = mapData.answerLoadAsk(load)	fwd: map data	cells	MapScreen	0	0
+713	1	fun	public	cellCardMobileYes		fun cellCardMobileYes() = mapData.cellCardMobileYes()	fwd: map data	cells		0	0
+714	1	fun	public	loadModalOnMobile		fun loadModalOnMobile() = mapData.loadModalOnMobile()	fwd: map data	cells		0	0
+715	1	fun	public	cellCardWifiOnly		fun cellCardWifiOnly() = mapData.cellCardWifiOnly()	fwd: map data	cells		0	0
+716	1	fun	public	cellCardRetry		fun cellCardRetry() = mapData.cellCardRetry()	fwd: map data	cells		0	0
+717	1	fun	public	closeCellCard		fun closeCellCard() = mapData.closeCellCard()	fwd: map data	cells		0	0
+718	1	fun	public	cancelCellLoading		fun cancelCellLoading() = mapData.cancelCellLoading()	fwd: map data	cells		0	0
+719	1	fun	public	clearAllMaps		fun clearAllMaps() = mapData.clearAllMaps()	fwd: map data	cells		0	0
+720	3	var	public	offlineResult		var offlineResult: String?	fwd: map data	cells		0	0
+723	3	var	public	cleanupPreview		var cleanupPreview: CleanupPreview?	fwd: map data	cells	MainActivity	0	0
+726	1	fun	public	prepareCleanup		fun prepareCleanup() = mapData.prepareCleanup()	fwd: map data	cells		0	0
+727	1	fun	public	confirmCleanup		fun confirmCleanup() = mapData.confirmCleanup()	fwd: map data	cells		0	0
+728	1	fun	public	detailedAreas		fun detailedAreas(): List<DoubleArray> = mapData.detailedAreas()	fwd: map data	cells	MapHost	0	0
+729	1	fun	public	packageAreas		fun packageAreas(): List<DoubleArray> = mapData.packageAreas()	fwd: map data	cells	MapHost	0	0
+730	1	fun	public	overviewOnly		fun overviewOnly(south: Double, west: Double, north: Double, east: Double): Boolean = mapData.overviewOnly(south, west, north, east)	fwd: map data	cells	MapScreen	0	0
+731	3	var	public	downloadDetailsOpen		var downloadDetailsOpen: Boolean	fwd: map data	cells	BackgroundDownloads,MapScreen,NavigateScreen	0	0
+734	3	var	public	backgroundStripShown		var backgroundStripShown: Boolean	fwd: map data	cells	MapScreen	0	0
+737	3	var	public	backgroundStripBottomDp		var backgroundStripBottomDp: Int	fwd: map data	cells	MapScreen	0	0
+740	2	fun	public	backgroundDownloadUi		fun backgroundDownloadUi(states: Map<com.onpath.app.cells.CellId, com.onpath.app.cells.CellState>): BackgroundDownloadUi? =	fwd: map data	Context cells	BackgroundDownloads	0	0
+742	1	fun	public	cancelAllDownloads		fun cancelAllDownloads() = mapData.cancelAllDownloads()	fwd: map data	cells		0	0
+743	1	fun	public	loadAreaNames		fun loadAreaNames() = mapData.loadAreaNames()	fwd: map data	cells	MainActivity	0	0
+744	2	fun	public	offlineMapsUi		fun offlineMapsUi(states: Map<com.onpath.app.cells.CellId, com.onpath.app.cells.CellState>,	fwd: map data	Context cells	MainActivity	0	0
+746	1	fun	public	updateMapsNow		fun updateMapsNow() = mapData.updateMapsNow()	fwd: map data	cells		0	0
+747	1	fun	public	deleteMapArea		fun deleteMapArea(id: String) = mapData.deleteMapArea(id)	fwd: map data	cells		0	0
+749	1	fun	public	downloadRoutingData		fun downloadRoutingData() = mapData.downloadRoutingData()	fwd: map data	cells	MainActivity	0	0
+755	9	fun	private	cellsForNewPoints		private fun cellsForNewPoints(before: List<GeoPoint>, after: List<GeoPoint>) {	PlanRoute: routing data arrived / gates	Context Problems cells			
+766	4	fun	private	freshenAfterRoute		private fun freshenAfterRoute(line: List<GeoPoint>, corridor: List<com.onpath.app.cells.CellId>?, act: com.onpath.app.routing.Activity) {	PlanRoute: routing data arrived / gates	Context cells			
+775	15	fun	private	routingDataArrived		private fun routingDataArrived(names: List<String>) {	PlanRoute: routing data arrived / gates	service Problems cells			
+795	17	fun	private	gated		private fun gated(gate: QuietGate, running: kotlinx.coroutines.Job?, busy: () -> Boolean, action: () -> Unit): kotlinx.coroutines.Job {	PlanRoute: routing data arrived / gates	scope Problems			
+815	1	var	public	mapNote	state	var mapNote by mutableStateOf<Notice?>(null)	Notices		MapScreen	1	0
+816	2	var	public	mapNoteTick	state	var mapNoteTick by mutableStateOf(0)	Notices		MapScreen	0	0
+820	1	var	private	reliefAuto		private var reliefAuto = prefs.reliefAuto	Settings	prefs			
+828	14	fun	public	mapGestureMeasured		fun mapGestureMeasured(kind: com.onpath.app.map.ReliefAuto.Kind, stats: com.onpath.app.debug.FrameStats) {	Settings	Context prefs Txt Problems say		0	0
+843	5	fun	public	mapGesture		fun mapGesture(on: Boolean) {	Settings	cells search	MapHost,MapScreen	0	0
+850	1	var	public	navTurn	state	var navTurn by mutableStateOf<com.onpath.app.routing.Turn?>(null)	TourSession: mode	Context	MapScreen,NavigateScreen	0	0
+852	1	var	public	screenRest	state	var screenRest by mutableStateOf(false)	TourSession: mode		MapScreen,NavigateScreen	0	0
+859	1	val	private	plan		private val plan = com.onpath.app.ui.plan.PlanDocument(com.onpath.app.ui.plan.PrefsPlanStore(prefs))	wiring: plan doc + links host	Context plan			
+861	1	val	public	waypoints		val waypoints get() = plan.points	wiring: plan doc + links host	plan	Backups,MapDataFlow,MapHost,MapOverlays,MapScreen,MultiDaySlice,SearchFlow,SuggestHosts	1	3
+863	1	val	private	pinned		private val pinned: Set<GeoPoint> get() = plan.pinned	wiring: plan doc + links host	plan			
+869	27	val	private	links		private val links = com.onpath.app.ui.sync.PlanLinkFlow(object : com.onpath.app.ui.sync.PlanLinkHost {	wiring: plan doc + links host	scope Context Intent service prefs Txt sync events say			
+896	1	fun	public	pinnedIndices		fun pinnedIndices(): Set<Int> = plan.pinnedIndices()	wiring: plan doc + links host	plan	MapScreen,MultiDaySlice	0	1
+902	1	var	private	poiKindsKnown	state	private var poiKindsKnown by mutableStateOf<Map<GeoPoint, String>>(emptyMap())	PlaceMenus: poi kinds				
+903	1	var	private	poiKindsFound	state	private var poiKindsFound by mutableStateOf<Map<GeoPoint, String>>(emptyMap())	PlaceMenus: poi kinds				
+904	1	val	private	poiKindsLookedUp		private val poiKindsLookedUp = HashSet<GeoPoint>()	PlaceMenus: poi kinds				
+905	1	var	private	poiKindsJob		private var poiKindsJob: Job? = null	PlaceMenus: poi kinds				
+907	2	fun	public	pinnedPoiKinds		fun pinnedPoiKinds(): Map<Int, String> =	PlaceMenus: poi kinds	Context	MapScreen	0	0
+909	3	fun	private	rememberPoiKind		private fun rememberPoiKind(p: GeoPoint, kind: String?) {	PlaceMenus: poi kinds	Context			
+914	21	fun	public	refreshPinnedKinds		fun refreshPinnedKinds() {	PlaceMenus: poi kinds	IO scope Context Problems search	MapScreen	0	0
+936	1	val	private	followHistory		private val followHistory = FollowHistory()	PlanEdit: sheet size, hints				
+937	1	val	public	canUndo		val canUndo: Boolean get() = plan.canUndo	PlanEdit: sheet size, hints	plan	MapScreen	0	0
+938	1	val	public	canRedo		val canRedo: Boolean get() = plan.canRedo	PlanEdit: sheet size, hints	plan	MapScreen	0	0
+943	1	var	public	planSize	state	var planSize by mutableStateOf(PlanSize.MINI)	PlanEdit: sheet size, hints		MapScreen	0	0
+950	1	var	public	tapHoldHint	state	var tapHoldHint by mutableStateOf(false)	PlanEdit: sheet size, hints		MapHost,MapScreen	0	0
+951	5	fun	public	showTapHoldHint		fun showTapHoldHint() {	PlanEdit: sheet size, hints	Context Problems	MapHost	0	0
+960	1	var	public	offlineReady	state	var offlineReady by mutableStateOf<OfflineReady.Result?>(null)	PlanEdit: sheet size, hints		MapScreen	0	0
+962	1	var	public	offlineInfo	state	var offlineInfo by mutableStateOf(false)	PlanEdit: sheet size, hints		MapScreen	0	0
+963	7	fun	public	toggleOfflineInfo		fun toggleOfflineInfo() {	PlanEdit: sheet size, hints	Context Problems		0	0
+971	1	fun	public	computeOfflineReady		fun computeOfflineReady(line: List<GeoPoint>): OfflineReady.Result? = mapData.offlineReady(line, activity)	PlanEdit: sheet size, hints	cells	MapScreen	0	0
+974	2	var	public	pointMenuTarget	state	var pointMenuTarget by mutableStateOf<PointMenuTarget?>(null)	PlanRoute: state		MapOverlays	0	0
+977	1	val	public	pointMenu		val pointMenu: Int? get() = pointMenuTarget?.indexIn(waypoints)	PlanRoute: state		MapOverlays	0	1
+978	2	var	public	route	state	var route by mutableStateOf<PlannedRoute?>(null)	PlanRoute: state		MainActivity,MapDataFlow,MapScreen,MultiDaySlice	0	0
+984	1	var	private	routeRun	state	private var routeRun by mutableStateOf(RouteRun())	PlanRoute: state				
+985	1	val	public	routing		val routing: Boolean get() = routeRun.routing	PlanRoute: state		MapOverlays,MapScreen	0	1
+987	2	var	public	routingSpot	state	var routingSpot by mutableStateOf<GeoPoint?>(null)	PlanRoute: state		MapOverlays	0	0
+989	2	var	public	routeError	state	var routeError by mutableStateOf<String?>(null)	PlanRoute: state		MapDataFlow,MapScreen	0	0
+991	1	var	public	highlight	state	var highlight by mutableStateOf<GeoPoint?>(null)	PlanRoute: state		MapScreen,SearchHost	0	0
+996	7	val	public	planGaps		val planGaps: List<PlanGap>	PlanRoute: state		MapScreen	0	0
+1008	2	var	public	planReach	state	var planReach by mutableStateOf<com.onpath.app.routing.PlanReach?>(null)	PlanRoute: state	Context		0	0
+1012	12	fun	private	findReach		private fun findReach(g: PlanGap, act: Activity, level: Int, cancel: com.onpath.app.routing.RouteCancel): com.onpath.app.routing.PlanReach? 	PlanRoute: state	Context Problems engine			
+1026	1	var	private	planResult		private var planResult: com.onpath.app.routing.PlanResult? = null	PlanRoute: state	Context			
+1034	2	var	public	routeChangedNotice	state	var routeChangedNotice by mutableStateOf<String?>(null)	PlanRoute: state			0	0
+1041	2	var	public	syncRoutingNote	state	var syncRoutingNote by mutableStateOf<String?>(null)	PlanRoute: state		MapScreen	0	0
+1044	1	var	private	activityBefore		private var activityBefore: PlannedRoute? = null	PlanRoute: state				
+1046	2	var	public	spotsOpen	state	var spotsOpen by mutableStateOf(false)	PlanRoute: state		MapScreen	0	0
+1049	2	var	public	spotLine	state	var spotLine by mutableStateOf<List<GeoPoint>?>(null)	PlanRoute: state		MapScreen	0	0
+1051	1	var	private	spotsMemo		private var spotsMemo: Pair<Triple<List<GeoPoint>, Activity, Int>, List<RouteSpot>>? = null	PlanRoute: state				
+1055	1	val	private	styleGate		private val styleGate = QuietGate(STYLE_QUIET_MS, STYLE_MAX_WAIT_MS)	PlanRoute: state				
+1056	1	var	private	styleGateJob		private var styleGateJob: kotlinx.coroutines.Job? = null	PlanRoute: state				
+1058	1	val	private	routingArrivalGate		private val routingArrivalGate = QuietGate(ARRIVAL_QUIET_MS, ARRIVAL_MAX_WAIT_MS, maxBusyMs = ARRIVAL_MAX_WAIT_MS)	PlanRoute: state				
+1059	1	var	private	arrivalGateJob		private var arrivalGateJob: kotlinx.coroutines.Job? = null	PlanRoute: state				
+1060	1	val	private	arrivedNames		private val arrivedNames = ArrayList<String>()	PlanRoute: state				
+1064	1	var	private	routeCancel		private var routeCancel: com.onpath.app.routing.RouteCancel? = null	PlanRoute: state	Context			
+1069	1	val	public	slowPlanAsk		val slowPlanAsk: Int? get() = routeRun.slowAsk	PlanRoute: state		MapScreen	0	0
+1071	1	val	private	ROUTING_SLOW_MS		private val ROUTING_SLOW_MS = 2_500L	PlanRoute: state				
+1073	1	val	public	routingSlow		val routingSlow: Boolean get() = routeRun.routingSlow	PlanRoute: state		MapScreen	0	0
+1078	2	var	public	routeProgress	state	var routeProgress by mutableStateOf<Pair<Int, Int>?>(null)	PlanRoute: state		MapScreen	0	0
+1085	2	var	public	routeShare	state	var routeShare by mutableStateOf<Float?>(null)	PlanRoute: state		MapScreen	0	0
+1088	1	val	private	WAIT_POLL_MS		private val WAIT_POLL_MS = 250L	PlanRoute: state				
+1090	1	val	public	longRouteAsk		val longRouteAsk: Double? get() = routeRun.longAsk	PlanRoute: state		MapScreen	0	0
+1092	1	var	private	longRouteDeferred		private var longRouteDeferred: List<GeoPoint>? = null	PlanRoute: state				
+1094	1	val	public	notRouted		val notRouted: NotRouted? get() = routeRun.notRouted	PlanRoute: state		MapScreen	0	0
+1096	1	val	private	runCauses		private val runCauses = com.onpath.app.domain.plan.RunCause()	PlanRoute: state	Context plan			
+1097	1	val	internal	multiDay		internal val multiDay = com.onpath.app.ui.plan.MultiDaySlice(this, plan, ::change, ::setSaved, ::rememberPlaceName, { mapData }) { nearbyNam	PlanRoute: state	Context plan	MapScreen,NavigateScreen	0	0
+1100	1	val	private	linkName		private val linkName: String? get() = plan.linkName	Save: state	plan			
+1101	1	val	private	linkId		private val linkId: Long get() = plan.linkId	Save: state	plan			
+1102	1	val	private	savedPoints		private val savedPoints: List<GeoPoint>? get() = plan.savedPoints	Save: state	plan			
+1104	1	val	private	planLinked		private val planLinked: Boolean get() = plan.linked	Save: state	plan			
+1106	1	val	public	savedName		val savedName: String? get() = plan.savedName	Save: state	plan	MapScreen	0	1
+1107	1	val	private	savedId		private val savedId: Long get() = plan.savedId	Save: state	plan			
+1109	1	val	public	planUnsaved		val planUnsaved: Boolean get() = plan.unsaved	Save: state	plan	MapScreen,MultiDaySlice	0	0
+1111	2	var	public	saveAsk	state	var saveAsk by mutableStateOf<SaveAsk?>(null)	Save: state		RouteDialogs	0	0
+1114	1	var	private	saving		private var saving = false	Save: state				
+1116	1	var	public	routesProblem	state	var routesProblem by mutableStateOf<String?>(null)	Save: state		MultiDaySlice,RouteDialogs	0	0
+1120	1	val	private	followStore		private val followStore = FollowStore(app.filesDir)	TourSession: follow state	Context			
+1121	2	var	public	shown	state	var shown by mutableStateOf<ShownTrack?>(null)	TourSession: follow state		MainActivity,MapHost,MapScreen,SyncDriver	2	0
+1123	2	var	public	followName	state	var followName by mutableStateOf(followStore.loadLine()?.first)	TourSession: follow state		MapScreen	0	0
+1126	2	var	public	followLine	state	var followLine by mutableStateOf(followStore.loadLine()?.second)	TourSession: follow state		MapScreen,NavigateScreen	0	0
+1129	1	var	private	followOriginal		private var followOriginal: List<GeoPoint>? = followStore.loadSession()?.original ?: followLine	TourSession: follow state				
+1131	1	var	private	navVersion		private var navVersion = -1	TourSession: follow state				
+1134	1	var	public	followMe	state	var followMe by mutableStateOf(false)	MapView (camera, compass, scrub)		MapHost,MapOverlays,MapScreen,NavigateScreen	0	0
+1140	1	var	private	freeLookAt		private var freeLookAt: GeoPoint? = null	MapView (camera, compass, scrub)				
+1143	1	var	public	lastMapTouchMs		var lastMapTouchMs = 0L	MapView (camera, compass, scrub)			0	0
+1149	4	fun	public	onMapTouch		fun onMapTouch() {	MapView (camera, compass, scrub)		MapHost	0	0
+1160	6	fun	public	onMapGesture		fun onMapGesture() {	MapView (camera, compass, scrub)	gps	MapScreen	0	0
+1168	8	fun	public	checkFreeLook		fun checkFreeLook(lat: Double, lon: Double) {	MapView (camera, compass, scrub)		MapScreen	0	0
+1177	2	var	public	startModeKnown	state	var startModeKnown by mutableStateOf(false)	MapView (camera, compass, scrub)		MapDataFlow,MapScreen,PlanLinkFlow,SearchFlow	0	0
+1180	1	var	public	userMovedMap		var userMovedMap = false	MapView (camera, compass, scrub)		MapHost,MapScreen	0	0
+1182	1	var	public	startCameraDone		var startCameraDone = false	MapView (camera, compass, scrub)		MapScreen	0	0
+1184	1	var	public	startCameraGen	state	var startCameraGen by mutableStateOf(0)	MapView (camera, compass, scrub)		MapScreen	0	0
+1186	1	var	private	backgroundSince		private var backgroundSince = 0L	MapView (camera, compass, scrub)				
+1189	1	fun	public	onAppStop		fun onAppStop() { backgroundSince = android.os.SystemClock.elapsedRealtime() }	MapView (camera, compass, scrub)		MainActivity	0	0
+1195	12	fun	public	onAppStart		fun onAppStart() {	MapView (camera, compass, scrub)	service search	MainActivity,MapScreen	0	0
+1214	9	fun	public	say		fun say(text: String, kind: NoticeKind, place: NoticePlace) {	Notices	Problems say	MainActivity,MapDataFlow,MapScreen,Notices,SearchFlow	1	0
+1223	1	fun	public	sayError		fun sayError(text: String, place: NoticePlace) = say(text, NoticeKind.ERROR, place)	Notices	say	MainActivity,PlanLinkFlow	0	0
+1224	1	fun	public	sayInfo		fun sayInfo(text: String, place: NoticePlace) = say(text, NoticeKind.INFO, place)	Notices	say		0	0
+1226	1	fun	private	updatePlace		private fun updatePlace() = if (showSettings) NoticePlace.SETTINGS else NoticePlace.MAP	Notices				
+1229	1	var	public	busy	state	var busy by mutableStateOf<Busy?>(null)	Notices		MainActivity	1	0
+1230	1	val	public	unfinished		val unfinished: Tour? get() = tour.unfinished	fwd: tour	tour	MainActivity,MapScreen	0	0
+1232	1	val	public	unfinishedTrack		val unfinishedTrack: List<List<GeoPoint>> get() = tour.unfinishedTrack	fwd: tour	tour	MapScreen	0	0
+1237	1	val	public	finishedTour		val finishedTour: Tour? get() = tour.finishedTour	fwd: tour	tour	MainActivity	0	0
+1239	1	val	public	finishedTimes		val finishedTimes: com.onpath.app.time.TourTimes? get() = tour.finishedTimes	fwd: tour	Context tour	MainActivity	1	0
+1246	6	fun	public	openSavedTour		fun openSavedTour() {	fwd: tour	Problems routes tour		0	0
+1254	3	fun	public	closeSavedTour		fun closeSavedTour() {	fwd: tour	Problems tour		0	0
+1258	1	val	public	tours		val tours: List<Tour> get() = routes.tours	fwd: tour	routes	MainActivity	0	0
+1259	2	var	public	events	state	var events = mutableStateListOf<UiEvent>()	fwd: tour	events	MapScreen,MultiDaySlice	0	1
+1262	1	val	public	recState		val recState: StateFlow<RecState?> = recording.state	fwd: tour	service	MainActivity,MapDataFlow,MapOverlays,MapScreen,MultiDaySlice	0	0
+1269	1	val	private	planCopyDispatcher		private val planCopyDispatcher = Dispatchers.IO.limitedParallelism(1)	TourSession: plan copy	IO			
+1270	8	val	private	tourPlanCopy		private val tourPlanCopy = com.onpath.app.domain.tour.TourPlanCopy(	TourSession: plan copy	Context db Problems tour Backups			
+1278	3	fun	private	planCopy		private fun planCopy(block: com.onpath.app.domain.tour.TourPlanCopy.() -> Unit) {	TourSession: plan copy	scope Context tour			
+1282	7	init	public			init {	TourSession: plan copy	scope service			
+1290	1	val	private	routingDispatcher		private val routingDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()	PlanRoute: engine, threads, leg cache				
+1296	1	val	private	backgroundRouting		private val backgroundRouting = Executors.newSingleThreadExecutor().asCoroutineDispatcher()	PlanRoute: engine, threads, leg cache				
+1302	1	val	private	checkRouting		private val checkRouting = Executors.newSingleThreadExecutor().asCoroutineDispatcher()	PlanRoute: engine, threads, leg cache				
+1308	1	val	private	holdRouting		private val holdRouting = Executors.newSingleThreadExecutor().asCoroutineDispatcher()	PlanRoute: engine, threads, leg cache				
+1310	1	val	private	holdPaths		private val holdPaths by lazy { HoldPaths(viewModelScope, holdRouting) }	PlanRoute: engine, threads, leg cache	scope			
+1311	1	var	private	engine		@Volatile private var engine: RoutingEngine? = null	PlanRoute: engine, threads, leg cache				
+1315	5	fun	private	routingEngine		private fun routingEngine(): RoutingEngine =	PlanRoute: engine, threads, leg cache	Context engine			
+1325	3	val	private	legCache		private val legCache = com.onpath.app.routing.LegCache(store = com.onpath.app.data.LegFiles(	PlanRoute: engine, threads, leg cache	Context cells			
+1333	5	val	private	legFingerprint		private val legFingerprint: String? by lazy {	PlanRoute: engine, threads, leg cache	Problems			
+1343	1	class	private	StandIn		private class StandIn(val points: List<GeoPoint>, val activity: Activity, val sac: Int, val preview: com.onpath.app.routing.StoredLine.Previ	PlanRoute: engine, threads, leg cache	Context			
+1344	1	var	private	standIn		private var standIn: StandIn? = null	PlanRoute: engine, threads, leg cache				
+1346	1	var	private	followCancel		@Volatile private var followCancel: com.onpath.app.routing.RouteCancel? = null	PlanRoute: engine, threads, leg cache	Context			
+1348	1	var	private	routeJob		private var routeJob: Job? = null	PlanRoute: engine, threads, leg cache				
+1350	1	var	private	followFromPlan		private var followFromPlan = false	PlanRoute: engine, threads, leg cache				
+1353	2	var	public	guidanceEndedByEmptyPlan	state	var guidanceEndedByEmptyPlan by mutableStateOf(false)	PlanRoute: engine, threads, leg cache		MapScreen	0	0
+1361	1	var	private	pendingSplit		private var pendingSplit: TourSplit.Outcome? = null	PlanRoute: engine, threads, leg cache				
+1363	1	var	private	splitBefore		private var splitBefore: List<GeoPoint>? = null	PlanRoute: engine, threads, leg cache				
+1365	1	val	private	splitRequests		private val splitRequests = SplitRequests()	PlanRoute: engine, threads, leg cache				
+1367	1	var	private	followIsTrack		private var followIsTrack = prefs.followIsTrack	PlanRoute: engine, threads, leg cache	prefs			
+1369	1	var	private	planAtTrackFollow		private var planAtTrackFollow: List<GeoPoint>? = null	PlanRoute: engine, threads, leg cache				
+1374	3	val	private	planTimes		private val planTimes by lazy {	PlanRoute: engine, threads, leg cache	Context			
+1377	1	val	private	searchStore		private val searchStore by lazy { com.onpath.app.search.SearchStore(getApplication()) }	wiring: search + SearchFlow host	Context search			
+1378	14	val	public	search		val search by lazy {	wiring: search + SearchFlow host	scope Context gps search	MultiDaySlice,SearchHost	0	2
+1394	32	val	private	searchFlow		private val searchFlow by lazy {	wiring: search + SearchFlow host	scope Context cells plan events say			
+1427	110	init	public			init {	TourSession: start-up + service collectors (init)	IO Main scope Context service db Txt Problems tour say			
+1538	1	fun	public	initialCamera		fun initialCamera(): Triple<Double, Double, Double> = prefs.camera ?: Triple(46.67, 11.16, 12.0)	MapView (camera, compass, scrub)	prefs	MapDataFlow,MapHost	0	0
+1539	1	fun	public	saveCamera		fun saveCamera(lat: Double, lon: Double, zoom: Double) { prefs.camera = Triple(lat, lon, zoom) }	MapView (camera, compass, scrub)	prefs	MapHost	0	0
+1542	31	fun	public	diagnosticsState		fun diagnosticsState(): org.json.JSONObject = try {	Settings	Context service prefs gps Problems cells	MainActivity	0	0
+1574	4	fun	public	recheckData		fun recheckData() {	Settings		MainActivity	0	0
+1580	2	var	public	packageCheck	state	var packageCheck by mutableStateOf<com.onpath.app.data.DataFiles.PackageCheck?>(null)	Settings	Context	MainActivity	0	0
+1584	1	var	public	restartForData	state	var restartForData by mutableStateOf(false)	Settings		MainActivity	0	0
+1587	4	fun	private	packageNote		private fun packageNote(): String {	Settings	Txt			
+1594	8	sealed interface	public	UpdateState		sealed interface UpdateState {	fwd: updates	Context		0	0
+1604	4	val	private	updates		private val updates by lazy {	fwd: updates	scope Context service say			
+1608	1	val	public	update		val update: UpdateState get() = updates.update	fwd: updates		MainActivity,MapScreen	1	0
+1610	3	var	public	updateDismissed		var updateDismissed: String?	fwd: updates		MapScreen	0	0
+1614	1	val	public	updatesEnabled		val updatesEnabled: Boolean get() = updates.updatesEnabled	fwd: updates		MainActivity	1	0
+1616	3	var	public	askUpdateDuringTour		var askUpdateDuringTour: Boolean	fwd: updates		MainActivity	0	0
+1619	1	fun	public	checkForUpdates		fun checkForUpdates(manual: Boolean) = updates.check(manual)	fwd: updates		MainActivity,MapScreen	0	0
+1621	1	fun	public	installUpdate		fun installUpdate(duringTourOk: Boolean = false) = updates.install(duringTourOk)	fwd: updates		MainActivity,MapScreen	0	0
+1624	2	var	public	dataBusy	state	var dataBusy by mutableStateOf<String?>(null)	ImportExport (app helper + rules)		MainActivity,MapDataFlow	0	0
+1627	2	var	public	styleVersion	state	var styleVersion by mutableStateOf(0)	ImportExport (app helper + rules)		MainActivity,MapHost	0	0
+1632	1	fun	public	reloadMapStyleForTest		fun reloadMapStyleForTest() { styleVersion++ }	ImportExport (app helper + rules)			0	0
+1635	1	fun	public	forgetLegsInMemoryForTest		fun forgetLegsInMemoryForTest() = legCache.clear()	ImportExport (app helper + rules)			0	0
+1638	4	fun	public	reloadMapStyle		fun reloadMapStyle() {	ImportExport (app helper + rules)	Problems		0	0
+1644	4	fun	public	removeTestStyle		fun removeTestStyle() {	ImportExport (app helper + rules)	Context		0	0
+1650	36	fun	public	importData		fun importData(uri: Uri) {	ImportExport (app helper + rules)	IO Main scope Context Uri service Txt Problems cells say	MainActivity	0	0
+1687	7	fun	private	displayName		private fun displayName(uri: Uri): String? = try {	ImportExport (app helper + rules)	Context Uri Problems			
+1702	6	fun	public	selectActivity		fun selectActivity(a: Activity, userChange: Boolean = true) {	PlanRoute: activity	prefs	MapScreen	0	1
+1710	1	fun	private	activityOrNull		private fun activityOrNull(name: String?): Activity? = com.onpath.app.debug.enumOrNull<Activity>(name, "app")	PlanRoute: activity	Context			
+1713	1	fun	private	clearShownNote		private fun clearShownNote() { shown?.let { if (it.note != null) shown = it.copy(note = null) } }	PlanRoute: activity				
+1716	2	fun	private	activityCause		private fun activityCause(): PlanStatus.Cause =	PlanRoute: activity				
+1720	7	fun	public	selectSac		fun selectSac(level: Int) {	PlanRoute: activity	prefs		0	0
+1730	12	fun	public	updateSettings		fun updateSettings(s: AppSettings) {	Settings	Context service prefs Problems cells	MainActivity	0	0
+1747	29	fun	private	change		private fun change(block: MutableList<GeoPoint>.() -> Unit) {	PlanEdit: change	service Problems plan say			
+1778	3	fun	private	sayEvent		private fun sayEvent(what: String) {	PlanEdit: change	service say			
+1783	3	fun	private	myPosition		private fun myPosition(): GeoPoint? =	PlanEdit: change	service gps			
+1791	12	fun	public	tourPassed		fun tourPassed(plan: List<GeoPoint> = waypoints.toList()): Set<Int> {	PlanEdit: tour hooks (split, route back, one left)	service plan	MapScreen	0	0
+1809	1	val	private	passedPoints		private val passedPoints = HashSet<GeoPoint>()	PlanEdit: tour hooks (split, route back, one left)				
+1810	1	var	private	passedTourId		private var passedTourId: Long? = null	PlanEdit: tour hooks (split, route back, one left)				
+1813	1	var	private	loadedOnTheWay		private var loadedOnTheWay = false	PlanEdit: tour hooks (split, route back, one left)				
+1816	12	fun	private	splitOf		private fun splitOf(before: List<GeoPoint>, after: List<GeoPoint>): TourSplit.Outcome? {	PlanEdit: tour hooks (split, route back, one left)	Problems			
+1833	2	var	public	routeBackAsk	state	var routeBackAsk by mutableStateOf(false)	PlanEdit: tour hooks (split, route back, one left)		MapScreen	0	0
+1841	27	fun	public	answerRouteBack		fun answerRouteBack(yes: Boolean) {	PlanEdit: tour hooks (split, route back, one left)	service Problems plan	MapScreen	0	0
+1874	6	fun	private	endGuidanceIfPlanEmpty		private fun endGuidanceIfPlanEmpty() {	PlanEdit: tour hooks (split, route back, one left)	service Problems			
+1887	39	fun	private	oneLeftGoesFromHere		private fun oneLeftGoesFromHere(before: List<GeoPoint>, mayEmpty: Boolean = false) {	PlanEdit: tour hooks (split, route back, one left)	service Problems plan			
+1928	1	fun	private	prunePinned		private fun prunePinned() = plan.prunePinned()	PlanEdit: tour hooks (split, route back, one left)	plan			
+1930	1	fun	private	set		private fun set(list: List<GeoPoint>) = change { clear(); addAll(list) }	PlanEdit: tour hooks (split, route back, one left)				
+1937	8	fun	public	addPoint		fun addPoint(p: GeoPoint, lineSnapM: Double = 30.0, onPoi: Boolean = false) {	PlaceMenus: add / insert / hold	Problems plan		0	0
+1950	2	class	private	Insertion		private class Insertion(val points: List<GeoPoint>, val line: List<GeoPoint>?, val decision: WaypointInsertion.Decision,	PlaceMenus: add / insert / hold				
+1953	17	fun	private	insertionFor		private fun insertionFor(p: GeoPoint, lineSnapM: Double, stopOnly: Boolean = false): Insertion {	PlaceMenus: add / insert / hold	Context			
+1979	10	fun	public	placeMenu		fun placeMenu(poi: com.onpath.app.poi.Poi): PlaceAddMenu.Menu {	PlaceMenus: add / insert / hold	Context service	MapOverlays	0	0
+1991	1	class	private	PoiRows		private class PoiRows(val poi: com.onpath.app.poi.Poi, val points: List<GeoPoint>, val menu: PlaceAddMenu.Menu, val lineSnapM: Double)	PlaceMenus: add / insert / hold	Context			
+1992	1	var	private	poiMenuRows		private var poiMenuRows: PoiRows? = null	PlaceMenus: add / insert / hold				
+1998	5	fun	private	lineDpOf		private fun lineDpOf(p: GeoPoint, lineSnapM: Double): Double {	PlaceMenus: add / insert / hold				
+2008	9	fun	private	zoneFor		private fun zoneFor(p: GeoPoint): PlaceAddMenu.Zone? {	PlaceMenus: add / insert / hold	service			
+2019	2	fun	public	addPoiAsStop		fun addPoiAsStop(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) =	PlaceMenus: add / insert / hold	Context	MapOverlays	0	0
+2027	1	fun	public	poiAsNewDestination		fun poiAsNewDestination(poi: com.onpath.app.poi.Poi) = addPoiWith(poi, "as the new destination") { p -> asNewDestination(p) }	PlaceMenus: add / insert / hold	Context	MapOverlays	0	0
+2030	4	fun	private	insertAsStop		private fun insertAsStop(p: GeoPoint, lineSnapM: Double) {	PlaceMenus: add / insert / hold				
+2036	4	fun	private	asNewDestination		private fun asNewDestination(p: GeoPoint) {	PlaceMenus: add / insert / hold	service			
+2042	1	class	public	HoldAdd		class HoldAdd(val p: GeoPoint, val menu: PlaceAddMenu.Menu, val lineSnapM: Double)	PlaceMenus: add / insert / hold			0	0
+2045	1	var	public	holdAddMenu	state	var holdAddMenu by mutableStateOf<HoldAdd?>(null)	PlaceMenus: add / insert / hold		MapOverlays	0	0
+2055	33	fun	public	holdOnMap		fun holdOnMap(p: GeoPoint, lineSnapM: Double) {	PlaceMenus: add / insert / hold	service Problems	MapHost	0	0
+2090	2	var	public	holdMeasuring	state	var holdMeasuring by mutableStateOf<GeoPoint?>(null)	PlaceMenus: add / insert / hold		MapOverlays	0	0
+2094	4	fun	private	cancelHoldMeasure		private fun cancelHoldMeasure(why: String) {	PlaceMenus: add / insert / hold	Problems			
+2106	34	fun	private	measureHold		private fun measureHold(p: GeoPoint, lineSnapM: Double, lineDp: Double, straight: PlaceAddMenu.Detours) {	PlaceMenus: add / insert / hold	service Problems			
+2146	6	fun	private	routedLength		private fun routedLength(a: GeoPoint, b: GeoPoint, act: Activity, level: Int, cancel: com.onpath.app.routing.RouteCancel): Double {	PlaceMenus: add / insert / hold	Context engine			
+2154	6	fun	public	holdAsStop		fun holdAsStop() {	PlaceMenus: add / insert / hold	Problems		0	0
+2162	6	fun	public	holdAsNewDestination		fun holdAsNewDestination() {	PlaceMenus: add / insert / hold	service Problems		0	0
+2170	15	fun	private	addPoiWith		private fun addPoiWith(poi: com.onpath.app.poi.Poi, how: String, edit: (GeoPoint) -> Unit) {	PlaceMenus: add / insert / hold	Context Problems plan search			
+2191	8	fun	public	candidateJoin		fun candidateJoin(): Pair<GeoPoint, GeoPoint>? {	PlaceMenus: add / insert / hold		MapScreen	0	0
+2204	5	fun	private	wayThereFrom		private fun wayThereFrom(): GeoPoint? {	PlaceMenus: add / insert / hold	Context service			
+2211	4	fun	public	removePoint		fun removePoint(index: Int) {	PlaceMenus: add / insert / hold	Context		0	0
+2217	1	var	public	planPoi	state	var planPoi by mutableStateOf<com.onpath.app.poi.Poi?>(null)	PlaceMenus: add / insert / hold	Context		0	0
+2219	1	var	public	routePeek	state	var routePeek by mutableStateOf(false)	PlaceMenus: add / insert / hold		MapHost,MapScreen	0	1
+2223	1	var	public	poiMenu	state	var poiMenu by mutableStateOf<com.onpath.app.poi.Poi?>(null)	PlaceMenus: map hold menus	Context	MapOverlays	1	2
+2226	1	var	public	firstPointMenu	state	var firstPointMenu by mutableStateOf<GeoPoint?>(null)	PlaceMenus: map hold menus		MapOverlays	0	0
+2228	2	val	public	mapOverlayOpen		val mapOverlayOpen: Boolean get() =	PlaceMenus: map hold menus		MainActivity,MapHost,SearchFlow	0	1
+2232	10	fun	public	closeMapOverlays		fun closeMapOverlays(why: String = "closed") {	PlaceMenus: map hold menus	Problems	MainActivity,MapHost,MapOverlays,SearchFlow	1	0
+2244	5	fun	public	closePointMenu		fun closePointMenu(why: String) {	PlaceMenus: map hold menus	Problems	MapOverlays	0	0
+2250	4	fun	public	openFirstPointMenu		fun openFirstPointMenu(p: GeoPoint) {	PlaceMenus: map hold menus	Problems	MapHost	0	0
+2256	1	fun	public	startHere		fun startHere(p: GeoPoint) { firstPointMenu = null; addPoint(p) }	PlaceMenus: map hold menus		MapOverlays	0	0
+2259	5	fun	public	routeFromMyLocation		fun routeFromMyLocation(p: GeoPoint) {	PlaceMenus: map hold menus	gps	MapOverlays	0	0
+2271	20	fun	public	openPoiMenu		fun openPoiMenu(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) {	PlaceMenus: map hold menus	Context service Problems	MapHost,SearchFlow	0	0
+2293	5	fun	public	openPinMenu		fun openPinMenu() {	PlaceMenus: map hold menus	Problems		0	0
+2303	5	fun	public	removePin		fun removePin(why: String) {	PlaceMenus: map hold menus	Problems	MapOverlays	1	0
+2310	13	fun	public	poiFromMyLocation		fun poiFromMyLocation(poi: com.onpath.app.poi.Poi) {	PlaceMenus: map hold menus	Context gps Problems plan search	MapOverlays	0	0
+2327	8	fun	public	openPointMenu		fun openPointMenu(index: Int, distDp: Int? = null, via: String = "hold") {	PlaceMenus: map hold menus	Problems	MapHost	0	0
+2343	4	fun	public	poiAddLabel		fun poiAddLabel(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0): String {	PlaceMenus: map hold menus	Context search	MapOverlays	0	0
+2348	14	fun	public	addPoiPoint		fun addPoiPoint(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) {	PlaceMenus: map hold menus	Context Problems search	MapOverlays	0	0
+2364	4	fun	public	makeStartFromMenu		fun makeStartFromMenu() {	PlaceMenus: map hold menus		MapOverlays	0	0
+2373	5	fun	private	startAtPoint		private fun startAtPoint(index: Int) {	PlaceMenus: map hold menus				
+2379	1	fun	public	isRoundTrip		fun isRoundTrip(): Boolean = PlanEdits.isRoundTrip(waypoints)	PlaceMenus: map hold menus		MapOverlays,MapScreen	0	0
+2381	1	fun	public	loopStart		fun loopStart(): Int? = PlanEdits.loopStart(waypoints)	PlaceMenus: map hold menus		MapOverlays	0	0
+2388	8	fun	private	menuAction		private fun menuAction(what: String): Int? {	PlaceMenus: map hold menus	Problems			
+2400	1	var	private	nearbyNames	state	private var nearbyNames by mutableStateOf<Map<GeoPoint, String>>(emptyMap())	PlanEdit: points list				
+2401	1	var	private	namesJob		private var namesJob: Job? = null	PlanEdit: points list				
+2404	5	fun	public	planPointRows		fun planPointRows(): List<com.onpath.app.routing.PlanPointRow> {	PlanEdit: points list	Context	MapScreen	0	0
+2411	16	fun	public	refreshPointNames		fun refreshPointNames() {	PlanEdit: points list	IO scope Context Problems search	MapScreen	0	0
+2429	1	var	public	routeDetailsOpen	state	var routeDetailsOpen by mutableStateOf(false)	PlanEdit: points list		MainActivity,MapScreen	0	0
+2432	6	fun	public	movePointInList		fun movePointInList(from: Int, to: Int) {	PlanEdit: points list	Context Problems		0	0
+2440	6	fun	public	deletePointFromList		fun deletePointFromList(index: Int) {	PlanEdit: points list	Context Problems		0	0
+2451	8	fun	public	showPointFromList		fun showPointFromList(index: Int) {	PlanEdit: points list	scope events		0	0
+2461	12	fun	public	deletePointFromMenu		fun deletePointFromMenu() {	PlanEdit: points list	Context Problems	MapOverlays	0	1
+2475	1	fun	public	googleFromMenu		fun googleFromMenu(): GeoPoint? = menuAction("Open in Google Maps")?.let { waypoints[it] }	PlanEdit: points list		MapOverlays	0	0
+2478	1	fun	public	isStop		fun isStop(poi: com.onpath.app.poi.Poi): Boolean = waypoints.any { sameSpot(it, poi.lat, poi.lon) }	PlanEdit: points list	Context		0	0
+2481	2	fun	private	sameSpot		private fun sameSpot(p: GeoPoint, lat: Double, lon: Double) =	PlanEdit: points list				
+2488	1	enum class	public	PlaceRole		enum class PlaceRole { SMART, START, DESTINATION }	fwd: search			0	0
+2490	3	var	public	searchOpen		var searchOpen: Boolean	fwd: search	search	MainActivity,MapScreen,SearchHost	2	0
+2494	3	var	private	searchPlace		private var searchPlace: com.onpath.app.search.Place?	fwd: search	Context search			
+2498	3	var	public	searchMark		var searchMark: com.onpath.app.search.Place?	fwd: search	Context search	MapDataFlow,MapHost,MapOverlays,MapScreen	1	1
+2501	1	fun	public	openSearch		fun openSearch() = searchFlow.openSearch()	fwd: search	search		0	0
+2502	1	fun	public	closeSearch		fun closeSearch() = searchFlow.closeSearch()	fwd: search	search	SearchHost	0	0
+2503	1	fun	public	pickSearchResult		fun pickSearchResult(place: com.onpath.app.search.Place) = searchFlow.pickSearchResult(place)	fwd: search	Context search		0	0
+2505	1	fun	public	isCandidate		fun isCandidate(poi: com.onpath.app.poi.Poi): Boolean = searchFlow.isCandidate(poi)	fwd: search	Context search	MapOverlays	1	0
+2510	2	var	public	savedPlaces	state	var savedPlaces by mutableStateOf<com.onpath.app.search.SavedPlaces?>(null)	PlaceMenus: kept places + place card	Context search		0	0
+2512	1	fun	private	saved		private fun saved(): com.onpath.app.search.SavedPlaces = savedPlaces ?: searchStore.saved().also { savedPlaces = it }	PlaceMenus: kept places + place card	Context search			
+2515	2	fun	private	placeOf		private fun placeOf(poi: com.onpath.app.poi.Poi): com.onpath.app.search.Place =	PlaceMenus: kept places + place card	Context search			
+2518	1	fun	public	isFavouritePlace		fun isFavouritePlace(poi: com.onpath.app.poi.Poi): Boolean = saved().isFavourite(placeOf(poi))	PlaceMenus: kept places + place card	Context	MapOverlays	0	0
+2519	1	fun	public	isHomePlace		fun isHomePlace(poi: com.onpath.app.poi.Poi): Boolean = saved().isHome(placeOf(poi))	PlaceMenus: kept places + place card	Context	MapOverlays	0	0
+2522	6	fun	public	toggleFavouritePlace		fun toggleFavouritePlace(poi: com.onpath.app.poi.Poi) {	PlaceMenus: kept places + place card	Context Problems	MapOverlays	0	0
+2530	6	fun	public	toggleHomePlace		fun toggleHomePlace(poi: com.onpath.app.poi.Poi) {	PlaceMenus: kept places + place card	Context Problems	MapOverlays	0	0
+2541	7	fun	private	keepPlaces		private fun keepPlaces(change: (com.onpath.app.search.SavedPlaces) -> com.onpath.app.search.SavedPlaces) {	PlaceMenus: kept places + place card	Context Problems sync search Backups			
+2548	1	fun	private	clearSearchMarkAt		private fun clearSearchMarkAt(lat: Double, lon: Double) = searchFlow.clearSearchMarkAt(lat, lon)	PlaceMenus: kept places + place card	search			
+2551	6	fun	private	takePin		private fun takePin(lat: Double, lon: Double): com.onpath.app.search.Place? {	PlaceMenus: kept places + place card	Context Problems search			
+2559	1	var	private	pinTaken		private var pinTaken: TakenPin? = null	PlaceMenus: kept places + place card				
+2564	5	fun	private	fittingPlaceAdd		private inline fun fittingPlaceAdd(block: () -> Unit) {	PlaceMenus: kept places + place card				
+2571	2	val	public	cardPlace		val cardPlace: com.onpath.app.search.Place?	PlaceMenus: kept places + place card	Context search	MapScreen,SearchHost	0	0
+2574	1	fun	public	closePlaceCard		fun closePlaceCard() { planPoi = null; searchPlace = null }	PlaceMenus: kept places + place card			0	0
+2576	2	fun	private	routeIndexOf		private fun routeIndexOf(place: com.onpath.app.search.Place) =	PlaceMenus: kept places + place card	Context search			
+2580	16	fun	public	placeCardUi		fun placeCardUi(place: com.onpath.app.search.Place): com.onpath.app.ui.search.PlaceCardUi {	PlaceMenus: kept places + place card	Context search	SearchHost	0	0
+2598	28	fun	public	addPlace		fun addPlace(place: com.onpath.app.search.Place, role: PlaceRole) = fittingPlaceAdd {	PlaceMenus: kept places + place card	Context gps Problems plan search	SearchHost	0	0
+2627	1	fun	public	removePlace		fun removePlace(place: com.onpath.app.search.Place) { routeIndexOf(place)?.let { removePoint(it) }; closePlaceCard() }	PlaceMenus: kept places + place card	Context search	SearchHost	0	0
+2630	1	fun	public	stopName		fun stopName(p: GeoPoint): String? = searchFlow.stopName(p)	PlaceMenus: kept places + place card	search	MapOverlays,MultiDaySlice	0	1
+2631	1	fun	private	rememberPlaceName		private fun rememberPlaceName(p: GeoPoint, name: String) = searchFlow.rememberPlaceName(p, name)	PlaceMenus: kept places + place card	search			
+2635	1	val	public	sharedLookup		val sharedLookup: Boolean get() = searchFlow.sharedLookup	fwd: search	search	MapScreen	0	1
+2636	1	fun	public	receiveSharedPlace		fun receiveSharedPlace(shared: com.onpath.app.search.SharedPlace) = searchFlow.receiveSharedPlace(shared)	fwd: search	Context search	MainActivity	0	0
+2637	1	val	public	sharedUnsure		val sharedUnsure: String? get() = searchFlow.sharedUnsure	fwd: search	search	MapScreen	0	1
+2638	1	fun	public	searchSharedUnsure		fun searchSharedUnsure() = searchFlow.searchSharedUnsure()	fwd: search	search		0	0
+2639	1	val	public	sharedMenuWaiting		val sharedMenuWaiting: Boolean get() = searchFlow.sharedMenuWaiting	fwd: search	search	MapScreen	0	0
+2640	1	val	public	cameraIdleTick		val cameraIdleTick: Int get() = searchFlow.cameraIdleTick	fwd: search	search	MapScreen	0	0
+2641	1	fun	public	cameraIdle		fun cameraIdle() = searchFlow.cameraIdle()	fwd: search	search	MapHost	0	0
+2642	2	fun	public	openSharedMenuIfArrived		fun openSharedMenuIfArrived(cameraLat: Double?, cameraLon: Double?, metersPerPx: Double, arrivedPx: Double) =	fwd: search	search	MapScreen	0	0
+2644	1	fun	private	holdCameraForSharedPlace		private fun holdCameraForSharedPlace() = searchFlow.holdCameraForSharedPlace()	fwd: search	search			
+2646	4	fun	public	makeDestination		fun makeDestination(index: Int) {	PlanEdit: reverse, round trip, undo, clear	Context		0	0
+2651	1	fun	public	canReverse		fun canReverse(): Boolean = PlanEdits.reverseChanges(waypoints)	PlanEdit: reverse, round trip, undo, clear		MapScreen	0	0
+2652	7	fun	public	reverseRoute		fun reverseRoute() {	PlanEdit: reverse, round trip, undo, clear	Problems		0	0
+2661	1	fun	public	canRoundTrip		fun canRoundTrip(): Boolean = PlanEdits.isRoundTrip(waypoints) || PlanEdits.canRoundTrip(waypoints)	PlanEdit: reverse, round trip, undo, clear		MapScreen	0	0
+2667	7	fun	public	roundTrip		fun roundTrip() {	PlanEdit: reverse, round trip, undo, clear	Problems		0	0
+2675	1	fun	public	undoStep		fun undoStep() = step(plan.undo(), "Undo")	PlanEdit: reverse, round trip, undo, clear	plan		0	0
+2676	1	fun	public	redoStep		fun redoStep() = step(plan.redo(), "Redo")	PlanEdit: reverse, round trip, undo, clear	plan		0	0
+2678	19	fun	private	step		private fun step(prev: List<GeoPoint>?, what: String) {	PlanEdit: reverse, round trip, undo, clear	Problems plan			
+2704	1	fun	public	requestClear		fun requestClear() = clearPlan()	PlanEdit: reverse, round trip, undo, clear			0	0
+2712	23	fun	public	clearPlan		fun clearPlan() {	PlanEdit: reverse, round trip, undo, clear	Context service Problems plan		0	0
+2736	22	fun	public	answerLongRoute		fun answerLongRoute(plan: Boolean) {	PlanRoute: run (recalc, long / slow, cancel)	service gps Problems events	MapScreen	0	0
+2764	18	fun	private	cancelRun		private fun cancelRun(why: NotRouted) {	PlanRoute: run (recalc, long / slow, cancel)	Problems			
+2784	7	fun	private	restoreActivity		private fun restoreActivity(c: PlanStatus.Cause.ActivityChange) {	PlanRoute: run (recalc, long / slow, cancel)	prefs			
+2793	8	fun	public	answerSlowPlan		fun answerSlowPlan(answer: com.onpath.app.routing.SlowPlan.Answer) {	PlanRoute: run (recalc, long / slow, cancel)	Context Problems		0	0
+2803	1	fun	public	planAnyway		fun planAnyway() = perform(routeEvent(RouteRun.Event.PlanAnyway(waypoints.toList())))	PlanRoute: run (recalc, long / slow, cancel)			0	0
+2806	5	fun	private	routeEvent		private fun routeEvent(e: RouteRun.Event): List<RouteRun.Effect> {	PlanRoute: run (recalc, long / slow, cancel)				
+2813	18	fun	private	perform		private fun perform(effects: List<RouteRun.Effect>) {	PlanRoute: run (recalc, long / slow, cancel)	Context Problems cells			
+2832	4	fun	private	leaveUnrouted		private fun leaveUnrouted(why: NotRouted) {	PlanRoute: run (recalc, long / slow, cancel)	Problems			
+2841	6	fun	public	cancelRouting		fun cancelRouting() {	PlanRoute: run (recalc, long / slow, cancel)	Problems		0	0
+2852	3	fun	private	showProgress		private fun showProgress(gen: Int, done: Int, total: Int) {	PlanRoute: run (recalc, long / slow, cancel)	Main scope			
+2856	151	fun	private	recalc		private fun recalc() {	PlanRoute: run (recalc, long / slow, cancel)	Main scope Context service Txt Problems cells multiDay engine say			
+3011	2	fun	public	planFactors		fun planFactors(a: Activity = activity): com.onpath.app.time.Factors =	PlanRoute: time estimate	Context	MultiDaySlice,NavigateScreen	0	0
+3015	1	var	public	timeDetails	state	var timeDetails by mutableStateOf<TimeDetailsUi?>(null)	PlanRoute: time estimate		MainActivity	1	0
+3018	8	fun	public	openTimeDetails		fun openTimeDetails(technical: Boolean = false) {	PlanRoute: time estimate	Context	MainActivity	0	0
+3031	2	fun	private	withModelTime		private fun withModelTime(r: PlannedRoute, a: Activity, f: com.onpath.app.time.Factors): PlannedRoute =	PlanRoute: time estimate	Context			
+3039	5	fun	private	difficultyOf		private fun difficultyOf(r: PlannedRoute?, a: Activity): String? = r?.let {	PlanRoute: time estimate	Context Problems			
+3046	11	fun	private	tourTimes		private fun tourTimes(t: Tour): com.onpath.app.time.TourTimes? = try {	PlanRoute: time estimate	Context db Problems			
+3059	4	fun	private	retime		private fun retime() {	PlanRoute: time estimate				
+3065	6	fun	private	storePlanTimes		private fun storePlanTimes(id: Long, r: PlannedRoute?, a: Activity) {	PlanRoute: time estimate	Context Problems			
+3076	32	fun	private	withModelTime		private fun withModelTime(t: Tour): Tour {	PlanRoute: time estimate	Context db Problems			
+3110	1	fun	private	namedStops		private fun namedStops(pts: List<GeoPoint>): Set<Int> = pts.indices.filter { stopName(pts[it]) != null }.toSet()	PlanRoute: time estimate				
+3119	17	fun	private	snapToRoute		private fun snapToRoute(routed: List<GeoPoint>, res0: com.onpath.app.routing.PlanResult) {	PlanRoute: run (recalc, long / slow, cancel)	Context Problems plan			
+3142	9	fun	private	aliasSnappedLegs		private fun aliasSnappedLegs(routed: List<GeoPoint>, snapped: List<GeoPoint>, act: Activity, level: Int) {	PlanRoute: run (recalc, long / slow, cancel)	IO scope Problems			
+3157	6	fun	public	planGapText		fun planGapText(gaps: List<PlanGap> = planGaps): String? {	PlanRoute: run (recalc, long / slow, cancel)		MapScreen	0	0
+3170	8	fun	private	noteActivityChange		private fun noteActivityChange(own: Boolean) {	PlanRoute: warnings	service say			
+3180	4	fun	private	planChanged		private fun planChanged() {	PlanRoute: warnings				
+3186	11	val	public	routeSpots		val routeSpots: List<RouteSpot>	PlanRoute: warnings	Problems	MapScreen	0	0
+3199	1	fun	public	warningLineText		fun warningLineText(): String? = RouteWarnings.text(routeSpots, sac)	PlanRoute: warnings		MapScreen	0	0
+3202	1	fun	public	warningCount		fun warningCount(): Int = RouteWarnings.count(routeSpots)	PlanRoute: warnings		MapScreen	0	0
+3208	1	fun	public	routeChangedLineText		fun routeChangedLineText(): String? = routeChangedNotice	PlanRoute: warnings		MapScreen	0	0
+3211	6	fun	public	tapRouteChangedLine		fun tapRouteChangedLine() {	PlanRoute: warnings	events		0	0
+3219	7	fun	public	tapWarningLine		fun tapWarningLine() {	PlanRoute: warnings	events		0	0
+3227	1	fun	public	closeSpots		fun closeSpots() { spotsOpen = false }	PlanRoute: warnings			0	0
+3230	3	fun	internal	controlsIn		internal fun controlsIn(layer: AppMode, pointsOpen: Boolean) = MapControlsEnabled.In(layer, pointsOpen,	MapView (camera, compass, scrub)		MapScreen	0	0
+3234	1	fun	private	hasPlanLine		private fun hasPlanLine() = (route?.points?.size ?: 0) >= 2	MapView (camera, compass, scrub)				
+3235	1	fun	private	hasShownLine		private fun hasShownLine() = (shown?.segments?.sumOf { it.size } ?: 0) >= 2	MapView (camera, compass, scrub)				
+3236	1	fun	private	hasFollowLine		private fun hasFollowLine() = (followLine?.size ?: 0) >= 2	MapView (camera, compass, scrub)				
+3243	13	fun	public	showWholeRoute		fun showWholeRoute() {	MapView (camera, compass, scrub)	service gps events		0	0
+3262	9	fun	public	showPlanAndMe		fun showPlanAndMe() {	MapView (camera, compass, scrub)	gps Problems events	MapScreen	0	0
+3277	18	fun	public	showPlanWhole		fun showPlanWhole(moment: PlanCamera.Moment) {	MapView (camera, compass, scrub)	scope Problems events	MapScreen	0	0
+3301	13	fun	private	fitFirstRoute		private fun fitFirstRoute(line: List<GeoPoint>, pts: List<GeoPoint>, extraMs: Long = 0L) {	MapView (camera, compass, scrub)	scope Problems events			
+3316	4	fun	public	showSpot		fun showSpot(s: RouteSpot) {	MapView (camera, compass, scrub)			0	0
+3322	6	fun	private	showPiece		private fun showPiece(piece: List<GeoPoint>, center: Pair<GeoPoint, Double>?) {	MapView (camera, compass, scrub)	events			
+3334	6	fun	public	showPlanGap		fun showPlanGap() {	MapView (camera, compass, scrub)			0	0
+3348	1	fun	public	requestSave		fun requestSave() = askSave(null)	Save: dialog + copy + Zuletzt			0	0
+3354	4	fun	public	requestCopyRoute		fun requestCopyRoute(t: Tour) {	Save: dialog + copy + Zuletzt	Context routes	MainActivity	0	0
+3360	15	fun	private	askSave		private fun askSave(then: (() -> Unit)?) {	Save: dialog + copy + Zuletzt	scope Context Txt routes			
+3377	1	fun	public	cancelSave		fun cancelSave() { saveAsk = null }	Save: dialog + copy + Zuletzt			0	0
+3383	10	fun	public	confirmSave		fun confirmSave(input: String) {	Save: dialog + copy + Zuletzt	Context routes		0	0
+3395	20	fun	private	copyRoute		private fun copyRoute(id: Long, name: String) {	Save: dialog + copy + Zuletzt	IO scope Context db Txt Problems sync Backups			
+3417	1	val	private	NAME_WAIT_MS		private val NAME_WAIT_MS = com.onpath.app.ui.routes.RecentPlans.NAME_WAIT_MS	Save: dialog + copy + Zuletzt	Context routes			
+3420	2	fun	private	currentSaveMode		private fun currentSaveMode() =	Save: dialog + copy + Zuletzt				
+3423	1	fun	private	plannedNames		private fun plannedNames() = tours.filter { it.kind == TourKind.PLANNED && !it.draft }.map { it.name }	Save: dialog + copy + Zuletzt				
+3426	1	val	private	linkedDraft		private val linkedDraft: Tour? get() = if (planLinked && linkId >= 0) tours.firstOrNull { it.id == linkId && it.draft } else null	Save: dialog + copy + Zuletzt				
+3435	7	fun	private	keepAsDraft		private fun keepAsDraft(why: String) {	Save: dialog + copy + Zuletzt	Context Txt routes recent multiDay			
+3444	1	fun	public	saveDraft		fun saveDraft(t: Tour) = recent.saveDraft(t)	Save: dialog + copy + Zuletzt	recent	MainActivity	0	0
+3447	1	fun	public	deleteDraft		fun deleteDraft(t: Tour) = recent.deleteDraft(t)	Save: dialog + copy + Zuletzt	recent	MainActivity	0	0
+3453	8	val	public	livePlan		val livePlan: LivePlan?	Save: dialog + copy + Zuletzt		MainActivity	0	0
+3466	4	fun	public	tourLine		suspend fun tourLine(t: Tour): List<List<GeoPoint>> {	RoutePictures (app helper)	IO routes	MainActivity	0	0
+3476	11	fun	public	routeSnapshot		suspend fun routeSnapshot(segments: List<List<GeoPoint>>, tint: RouteShape.Tint, widthPx: Int, heightPx: Int,	RoutePictures (app helper)	Context bitmap		0	0
+3489	10	fun	private	snapshotStyle		private suspend fun snapshotStyle(): String? {	RoutePictures (app helper)	IO Main Context Problems			
+3500	3	fun	private	argbOf		private fun argbOf(tint: RouteShape.Tint): Int = tint.color().let { c ->	RoutePictures (app helper)	bitmap			
+3505	4	fun	public	kickThumbs		fun kickThumbs(firstUuid: String? = null) {	RoutePictures (app helper)	Problems routes		0	0
+3511	4	fun	public	backToLivePlan		fun backToLivePlan() {	Save: dialog + copy + Zuletzt	Problems	MainActivity	0	0
+3517	4	fun	public	saveLivePlan		fun saveLivePlan() {	Save: dialog + copy + Zuletzt	Problems	MainActivity	0	0
+3523	1	val	public	zuletztId		val zuletztId: Long get() = routes.recentId	Save: dialog + copy + Zuletzt	routes	MainActivity	0	0
+3526	3	var	public	justSavedId		var justSavedId: Long	Save: dialog + copy + Zuletzt	routes	MainActivity	0	0
+3535	7	fun	public	saveRoute		fun saveRoute(name: String, then: (() -> Unit)? = null) {	Save: writes (insert, overwrite, rename, star)	scope		0	0
+3543	28	fun	private	insertPlanned		private suspend fun insertPlanned(name: String, pts: List<GeoPoint>, r: PlannedRoute?, then: (() -> Unit)?) {	Save: writes (insert, overwrite, rename, star)	IO Context db Txt Problems routes sync multiDay Backups			
+3573	1	fun	private	savedStops		private fun savedStops(pts: List<GeoPoint>) = com.onpath.app.gpx.PlanGpx.stops(pts) { stopName(pts[it]) }	Save: writes (insert, overwrite, rename, star)	Context			
+3579	54	fun	private	overwriteSaved		private fun overwriteSaved(name: String, then: (() -> Unit)?) {	Save: writes (insert, overwrite, rename, star)	IO scope Context db Txt Problems routes sync multiDay Backups say			
+3635	14	fun	public	renameTour		fun renameTour(t: Tour, input: String) {	Save: writes (insert, overwrite, rename, star)	IO scope Context db Txt Problems sync Backups	MainActivity	0	0
+3655	12	fun	public	setFavourite		fun setFavourite(t: Tour, favourite: Boolean) {	Save: writes (insert, overwrite, rename, star)	IO scope Context db Txt Problems routes sync Backups	MainActivity	0	0
+3668	5	fun	private	setSaved		private fun setSaved(name: String?, id: Long, points: List<GeoPoint>?) {	Save: writes (insert, overwrite, rename, star)	service plan			
+3675	1	fun	public	navigating		fun navigating(recording: Boolean): Boolean = mode == AppMode.NAVIGATE || recording	Routes: open / go		PlanLinkFlow	0	0
+3678	2	fun	public	menuState		fun menuState(recording: Boolean): RouteMenuState =	Routes: open / go		MapScreen	0	0
+3681	1	fun	public	openRoutes		fun openRoutes() { refreshTours(); routesOpen = true }	Routes: open / go		MapScreen	0	0
+3691	18	fun	public	requestOpen		fun requestOpen(t: Tour, why: String = "My routes tapped") {	Routes: open / go	service Problems routes tour	MainActivity	0	0
+3715	8	fun	public	undoNewPlan		fun undoNewPlan() {	Routes: open / go	service Problems tour		0	0
+3730	20	fun	public	goFromRoutes		fun goFromRoutes(t: Tour, lineOf: List<List<TrackPoint>>? = null, start: () -> Unit) {	Routes: open / go	scope Context service Problems routes	MainActivity	0	0
+3751	1	var	private	goJob		private var goJob: Job? = null	Routes: open / go				
+3759	1	fun	public	planFollowedPlan		fun planFollowedPlan(t: Tour) = withFollowedPlan(t, "Planen") { plan, line -> openTour(plan, lineOf = line) }	Routes: open / go		MainActivity	0	0
+3762	1	fun	public	goFollowedPlan		fun goFollowedPlan(t: Tour, start: () -> Unit) = withFollowedPlan(t, "Los geht's") { plan, line -> goFromRoutes(plan, line, start) }	Routes: followed plan, review, names		MainActivity	0	0
+3764	15	fun	private	withFollowedPlan		private fun withFollowedPlan(t: Tour, what: String, go: (Tour, List<List<TrackPoint>>?) -> Unit) {	Routes: followed plan, review, names	IO scope service Txt Problems plan			
+3785	11	fun	private	followedPlanTour		private fun followedPlanTour(t: Tour): Pair<Tour, List<List<TrackPoint>>?>? {	Routes: followed plan, review, names	db			
+3798	8	fun	public	followedPlanLine		suspend fun followedPlanLine(t: Tour): List<GeoPoint> {	Routes: followed plan, review, names	IO db Problems	MainActivity	0	0
+3813	20	fun	public	tourReview		suspend fun tourReview(t: Tour): com.onpath.app.time.TourReview? {	Routes: followed plan, review, names	IO Context db Problems	MainActivity	0	0
+3838	19	fun	public	exportFollowedPlan		fun exportFollowedPlan(t: Tour) {	Routes: followed plan, review, names	IO scope Context db Txt Problems plan say	MainActivity	0	0
+3859	1	fun	public	planFromTour		fun planFromTour(t: Tour) = unlessUnsaved("\"${t.name}\" as the plan") { openTour(t, trackThen = TrackThen.PLAN) }	Routes: followed plan, review, names		MainActivity	0	0
+3865	1	fun	private	unlessUnsaved		private fun unlessUnsaved(what: String, go: () -> Unit) { Problems.trace("plan", "$what: the plan on the map goes under Zuletzt if not saved	Routes: followed plan, review, names	Problems			
+3872	1	fun	public	followShownDuringTour		fun followShownDuringTour() = unlessUnsaved("Follow the shown track during the tour") { followShownNow() }	Routes: followed plan, review, names		MapScreen	0	0
+3874	8	fun	private	followShownNow		private fun followShownNow() {	Routes: followed plan, review, names	service Problems			
+3884	1	fun	public	dismissEndAsk		fun dismissEndAsk() = tour.dismissEndAsk()	Routes: followed plan, review, names	tour	MapScreen	0	0
+3890	18	fun	private	proposeName		private suspend fun proposeName(pts: List<GeoPoint>, r: PlannedRoute?): String? {	Routes: followed plan, review, names	IO Context Problems search			
+3914	27	fun	private	nameRecordedTour		private fun nameRecordedTour(t: Tour) {	Routes: followed plan, review, names	IO scope Context service db Txt Problems tour search Backups			
+3943	2	fun	public	defaultName		fun defaultName(prefix: String) =	Routes: followed plan, review, names	Txt		0	0
+3949	20	fun	private	enter		private fun enter(m: AppMode) {	TourSession: enter + start	service gps			
+3978	25	fun	public	startNavigation		fun startNavigation(force: Boolean = false, recordOnly: Boolean = false) {	TourSession: enter + start	scope service Txt Problems tour say	MainActivity,MapScreen	0	0
+4004	1	var	private	startJob		private var startJob: Job? = null	Save: at tour start				
+4013	20	fun	private	saveNewPlanAtStart		private fun saveNewPlanAtStart() {	Save: at tour start	scope Txt Problems			
+4039	13	fun	private	updateSavedAtStart		private fun updateSavedAtStart(pts: List<GeoPoint>) {	Save: at tour start	IO scope db Problems recent			
+4059	5	fun	private	secureTourCorridor		private fun secureTourCorridor() {	TourSession: enter + start	cells			
+4066	1	val	private	START_TIMEOUT_MS		private val START_TIMEOUT_MS = 6_000L	TourSession: enter + start				
+4069	1	var	public	straightAsk	state	var straightAsk by mutableStateOf(false)	TourSession: enter + start		RouteDialogs	0	0
+4071	2	fun	private	planHasStraightLegs		private fun planHasStraightLegs(): Boolean =	TourSession: enter + start				
+4075	1	fun	private	planReplacesTrack		private fun planReplacesTrack(): Boolean = PlanGuidance.planReplacesTrack(followIsTrack, waypoints.toList(), planAtTrackFollow)	TourSession: enter + start				
+4078	1	fun	public	straightConfirmed		fun straightConfirmed() { straightAsk = false; startNavigation(force = true) }	TourSession: enter + start			0	0
+4086	13	fun	public	continueNavigation		fun continueNavigation(force: Boolean = false) {	TourSession: enter + start		MainActivity,MapScreen	0	0
+4101	1	val	public	planGuides		val planGuides: Boolean get() = followLine != null && !followIsTrack && waypoints.isNotEmpty()	TourSession: enter + start		MapScreen	0	0
+4107	2	fun	public	trackLook		fun trackLook(): com.onpath.app.map.MapController.TrackLook =	TourSession: enter + start	Context	MapScreen	0	0
+4110	3	fun	private	checkNow		private fun checkNow() {	TourSession: enter + start	service			
+4115	1	fun	public	takeNewRoute		fun takeNewRoute(questionId: Int) = recording.takeRoute(questionId)	TourSession: enter + start	service		0	0
+4118	1	fun	public	takeViaRoute		fun takeViaRoute(questionId: Int) = recording.takeVia(questionId)	TourSession: enter + start	service		0	0
+4121	1	fun	public	keepOriginalRoute		fun keepOriginalRoute(questionId: Int) = recording.keepRoute(questionId)	TourSession: enter + start	service		0	0
+4124	1	fun	public	leadToStart		fun leadToStart(questionId: Int) = recording.leadThere(questionId)	TourSession: enter + start	service		0	0
+4127	1	fun	public	justRecord		fun justRecord(questionId: Int) = recording.justRecord(questionId)	TourSession: enter + start	service		0	0
+4130	1	fun	public	joinHere		fun joinHere(questionId: Int) = recording.joinHere(questionId)	TourSession: enter + start	service		0	0
+4133	1	fun	public	leadFailedOk		fun leadFailedOk(questionId: Int) = recording.leadFailedOk(questionId)	TourSession: enter + start	service		0	0
+4138	2	var	public	activityCheck	state	var activityCheck by mutableStateOf<ActivityCheckUi?>(null)	ActivityCheck		MapScreen,NavigateScreen	0	1
+4140	1	var	private	checkJob		private var checkJob: Job? = null	ActivityCheck				
+4141	1	var	private	checkCancel		private var checkCancel: com.onpath.app.routing.RouteCancel? = null	ActivityCheck	Context			
+4142	1	var	private	checkSession		private var checkSession: NavSession? = null	ActivityCheck				
+4143	1	var	private	checkRest		private var checkRest: com.onpath.app.navigation.ActivityCheck.Rest? = null	ActivityCheck	Context			
+4145	1	var	private	navActivitySeen		private var navActivitySeen: Activity? = null	ActivityCheck				
+4147	1	var	private	planBaseline		private var planBaseline: List<GeoPoint>? = null	ActivityCheck				
+4149	2	fun	private	planFollowed		private fun planFollowed(planLine: List<GeoPoint>?): Boolean =	ActivityCheck				
+4152	1	fun	private	sacFor		private fun sacFor(a: Activity) = if (a == Activity.HIKE) checkHikeSac ?: sac else checkSession?.sac ?: sac	ActivityCheck				
+4155	1	var	private	checkHikeSac		private var checkHikeSac: Int? = null	ActivityCheck				
+4162	17	fun	public	openActivityCheck		fun openActivityCheck() {	ActivityCheck	service gps Txt	MapScreen	1	0
+4185	33	fun	private	startCheck		private fun startCheck(a: Activity, level: Int) {	ActivityCheck	scope Context service gps Txt Problems			
+4220	4	fun	private	cancelCheck		private fun cancelCheck() {	ActivityCheck				
+4226	18	fun	private	checkRow		private suspend fun checkRow(rest: com.onpath.app.navigation.ActivityCheck.Rest, a: Activity, level: Int,	ActivityCheck	Context Txt Problems engine			
+4251	25	fun	public	chooseHikeLevel		fun chooseHikeLevel(level: Int) {	ActivityCheck	IO scope service db Problems		0	0
+4278	4	fun	private	updateCheck		private fun updateCheck(a: Activity?, f: (ActivityRowState) -> ActivityRowState) {	ActivityCheck				
+4287	16	fun	public	chooseActivity		fun chooseActivity(a: Activity) {	ActivityCheck	IO scope service db Problems		0	0
+4309	25	fun	private	applySwitch		private fun applySwitch(fit: com.onpath.app.navigation.ActivityFit) {	ActivityCheck	Context service Problems			
+4341	12	fun	private	switchPlanActivity		private fun switchPlanActivity(a: Activity, level: Int) {	ActivityCheck	IO scope service db prefs Problems			
+4355	6	fun	public	closeActivityCheck		fun closeActivityCheck() {	ActivityCheck		MapScreen,NavigateScreen	0	0
+4363	10	fun	private	syncNavActivity		private fun syncNavActivity(s: NavSession?) {	ActivityCheck				
+4375	1	fun	public	switchToPlan		fun switchToPlan() = enter(AppMode.PLAN)	ActivityCheck		NavigateScreen	0	0
+4385	6	fun	private	afterTourEnded		private fun afterTourEnded() {	TourEnd	Problems			
+4393	5	fun	private	binFinishedTour		private suspend fun binFinishedTour(id: Long): Boolean = withContext(Dispatchers.IO) {	TourEnd	IO Context db Problems Backups			
+4403	8	fun	private	isShortRecording		private suspend fun isShortRecording(t: Tour): Boolean = withContext(Dispatchers.IO) {	TourEnd	IO Context db Problems tour			
+4413	1	val	public	shortBinnedTour		val shortBinnedTour: Tour? get() = tour.shortBinned	TourEnd	tour	MainActivity	0	0
+4420	17	fun	public	undoShortRecording		fun undoShortRecording() {	TourEnd	IO scope Context db Txt Problems routes tour Backups say		0	0
+4439	3	fun	public	closeShortRecording		fun closeShortRecording() {	TourEnd	Problems tour		0	0
+4444	4	fun	public	keepRecordingAfterArrival		fun keepRecordingAfterArrival() {	TourEnd	Problems	MapScreen	1	0
+4450	4	fun	public	endTour		fun endTour() {	TourEnd	tour	MapScreen	0	0
+4456	3	var	public	endAsk		var endAsk: EndAsk?	TourEnd	tour	MapScreen	0	0
+4466	20	fun	public	askEndTour		fun askEndTour(saveIfNoRides: Boolean = false) {	TourEnd	IO scope Context service db Problems tour	MapScreen,NavigateScreen	2	0
+4488	10	fun	public	endTourWith		fun endTourWith(a: EndAsk.Rides, choice: com.onpath.app.rides.RideChoice) {	TourEnd	IO scope Context Problems	MapScreen	0	0
+4500	1	var	public	editRides	state	var editRides by mutableStateOf<Pair<Tour, com.onpath.app.rides.RideView.Summary>?>(null)	TourEnd	Context	MainActivity	0	0
+4502	13	fun	public	openEditRides		fun openEditRides(t: Tour) {	TourEnd	IO scope Context db Txt Problems say	MainActivity	0	0
+4516	13	fun	public	applyEditRides		fun applyEditRides(t: Tour, choice: com.onpath.app.rides.RideChoice) {	TourEnd	IO scope Context db Txt Problems Backups say	MainActivity	0	0
+4534	4	fun	public	endTourAndDelete		fun endTourAndDelete() {	TourEnd	tour	MapScreen	0	0
+4543	1	fun	private	onArrived		private fun onArrived(arrived: Boolean) = tour.onArrived(arrived)	TourEnd	tour			
+4553	40	fun	private	followEditedPlan		private fun followEditedPlan() {	TourSession: follow	Context service Problems			
+4595	17	fun	private	followAgain		private fun followAgain(s: com.onpath.app.navigation.NavSession, planLine: List<GeoPoint>, versionNow: Int) {	TourSession: follow	Context service prefs Problems			
+4617	9	fun	public	followPlanned		fun followPlanned(checkNow: Boolean = false) {	TourSession: follow	service Txt Problems		0	0
+4632	4	fun	private	recopyFollowedPlan		private fun recopyFollowedPlan() {	TourSession: follow	Context service			
+4637	10	fun	private	copyFollowedPlan		private fun copyFollowedPlan(act: Activity, level: Int) {	TourSession: follow	db Problems			
+4649	9	fun	private	tourPlanNow		private fun tourPlanNow(act: Activity, level: Int): com.onpath.app.data.TourPlan? {	TourSession: follow	Context			
+4664	42	fun	private	followAhead		private fun followAhead(ahead: List<GeoPoint>, planLine: List<GeoPoint>) {	TourSession: follow	scope Context service Txt Problems engine say			
+4707	7	fun	public	followShown		fun followShown() {	TourSession: follow			0	0
+4719	19	fun	private	setFollow		private fun setFollow(name: String, points: List<GeoPoint>, isTrack: Boolean, checkNow: Boolean = false,	TourSession: follow	service prefs Problems			
+4740	1	fun	private	newSessionToken		private fun newSessionToken(): Long = maxOf(System.currentTimeMillis(), lastSessionToken + 1).also { lastSessionToken = it }	TourSession: follow				
+4741	1	var	private	lastSessionToken		private var lastSessionToken = 0L	TourSession: follow				
+4743	14	fun	public	clearFollow		fun clearFollow() {	TourSession: follow	service prefs		0	0
+4758	7	fun	public	startRecording		fun startRecording() {	TourEnd	Problems tour		0	0
+4767	1	fun	private	clearInterruptedNote		private fun clearInterruptedNote() = com.onpath.app.recording.TourInterruptedReceiver.cancelNote(getApplication())	TourEnd	Context service			
+4769	4	fun	public	continueRecording		fun continueRecording(t: Tour) {	TourEnd	Context service tour	MainActivity	0	0
+4775	1	val	public	unfinishedRides		val unfinishedRides: Pair<Tour, com.onpath.app.rides.RideView.Summary>? get() = tour.unfinishedRides	TourEnd	Context tour	MainActivity	0	0
+4781	17	fun	public	askSaveUnfinished		fun askSaveUnfinished(t: Tour) {	TourEnd	IO scope Context service db Problems tour	MainActivity	0	0
+4800	1	fun	public	backToUnfinished		fun backToUnfinished() = tour.backToUnfinished()	TourEnd	tour	MainActivity	0	0
+4806	21	fun	public	saveUnfinished		fun saveUnfinished(t: Tour, choice: com.onpath.app.rides.RideChoice? = null) {	TourEnd	IO Main scope Context service db Problems tour Backups	MainActivity	0	0
+4829	20	fun	public	deleteUnfinished		fun deleteUnfinished(t: Tour) {	TourEnd	IO Main scope Context service db Txt Problems tour Backups say	MainActivity	0	0
+4850	1	fun	public	pauseRecording		fun pauseRecording(pause: Boolean) = tour.pause(pause)	TourEnd	tour	MapScreen,NavigateScreen	0	0
+4852	5	fun	public	stopRecording		fun stopRecording() {	TourEnd	tour		0	0
+4860	23	fun	public	refreshTours		fun refreshTours() {	Routes: list + open tour	IO Main scope Context db Problems routes multiDay	MultiDaySlice,RecentPlans	0	0
+4888	62	fun	public	openTour		fun openTour(t: Tour, duringTour: Boolean = false, trackThen: TrackThen = TrackThen.SHOW,	Routes: list + open tour	IO scope Context service db prefs Problems plan multiDay events	MultiDaySlice	0	0
+4958	23	fun	private	loadStoredLine		private suspend fun loadStoredLine(t: Tour, pts: List<GeoPoint>, segs: List<List<TrackPoint>>) {	Routes: list + open tour	IO Context Problems			
+4989	2	val	public	sync		val sync = com.onpath.app.plansync.PlanSync(app, com.onpath.app.plansync.DbTourStore(app, db) { a -> planFactors(a) },	Sync wiring + synced routing	Context service	MainActivity,MapScreen,MultiDaySlice	0	0
+4996	27	val	private	syncDriver		private val syncDriver = com.onpath.app.ui.sync.SyncDriver(	Sync wiring + synced routing	IO scope Context service Txt sync say			
+5025	1	val	public	syncMarks		val syncMarks: kotlinx.coroutines.flow.StateFlow<Map<String, com.onpath.app.plansync.SyncMark>> get() = syncDriver.marks	Sync wiring + synced routing	Context sync	MainActivity	0	0
+5028	1	fun	private	syncMarkSeen		private fun syncMarkSeen(t: Tour) = syncDriver.markSeen(t.uuid)	Sync wiring + synced routing	sync			
+5031	1	val	public	syncPulling		val syncPulling: Boolean get() = syncDriver.pulling	Sync wiring + synced routing	sync	MainActivity	0	0
+5034	1	fun	public	pullSync		fun pullSync() = syncDriver.pull()	Sync wiring + synced routing	sync	MainActivity	0	0
+5036	1	init	public			init { syncDriver.start() }	Sync wiring + synced routing	sync			
+5039	18	val	private	pairing		private val pairing by lazy {	Sync wiring + synced routing	scope say			
+5058	1	val	public	pairAsk		val pairAsk: ByteArray? get() = pairing.pairAsk	Sync wiring + synced routing		MainActivity	0	0
+5059	1	fun	public	syncNoteOk		fun syncNoteOk() = pairing.syncNoteOk()	Sync wiring + synced routing			0	0
+5061	1	val	public	pairHint		val pairHint: Boolean get() = pairing.pairHint	Sync wiring + synced routing		MapScreen	0	0
+5063	1	fun	public	startPairing		fun startPairing(start: (String) -> Unit) = pairing.startPairing(start)	Sync wiring + synced routing		MapScreen	0	0
+5064	1	fun	public	pairHintCamera		fun pairHintCamera(start: (String) -> Unit) = pairing.pairHintCamera(start)	Sync wiring + synced routing		MapScreen	0	0
+5065	1	fun	public	pairHintCancel		fun pairHintCancel() = pairing.pairHintCancel()	Sync wiring + synced routing			0	0
+5067	1	fun	public	openPairCamera		fun openPairCamera(start: (String) -> Unit, fromSettings: Boolean) = pairing.openPairCamera(start, fromSettings)	Sync wiring + synced routing		MainActivity	0	0
+5069	1	val	public	pairJoining		val pairJoining: Boolean get() = pairing.pairJoining	Sync wiring + synced routing		MainActivity	0	0
+5071	1	fun	public	confirmPair		fun confirmPair() = pairing.confirmPair()	Sync wiring + synced routing			0	0
+5072	1	fun	public	cancelPair		fun cancelPair() = pairing.cancelPair()	Sync wiring + synced routing			0	0
+5074	1	fun	public	unpair		fun unpair() = pairing.unpair()	Sync wiring + synced routing			0	0
+5075	1	fun	private	receivePairing		private fun receivePairing(secret: ByteArray, via: String) = pairing.receivePairing(secret, via)	Sync wiring + synced routing				
+5078	1	fun	private	syncReport		private fun syncReport(r: com.onpath.app.plansync.PlanSync.Report) { syncDriver.onReport(r) }	Sync wiring + synced routing	Context sync			
+5085	17	fun	private	syncRoutingCheck		private fun syncRoutingCheck(t: Tour, pts: List<GeoPoint>) {	Sync wiring + synced routing	IO scope Txt Problems sync			
+5104	10	fun	private	followSyncedSavedPlan		private fun followSyncedSavedPlan() {	Sync wiring + synced routing	IO scope db Problems			
+5123	2	fun	private	exceptions		private inline fun <T> exceptions(block: () -> T): Result<T> = try { Result.success(block()) }	Sync wiring + synced routing				
+5127	1	val	private	syncRoutingLater		private val syncRoutingLater = LinkedHashSet<Long>()	Sync wiring + synced routing				
+5129	41	fun	private	routeSyncedPlans		private fun routeSyncedPlans(ids: List<Long>) {	Sync wiring + synced routing	IO scope Context db Problems Backups engine			
+5178	1	fun	public	receivePlanLink		fun receivePlanLink(found: com.onpath.app.routing.PlanLinks.Found, via: String) = links.receive(found, via)	Routes: plan links / share	Context	MainActivity	0	0
+5181	1	fun	public	pastedPlanLink		fun pastedPlanLink(text: String): Boolean = links.pasted(text) { search.clear() }	Routes: plan links / share	search	SearchHost	0	0
+5184	23	fun	private	openSharedPlan		private fun openSharedPlan(plan: com.onpath.app.routing.SharedPlan, via: String = "after asking") {	Routes: plan links / share	Context prefs Problems plan events			
+5213	7	fun	public	sharePlan		fun sharePlan() {	Routes: plan links / share	Context		0	1
+5225	7	fun	public	shareRoute		fun shareRoute(t: Tour) {	Routes: plan links / share	Context	MainActivity	0	0
+5233	6	fun	private	showTrack		private fun showTrack(s: ShownTrack) {	Routes: shown track, plan from track, delete	events			
+5240	1	fun	public	closeShown		fun closeShown() { shown = null; highlight = null }	Routes: shown track, plan from track, delete		MainActivity	0	0
+5246	2	var	public	planFromTrackBusy	state	var planFromTrackBusy by mutableStateOf(false)	Routes: shown track, plan from track, delete		MapScreen	0	0
+5248	1	var	private	planFromTrackCancel		private var planFromTrackCancel: com.onpath.app.routing.RouteCancel? = null	Routes: shown track, plan from track, delete	Context			
+5250	5	fun	public	cancelPlanFromTrack		fun cancelPlanFromTrack() {	Routes: shown track, plan from track, delete	Problems		0	0
+5260	1	fun	public	planFromShown		fun planFromShown() = unlessUnsaved("Track → plan") { planFromShownNow() }	Routes: shown track, plan from track, delete			0	0
+5262	17	fun	private	planFromShownNow		private fun planFromShownNow() {	Routes: shown track, plan from track, delete	Context Problems plan			
+5281	31	fun	private	planFromLine		private fun planFromLine(track: List<GeoPoint>, parts: List<String>, act: Activity, level: Int, done: (Boolean) -> Unit) {	Routes: shown track, plan from track, delete	scope Context Txt Problems cells engine say			
+5313	17	fun	public	deleteTour		fun deleteTour(t: Tour) {	Routes: shown track, plan from track, delete	IO Main scope Context service Txt Problems routes tour sync Backups say	MainActivity	0	0
+5334	3	var	public	recycleBin		var recycleBin: List<Tour>?	fwd: bin	recent	MainActivity	1	0
+5338	1	fun	public	openRecycleBin		fun openRecycleBin() = recent.openBin()	fwd: bin	recent	MainActivity	0	0
+5341	1	fun	public	restoreFromBin		fun restoreFromBin(t: Tour) = recent.restore(t)	fwd: bin	recent	MainActivity	0	0
+5344	1	fun	public	deleteForever		fun deleteForever(t: Tour) = recent.deleteForever(t)	fwd: bin	recent	MainActivity	0	0
+5347	26	fun	public	exportAll		fun exportAll() {	ImportExport (app helper + rules)	IO scope Context Intent Uri Txt Problems events Backups say	MainActivity	0	0
+5375	1	var	public	restoreOffer	state	var restoreOffer by mutableStateOf(false)	ImportExport (app helper + rules)		MainActivity	1	0
+5377	1	var	public	locationAsking	state	var locationAsking by mutableStateOf(false)	ImportExport (app helper + rules)		MainActivity	1	0
+5379	1	val	public	loadModalOpen		val loadModalOpen: Boolean get() = mapData.loadModalOpen	ImportExport (app helper + rules)	cells	MainActivity,MapScreen,SearchFlow	1	0
+5382	1	val	private	setup		private val setup = PhoneSetupState(prefs) { settings }	fwd: phone setup				
+5384	1	val	public	phone		val phone: com.onpath.app.setup.PhoneState get() = setup.phone	fwd: phone setup	Context	MainActivity,MapScreen,NavigateScreen	0	1
+5386	3	var	public	unusedReset		var unusedReset: com.onpath.app.setup.ResetStatus	fwd: phone setup	Context	MainActivity	0	0
+5390	3	var	public	phoneTaken		var phoneTaken: Map<com.onpath.app.setup.CheckId, com.onpath.app.setup.Taken>	fwd: phone setup	Context	MainActivity,MapScreen	0	0
+5394	3	var	public	setupWelcome		var setupWelcome: Boolean	fwd: phone setup		MainActivity	1	0
+5398	1	val	public	setupGuide		val setupGuide: com.onpath.app.setup.SetupGuide? get() = setup.setupGuide	fwd: phone setup	Context	MainActivity	0	0
+5399	1	val	public	setupOpen		val setupOpen: Boolean get() = setup.setupOpen	fwd: phone setup		MainActivity,MapScreen	3	0
+5401	3	var	public	notificationsOkTour		var notificationsOkTour: Long?	fwd: phone setup		NavigateScreen	0	0
+5405	1	val	public	vibrationUsed		val vibrationUsed: Boolean get() = setup.vibrationUsed	fwd: phone setup		MainActivity,MapScreen	0	0
+5407	1	val	public	voiceUsed		val voiceUsed: Boolean get() = setup.voiceUsed	fwd: phone setup		MainActivity,MapScreen	0	0
+5408	1	fun	public	updatePhone		fun updatePhone(s: com.onpath.app.setup.PhoneState) = setup.updatePhone(s)	fwd: phone setup	Context	MainActivity	0	0
+5413	1	fun	public	openSetup		fun openSetup(purpose: com.onpath.app.setup.Purpose, then: (() -> Unit)? = null) = setup.openSetup(purpose, then)	fwd: phone setup	Context	MainActivity,MapScreen	0	1
+5415	1	fun	public	openSetupStep		fun openSetupStep(id: com.onpath.app.setup.CheckId) = setup.openSetupStep(id)	fwd: phone setup	Context	NavigateScreen	0	0
+5416	1	fun	public	setupWelcomeNow		fun setupWelcomeNow() = setup.setupWelcomeNow()	fwd: phone setup			0	0
+5418	1	fun	public	setupLater		fun setupLater() = setup.setupLater()	fwd: phone setup			0	0
+5420	1	fun	public	setupDenied		fun setupDenied(id: com.onpath.app.setup.CheckId) = setup.setupDenied(id)	fwd: phone setup	Context	MainActivity	0	0
+5421	1	fun	public	setupVibrationPlayed		fun setupVibrationPlayed() = setup.setupVibrationPlayed()	fwd: phone setup		MainActivity	0	0
+5422	1	fun	public	setupVibrationAnswer		fun setupVibrationAnswer(f: com.onpath.app.setup.Felt) = setup.setupVibrationAnswer(f)	fwd: phone setup	Context		0	0
+5424	2	fun	public	setupVoiceStatus		fun setupVoiceStatus(status: com.onpath.app.setup.VoiceStatus, fix: com.onpath.app.setup.VoiceSetup.Fix?) =	fwd: phone setup	Context	MainActivity	0	0
+5427	1	val	public	voiceTest		val voiceTest: com.onpath.app.setup.VoiceSetup.VoiceTest? get() = setup.voiceTest	fwd: phone setup	Context	MainActivity	0	0
+5428	1	fun	public	setupVoiceTest		fun setupVoiceTest(t: com.onpath.app.setup.VoiceSetup.VoiceTest?) = setup.setupVoiceTest(t)	fwd: phone setup	Context	MainActivity	0	0
+5429	1	fun	public	setupBrandDone		fun setupBrandDone() = setup.setupBrandDone()	fwd: phone setup			0	0
+5431	1	fun	public	closeSetup		fun closeSetup() = setup.closeSetup()	fwd: phone setup		MainActivity	0	0
+5434	2	var	public	restoreProgress	state	var restoreProgress by mutableStateOf<String?>(null)	ImportExport (app helper + rules)		MainActivity	0	0
+5437	9	fun	private	checkRestoreOffer		private fun checkRestoreOffer() {	ImportExport (app helper + rules)	IO Main scope Context db Problems Backups			
+5447	15	init	public			init {	ImportExport (app helper + rules)	scope Context Txt recent Backups say			
+5463	1	fun	public	restoreOfferAnswered		fun restoreOfferAnswered() { restoreOffer = false; Backups.setRestoreOffered(getApplication()) }	ImportExport (app helper + rules)	Context Backups	MainActivity	0	0
+5466	20	fun	public	restoreFrom		fun restoreFrom(tree: Uri) {	ImportExport (app helper + rules)	IO Main scope Context Uri Txt Problems sync Backups say	MainActivity	0	0
+5487	16	fun	public	exportTour		fun exportTour(t: Tour) {	ImportExport (app helper + rules)	IO scope Context db	MainActivity	0	0
+5505	21	fun	private	share		private suspend fun share(name: String, gpx: () -> com.onpath.app.gpx.GpxFile) {	ImportExport (app helper + rules)	IO Context Intent Uri Txt Problems events say			
+5529	66	fun	public	importGpx		fun importGpx(uri: Uri) {	ImportExport (app helper + rules)	IO scope Context Uri service db prefs Txt Problems sync events Backups say	MainActivity	0	0
+5599	1	var	private	routingDataBefore		private var routingDataBefore: List<GeoPoint>? = null	PlanRoute: routing data arrived / gates				
+5600	1	var	private	routingDataBusy		@Volatile private var routingDataBusy = false	PlanRoute: routing data arrived / gates				
+5607	11	fun	private	checkRoutingData		private fun checkRoutingData(line: List<GeoPoint>) {	PlanRoute: routing data arrived / gates	Context service prefs cells			
+5620	1	val	private	syncRoutingThrottle		private val syncRoutingThrottle = com.onpath.app.plansync.RefreshThrottle(ROUTING_CHECK_MS)	PlanRoute: routing data arrived / gates	Context			
+5627	10	fun	private	refreshRoutingTiles		private fun refreshRoutingTiles(tiles: List<String>, why: String) {	PlanRoute: routing data arrived / gates	Context service Problems cells			
+5639	24	fun	private	refreshRd5		private fun refreshRd5(names: List<String>) {	PlanRoute: routing data arrived / gates	IO Main scope service Problems cells			
+5665	6	fun	private	routingDataRouteChanged		private fun routingDataRouteChanged(r: com.onpath.app.routing.PlannedRoute) {	PlanRoute: routing data arrived / gates	Context Txt			
+5673	58	init	public			init {	wiring: last init (collectors)	scope Context service gps Problems cells search multiDay			
+5732	29	fun	public	onCleared		override fun onCleared() {	wiring: onCleared	cells sync		0	0
