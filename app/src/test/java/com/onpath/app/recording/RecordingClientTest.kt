@@ -92,7 +92,7 @@ class RecordingClientTest {
     }
 
     @Test fun theServiceFinishesInTheOrderTheFakeCopies() {
-        val finish = File("src/main/java/com/onpath/app/recording/RecordingService.kt").readText().substringAfter("private fun finish(startId: Int)")
+        val finish = File("src/main/java/com/onpath/app/recording/RecordingService.kt").readText().substringAfter("private fun finish(startId: Int)").substringBefore("\n    }\n")   // finish()'s body only: onDestroy's own `_state.value = null` must not satisfy it
         val iParts = finish.indexOf("_finishedParts = parts"); val iFin = finish.indexOf("_finished.value = tourId"); val iState = finish.indexOf("_state.value = null")
         assertTrue("finish() found with its three writes", iParts > 0 && iFin > 0 && iState > 0)
         assertTrue("parts < finished < state = null: a collector of `finished` reads the tour still running", iParts < iFin && iFin < iState)

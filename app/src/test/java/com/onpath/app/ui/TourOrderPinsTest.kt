@@ -2,6 +2,7 @@ package com.onpath.app.ui
 
 import com.onpath.app.testkit.sourceFile
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -60,6 +61,19 @@ class TourOrderPinsTest {
                 "If this order breaks the user sees: $broken", found[i - 1].second < found[i].second)
     }
 
+    /**
+     * Rule 1's real hazard: a SUSPENSION (a launch, a hop of dispatcher) between the file write and its command - the
+     * command would then reach the service before the file is written. The text between [write] and [command] holds none.
+     */
+    private fun noSuspensionBetween(pin: String, scope: String, write: String, command: String) {
+        val a = scope.indexOf(write); val b = scope.indexOf(command, a + 1)
+        assertTrue("$pin: `$write` and `$command` must both be in the scope", a >= 0 && b > a)
+        val between = scope.substring(scope.lastIndexOf('\n', a) + 1, b)   // from the start of the write's line: a launch AROUND it counts
+        for (bad in listOf("launch", "withContext(")) assertFalse(
+            "$pin, rule 1: no `$bad` between the file write `$write` and the command `$command` - the service reads the file when the command " +
+                "arrives, so a suspension between them lets it read the old route (or none)", between.contains(bad))
+    }
+
     /** [text] is the last statement of the scope's body. */
     private fun endsWith(pin: String, rule: String, scope: String, text: String, broken: String) =
         assertTrue("$pin, rule $rule: `$text` must be the LAST statement of the function. If this breaks the user sees: $broken",
@@ -69,8 +83,13 @@ class TourOrderPinsTest {
 
     private val oldRoute = "the guidance keeps following the old route, or a deleted route comes back (the service reads the files when the command arrives)"
 
-    @Test fun p1_setFollow_filesThenStateThenTheCommand() = ordered("P1", "1, 18",
-        scope("P1", "private fun setFollow(", BLOCK_END),
+    @Test fun p1_setFollow_filesThenStateThenTheCommand() {
+        val s = scope("P1", "private fun setFollow(", BLOCK_END)
+        noSuspensionBetween("P1", s, "followStore.appFollows(session, name, points)", "recording.followChanged(checkNow)")
+        p1(s)
+    }
+
+    private fun p1(s: String) = ordered("P1", "1, 18", s,
         "a late re-route of the old line overwrites the new route; voice and cues keep the old line, or $oldRoute",
         "guidanceEndedByEmptyPlan = false",
         ".copy(token = newSessionToken(), version = (recState.value?.nav?.version ?: navVersion).coerceAtLeast(0) + 1,",
@@ -78,16 +97,26 @@ class TourOrderPinsTest {
         "followLine = points",
         "if (recState.value != null) recording.followChanged(checkNow)")
 
-    @Test fun p2_followAgain_filesThenStateThenTheCommand() = ordered("P2", "1, 20",
-        scope("P2", "private fun followAgain(", BLOCK_END),
+    @Test fun p2_followAgain_filesThenStateThenTheCommand() {
+        val s = scope("P2", "private fun followAgain(", BLOCK_END)
+        noSuspensionBetween("P2", s, "followStore.appFollows(session, session.name, session.active)", "recording.followChanged()")
+        p2(s)
+    }
+
+    private fun p2(s: String) = ordered("P2", "1, 20", s,
         "Undo routes anew and loses \"Guide me\", or $oldRoute",
         "s.copy(version = maxOf(s.version, versionNow) + 1, token = newSessionToken())",
         "followStore.appFollows(session, session.name, session.active)",
         "followOriginal = session.original",
         "recording.followChanged()")
 
-    @Test fun p3_clearFollow_requestsStaleThenFilesGoneThenTheCommand() = ordered("P3", "1, 19",
-        scope("P3", "fun clearFollow() {", BLOCK_END),
+    @Test fun p3_clearFollow_requestsStaleThenFilesGoneThenTheCommand() {
+        val s = scope("P3", "fun clearFollow() {", BLOCK_END)
+        noSuspensionBetween("P3", s, "followStore.appEnds()", "recording.followChanged()")
+        p3(s)
+    }
+
+    private fun p3(s: String) = ordered("P3", "1, 19", s,
         "a slow route result re-follows after the guidance ended, or a deleted route comes back",
         "splitRequests.invalidate()",
         "planCopy { notFollowed() }",
@@ -97,8 +126,13 @@ class TourOrderPinsTest {
 
     // ---- P4–P6: the activity check (rules 1, 23, 24) ----
 
-    @Test fun p4_applySwitch_sheetClosedThenProposalFileThenTheCommand() = ordered("P4", "1, 24",
-        scope("P4", "private fun applySwitch(", BLOCK_END),
+    @Test fun p4_applySwitch_sheetClosedThenProposalFileThenTheCommand() {
+        val s = scope("P4", "private fun applySwitch(", BLOCK_END)
+        noSuspensionBetween("P4", s, "followStore.propose(proposed)", "recording.proposeSwitch(fit.timeS)")
+        p4(s)
+    }
+
+    private fun p4(s: String) = ordered("P4", "1, 24", s,
         "the activity question never appears (the service finds no proposal file), or the sheet stays open behind Navigate",
         "closeActivityCheck()",
         "switchPlanActivity(a, fit.sac)",
@@ -121,7 +155,14 @@ class TourOrderPinsTest {
         "activityCheck = ActivityCheckRules.checking(ui, a, level)",
         First("if (!isActive || cancel.isCancelled) return@launchSafe"),
         "val st = checkRow(rest, a, level, cancel)",
+        Last("if (!isActive || cancel.isCancelled) return@launchSafe"),   // the guard that matters: after the row, before it is applied
         "if (st is ActivityRowState.Ready) applySwitch(st.fit)")
+
+    @Test fun p6b_startCheck_theCancelGuardStandsTwice() {
+        val s = scope("P6", "private fun startCheck(", BLOCK_END)
+        assertEquals("P6 (rule 23): the guard `if (!isActive || cancel.isCancelled) return@launchSafe` stands twice (before and after the row)",
+            2, count(s, "if (!isActive || cancel.isCancelled) return@launchSafe"))
+    }
 
     // ---- P7: the end of a tour (rules 7, 8, 9) ----
 
@@ -168,6 +209,7 @@ class TourOrderPinsTest {
         scope("P9", "fun askEndTour(", BLOCK_END),
         "an end sheet for a tour that already ended",
         "arrivalAsk = false",
+        "val s = withContext(Dispatchers.IO) {",
         "if (recState.value?.tourId != id) return@launchSafe",
         "TourEndFlow.afterRideCheck(")
 
@@ -180,6 +222,7 @@ class TourOrderPinsTest {
         "if (recState.value?.tourId == t.id) { enter(AppMode.NAVIGATE); return }",
         "enter(AppMode.PLAN)",
         "db.updateStats(",
+        "RideApply.choose(",
         "RideApply.finish(",
         "Backups.tourChanged(getApplication(), t.id)",
         "withContext(Dispatchers.Main) { refreshTours() }")
@@ -291,6 +334,35 @@ class TourOrderPinsTest {
         "clearPlan()",
         "followShown(); closeShown(); continueNavigation()")
 
+    // ---- P23-P26: single texts of rules 20, 23, 30, 34 ----
+
+    @Test fun p23_followEditedPlan_theSessionIsRememberedBeforeItIsReplacedInBothPlaces() {
+        val s = scope("P23", "private fun followEditedPlan() {", BLOCK_END)
+        val rem = "followHistory.remember"; val again = "followAgain(back, r.points, now?.version ?: 0)"
+        assertEquals("P23: remember twice", 2, count(s, rem)); assertEquals("P23: followAgain twice", 2, count(s, again))
+        val r1 = s.indexOf(rem); val a1 = s.indexOf(again); val r2 = s.indexOf(rem, r1 + 1); val a2 = s.indexOf(again, a1 + 1)
+        assertTrue("P23, rule 20: `$rem` must come before `$again` in both places (a session replaced before it is remembered is lost; " +
+            "Undo then routes anew and loses \"Guide me\")", r1 < a1 && a1 < r2 && r2 < a2)
+    }
+
+    @Test fun p24_cancelCheck_theRouterStopsBeforeTheJob() = ordered("P24", "23",
+        scope("P24", "private fun cancelCheck() {", BLOCK_END),
+        "six rows routed for 90 s: the job ends but BRouter keeps calculating",
+        "checkCancel?.cancel()", "checkJob?.cancel()")
+
+    @Test fun p25_sayEvent_onlyDuringATour() = ordered("P25", "30",
+        scope("P25", "private fun sayEvent(what: String) {", BLOCK_END),
+        "the sentence \"no destination\" spoken without a tour (the service would be started for it)",
+        "if (recState.value != null) recording.say(what)")
+
+    @Test fun p26_theProvisionalPositionIsAskedOnlyOnAChange() = ordered("P26", "34",
+        scope("P26", "var asked = false", "Provisional position request not"),
+        "indoors no position; or the fused request never stops (asked again on every state)",
+        "Provisional.asksPosition(",
+        "if (ask != asked) {",
+        "asked = ask",
+        "tracker.setFusedWanted(ask)")
+
     // ---- P19–P22: start, start-up, the service's answers, mode, continue (rules 2–6, 13, 14, 15, 22) ----
 
     @Test fun p19_startNavigation_guardsThenWhatIsFollowedThenSTARTThenWaitThenNavigate() {
@@ -320,6 +392,7 @@ class TourOrderPinsTest {
         "val active = db.findActiveRecording()",
         "withContext(Dispatchers.Main) { enter(start); startModeKnown = true }",
         "delay(1500)",
+        "if (recording.state.value == null) {",
         "withContext(Dispatchers.Main) { tour.showUnfinished(active, line) }",
         "} finally {",
         "withContext(kotlinx.coroutines.NonCancellable + Dispatchers.Main) { tour.unfinishedPending = false }")

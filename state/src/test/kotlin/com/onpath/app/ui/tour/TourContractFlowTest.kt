@@ -42,6 +42,12 @@ import java.io.File
  * [RouteRun], [SplitRequests]); fakes only at the edges – the recording client records what is on disk AT THE MOMENT a
  * command is sent ([FakeRecordingClient.onSend]), the service's main loop and routing thread are [ManualExecutor]s
  * the test steps.
+ *
+ * What these tests are NOT: they do not run the view model's code. The app side is modelled here (`appFollows` writes the
+ * files, then sends); what is proved is [FollowStore], the service's one-turn delay ([FakeNavService]) and the client's
+ * commands. The view model's own ORDER is held by the source pins (TourOrderPinsTest) and, after piece 18a, by the flows
+ * on the real slice. Confirmed by the review of piece 16a: the service has NO version check – it reads whatever
+ * `nav-session.json` holds at the command's turn – so the write must stay synchronous on main, before the send.
  */
 class TourContractFlowTest {
     @get:Rule val tmp = TemporaryFolder()
@@ -83,6 +89,7 @@ class TourContractFlowTest {
 
     // ---- rule 1: the files before the command ----
 
+    /** Proves the fake service's one-turn delay and [FollowStore] – not the view model's order (the pins and, after 18a, the flows do that). */
     @Test fun theSessionWrittenBeforeTheCommandIsTheOneTheServiceNavigates() {
         val service = serviceOn()
         appFollows(plan(1, *route1))
@@ -103,6 +110,7 @@ class TourContractFlowTest {
         assertEquals("Plan 2", service.navigator!!.session.name)
     }
 
+    /** Documents the hazard behind rule 1 and proves NOTHING about production code (the assertions hold for any app code). */
     @Test fun aWriteOneTurnLateLeavesTheServiceOnTheOldSessionUntilTheNextCommand() {
         val service = serviceOn()
         appFollows(plan(1, *route1)); service.main.runAll()
