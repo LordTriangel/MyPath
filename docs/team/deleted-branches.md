@@ -190,3 +190,22 @@ Written by `tools/dev/prune_branches.sh` (owner said yes in the chat). Bring one
 | 2026-11-17 | `wip/ir-2026-11-16-port` | `5f8afe3d13ad05b9838a812165a1428eb024d17a` | main |
 | 2026-11-17 | `wip/ir-2026-11-16-suggest-file` | `7b3754b4521d9a2b444ca7e88ade969579b529b7` | main |
 | 2026-11-17 | `wip/laptop-2026-11-07-parity` | `ccdb2e6f95b92f2c5f25f89cb3051b78691efc6c` | main |
+| 2026-11-19 | `wip/donald-2026-11-19-progress-design` | `5200d31e5719b7f4bb066f2d1641ae44453173fa` | main |
+| 2026-11-19 | `wip/donald-2026-11-19-undo-sheet` | `ae22c208391c56797c17a09d2cf431e64ef734a5` | main |
+| 2026-11-19 | `wip/ir-2026-11-17-aims` | `c515a2c4da8efb85337cdc1296e2c08937fe45f9` | main |
+| 2026-11-19 | `wip/ir-2026-11-17-official-access` | `3b3774856b325d43d7320d102d93d0a3c2eab296` | main |
+| 2026-11-19 | `wip/ir-2026-11-17-pill-words` | `5f60e61c5d9a466c1127534715160ce17aa7100d` | main |
+| 2026-11-19 | `wip/ir-2026-11-17-pills` | `0c7c4119ae8fe51fd4aace42462869ff5b6cbabb` | main |
+| 2026-11-19 | `wip/ir-2026-11-17-port-batch` | `1de7e4f9659eb06945c3327466dbf5bab5b43f57` | main |
+| 2026-11-19 | `wip/ir-2026-11-18-app-suggest-core` | `37b26378526d49ce92d0f78c7ca9fcaa022a0456` | main |
+| 2026-11-19 | `wip/ir-2026-11-18-app-suggest-ui` | `0cd2fa4faa47658c184f22a1d293bc187ad3bdb2` | main |
+| 2026-11-19 | `wip/ir-2026-11-18-card-row` | `7d84ad36a3e824836bc23b768d2f4a71108c2615` | main |
+| 2026-11-19 | `wip/ir-2026-11-18-card-row-on` | `72a66e39dba0c3d5cc0796f04954af38b52f6bad` | main |
+| 2026-11-19 | `wip/ir-2026-11-18-core-memory` | `5660efe9b1a467657ed37497a40b521418041826` | main |
+| 2026-11-19 | `wip/ir-2026-11-18-planner-suggest` | `6c9edc65ea112af471f580581396363591f7e794` | main |
+| 2026-11-19 | `wip/laptop-2026-11-17-suggest-layer` | `2ef4421f6896ab9dbe7b49e8a4e4b64ddd3468fd` | main |
+| 2026-11-19 | `wip/donald-2026-11-08-smooth-map` | `be609d8d0acd071dc6ae72da2f54a1f4613cb196` | checked by hand: owner's yes 2026-11-19 23:58 in the captain's chat; unfinished work noted in the backlog with its last commit |
+| 2026-11-19 | `wip/donald-2026-11-13-planner-suggest` | `8bae9a3eda65432ea3d0a85246000f5b9143aa68` | checked by hand: owner's yes 2026-11-19 23:58 in the captain's chat; unfinished work noted in the backlog with its last commit |
+| 2026-11-19 | `wip/donald-2026-11-13-suggest-round7` | `fd2593f055b3daeb542ebf2884872f05491a66e5` | checked by hand: owner's yes 2026-11-19 23:58 in the captain's chat; unfinished work noted in the backlog with its last commit |
+| 2026-11-19 | `wip/donald-2026-11-14-planner-suggest-remote` | `0ae208fea4692a2273141d1f05b8b98b862773d6` | checked by hand: owner's yes 2026-11-19 23:58 in the captain's chat; unfinished work noted in the backlog with its last commit |
+| 2026-11-19 | `wip/donald-2026-11-14-suggest-next` | `f501599375811814c1e8453205f2485f8679fd94` | checked by hand: owner's yes 2026-11-19 23:58 in the captain's chat; unfinished work noted in the backlog with its last commit |
