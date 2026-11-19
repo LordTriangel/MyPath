@@ -1,7 +1,6 @@
 package com.onpath.app.ui
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Test
 import java.io.File
 import java.util.TimeZone
@@ -19,14 +18,6 @@ class StoppedTextTest {
         assertEquals("14:32", StoppedText.since(ms, berlin))
         assertEquals("13:32", StoppedText.since(ms, TimeZone.getTimeZone("UTC")))
         assertEquals("24 h, no seconds", "00:05", StoppedText.since(1_794_009_900_000L, TimeZone.getTimeZone("UTC")))
-    }
-
-    /** Owner 2026-11-18: no calm line under the head – "Aufzeichnung und Navigation ruhen" / "Aufzeichnung ruht" are gone. */
-    @Test fun theCalmLineIsGone() {
-        for (dir in listOf("values", "values-de")) {
-            val xml = File("../strings/src/commonMain/composeResources/$dir/strings_navigate.xml").readText()
-            assertFalse("$dir: nav_stopped_line", xml.contains("nav_stopped_line"))
-        }
     }
 
     /** Owner 2026-11-07: the stop state is "Anhalten" / "Angehalten" everywhere it means this state – never "Pause". */

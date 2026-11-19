@@ -11,7 +11,7 @@ import kotlin.math.sin
 
 /**
  * Ascent of a recording from the terrain model, GPS altitude only where there is no terrain (core feature: recording;
- * owner 2026-10-30). The comparison with real tracks + real terrain tiles: [AscentCompareTest].
+ * owner 2026-10-30).
  */
 class AscentCounterTest {
     private fun run(c: AscentCounter, pts: List<Triple<Double?, Double?, Double>>): Pair<Double, Double> {

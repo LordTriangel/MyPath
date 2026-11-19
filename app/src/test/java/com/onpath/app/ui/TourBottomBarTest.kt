@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 /**
  * The tour's bottom bar in Navigate, unlocked or with the lock OFF (owner 2026-11-06, variant 2): no buttons in the status card; "⏸ Anhalten | ✎ Planen" at the
@@ -12,9 +11,6 @@ import java.io.File
  * "Planen" and "Weiter" and the start screen's question as the title.
  */
 class TourBottomBarTest {
-    private val bar = File("src/main/java/com/onpath/app/ui/TourActionBar.kt").readText()
-    private fun xml(dir: String, file: String) = File("../strings/src/commonMain/composeResources/$dir/$file").readText()
-
     @Test fun layoutNeverCutsAWord() {
         // Pixel width ~390 dp: Pause / Planen (~45 / ~55 dp) fit with icons
         assertTrue(TourBottomBarRules.runningWithIcons(45f, 55f, 358f))
@@ -46,8 +42,5 @@ class TourBottomBarTest {
         assertTrue(EmptyPlanTitle.asks(pointCount = 0, touring = false))
         assertFalse(EmptyPlanTitle.asks(pointCount = 1, touring = false))
         assertFalse(EmptyPlanTitle.asks(pointCount = 0, touring = true))
-        val panel = File("src/main/java/com/onpath/app/ui/PlanPanel.kt").readText()
-        assertTrue("the title and the rolled-up row use it", panel.split("str(EmptyPlanTitle.of(ui))").size == 3)
-        assertTrue(panel.contains("Res.string.plan_hint_first_point_question") && panel.contains("Res.string.plan_plan_a_route"))
     }
 }

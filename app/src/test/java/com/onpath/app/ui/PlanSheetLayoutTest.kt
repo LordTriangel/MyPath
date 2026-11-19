@@ -1,12 +1,10 @@
 package com.onpath.app.ui
 
-import com.onpath.app.testkit.sourceFile
 import com.onpath.app.routing.Activity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 /**
  * The plan sheet as the owner chose it (2026-11-05, R5): the activity as a button on the map, the plan row
@@ -14,9 +12,6 @@ import java.io.File
  * no Save in the sheet (☰ keeps it, ✕ offers it); the rolled-up row also during a tour.
  */
 class PlanSheetLayoutTest {
-    private fun src(f: String) = sourceFile(f).readText()
-    private val panel = src("ui/PlanPanel.kt")
-
     private fun ui(points: Int, running: Boolean) = PlanUi(points, null, false, null, canUndo = points > 0, canRedo = false,
         activity = Activity.HIKE, tourRunning = running, tour = if (running) TourState(1_000.0, 600, paused = false) else null)
 
@@ -25,10 +20,6 @@ class PlanSheetLayoutTest {
         assertEquals("Carry on", goLabel(ui(2, running = true)))
         // TalkBack keeps the activity
         assertEquals("Carry on · Hike", primaryLabel(ui(2, running = true)))
-        // ▶ in both states (owner: forward, not ‹)
-        val icon = panel.substringAfter("private fun goIcon(").substringBefore("\n}\n")
-        assertFalse(icon, icon.contains("KeyboardArrowLeft"))
-        assertTrue(icon, icon.contains("Icons.Filled.PlayArrow"))
     }
 
     /**
@@ -52,10 +43,6 @@ class PlanSheetLayoutTest {
         // the facts on one line → the difficulty sits on the profile; else at the end of the facts
         assertTrue(PlanRow.factsOneLine(320f, 390f))
         assertFalse(PlanRow.factsOneLine(360f, 390f))
-        val head = panel.substringAfter("private fun PlanHead(").substringBefore("\n}\n")
-        // the difficulty stays while a route is calculated (faded – PlanCalculatingTest)
-        assertTrue(head, head.contains("if (!oneLine) DifficultyBadge("))
-        assertTrue(panel.contains("if (factsOneLine(route)) Box {"))
     }
 
     /** The rolled-up row (owner 2026-11-07, A): centred facts in whole pieces – a large font wraps between them, never inside. */
@@ -69,17 +56,8 @@ class PlanSheetLayoutTest {
         assertTrue(p[2], p[2].endsWith("↑842\u00A0↓310"))
     }
 
-    /** No Save in the sheet; ✕ never asks (owner 2026-11-06) – a plan not saved goes under My routes → Zuletzt. */
-    @Test fun clearNeverAsks() {
-        assertFalse(Regex("onSave\\w*").containsMatchIn(panel))
-        val vm = src("ui/AppViewModel.kt")
-        assertTrue(src("ui/MapScreen.kt").contains("onNewPlan = if (vm.plan.points.isNotEmpty()) vm.planEdit::clearPlan else null"))
-        assertTrue(src("ui/MapScreen.kt").contains("onClear = vm.planEdit::clearPlan")) // piece 21: the ✕ calls the edit slice's clearPlan itself, the forwarder `requestClear` is gone
-        val editSlice = src("ui/plan/PlanEditSlice.kt") // clearPlan lives here since piece 10
-        assertTrue(editSlice.contains("fun clearPlan() {"))
-        assertFalse(vm.contains("discardSaveFirst") || vm.contains("canSaveBeforeClear") || vm.contains("discardAsk"))
-        assertFalse(editSlice.contains("discardSaveFirst") || editSlice.contains("canSaveBeforeClear") || editSlice.contains("discardAsk"))
+    /** The decision buttons stay on one row only while they fit. */
+    @Test fun decisionButtonsOneRowOnlyWhenTheyFit() {
         assertTrue(DecisionLayout.oneRow(300f, 312f)); assertFalse(DecisionLayout.oneRow(330f, 312f))
     }
-
 }

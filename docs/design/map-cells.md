@@ -579,11 +579,8 @@ download → join, mobile-data rule, Wi-Fi only, offline → online, server fail
 `CellReuseTest` (a new version: only the changed file is fetched, a damaged file on the phone is fetched, nothing
 installed / no hashes → everything, interrupted → goes on, never a mix of two versions, a download whose kept files no
 longer fit → dropped and loaded in full), `CellStoreReuseTest` (the store's side).
-Optional: `RealCellsTest` with `ONPATH_CELLS_DIR=…/cells-data/cells/f2` (+ `ONPATH_REGION_DIR=…/out-f2/onpath-data`)
-joins the two real cells (+ region); `StoreWriteCostTest` with `ONPATH_STORE_BENCH=1` measures the write time per
-store size (§19.9); `ONPATH_REAL_CELL=<a cell's version folder>` reuses a real cell for a new version;
-`ONPATH_LIVE=1` downloads 10-543-361 from the test doorman (key from
-`~/.gradle/gradle.properties`, never printed). Gradle caches test results: add `--rerun`.
+The optional env-var tests on real cells (`RealCellsTest`, `StoreWriteCostTest`, 2026-11-19) are removed: they never ran
+in CI; the join and the reuse are in `CellStoreTest` / `CellStoreReuseTest` / `CellReuseTest`, the write-time table of §19.9 stays as measured.
 
 ### 19.6 To check on the phone
 
