@@ -75,6 +75,30 @@ class Cells(unittest.TestCase):
         # region packages (z7, map-cells.md §20) go through the same job
         self.assertEqual(job_build.parse_cells("7-66-42 10-531-342 7/66/43"), [(7, 66, 42), (10, 531, 342), (7, 66, 43)])
 
+    def test_bbox_on_the_prime_meridian_and_equator_has_no_exponent(self):
+        # field bug 7-63-42 (England, east edge 0°): --inset printed the east edge as "-1e-07"; Python 3.12's
+        # argparse (job image) takes that for an option, so build_hillshade.py --bbox got 3 values ("Build step
+        # 'shade' failed"). Every negative value must look like a number to argparse 3.12: -digits[.digits]
+        import re
+        neg_number = re.compile(r"^-\d+$|^-\d*\.\d+$")  # argparse 3.12.3 _negative_number_matcher
+        cells_py = os.path.join(HERE, "..", "cells", "cells.py")
+        for z, x, y in ((7, 63, 42), (7, 64, 42), (7, 66, 63), (7, 66, 64), (10, 511, 340), (10, 512, 340)):
+            for extra in ([], ["--inset"], ["--buffer-km", "10"], ["--ring-z12", "--inset"]):
+                out = subprocess.run([sys.executable, cells_py, "bbox", str(z), str(x), str(y)] + extra,
+                                     check=True, capture_output=True, text=True).stdout.strip()
+                vals = out.split(",")
+                self.assertEqual(len(vals), 4, out)
+                for v in vals:
+                    self.assertNotIn("e", v.lower(), (z, x, y, extra, out))
+                    if v.startswith("-"):
+                        self.assertRegex(v, neg_number, (z, x, y, extra, out))
+                b = cell_bbox(z, x, y)
+                if extra == ["--inset"]:  # the values are unchanged, only written without an exponent
+                    self.assertEqual([float(v) for v in vals],
+                                     [b[0] + 1e-7, b[1] + 1e-7, b[2] - 1e-7, b[3] - 1e-7])
+                if extra == []:
+                    self.assertEqual([float(v) for v in vals], list(b))
+
     def test_package_routes_only_long_distance(self):
         import package_routes as pr
         self.assertEqual(pr.route_of({"type": "route", "route": "bicycle", "network": "icn", "ref": "EV15",

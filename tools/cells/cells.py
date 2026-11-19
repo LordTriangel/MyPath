@@ -97,6 +97,17 @@ def cell_bbox(z, x, y):
     return tile_lon(x, z), tile_lat(y + 1, z), tile_lon(x + 1, z), tile_lat(y, z)
 
 
+def plain_number(v):
+    """A float as a decimal without an exponent, exactly the value repr gives: an edge on 0° moved inwards is 1e-07 /
+    -1e-07, and Python 3.12's argparse (job image) takes "-1e-07" for an option, not a number (field bug 7-63-42:
+    build_hillshade.py --bbox got 3 values, "Build step 'shade' failed" for every package on the prime meridian)."""
+    r = repr(float(v))
+    if "e" not in r and "E" not in r:
+        return r
+    from decimal import Decimal
+    return format(Decimal(r), "f")
+
+
 def buffered_bbox(bbox, km):
     w, s, e, n = bbox
     dlat = km / 111.32
@@ -468,6 +479,7 @@ def selftest():
     assert owns_tile(7, 66, 42, 7, 66, 42, 7, 9) and owns_tile(7, 66, 42, 9, 66 * 4 + 3, 42 * 4, 7, 9)
     assert not owns_tile(7, 66, 42, 10, 531, 342, 7, 9) and not owns_tile(7, 66, 42, 6, 33, 21, 7, 9)
     assert (531 >> 3, 342 >> 3) == (66, 42)  # the Hilden cell lies under it
+    assert plain_number(-1e-07) == "-0.0000001" and plain_number(-2.8125) == "-2.8125" and plain_number(0.0) == "0.0"
     assert version_name("2026-10-26", PACKAGE_SCHEMA) == f"2026-10-26-s{PACKAGE_SCHEMA}"
     assert version_name("2026-10-26", 7, 2) == "2026-10-26.2-s7" and schema_of("2026-10-26.2-s7") == 7
     assert sorted(["2026-10-27-s7", "2026-10-26.2-s7", "2026-10-26-s7"]) == \
@@ -518,7 +530,7 @@ def main(argv):
             b = (w_, s_, e_, n_)
         if "--inset" in a:
             b = (b[0] + 1e-7, b[1] + 1e-7, b[2] - 1e-7, b[3] - 1e-7)
-        print(",".join(repr(v) for v in b))
+        print(",".join(plain_number(v) for v in b))
     elif cmd == "tiles":
         minzoom = int(a[a.index("--minzoom") + 1]) if "--minzoom" in a else 10
         maxzoom = int(a[a.index("--maxzoom") + 1]) if "--maxzoom" in a else None
