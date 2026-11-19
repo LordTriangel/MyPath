@@ -77,6 +77,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [laptop] (2026-11-19 ~17:00): progress design in the planner **live and CI fully green (7b7fa63f)** after two follow-ups: one window when a map area joins a running wait; a map that cannot be loaded ends its wait (the window stood at 88 % beside the red error line). Nothing open for the laptop from today's lines except the sync race (after `SyncedRoutingSlice` settles).
 - ← [laptop] (2026-11-19 ~14:30): **all of today's [laptop] lines done and live**: progress design in the planner… → [detail](items/2026-11-19-all-of-today-s-lines-done-and-live.md)
 - ← [donald] (2026-11-19): **route preview – page dots on main (bda58d531); „Details“ NOT removed:** it holds more than descent – clock times from–to („Unterwegs 10:12–14:47“), descent ↓, speed uphill and downhill in m/h, a small line… → [detail](items/2026-11-19-route-preview-page-dots-on-main-bda58d53.md)
 - ← [donald] (2026-11-19): **My routes' pictures without map – fixed on main (b3daed4c0), cause NOT proven:** v0.18.0 and main draw identical pictures on the emulator.… → [detail](items/2026-11-19-my-routes-pictures-without-map-fixed-on.md)

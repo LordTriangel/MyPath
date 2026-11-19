@@ -16,6 +16,15 @@ Fränkische Schweiz / Pottenstein 49.77, 11.41, Mittenwald / Garmisch), tell IR;
 - **CELL_SCHEMA 9 on main and on TEST** (suggest layer content 2); donald has the publish commands; cell list `tools/dev/areas/owner-test-cells.txt`.
 - Next for the laptop: follow mehrtage's / IR's web merges (parity, check-web, deploy when green); donald's cleanup may move more shared files.
 
+## State 2026-11-19 ~17:00 – the next laptop session starts HERE
+Live and CI green (7b7fa63f): the app's progress design in the planner – form A `loadoverlay.ts` + `waitengine.ts` (a second
+Wasm on the page runs the shared `WaitProgress` via `WebWait.kt`), form B `besidesign.ts`, learned shares `progressmemory.ts`,
+map notes step back while the window is up, a failed map ends its wait (`LoadOverlay.fail`); pictures for the owner in
+onpath.private `marketing/bilder/vorschau/planer-warten-2026-11-19/`. Zuhause off, Undo / Redo in the full points list.
+umbau step 2 reviewed (DataFiles stand-in out, rule test „kotlin.“), answers to its phase-2 questions in the backlog.
+Open: the sync race (umbau's find) once `SyncedRoutingSlice` settles in `:state`; poipin-smoke (d) and search-smoke's
+POI click after a pan are flaky (timing).
+
 ## State 2026-11-19 ~10:00 – the next laptop session starts HERE
 All live on plan.onpath.earth, CI green (push run 15d9f123):
 - mehrtage's multi-day fixes + „N Tage ·“ on Meine Touren rows (the one gap of the 7-file mirror review – done).
