@@ -111,12 +111,31 @@ async function run(lang, viewport, shotPrefix) {
   await page.click('#fitRoute');
   await page.waitForTimeout(1200);
   const spot = await page.evaluate(() => { const pts = window.__days.h.routedPlan().legs.flatMap((l) => l.points); return pts[Math.floor(pts.length * 0.48)]; });
+  // the night lies ON the route (owner 2026-11-19): nothing routed – the line, distance, climb and time stay the same,
+  // only a day border more, where the click was
+  const lineOf = () => page.evaluate(() => { const p = window.__engine.lastPlan;
+    const line = p.legs.flatMap((l) => l.points).filter((q, k, a) => !k || q[0] !== a[k - 1][0] || q[1] !== a[k - 1][1]);
+    return { d: p.distanceM, up: p.ascentM, down: p.descentM, t: p.timeS, line: JSON.stringify(line), totalM: window.__days.lastView?.totalM }; });
+  const onLine = await lineOf();
+  const pointsBefore = await page.evaluate(() => window.__state.points.length);
   await clickLngLat(spot[1], spot[0]);
   await menuItem(lang === 'de' ? 'Übernachtung hier' : 'Overnight stop here');
   await waitView(() => window.__days.lastView?.ends.some((e) => e.kind === 'OVERNIGHT'), 'a blue moon');
+  await settled();
   let v = await view();
   check(v.days === 3 && v.ends.filter((k) => k === 'PROPOSAL').length === 1, `Übernachtung hier: N stays 3, one grey left (${v.ends})`);
   check(await page.locator('.pin.night .daysym.blue').count() === 1, 'the night point is drawn as a blue moon');
+  const split = await lineOf();
+  const legs5 = await page.evaluate(() => window.__engine.lastPlanStats?.legs);
+  check(await page.evaluate(() => window.__state.points.length) === pointsBefore + 1 && legs5?.routed === 0,
+    `a night on the route: a point more, no leg routed (${JSON.stringify(legs5)})`);
+  check(split.d === onLine.d && split.up === onLine.up && split.down === onLine.down && split.t === onLine.t && split.line === onLine.line
+    && split.totalM === onLine.totalM, `the same route: ${Math.round(onLine.d)} m ↑${Math.round(onLine.up)} → ${Math.round(split.d)} m ↑${Math.round(split.up)}, the same line`);
+  const along = await page.evaluate(([la, lo]) => { const line = window.__engine.lastPlan.legs.flatMap((l) => l.points);
+    const m = (a, b) => { const r = Math.PI / 180, x = (b[1] - a[1]) * r * Math.cos(((a[0] + b[0]) / 2) * r), y = (b[0] - a[0]) * r; return Math.sqrt(x * x + y * y) * 6371000; };
+    let s = 0; for (let k = 1; k < line.length; k++) { if (line[k - 1][0] === la && line[k - 1][1] === lo) return s; s += m(line[k - 1], line[k]); } return -1; }, [spot[0], spot[1]]);
+  const nightAt = await page.evaluate(() => window.__days.lastView.ends.find((e) => e.kind === 'OVERNIGHT').alongM);
+  check(along >= 0 && Math.abs(nightAt - along) < 30, `the day border is where the click was (${Math.round(nightAt)} m, the spot ${Math.round(along)} m)`);
 
   // 6 · Hotel hinterlegen with a pasted Google Maps link (R3 → green bed, the route leads there)
   const night = await page.evaluate(() => { const e = window.__days.lastView.ends.find((x) => x.kind === 'OVERNIGHT'); return [e.lat, e.lon]; });

@@ -70,6 +70,7 @@ object Engine {
         val wps = parsePoints(points)
         val act = Activity.valueOf(activity)
         legStore.wanted(emptyList())
+        LegSplit.seed(legCache, wps, act, sac) // a point put in on a routed leg: its two halves, no store read
         val keys = (0 until wps.size - 1).filter { legCache.lookup(wps[it], wps[it + 1], act, sac) == null }
             .map { LegCache.key(wps[it], wps[it + 1], act, sac) }
         legStore.wanted(keys).joinToString(",", "[", "]") { str(it) }
@@ -283,6 +284,8 @@ object Engine {
                 RouteWarnings.saysChanged(own = true, inPlan = true, touring = false) }
             // the wait window (WebWait, owner 2026-11-19 „Route berechnet ist auch A“): the legs the router works on are its
             // steps – each time a leg is done, {"done":2,"total":5} (the app's RouteWait reads the same Planner report)
+            // a point put in on the routed line (a night on the route, owner 2026-11-19): its leg cut there, not routed
+            LegSplit.seed(legCache, wps, act, sac)
             val planner = Planner(engine(), null, askAtLimit = rounds >= 1, rounds = rounds.coerceAtLeast(1), legs = legCache,
                 progress = { done, total -> progressSink?.invoke("{\"done\":$done,\"total\":$total}") })
             val res = try {
