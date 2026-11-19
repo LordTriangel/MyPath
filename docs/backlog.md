@@ -193,7 +193,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
-- [donald] 2026-11-20 night: **Flächen etwas dunkler – auf deinem Pixel** (`#F3F4EE` instead of `#FAFAF6`; before / after in onpath.private `ideen/2026-11-20-papier-dunkler/`). Into the release? Recommendation: yes if you like it on the phone (then one more E2E round, ~40 min).
+- [donald] 2026-11-20 night: **Farben „Alpenrand“ (MyPath) auf deinem Pixel zum Ausprobieren** – Tannengrün `#1F5C4A`, Fels `#26302B`, Kalkstein-Papier `#F7F5EF` (the earlier „Flächen dunkler“ try is replaced on the phone). Into the release? Only on your word – then one more E2E round (~40 min).
 - [donald] 2026-11-20 night: **may donald clear the app…** → [detail](items/2026-11-20-may-donald-clear-the-app-once-on-its-own.md)
 - [captain] 2026-11-19: **merge pull request 15** → [detail](items/2026-11-19-merge-pull-request-15.md)
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)
