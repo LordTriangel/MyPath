@@ -133,7 +133,8 @@ const magenta = ([r, g, b]) => r - g > 50 && b - g > 40;
   // the window's line every 50 ms from its first appearance (the „3 minutes“ flash before the server's estimate)
   await page.evaluate(() => { window.__lines = []; window.__lTimer = setInterval(() => {
     const w = document.getElementById('waitwin');
-    if (w || window.__lines.length) window.__lines.push({ t: performance.now(), line: w?.querySelector('.wwline')?.textContent ?? '' });
+    if (w || window.__lines.length) window.__lines.push({ t: performance.now(), line: w?.querySelector('.wwline')?.textContent ?? '',
+      rows: w ? [...w.querySelectorAll('.wwsteps li')].map((l) => l.className + ':' + l.textContent).join(', ') + ' ' + w.dataset.pct + ' %' : '' });
   }, 50); });
   await page.click('#locate');
   // what the page did meanwhile, for a failure message (CI: the window late on two cores)
@@ -155,9 +156,11 @@ const magenta = ([r, g, b]) => r - g > 50 && b - g > 40;
   {
     const at = answeredAt;
     const lines = await page.evaluate(() => { clearInterval(window.__lTimer); return window.__lines; });
-    const early = lines.filter((x) => at != null && x.t < at && /left|longer/.test(x.line));
+    // no time text (a stalled bar may say „taking a bit longer…“ – that is no number; CI 2026-11-20 on two cores: the
+    // page's first map still loading said „about 5 seconds left“ by its tiles' assumed size)
+    const early = lines.filter((x) => at != null && x.t < at && /left/.test(x.line));
     check(at != null && lines.some((x) => x.t < at) && early.length === 0,
-      `no time before the server's first estimate (${lines.filter((x) => at != null && x.t < at).length} samples before it; ${[...new Set(early.map((x) => x.line))].join(' · ')})`);
+      `no time before the server's first estimate (${lines.filter((x) => at != null && x.t < at).length} samples before it; ${[...new Set(early.map((x) => x.line + ' [' + x.rows + ']'))].join(' · ')})`);
   }
   check(asked.length === 1 && asked[0].reason === 'point' && asked[0].cells.join() === CELL && asked[0].formats.join() === '2',
     `one request through the proxy: ${JSON.stringify(asked)}`);

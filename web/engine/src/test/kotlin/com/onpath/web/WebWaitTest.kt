@@ -173,13 +173,23 @@ class WebWaitTest {
         assertTrue("no time while an area has no estimate: ${lines.distinct()}", lines.all { claimedS(it) == null })
     }
 
-    @Test fun aMapAloneStillShowsItsTime() {
-        // no route: the download by bytes at the measured rate – the number stays
+    @Test fun mapTilesAloneShowNoTime() {
+        // the page's first map (CI 2026-11-20: „about 5 seconds left“ before the map server's answer): tiles are counted
+        // as they load at an assumed size, their number grows as the map asks for more – no measure of what is left
         val w = fresh()
         var t = 0L
         val lines = ArrayList<String?>()
         while (t < 20_000) { lines += w.tick(WebWait.Tick(t, dlDone = t * 500, dlTotal = 10_000_000, map = true)).line; t += 500 }
-        assertTrue("a number for the map alone: ${lines.distinct()}", lines.any { claimedS(it) != null })
+        assertTrue("no number for map tiles: ${lines.distinct()}", lines.all { claimedS(it) == null })
+    }
+
+    @Test fun routingDataAloneShowsItsTime() {
+        // the routing data by its real bytes at the measured rate (no route after it in this wait): the number stays
+        val w = fresh()
+        var t = 0L
+        val lines = ArrayList<String?>()
+        while (t < 20_000) { lines += w.tick(WebWait.Tick(t, dlDone = t * 500, dlTotal = 10_000_000, routing = true)).line; t += 500 }
+        assertTrue("a number for the routing data: ${lines.distinct()}", lines.any { claimedS(it) != null })
     }
 
     @Test fun atMostThreeRowsMovingAlongTheLegs() {

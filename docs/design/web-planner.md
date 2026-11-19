@@ -1051,7 +1051,8 @@ routes); the shares are learned per browser (`progressmemory.ts`, localStorage, 
 time left is shown only when the rest of the wait is measured (owner 2026-11-19, München → Hilden: „bereit in 5 s“, then
 the one 600 km leg took minutes): no number while a route lies ahead of the map part or no leg of this wait is done yet
 (the router says nothing within a leg), then the legs' measured pace – „taking a bit longer…“ once a leg outlasts the
-ones before it; the map alone by its measured progress (not the bar's creep). Tiles
+ones before it; a map area by the server's estimate (none before it comes), routing data by its bytes – never map tiles
+(counted at an assumed size) and never the bar's creep: no time until every running step has a measurement of its own. Tiles
 alone bring the window only for the page's first map; later they only join a window that is up. A plan brings it after
 a second (`?waitMs`), at once once routing data comes; a map area the user waits for (own point / search / position, or
 the view without detailed map – the app's MapLoadWait) after 400 ms. Cancel stops a route (the app's cancelRouting);

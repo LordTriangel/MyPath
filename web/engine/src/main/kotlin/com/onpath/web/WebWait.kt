@@ -168,6 +168,10 @@ class WebWait(private var shares: StepShares, private var check: Double, private
             // the prepare step without the server's estimate for every open area: its time is only the assumed
             // default (the „3 minutes“ flash before the worker's first report) – no number before a measurement
             mapStep == LoadStep.PREPARE && t.areas.any { it.state != "ready" && it.state != "failed" && it.id !in etaSeen } -> null
+            // the load step without routing data: map tiles (and the engine) are counted at an assumed size, their
+            // number grows as the map asks for more – no measure of what is left (CI 2026-11-20: the page's first map
+            // said „about 5 seconds left“ before the map server's answer). Routing data comes by its real bytes.
+            mapStep == LoadStep.DOWNLOAD && !t.routing -> null
             inMap -> TimeLeft.seconds(raw, now - startMs, stepLeftS)
             checking -> TimeLeft.seconds(raw, now - startMs, stepLeftS)
             else -> legsLeftS(legs, done, now)
