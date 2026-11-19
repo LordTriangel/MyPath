@@ -33,15 +33,6 @@ import com.onpath.app.time.PaceModel
 import com.onpath.app.time.TimeBreakdown
 import com.onpath.app.time.TimeEstimate
 
-/** What went into the time shown in the plan sheet. */
-data class TimeDetailsUi(
-    val result: TimeBreakdown.Result,
-    val paceLabel: String,
-    val paceFactor: Double,
-    /** Settings → Diagnostics → Developer tools: the formulas and tables too; false = route sheet ⋯ (plain lines only). */
-    val technical: Boolean = false,
-)
-
 /** The plain lines of ⋯ → Time details: moving time, with breaks, pace level. */
 internal fun timeDetailsPlainLines(ui: TimeDetailsUi): List<Pair<String, String>> = listOf(
     Txt.s(Res.string.nav_time_moving) to Format.duration(ui.result.finalS),

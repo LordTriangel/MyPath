@@ -139,8 +139,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         catch (e: Exception) { Problems.warn("time", "Old learned pace could not be removed; it is not used", e) }
     }
 
-    /** Model times of saved planned routes, by tour id: (factors, stored distance) they were computed for → seconds. */
-    private val plannedTimes = java.util.concurrent.ConcurrentHashMap<Long, Pair<Pair<com.onpath.app.time.Factors, Double>, Double>>()
+    /** Model times of saved planned routes, by tour id ([PlanRouteSlice.plannedTimes]). */
+    private val plannedTimes get() = planRoute.plannedTimes
     val tracker = LocationTracker(app)
 
     // --- data check ---
@@ -329,11 +329,58 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var selectedPoi by mutableStateOf<com.onpath.app.poi.Poi?>(null)
 
     // --- activity ---
-    // Every app start begins with the last chosen activity and hiking level (owner; fresh install Hike T2).
-    var activity by mutableStateOf(prefs.activity)
-        private set
-    var sac by mutableStateOf(prefs.sac)
-        private set
+    /**
+     * The plan's route, first half ([PlanRouteSlice], rebuild phase 2 piece 8): activity / T level (every app start begins
+     * with the last chosen ones, owner; fresh install Hike T2), the routing engine with its leg cache and threads, the time
+     * estimate, the route warnings. Declared here – above every init block and every property that reads it – because
+     * `recalc()` runs in the init; the ports read the lazies and the later properties only when called (ViewModelInitOrderTest).
+     * The names below forward to it.
+     */
+    private val planRoute = com.onpath.app.ui.plan.PlanRouteSlice(
+        prefs = object : com.onpath.app.ui.plan.PlanRoutePrefs {
+            override var activity: Activity
+                get() = prefs.activity
+                set(v) { prefs.activity = v }
+            override var sac: Int
+                get() = prefs.sac
+                set(v) { prefs.sac = v }
+        },
+        router = object : com.onpath.app.ui.plan.RouterPort {
+            override fun create() = EngineProvider.create(getApplication(), dataFiles.segmentsDir)
+            override val isRealRouter: Boolean get() = EngineProvider.isRealRouter
+            override fun fingerprint(): String = routingFingerprint
+            override val legsDir: File get() = File(app.filesDir, "legs")
+            override fun partVersion(part: com.onpath.app.routing.Rd5Parts.Part) = mapData.routingData.store.partVersion(part)
+        },
+        times = object : com.onpath.app.ui.plan.TimesStore {
+            override fun loadSegments(id: Long) = db.loadSegments(id)
+            override fun planGroups(id: Long, distanceM: Double) = planTimes.get(id, distanceM)
+            override fun putPlanGroups(id: Long, distanceM: Double, groups: DoubleArray) = planTimes.put(id, distanceM, groups)
+            override fun tourTimes(id: Long) =
+                com.onpath.app.time.TourTimesStore(File(getApplication<Application>().filesDir, com.onpath.app.time.TourTimesStore.FILE)).get(id)
+        },
+        host = object : com.onpath.app.ui.plan.PlanRouteHost {
+            override val settings: AppSettings get() = this@AppViewModel.settings
+            override var route: PlannedRoute?
+                get() = this@AppViewModel.route
+                set(v) { this@AppViewModel.route = v }
+            override val routing: Boolean get() = this@AppViewModel.routing
+            override val longRouteAsk: Double? get() = this@AppViewModel.longRouteAsk
+            override val mode: AppMode get() = this@AppViewModel.mode
+            override val touring: Boolean get() = recState.value != null
+            override fun recalc() = this@AppViewModel.recalc()
+            override fun routeEvent(e: RouteRun.Event) { this@AppViewModel.routeEvent(e) }
+            override fun refreshTours() = this@AppViewModel.refreshTours()
+            override fun clearShownNote() { shown?.let { if (it.note != null) shown = it.copy(note = null) } }
+            override fun showWhole(points: List<GeoPoint>) { followMe = false; events += UiEvent.Fit(points) }
+        },
+    )
+    var activity: Activity
+        get() = planRoute.activity
+        private set(v) { planRoute.activity = v }
+    var sac: Int
+        get() = planRoute.sac
+        private set(v) { planRoute.sac = v }
     // --- settings (Settings page) ---
     /**
      * Settings ([com.onpath.app.ui.SettingsSlice] in `:state`, rebuild phase 2 piece 4): the settings, open / page / back / the
@@ -956,29 +1003,25 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var planResult: com.onpath.app.routing.PlanResult? = null
 
     // route warnings (RouteWarnings): declared before init {} – recalc() touches them (ViewModelInitOrderTest)
-    /**
-     * "Route changed for gravel bike – please check": the activity / T level changed and the new route differs
-     * noticeably ([RouteWarnings.changedNoticeably]). Stays until the amber line is tapped or the plan changes – never
-     * dismissed by time.
-     */
-    var routeChangedNotice by mutableStateOf<String?>(null)
-        private set
-    /**
-     * Grey INFO line in the plan sheet: the open plan came from the browser, routed there with another routing
-     * fingerprint ("Planned in the browser with other routing – the route may differ slightly"). Nothing to do; it goes
-     * with the next edit of the plan or another plan (docs/design/routing-fingerprint.md).
-     */
-    var syncRoutingNote by mutableStateOf<String?>(null)
-        private set
-    /** The route before the activity / T level change whose result is still pending (null = none). */
-    private var activityBefore: PlannedRoute? = null
-    /** The list of spots (tap on the amber line) is open. */
-    var spotsOpen by mutableStateOf(false)
-        private set
-    /** The piece of route of the spot tapped in that list, drawn amber on the map; null = none. */
-    var spotLine by mutableStateOf<List<GeoPoint>?>(null)
-        private set
-    private var spotsMemo: Pair<Triple<List<GeoPoint>, Activity, Int>, List<RouteSpot>>? = null
+    // The state of the route warnings lives in [PlanRouteSlice] (declared above `activity`, so above every init block)
+    var routeChangedNotice: String?
+        get() = planRoute.routeChangedNotice
+        private set(v) { planRoute.routeChangedNotice = v }
+    var syncRoutingNote: String?
+        get() = planRoute.syncRoutingNote
+        private set(v) { planRoute.syncRoutingNote = v }
+    private var activityBefore: PlannedRoute?
+        get() = planRoute.activityBefore
+        set(v) { planRoute.activityBefore = v }
+    var spotsOpen: Boolean
+        get() = planRoute.spotsOpen
+        private set(v) { planRoute.spotsOpen = v }
+    var spotLine: List<GeoPoint>?
+        get() = planRoute.spotLine
+        private set(v) { planRoute.spotLine = v }
+    private var spotsMemo: Pair<Triple<List<GeoPoint>, Activity, Int>, List<RouteSpot>>?
+        get() = planRoute.spotsMemo
+        set(v) { planRoute.spotsMemo = v }
 
     // Bursts → one action; declared before init {} (ViewModelInitOrderTest).
     /** Map style reload after new map store generations: once per quiet period, never while the user drags. */
@@ -1022,8 +1065,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var longRouteDeferred: List<GeoPoint>? = null
     /** The plan is left without a route on purpose (Cancel with nothing to take back); the sheet offers to calculate. */
     val notRouted: NotRouted? get() = routeRun.notRouted
-    /** What started the routing run: Cancel takes back only that ([com.onpath.app.domain.plan.RunCause]). */
-    private val runCauses = com.onpath.app.domain.plan.RunCause()
+    /** What started the routing run: Cancel takes back only that ([PlanRouteSlice.runCauses]). */
+    private val runCauses get() = planRoute.runCauses
     internal val multiDay = com.onpath.app.ui.plan.MultiDaySlice(this, plan, ::change, ::setSaved, ::rememberPlaceName, { mapData }) { nearbyNames }
     // --- saved state of the plan (menus / Manage routes) ---
     /** Name, tour id and points the plan was last saved or loaded as ([com.onpath.app.ui.plan.PlanDocument]: stored, linked, unsaved). */
@@ -1246,54 +1289,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private val routingDispatcher = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-    /**
-     * Routing nobody waits for at the screen (browser plans after a pairing, "Plan a route from it"): its own thread, so
-     * the user's own plan never queues behind ten of them (review routing H1). BRouter itself runs one search at a time
-     * (BRouterEngine.LOCK), so a plan edit waits at most for one search of this work, not all of it.
-     */
-    private val backgroundRouting = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-    /**
-     * The activity check's one row request (Navigate → activity icon): its own thread, so a plan edit never queues behind
-     * it (field bug 2026-11-07: six 15 s checks on [routingDispatcher] held the plan up to ~90 s). BRouter's LOCK still
-     * runs one search at a time; a new tap or closing the sheet terminates the check's search.
-     */
-    private val checkRouting = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
-    /**
-     * A hold beside the plan measured on the paths ([HoldPaths], owner 2026-11-17 „Always real paths“): its own thread, so
-     * the measure never queues behind a plan run or background work (BRouter's LOCK still runs one search at a time – a
-     * running plan run makes the measure wait, at most its time limit, then the straight lines decide).
-     */
-    private val holdRouting = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+    // The four routing threads, the engine and the leg cache: [PlanRouteSlice] (rebuild phase 2 piece 8). Created with the
+    // slice (declared at `activity` above), closed in [onCleared] where they always were.
+    private val routingDispatcher get() = planRoute.threads.routing
+    private val backgroundRouting get() = planRoute.threads.background
+    private val checkRouting get() = planRoute.threads.check
+    private val holdRouting get() = planRoute.threads.hold
     /** The measure of a hold beside the plan ([measureHold]); above the init blocks that can reach it. */
     private val holdPaths by lazy { HoldPaths(viewModelScope, holdRouting) }
-    @Volatile private var engine: RoutingEngine? = null
-
-    /** The router (on [routingDispatcher]); only a real one is kept, so a failed start is retried next time. */
-    @Synchronized // two routing threads ([backgroundRouting]): one engine
-    private fun routingEngine(): RoutingEngine =
-        engine ?: EngineProvider.create(getApplication(), dataFiles.segmentsDir).also {
-            // a new engine = new routing data (or a failed start): the legs of the old one are routed again
-            if (EngineProvider.isRealRouter) { engine = it; legCache.clear() }
-        }
-
-    /**
-     * Legs of earlier plan runs (owner 2026-11-05, docs/design/long-bike-routes.md): an edit routes only the legs it
-     * changed; the plan, the tour's follow line and browser plans share it. Cleared with the engine ([routingEngine]).
-     */
-    private val legCache = com.onpath.app.routing.LegCache(store = com.onpath.app.data.LegFiles(
-        java.io.File(app.filesDir, "legs"), fingerprint = { legFingerprint },
-        partVersion = { mapData.routingData.store.partVersion(it) }))
-
-    /**
-     * The routing fingerprint (BRouter, profiles, PLANNER_VERSION) the phone routes with – stored legs ([legCache]'s
-     * store, data/LegFiles) count only with the same one. Read on a routing thread at the first leg.
-     */
-    private val legFingerprint: String? by lazy {
-        try { routingFingerprint } catch (e: Exception) {
-            Problems.warn("routing", "Routing fingerprint not computed – stored legs are routed again", e); null
-        }
-    }
+    private var engine: RoutingEngine?
+        get() = planRoute.engine
+        set(v) { planRoute.engine = v }
+    private fun routingEngine(): RoutingEngine = planRoute.routingEngine()
+    private val legCache get() = planRoute.legCache
 
     /**
      * A loaded route's stand-in line ([com.onpath.app.routing.StoredLine]), taken by the next [recalc] for exactly these
@@ -1651,38 +1659,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         null
     } ?: uri.lastPathSegment?.substringAfterLast('/')
 
-    // ---------------- activity ----------------
+    // ---------------- activity: [PlanRouteSlice] (rebuild phase 2 piece 8) ----------------
 
-    /**
-     * The activity chosen in the picker: the route is planned again; Cancel while it is calculated puts the previous
-     * activity back. [userChange] false: taken over from elsewhere (the service switched, the switch sheet) – Cancel
-     * then only stops.
-     */
-    fun selectActivity(a: Activity, userChange: Boolean = true) {
-        noteActivityChange(own = userChange)
-        if (userChange) runCauses.activity(activityCause()) else runCauses.other()
-        activity = a; prefs.activity = a; recalc()
-        clearShownNote()
-    }
-
+    /** The activity chosen in the picker: the route is planned again (see [PlanRouteSlice.selectActivity]). */
+    fun selectActivity(a: Activity, userChange: Boolean = true) = planRoute.selectActivity(a, userChange)
     /** A stored activity name; null for none or an unknown / old one (expected: the caller falls back). */
-    private fun activityOrNull(name: String?): Activity? = com.onpath.app.debug.enumOrNull<Activity>(name, "app")
-
-    /** "Activity set to … from the file" is over once the activity / T level changes again. */
-    private fun clearShownNote() { shown?.let { if (it.note != null) shown = it.copy(note = null) } }
-
-    /** Cause of an activity / T level change; a change still being calculated keeps the activity from before it. */
-    private fun activityCause(): PlanStatus.Cause =
-        runCauses.activityChange(PlanStatus.Cause.ActivityChange(activity, sac), previousStillOpen = routing || longRouteAsk != null)
-
+    private fun activityOrNull(name: String?): Activity? = planRoute.activityOrNull(name)
     /** T level from the activity picker (Hike): remembered, the route is planned again at once. */
-    fun selectSac(level: Int) {
-        val l = level.coerceIn(1, 5)
-        if (l == sac) return
-        if (activity == Activity.HIKE) { noteActivityChange(own = true); runCauses.activity(activityCause()) }
-        sac = l; prefs.sac = l; if (activity == Activity.HIKE) recalc()
-        clearShownNote()
-    }
+    fun selectSac(level: Int) = planRoute.selectSac(level)
 
     // ---------------- planning ----------------
 
@@ -2953,106 +2937,21 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    // ---------------- time estimate (docs/plan-time-estimate.md) ----------------
+    // ---------------- time estimate (docs/plan-time-estimate.md): [PlanRouteSlice] (rebuild phase 2 piece 8) ----------------
 
     /** The pace setting for planning with [a] (learning per tour only: nothing from earlier tours). */
-    fun planFactors(a: Activity = activity): com.onpath.app.time.Factors =
-        com.onpath.app.time.TimeEstimate.planFactors(a, settings)
-
+    fun planFactors(a: Activity = activity): com.onpath.app.time.Factors = planRoute.planFactors(a)
     /** Route sheet ⋯ → Time details (debug view of the estimate); null = closed. */
-    var timeDetails by mutableStateOf<TimeDetailsUi?>(null)
-
-    /** [technical]: Settings → Diagnostics → Developer tools (formulas, tables); else the plain lines of sheet ⋯. */
-    fun openTimeDetails(technical: Boolean = false) {
-        val r = route ?: return
-        val pace = com.onpath.app.time.TimeEstimate.pace(activity, settings)
-        timeDetails = TimeDetailsUi(
-            com.onpath.app.time.TimeBreakdown.of(r.points, activity, planFactors()),
-            pace.label, pace.factor, technical,
-        )
-    }
-
-    /**
-     * The plan's time from OnPath's own model (time/RouteTimes), not the router's: the same number as the route list
-     * and Navigate "to go" at the start. Moving time, rounded for display.
-     */
-    private fun withModelTime(r: PlannedRoute, a: Activity, f: com.onpath.app.time.Factors): PlannedRoute =
-        com.onpath.app.routing.PlanResult.withModelTime(r, a, f)
-
-    /**
-     * The level of the plan sheet's difficulty badge for [r] ([com.onpath.app.routing.RouteSummary.rating] – the same call
-     * as RouteBreakdown), stored with a saved route ([Tour.difficulty], owner 2026-11-12: for sorting by difficulty later).
-     * Only here, while the line still has its way details; null without a line or when it cannot be computed.
-     */
-    private fun difficultyOf(r: PlannedRoute?, a: Activity): String? = r?.let {
-        runCatching { com.onpath.app.routing.RouteSummary.rating(a, it.distanceM, it.ascentM, it.points).level.name }
-            .onFailure { e -> Problems.warn("plan", "Difficulty of a saved route not computed; stored as not known", e) }
-            .getOrNull()
-    }
-
-    /** Times of a finished tour: the service's live summary, else recomputed from the stored points. */
-    private fun tourTimes(t: Tour): com.onpath.app.time.TourTimes? = try {
-        val rides = t.rides // rides taken out (vehicle detection): moving time / breaks of what is left, not the service's live summary
-        if (rides != null && rides.choice != com.onpath.app.rides.RideChoice.AS_RECORDED)
-            com.onpath.app.time.TourTimes.of(t.durationS, com.onpath.app.time.BreakDetector.breaksIn(
-                com.onpath.app.rides.RideView.keptSegments(db.loadSegments(t.id), rides)))
-        else com.onpath.app.time.TourTimesStore(File(getApplication<Application>().filesDir, com.onpath.app.time.TourTimesStore.FILE)).get(t.id)
-            ?: com.onpath.app.time.TourTimes.of(t.durationS, com.onpath.app.time.BreakDetector.breaksIn(db.loadSegments(t.id)))
-    } catch (e: Exception) {
-        Problems.warn("time", "Times of a finished tour could not be computed; shown without", e)
-        null
-    }
-
-    /** Pace or learned factors changed: new times for the plan and the route list (the route itself stays). */
-    private fun retime() {
-        route?.let { route = withModelTime(it, activity, planFactors()) }
-        refreshTours()
-    }
-
-    /** A planned route was saved as [id]: keep its model time per group (with way attributes) for the route list. */
-    private fun storePlanTimes(id: Long, r: PlannedRoute?, a: Activity) {
-        if (r == null || r.points.size < 2) return
-        try { planTimes.put(id, r.distanceM, com.onpath.app.time.RouteTimes.of(r.points, a).groupTotals()) } catch (e: Exception) {
-            Problems.warn("time", "Plan times not stored for a saved route; list time falls back to the stored points", e)
-        }
-    }
-
-    /**
-     * Planned routes and imported tracks without timestamps show the model time with the current pace (recomputed, the
-     * stored time is ignored: one time model); recorded tours and timed imports as stored.
-     */
-    private fun withModelTime(t: Tour): Tour {
-        if (t.kind != TourKind.PLANNED && t.kind != TourKind.IMPORTED) return t
-        val a = activityOrNull(t.activity) ?: Activity.HIKE
-        val f = planFactors(a)
-        val key = f to t.distanceM // an overwritten route has a new distance
-        plannedTimes[t.id]?.takeIf { it.first == key }?.let { return t.copy(durationS = it.second) }
-        if (t.kind == TourKind.IMPORTED) return try {
-            val s = com.onpath.app.time.TimeEstimate.importedSeconds(db.loadSegments(t.id), a, f)
-            plannedTimes[t.id] = key to s
-            t.copy(durationS = s)
-        } catch (e: Exception) {
-            Problems.warn("time", "Model time of an imported track could not be computed; stored time shown", e)
-            t
-        }
-        // stored at save with the way attributes; the stored points alone have none
-        planTimes.get(t.id, t.distanceM)?.let { g ->
-            val s = com.onpath.app.time.PlanTimesStore.seconds(g, f)
-            plannedTimes[t.id] = key to s
-            return t.copy(durationS = s)
-        }
-        return try {
-            val pts = db.loadSegments(t.id).flatten().map { it.toGeo() }
-            if (pts.size < 2) t else {
-                val s = com.onpath.app.time.TimeEstimate.planSeconds(pts, a, f)
-                plannedTimes[t.id] = key to s
-                t.copy(durationS = s)
-            }
-        } catch (e: Exception) {
-            Problems.warn("time", "Model time of a planned route could not be computed; stored time shown", e)
-            t
-        }
-    }
+    var timeDetails: TimeDetailsUi?
+        get() = planRoute.timeDetails
+        set(v) { planRoute.timeDetails = v }
+    fun openTimeDetails(technical: Boolean = false) = planRoute.openTimeDetails(technical)
+    private fun withModelTime(r: PlannedRoute, a: Activity, f: com.onpath.app.time.Factors): PlannedRoute = planRoute.withModelTime(r, a, f)
+    private fun difficultyOf(r: PlannedRoute?, a: Activity): String? = planRoute.difficultyOf(r, a)
+    private fun tourTimes(t: Tour): com.onpath.app.time.TourTimes? = planRoute.tourTimes(t)
+    private fun retime() = planRoute.retime()
+    private fun storePlanTimes(id: Long, r: PlannedRoute?, a: Activity) = planRoute.storePlanTimes(id, r, a)
+    private fun withModelTime(t: Tour): Tour = planRoute.withModelTime(t)
 
     /** Indices of the named stops of [pts] (they keep their coordinates when the route is snapped). */
     private fun namedStops(pts: List<GeoPoint>): Set<Int> = pts.indices.filter { stopName(pts[it]) != null }.toSet()
@@ -3109,70 +3008,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return PlanGaps.text(gaps, activity) { i -> pts.getOrNull(i)?.let { stopName(it) ?: nearbyNames[it] } }
     }
 
-    // ---------------- route warnings ----------------
+    // ---------------- route warnings: [PlanRouteSlice] (rebuild phase 2 piece 8) ----------------
 
-    /**
-     * An activity / T level change: the route before it is kept for the comparison ("New route for … – check it") –
-     * not for the user's [own] choice in Plan with no tour running (owner 2026-11-07: they changed it themselves).
-     */
-    private fun noteActivityChange(own: Boolean) {
-        routeChangedNotice = null
-        if (!RouteWarnings.saysChanged(own, inPlan = mode == AppMode.PLAN, touring = recState.value != null)) {
-            activityBefore = null; routeEvent(RouteRun.Event.CompareActivity(false)); return
-        }
-        if (activityBefore == null) activityBefore = route?.takeIf { !routing }
-        routeEvent(RouteRun.Event.CompareActivity(activityBefore != null))
-    }
-
-    /** A plan edit (points changed): the "route changed" notice and its pending comparison go. */
-    private fun planChanged() {
-        routeChangedNotice = null; activityBefore = null; routeEvent(RouteRun.Event.CompareActivity(false))
-        syncRoutingNote = null // edited here: the route is the phone's own now
-    }
-
+    private fun noteActivityChange(own: Boolean) = planRoute.noteActivityChange(own)
+    private fun planChanged() = planRoute.planChanged()
     /** Spots worth knowing on the current route ([RouteWarnings.detect]); none while it is being calculated. */
-    val routeSpots: List<RouteSpot>
-        get() {
-            val r = route?.takeIf { !routing } ?: return emptyList()
-            val key = Triple(r.points, activity, sac)
-            spotsMemo?.let { (k, v) -> if (k.first === key.first && k.second == key.second && k.third == key.third) return v }
-            val v = try { RouteWarnings.detect(r.points, activity, sac) } catch (e: Exception) {
-                Problems.warn("routing", "Route warnings could not be worked out; none shown", e); emptyList()
-            }
-            spotsMemo = key to v
-            return v
-        }
-
+    val routeSpots: List<RouteSpot> get() = planRoute.routeSpots
     /** The amber line of the plan sheet: spots on the way only (pushing, steps, above T, steep). */
-    fun warningLineText(): String? = RouteWarnings.text(routeSpots, sac)
-
+    fun warningLineText(): String? = planRoute.warningLineText()
     /** How many hints the amber line sums up: the ⚠ count of the rolled-up sheet. */
-    fun warningCount(): Int = RouteWarnings.count(routeSpots)
-
-    /**
-     * Grey INFO line "New route for … – check it": after an activity / T level change during a tour or from elsewhere
-     * ([RouteWarnings.saysChanged]), or "Plan recalculated with newer map data – …".
-     */
-    fun routeChangedLineText(): String? = routeChangedNotice
-
+    fun warningCount(): Int = planRoute.warningCount()
+    /** Grey INFO line "New route for … – check it" (activity / T level change during a tour or from elsewhere, newer map data). */
+    fun routeChangedLineText(): String? = planRoute.routeChangedLineText()
     /** Tap on the "New route for …" line: it goes, the map shows the whole route. */
-    fun tapRouteChangedLine() {
-        routeChangedNotice = null
-        val r = route ?: return
-        followMe = false
-        events += UiEvent.Fit(r.points)
-    }
-
+    fun tapRouteChangedLine() = planRoute.tapRouteChangedLine()
     /** Tap on the amber line: the notice goes; the list of spots opens (none: the map shows the whole route). */
-    fun tapWarningLine() {
-        routeChangedNotice = null
-        if (routeSpots.isNotEmpty()) { spotsOpen = true; return }
-        val r = route ?: return
-        followMe = false
-        events += UiEvent.Fit(r.points)
-    }
-
-    fun closeSpots() { spotsOpen = false }
+    fun tapWarningLine() = planRoute.tapWarningLine()
+    fun closeSpots() = planRoute.closeSpots()
 
     /** What the map column's greyed buttons need to know ([MapControlsEnabled]). */
     internal fun controlsIn(layer: AppMode, pointsOpen: Boolean) = MapControlsEnabled.In(layer, pointsOpen,
@@ -5423,10 +5275,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         mapData.stop()
         sync.stop()
         holdPaths.cancel()
-        routingDispatcher.close()
-        backgroundRouting.close()
-        checkRouting.close()
-        holdRouting.close()
+        planRoute.close() // the four routing threads
         super.onCleared()
     }
 }

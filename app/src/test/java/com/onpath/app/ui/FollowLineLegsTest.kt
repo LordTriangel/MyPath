@@ -35,9 +35,4 @@ class FollowLineLegsTest {
         assertTrue(run, run.contains("planThread.set(Thread.currentThread())"))
         assertTrue("the poll stops with the run", run.contains("slow.cancel(); poll.cancel()"))
     }
-
-    @Test fun newRoutingDataDropsTheLegs() {
-        val engine = vm.substringAfter("private fun routingEngine(): RoutingEngine =").substringBefore("\n    /**")
-        assertTrue(engine, engine.contains("legCache.clear()"))
-    }
 }

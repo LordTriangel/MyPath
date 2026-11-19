@@ -53,6 +53,12 @@ class ViewModelInitOrderTest {
             Regex("""^    (?:private |internal )?val (\w+)\b.* by lazy""").find(lines[i])?.let { it.groupValues[1] to i }
         }.toMap()
         assertTrue("planTimes is a lazy (the 0.9.0 crash)", "planTimes" in lazies)
+        // the time estimate and the routing engine live in PlanRouteSlice (piece 8); their ports read these lazies of the view
+        // model when called, which the walk below no longer sees through the slice – so they are pinned above the first init
+        val firstInit = lines.indices.first { lines[it].trim() == "init {" && lines.getOrNull(it + 1)?.trim() == "recalc()" }
+        for (n in listOf("planTimes", "routingFingerprint", "mapData")) {
+            assertTrue("$n is a lazy above the init that calls recalc (read by PlanRouteSlice's ports)", lazies[n]?.let { it < firstInit } == true)
+        }
         // the class's own functions (4-space indent) with their bodies; overloads share one name (all bodies)
         val funs = HashMap<String, MutableList<IntRange>>()
         lines.indices.forEach { i ->
