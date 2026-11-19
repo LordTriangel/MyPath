@@ -273,6 +273,36 @@ class SyncedRoutingFlowTest {
         assertTrue(problems.none())
     }
 
+    /**
+     * The user opens the browser's route while it is still being routed, changes only the activity / the T level / a pinned
+     * point (the stops stay) and saves: the routing's late write must not put the old activity, level and pins back
+     * (found in the release hardening for 0.18.2; the check compared the stops only).
+     */
+    @Test fun aSaveThatKeepsTheStopsButChangesActivityLevelOrPinsMeanwhileIsNotOverwritten() {
+        data class Saved(val what: String, val activity: String, val sac: Int, val pins: Set<Int>)
+        val cases = listOf(Saved("activity", "BIKE_TOURING", 2, emptySet()), Saved("T level", "HIKE", 4, emptySet()), Saved("pinned point", "HIKE", 2, setOf(1)))
+        cases.forEachIndexed { n, case ->
+            // its own three points per case: a leg routed before is not asked of the router again
+            val via = listOf(a, b, c).map { GeoPoint(it.lat + 0.05 * n, it.lon) }
+            val t = fromBrowser("Alm ${case.what}", *via.toTypedArray())
+            val app = rig()
+            var saves = 0
+            app.onRoute = { if (saves++ == 0) db.replacePlanned(t.id, case.activity, case.sac, 777.0, 0.0, 0.0, 1.0,
+                listOf(via.map { TrackPoint(it.lat, it.lon, 0.0) }), via.map { GpxWaypoint(it.lat, it.lon, null) }, case.pins) }
+            app.slice.routeSyncedPlans(listOf(t.id))
+            app.settle()
+            assertTrue("${case.what}: the save fell into the routing", saves > 0)
+            val stored = db.getTour(t.id)!!
+            assertEquals("${case.what}: the user's save stays", case.activity, stored.activity)
+            assertEquals("${case.what}: the user's save stays", case.sac, stored.sac)
+            assertEquals("${case.what}: the user's save stays", case.pins, stored.pinned)
+            assertEquals("${case.what}: with its own line and numbers", 777.0, stored.distanceM, 0.0)
+            assertTrue("${case.what}: nothing written, nothing backed up", app.said("store.replacePlanned").isEmpty() && app.said("backup").isEmpty())
+            assertTrue(app.planGroups.isEmpty())
+        }
+        assertTrue(problems.none())
+    }
+
     @Test fun aRouteDeletedMeanwhileStaysInTheBinNotWrittenNotBackedUp() {
         val t = fromBrowser()
         val app = rig { onRoute = { db.setDeleted(t.id, 5_000L) } }

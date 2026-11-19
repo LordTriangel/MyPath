@@ -125,9 +125,11 @@ class SyncedRoutingSlice(
                 }
                 val ok = withContext(io) {
                     try {
-                        // changed again meanwhile (a newer sync): leave it to that one's routing
+                        // changed again meanwhile (a newer sync, or the user's own save of another activity / T level / pins
+                        // with the same stops): leave it as it is – the write would put the old values back
                         val now = store.getTour(id)
-                        now != null && now.waypoints == t.waypoints && store.replacePlanned(id, PlannedRow(act.name, t.sac, r.distanceM, r.ascentM, r.descentM,
+                        now != null && now.waypoints == t.waypoints && now.activity == t.activity && now.sac == t.sac && now.pinned == t.pinned &&
+                            store.replacePlanned(id, PlannedRow(act.name, t.sac, r.distanceM, r.ascentM, r.descentM,
                             r.durationS, listOf(r.points.map { TrackPoint(it.lat, it.lon, it.ele) }), t.waypoints, t.pinned,
                             planRoute.difficultyOf(r, act)))
                             .also { if (it) { planRoute.plannedTimes.remove(id); planRoute.storePlanTimes(id, r, act) } }
