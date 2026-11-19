@@ -231,71 +231,28 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             set(v) { prefs.zuletztTrimmed = v }
     }, viewModelScope, Dispatchers.IO)
     /**
-     * My routes' map pictures (owner 2026-11-13, L1: a square map + the route left of each row): files by uuid
-     * ([com.onpath.app.map.RouteThumbs], `files/thumbs/`, not backed up), made in the background by [thumbMaker] after
-     * every change of the list ([refreshTours]) and at a tour's end – never while navigating or recording. [thumbVersion]
-     * moves on when one is stored, so the rows read it again.
+     * My routes' row pictures and the large overviews' map pictures (owner 2026-11-13 / 2026-11-15): files, makers and the
+     * snapshot live in [RoutePictures] (`:app`); the names below forward to it.
      */
-    val thumbs by lazy { com.onpath.app.map.RouteThumbs(java.io.File(getApplication<Application>().filesDir, "thumbs")) }
-    var thumbVersion by mutableStateOf(0)
-        private set
-    private val thumbMaker by lazy {
-        com.onpath.app.map.ThumbMaker(thumbs, viewModelScope,
-            binned = { db.listDeleted().mapTo(HashSet()) { it.uuid } },
-            lineKey = { t -> db.lineKey(t.id) },
-            line = { t -> routes.line(t) { emptyList() } },
-            style = { snapshotStyle() },
-            snap = { json, segs, t -> com.onpath.app.map.ThumbMaker.render(getApplication(), json, segs, argbOf(RouteShape.tint(t.kind))) },
-            busy = { mode == AppMode.NAVIGATE || recState.value != null },
-            made = { viewModelScope.launchSafe("routes", "Map picture shown", Dispatchers.Main) { thumbVersion++ } })
+    private val pictures by lazy {
+        RoutePictures(getApplication(), viewModelScope, Dispatchers.IO, db, routes, object : RoutePicturesHost {
+            override val mode: AppMode get() = this@AppViewModel.mode
+            override val recState: StateFlow<RecState?> get() = this@AppViewModel.recState
+            override val settings: AppSettings get() = this@AppViewModel.settings
+            override val dataFiles: DataFiles get() = this@AppViewModel.dataFiles
+            override val devToolsShown: Boolean get() = this@AppViewModel.devToolsShown
+            override fun detailedAreas() = this@AppViewModel.detailedAreas()
+            override fun packageAreas() = this@AppViewModel.packageAreas()
+            override suspend fun followedPlanLine(t: Tour) = this@AppViewModel.followedPlanLine(t)
+        })
     }
-
-    /**
-     * The large overview's map pictures kept on the phone (owner 2026-11-15, swiping through My routes' overviews):
-     * `files/overviews/` ([com.onpath.app.map.OverviewPictures], not backed up) – made when an overview opens
-     * ([overviewShot]) and in the background for the newest 20 tours + the favourites ([overviewMaker], kicked with the
-     * row pictures), never while navigating or recording.
-     */
-    val overviewPictures by lazy { com.onpath.app.map.OverviewPictures(java.io.File(getApplication<Application>().filesDir, "overviews")) }
-    private val overviewMaker by lazy {
-        com.onpath.app.map.OverviewMaker(overviewPictures, viewModelScope,
-            binned = { db.listDeleted().mapTo(HashSet()) { it.uuid } },
-            lineKey = { t -> com.onpath.app.map.ThumbRules.key(t, db.lineKey(t.id)) },
-            under = { t -> followedPlanLine(t) },
-            line = { t -> withContext(Dispatchers.IO) { routes.line(t) { emptyList() } } },
-            theme = { withContext(Dispatchers.Main) { settings.mapTheme } },
-            snap = { segs, t, under, w, h, pad -> routeSnapshot(segs, RouteShape.tint(t.kind), w, h, pad, under) },
-            busy = { mode == AppMode.NAVIGATE || recState.value != null })
-    }
-
-    /**
-     * The overview's map picture of [t]: the stored one at once when it was made for this line, plan, size and theme
-     * ([com.onpath.app.map.OverviewRules.key]), else a new snapshot ([routeSnapshot]) that is stored for the next time.
-     * Null = no picture (the overview keeps the drawn shape). The plan on the map (no uuid) is never stored.
-     */
+    val thumbs get() = pictures.thumbs
+    val thumbVersion: Int get() = pictures.thumbVersion
+    val overviewPictures get() = pictures.overviewPictures
     suspend fun overviewShot(t: Tour, segments: List<List<GeoPoint>>, tint: RouteShape.Tint, widthPx: Int, heightPx: Int,
-                             paddingPx: Int, under: List<GeoPoint> = emptyList()): com.onpath.app.map.RouteSnapshot.Shot? {
-        val store = t.uuid.isNotEmpty() && t.id >= 0
-        val theme = withContext(Dispatchers.Main) { settings.mapTheme }
-        val key = if (!store) null else withContext(Dispatchers.IO) {
-            // the background makes pictures of this size – a done tour's look back has its own (owner 2026-11-15)
-            overviewPictures.setSize(widthPx, heightPx, paddingPx, done = t.kind == TourKind.RECORDED)
-            runCatching { com.onpath.app.map.OverviewRules.key(com.onpath.app.map.ThumbRules.key(t, db.lineKey(t.id)), under, widthPx, heightPx, theme) }
-                .onFailure { Problems.info("routes", "Overview picture key not read – drawn without keeping it", it) }.getOrNull()
-        }
-        if (key != null) withContext(Dispatchers.IO) {
-            overviewPictures.bytes(t.uuid, key)?.let { (m, b) ->
-                android.graphics.BitmapFactory.decodeByteArray(b, 0, b.size)?.let { com.onpath.app.map.RouteSnapshot.Shot(it, m.startX, m.startY, m.goalX, m.goalY) }
-                    ?: null.also { Problems.info("routes", "Overview picture of ${t.uuid} not decoded – drawn again") }
-            }
-        }?.let { return it }
-        val shot = routeSnapshot(segments, tint, widthPx, heightPx, paddingPx, under) ?: return null
-        if (key != null) withContext(Dispatchers.IO) { com.onpath.app.map.OverviewMaker.store(overviewPictures, t.uuid, key, shot) }
-        return shot
-    }
-
-    /** How long the last map pictures took (ms each) – diagnostics and the emulator test. */
-    val thumbTimings: List<Long> get() = thumbMaker.timings.toList()
+                             paddingPx: Int, under: List<GeoPoint> = emptyList()): com.onpath.app.map.RouteSnapshot.Shot? =
+        pictures.overviewShot(t, segments, tint, widthPx, heightPx, paddingPx, under)
+    val thumbTimings: List<Long> get() = pictures.thumbTimings
 
     /** My routes list (☰ → My routes) is open. */
     var routesOpen: Boolean
@@ -531,84 +488,31 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------- demo location (Developer tools → Demo, recording/DemoLocation) ----------------
 
-    /** What "Demo: ride" would ride: the planned route, else the shown track (a GPX file / tour); null = nothing. */
-    fun demoLine(): Pair<String, List<GeoPoint>>? {
-        route?.points?.takeIf { it.size >= 2 }?.let { return "planned route" to it }
-        shown?.let { t -> t.segments.flatten().takeIf { it.size >= 2 }?.let { return "track \"${t.name}\"" to it } }
-        return null
-    }
-
-    /** Rides [demoLine] from its start at the activity's modelled speed (user's pace); real GPS is ignored meanwhile. */
-    fun startDemoRide() {
-        val (label, line) = demoLine() ?: return
-        val path = com.onpath.app.recording.DemoPath.timed(line, activity, planFactors())
-        if (path == null) { sayInfo("This line is too short for a demo ride.", NoticePlace.SETTINGS); return }
-        com.onpath.app.recording.DemoLocation.startRide(path, label)
-    }
-
     /**
-     * Navigate → "▶ Sim" (developer tools, [NavSimChip]): rides [line] – the line followed now – from where the tour is
-     * on it ([NavSimStart]), else [demoLine] from its start; a ride already on goes first.
+     * The developer-tools demo rides ([DemoRides] in `:app`; the decisions are [DemoRules] in `:state`): "Demo: ride",
+     * Navigate's "▶ Sim", a recorded tour ridden again, the map centre. The names below forward to it.
      */
-    fun startNavSim(line: List<GeoPoint>?) {
-        val followed = line?.takeIf { it.size >= 2 }
-        val (label, l) = followed?.let { "followed route" to it } ?: demoLine()
-            ?: run { sayError("Nothing to simulate: no followed route or plan.", NoticePlace.MAP); return }
-        val path = com.onpath.app.recording.DemoPath.timed(l, activity, planFactors())
-            ?: run { sayError("This line is too short for a demo ride.", NoticePlace.MAP); return }
-        val nav = recState.value?.nav
-        val fromM = NavSimStart.alongM(sameLine = followed != null && nav?.line == followed,
-            reached = nav?.session?.reached == true, shownAlongM = nav?.shownAlongM, progressM = nav?.progressM)
-        Problems.trace("demo", "Tour simulation started on the Navigate page ($label) at ${fromM.toInt()} m of ${path.lengthM.toInt()} m")
-        com.onpath.app.recording.DemoLocation.startRide(path, label, startAlongM = fromM)
-        navSimLine = l
+    private val demo by lazy {
+        DemoRides(viewModelScope, Dispatchers.IO, db, object : DemoRidesHost {
+            override val route: PlannedRoute? get() = this@AppViewModel.route
+            override val shown: ShownTrack? get() = this@AppViewModel.shown
+            override val activity: Activity get() = this@AppViewModel.activity
+            override val recState: StateFlow<RecState?> get() = this@AppViewModel.recState
+            override val tours: List<Tour> get() = this@AppViewModel.tours
+            override fun planFactors() = this@AppViewModel.planFactors()
+            override fun sayInfo(text: String, place: NoticePlace) = this@AppViewModel.sayInfo(text, place)
+            override fun sayError(text: String, place: NoticePlace) = this@AppViewModel.sayError(text, place)
+            override fun initialCamera() = this@AppViewModel.initialCamera()
+        })
     }
-
-    /** Developer tools → Demo: the last recorded tours (not demo ones) to ride again at their recorded times. */
-    fun recentRecordedTours(): List<Tour> = tours.filter {
-        it.kind == TourKind.RECORDED && !it.name.startsWith(com.onpath.app.recording.DemoLocation.TOUR_PREFIX) &&
-            it.distanceM >= 500.0   // not the empty / few-metre starts
-    }.sortedByDescending { it.id }.take(8)
-
-    fun demoTourLabel(t: Tour): String = "ride tour \"${t.name}\" (${"%.1f".format(Locale.ROOT, t.distanceM / 1000)} km, recorded times)"
-
-    /** Rides recorded tour [t] again along its track at its own times (debugging a field tour, owner 2026-11-01). */
-    fun startDemoTour(t: Tour) {
-        viewModelScope.launchSafe("app", "startDemoTour") {
-            val pts = withContext(Dispatchers.IO) {
-                runCatching { db.loadSegments(t.id).flatten() }.onFailure { Problems.warn("demo", "Recorded tour not read for the demo", it) }
-                    .getOrDefault(emptyList())
-            }
-            val path = com.onpath.app.recording.DemoPath.recorded(pts.map { GeoPoint(it.lat, it.lon, it.ele) }, pts.map { it.timeMs })
-                ?: run { sayError("This tour has no track with times to ride.", NoticePlace.SETTINGS); return@launchSafe }
-            navSimLine = null // a recorded tour is ridden as it was – never moved onto a changed line
-            Problems.trace("demo", "Riding recorded tour ${t.id} \"${t.name}\" again at its recorded times (${pts.size} points)")
-            com.onpath.app.recording.DemoLocation.startRide(path, "recorded tour \"${t.name}\"")
-        }
-    }
-
-    /** The line the Navigate "Sim" rides; null = no Sim from the Navigate page. */
-    private var navSimLine: List<GeoPoint>? = null
-
-    /**
-     * The followed line changed (plan edit, new route) while the Navigate "Sim" rides: it goes on along the new line from
-     * where it is ([com.onpath.app.recording.DemoLocation.switchLine]) – else the voice speaks of one line while the
-     * simulated position moves on another (owner 2026-11-01).
-     */
-    fun navSimFollow(line: List<GeoPoint>?) {
-        val st = com.onpath.app.recording.DemoLocation.state.value
-        if (st == null || st.kind != com.onpath.app.recording.DemoLocation.Kind.RIDE) { navSimLine = null; return }
-        if (navSimLine == null || line == null || line.size < 2 || line == navSimLine) return
-        val path = com.onpath.app.recording.DemoPath.timed(line, activity, planFactors()) ?: return
-        navSimLine = line
-        com.onpath.app.recording.DemoLocation.switchLine(path, "followed route")
-    }
-
-    /** Stands at the map centre (non-moving shots). */
-    fun startDemoAtMapCentre() {
-        val (lat, lon, _) = initialCamera()
-        com.onpath.app.recording.DemoLocation.jumpTo(lat, lon, null, "map centre")
-    }
+    fun demoLine(): Pair<String, List<GeoPoint>>? = demo.demoLine()
+    fun startDemoRide() = demo.startDemoRide()
+    fun startNavSim(line: List<GeoPoint>?) = demo.startNavSim(line)
+    fun recentRecordedTours(): List<Tour> = demo.recentRecordedTours()
+    fun demoTourLabel(t: Tour): String = demo.demoTourLabel(t)
+    fun startDemoTour(t: Tour) = demo.startDemoTour(t)
+    fun navSimFollow(line: List<GeoPoint>?) = demo.navSimFollow(line)
+    fun startDemoAtMapCentre() = demo.startDemoAtMapCentre()
 
     /** Settings → Diagnostics → "Map cells (debug)": request the cell under the map centre (own-point rule). */
     fun requestCellAtMapCentre() {
@@ -1434,7 +1338,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     refreshTours()
                     clearFollow()
                     // a demo ride ends with its tour: no "DEMO" / "Sim" left on the map (the recording is closed – no jump into it)
-                    if (com.onpath.app.recording.DemoLocation.endWithTour()) navSimLine = null
+                    if (com.onpath.app.recording.DemoLocation.endWithTour()) demo.navSimLine = null
                     enter(AppMode.PLAN)
                     tour.afterFinished() // no arrival box, no "Neuer Plan" line of the old tour
                     afterTourEnded()
@@ -3013,44 +2917,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return withContext(Dispatchers.IO) { routes.line(t) { live } }
     }
 
-    /**
-     * The overview's map picture ([com.onpath.app.map.RouteSnapshot]): the app's own style (offline cells, overview map
-     * where there is no detail) with the line fitted. Null when the map cannot be drawn (reported) – the overview then
-     * keeps the drawn shape.
-     */
     suspend fun routeSnapshot(segments: List<List<GeoPoint>>, tint: RouteShape.Tint, widthPx: Int, heightPx: Int,
-                              paddingPx: Int, under: List<GeoPoint> = emptyList()): com.onpath.app.map.RouteSnapshot.Shot? {
-        val app = getApplication<Application>()
-        val json = snapshotStyle() ?: return null
-        val color = argbOf(tint)
-        val planBlue = RouteShape.Tint.PLAN.color().let { c ->
-            android.graphics.Color.argb(255, (c.red * 255).toInt(), (c.green * 255).toInt(), (c.blue * 255).toInt())
-        }
-        return com.onpath.app.map.RouteSnapshot.make(app, json, segments, color, widthPx, heightPx, paddingPx,
-            app.resources.displayMetrics.density, under, planBlue)
-    }
+                              paddingPx: Int, under: List<GeoPoint> = emptyList()): com.onpath.app.map.RouteSnapshot.Shot? =
+        pictures.routeSnapshot(segments, tint, widthPx, heightPx, paddingPx, under)
 
-    /** The map style a snapshot draws (the app's own: offline cells, the overview map elsewhere); null = failed (reported). */
-    private suspend fun snapshotStyle(): String? {
-        val app = getApplication<Application>()
-        val (dataDir, theme, mapDir) = withContext(Dispatchers.Main) { Triple(dataFiles.dir, settings.mapTheme, dataFiles.mapDir()) }
-        val (cover, dev, packages) = withContext(Dispatchers.Main) { Triple(detailedAreas(), devToolsShown, packageAreas()) }
-        return withContext(Dispatchers.IO) {
-            runCatching { com.onpath.app.map.StyleLoader.load(app, dataDir, theme, mapDir, cover, dev, packages) }
-                .onFailure { Problems.warn("routes", "Overview: map style could not be built – the shape is shown alone", it) }
-                .getOrNull()
-        }
-    }
-
-    private fun argbOf(tint: RouteShape.Tint): Int = tint.color().let { c ->
-        android.graphics.Color.argb(255, (c.red * 255).toInt(), (c.green * 255).toInt(), (c.blue * 255).toInt())
-    }
-
-    /** Looks for map pictures to make among My routes' list (background, one at a time); [firstUuid] first. */
-    fun kickThumbs(firstUuid: String? = null) {
-        try { thumbMaker.kick(routes.tours, firstUuid) } catch (e: Exception) { Problems.info("routes", "Map pictures not started – the rows keep their lines", e) }
-        try { overviewMaker.kick(routes.tours) } catch (e: Exception) { Problems.info("routes", "Overview pictures not started – drawn when opened", e) }
-    }
+    fun kickThumbs(firstUuid: String? = null) = pictures.kickThumbs(firstUuid)
 
     /** My routes → the plan "In Bearbeitung" tapped: back to it on the map – nothing is loaded again. */
     fun backToLivePlan() {
