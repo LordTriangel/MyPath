@@ -337,12 +337,12 @@
       "blob": "aa590937851fe361f89c1d15951e621121a1146d"
     },
     {
-      "app": "state/src/main/kotlin/com/onpath/app/ui/WholeRoute.kt",
-      "what": "SETTLE_MS and \"not after a map gesture\" – the rules are shared now (routing/RouteFit, engine routeFirst / routeFitAfterPlace)",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/MapViewSlice.kt",
+      "what": "fitFirstRoute: the first route is fitted once the sheet settled – not when the map was touched meanwhile or the plan moved on (main.ts fitNextRoute / lastMapTouch); WholeRoute itself (SETTLE_MS) runs as it is (slices.ts settleMs), the fit rules are shared (routing/RouteFit, engine routeFirst / routeFitAfterPlace)",
       "web": [
         "web/app/src/main.ts"
       ],
-      "blob": "fb9a93ccb01fdb1b8c470cb2210cf1bbc885e699"
+      "blob": "c932b369ee2dbeef52707472e921ba769e82dc72"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/domain/routes/RouteSort.kt",
@@ -456,15 +456,6 @@
         "web/app/src/cells.ts"
       ],
       "blob": "3fe621fbbe60a8efa52619b1dc48397c725c532e"
-    },
-    {
-      "app": "state/src/main/kotlin/com/onpath/app/ui/LongRouteCancelCamera.kt",
-      "what": "very long route → Cancel: the map back to the plan from before (whole plan / its one point / stays); no tour on the web",
-      "web": [
-        "web/app/src/longroute.ts",
-        "web/app/src/main.ts"
-      ],
-      "blob": "0ae700e453477dc5c2b59f3ff3e1b73d3de1e90d"
     },
     {
       "app": "app/src/main/java/com/onpath/app/search/SearchStore.kt",

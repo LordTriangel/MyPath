@@ -8,6 +8,7 @@ import com.onpath.app.gpx.SportType
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.TrackToPlan
 import com.onpath.app.time.TimeEstimate
+import com.onpath.app.ui.ImportRules
 import com.onpath.strings.*
 
 /**
@@ -25,7 +26,8 @@ object WebImport {
         // touring = false: the web never records a tour
         val choice = SportType.importChoice(data.type, current, sac, touring = false)
         val pick = choice.pick
-        val name = data.name ?: fileName.ifBlank { null }?.removeSuffix(".gpx")?.removeSuffix(".GPX") ?: Txt.s(Res.string.msg_name_import)
+        // the app's name rule (ImportRules.gpxName); the default without the app's date: the page names it on Save
+        val name = ImportRules.gpxName(data.name, fileName.ifBlank { null }) { Txt.s(Res.string.msg_name_import) }
         val geo = segs.map { s -> s.map { it.toGeo() } }
         // the app's one import stats (TimeEstimate.trackStats: distance, ascent with the GPS filter, the file's moving
         // time – else the time model with the page's pace setting, WebPace)
@@ -71,8 +73,8 @@ object WebImport {
         Problems.error("gpx", "GPX import failed", e)
         // GpxException: our own plain reason ("No track, route or waypoint found in this file.")
         val own = if (e is com.onpath.app.gpx.GpxException) e.message.orEmpty() else ""
-        "{\"error\":" + Engine.str(if (own.isNotEmpty()) Txt.s(Res.string.msg_gpx_import_failed_reason, own)
-            else Txt.s(Res.string.msg_gpx_import_failed)) + "}"
+        "{\"error\":" + Engine.str(ImportRules.gpxFailureText(own, { Txt.s(Res.string.msg_gpx_import_failed_reason, it) },
+            { Txt.s(Res.string.msg_gpx_import_failed) })) + "}"
     }
 
     /**

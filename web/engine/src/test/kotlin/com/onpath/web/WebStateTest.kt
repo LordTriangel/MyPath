@@ -106,4 +106,21 @@ class WebStateTest {
         assertEquals("\"Waalweg (2)\"", field(WebState.saveRequestCopy("Waalweg", 5.0, "Waalweg"), "name"))
         assertEquals("{\"write\":\"COPY\",\"routeId\":5,\"name\":\"Waalweg (2)\"}", WebState.saveConfirm("", 5.0))
     }
+
+    /** The app's LongRouteCancelCamera.after through WebRules: the plan from before, its one point, or the map stays. */
+    @Test fun cancelAtTheLongRouteQuestionFitsThePlanFromBefore() {
+        // two points + the line: the line first, then the points (WholeRoute.bounds)
+        assertEquals("[[51.100000,6.900000],[51.200000,6.950000],[51.000000,6.800000],[51.300000,7.000000]]",
+            WebRules.cancelCamera("51,6.8;51.3,7", "51.1,6.9;51.2,6.95"))
+        // no line known: the points
+        assertEquals("[[51.000000,6.800000],[51.300000,7.000000]]", WebRules.cancelCamera("51,6.8;51.3,7", ""))
+        // one point: that point (the line is not fitted)
+        assertEquals("[[51.000000,6.800000]]", WebRules.cancelCamera("51,6.8", "51.1,6.9"))
+        // none: the map stays
+        assertEquals("null", WebRules.cancelCamera("", ""))
+    }
+
+    @Test fun theFirstRouteFitWaitsTheAppsSettleTime() {
+        assertEquals(com.onpath.app.ui.WholeRoute.SETTLE_MS.toString(), WebRules.settleMs())
+    }
 }

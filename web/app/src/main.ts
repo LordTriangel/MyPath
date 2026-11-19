@@ -31,10 +31,10 @@ import { Position } from './position';
 import { PlanSync, shownTitle, type SavedPlan } from './sync';
 import { myPlansDialog, joinDialog, saveRoute, saveRouteAs, phoneDialog, pairDialog, phonePill, appDate, datedName } from './plans';
 import { keepPlan, afterSaved, renameRecentIf, startUp as zuletztStartUp, type RecentPlan } from './recent';
-import { slicesReady } from './slices';
+import { settleMs, slice, slicesReady } from './slices';
 import { MapContentPanel } from './mapcontent';
 import { sortable } from './sortable';
-import { longRouteOk, allowLongRoute, cancelCamera, notRoutedTexts, setNotRouted, type Before } from './longroute';
+import { longRouteOk, allowLongRoute, notRoutedTexts, setNotRouted, type Before } from './longroute';
 import { post, dismiss, onShown } from './msgcard';
 import { OneWait } from './onewait';
 import { setupGpxImport } from './gpximport';
@@ -1644,8 +1644,9 @@ async function planRun(rounds: number) {
   if (fitNextRoute) {
     fitNextRoute = false;
     const asked = fitAskedAt, plan = state.plan;
-    // WholeRoute.SETTLE_MS: a moment for the map; not when the user moved it meanwhile or the plan moved on
-    setTimeout(() => { if (lastMapTouch <= asked && state.plan === plan) fitRoute(); else console.info(`[map] route fit left out: ${lastMapTouch > asked ? 'the map was touched' : 'another plan'}`); }, 500);
+    // the app's WholeRoute.SETTLE_MS (slices.ts; 500 until its instance is there): a moment for the map; not when the
+    // user moved it meanwhile or the plan moved on (MapViewSlice.fitFirstRoute)
+    setTimeout(() => { if (lastMapTouch <= asked && state.plan === plan) fitRoute(); else console.info(`[map] route fit left out: ${lastMapTouch > asked ? 'the map was touched' : 'another plan'}`); }, settleMs());
   }
   drawPoints(); // leg distances along the new route line (the engine now has this plan)
   engine.call('routingInfo').then((l) => { routingLine = l; }, (e) => problem('routing', 'routing fingerprint line not read', e));
@@ -2112,11 +2113,12 @@ function fitRoute() {
 /**
  * After Cancel at the very-long-route question (the app's answerLongRoute(false), owner 2026-11-13): the map goes back
  * to the plan from before – the whole plan, or its one point at the one-place zoom; no point: it stays
- * (longroute.ts cancelCamera). Only this Cancel moves the map, not Stop or the slow plan's Cancel.
+ * (the app's LongRouteCancelCamera.after, run as it is – slices.ts). Only this Cancel moves the map, not Stop or the slow
+ * plan's Cancel. Without the slices' instance the map stays (reported there).
  */
 function cancelLongRouteCamera() {
-  const line = state.plan?.legs.flatMap((l) => l.points.map(([la, lo]) => [la, lo] as LatLon)) ?? null;
-  const fit = cancelCamera(state.points, line?.length ? line : null);
+  const line = state.plan?.legs.flatMap((l) => l.points.map(([la, lo]) => [la, lo] as LatLon)) ?? [];
+  const fit = slice<LatLon[] | null>('cancelCamera', enc(state.points), enc(line));
   console.info(`[map] very long plan cancelled: camera → ${fit ? `fit (${fit.length} points)` : 'stays'}`);
   if (!fit) return;
   const b = new maplibregl.LngLatBounds();

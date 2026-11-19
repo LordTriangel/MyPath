@@ -10,6 +10,8 @@ import com.onpath.app.domain.routes.RouteSort
 import com.onpath.app.domain.routes.SaveFlow
 import com.onpath.app.gpx.GpxWaypoint
 import com.onpath.app.gpx.TrackPoint
+import com.onpath.app.ui.LongRouteCancelCamera
+import com.onpath.app.ui.WholeRoute
 import com.onpath.app.ui.routes.RoutesState
 import com.onpath.app.ui.routes.RoutesStore
 import com.onpath.app.ui.routes.SaveDialog
@@ -204,6 +206,28 @@ object WebState {
     }
 }
 
+// ---------------- Pure rules of :state the page asks (no state held) ----------------
+
+/** The app's map rules (state/web-ready.txt "rules") for the page – called as they are, never copied into TypeScript. */
+object WebRules {
+    /**
+     * After Cancel at the very-long-route question ([LongRouteCancelCamera.after], owner 2026-11-13): the points the map
+     * fits – `[[lat,lon],…]` – or null = the map stays. [points] = the plan after the cancel, [routeLine] its route line
+     * ("" = none known); both "lat,lon;…". The planner has no tour: never [LongRouteCancelCamera.Target.Me].
+     */
+    fun cancelCamera(points: String, routeLine: String): String {
+        val line = Engine.parsePoints(routeLine).takeIf { it.isNotEmpty() }
+        return when (val t = LongRouteCancelCamera.after(Engine.parsePoints(points), line, touring = false, hasPosition = false)) {
+            is LongRouteCancelCamera.Target.Fit ->
+                t.points.joinToString(",", "[", "]") { "[" + Engine.num(it.lat, 6) + "," + Engine.num(it.lon, 6) + "]" }
+            LongRouteCancelCamera.Target.Me, LongRouteCancelCamera.Target.Stay -> "null"
+        }
+    }
+
+    /** [WholeRoute.SETTLE_MS]: the wait after a route arrived before the first route is fitted (the sheet settles). */
+    fun settleMs(): String = WholeRoute.SETTLE_MS.toString()
+}
+
 // ---- the page's exports (web/app/src/slices.ts; WebApi.kt lists this class in @JSExportClasses) ----
 object WebStateApi {
     @JvmStatic @JSExport fun routesKeep(tours: String, recent: Double, now: Double, points: String, unsaved: Boolean, savedId: Double, newId: Double): String =
@@ -226,4 +250,6 @@ object WebStateApi {
     @JvmStatic @JSExport fun saveProposed(no: Int, proposal: String): String = WebState.saveProposed(no, proposal)
     @JvmStatic @JSExport fun saveCancel() = WebState.saveCancel()
     @JvmStatic @JSExport fun saveConfirm(input: String, savedId: Double): String = WebState.saveConfirm(input, savedId)
+    @JvmStatic @JSExport fun cancelCamera(points: String, routeLine: String): String = WebRules.cancelCamera(points, routeLine)
+    @JvmStatic @JSExport fun wholeRouteSettleMs(): String = WebRules.settleMs()
 }

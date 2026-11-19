@@ -1,5 +1,5 @@
 // The app's screen-state slices on the page (rebuild phase 2, docs/design/umbau-phase-2.md §2.2): the web-ready files of
-// :state (state/web-ready.txt – RoutesState, SaveDialog) compiled as they are into the Wasm engine and driven here, in
+// :state (state/web-ready.txt – RoutesState, SaveDialog, the pure rules of WebRules) compiled as they are into the Wasm engine and driven here, in
 // the wait window's instance on the page's own thread (waitengine.ts; the routing worker is blocked while it routes).
 // The page keeps its storage and its drawing; the decisions are the app's (web/engine/…/WebState.kt). Robust first:
 // until the instance is there, or when it cannot load, every call returns null – the caller keeps what it has and
@@ -23,6 +23,10 @@ interface Slices {
   saveProposed(no: number, proposal: string): string;
   saveCancel(): void;
   saveConfirm(input: string, savedId: number): string;
+  /** The app's LongRouteCancelCamera.after (WebRules): `[[lat, lon], …]` to fit, or null = the map stays. */
+  cancelCamera(points: string, routeLine: string): string;
+  /** The app's WholeRoute.SETTLE_MS (WebRules). */
+  wholeRouteSettleMs(): string;
 }
 
 /** The slices are there (loaded) or will never be (failed): resolves true / false. */
@@ -42,6 +46,16 @@ export function slice<T>(fn: keyof Slices, ...args: (string | number | boolean)[
     problem('routes', `slice call ${fn} failed – nothing changed`, e);
     return null;
   }
+}
+
+let settle: number | null = null;
+/**
+ * The app's WholeRoute.SETTLE_MS (read once). Until the instance is there – the first route can come before it – the
+ * same 500 ms, unreported: nothing is lost by it, the fit only waits.
+ */
+export function settleMs(): number {
+  if (settle == null && sliceExports()) settle = slice<number>('wholeRouteSettleMs');
+  return settle ?? 500;
 }
 
 // ---- ids: the slices know tours by number; the page's plans have string ids. One number per plan for this page ----
