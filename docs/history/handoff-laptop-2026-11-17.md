@@ -16,6 +16,21 @@ Fränkische Schweiz / Pottenstein 49.77, 11.41, Mittenwald / Garmisch), tell IR;
 - **CELL_SCHEMA 9 on main and on TEST** (suggest layer content 2); donald has the publish commands; cell list `tools/dev/areas/owner-test-cells.txt`.
 - Next for the laptop: follow mehrtage's / IR's web merges (parity, check-web, deploy when green); donald's cleanup may move more shared files.
 
+## State 2026-11-19 ~10:00 – the next laptop session starts HERE
+All live on plan.onpath.earth, CI green (push run 15d9f123):
+- mehrtage's multi-day fixes + „N Tage ·“ on Meine Touren rows (the one gap of the 7-file mirror review – done).
+- 98 % fix (c11e4e72): the card drops the percent while only the calculation is left – km + clock, running bar, after 10 s
+  `plan_from_track_busy_text` (owner never chose another line – ask if he wants one). Smokes made CI-robust (f0bae480).
+- Climb fix (owner's yes, shared `Planner.kt`, 32cd3d70): top ↑/↓ from the joined line, one 10 m filter = the days. **The app
+  needs a version for it** (donald, owner's word).
+- Leg cache (owner's go): IndexedDB, `WebLegStore` on the app's `LegStore`, ≤ 3000 legs / 40 MB; legcache-smoke.
+- München stack overflow (fd9f58ed): BRouter's recursive `OsmNodesMap.minVisitIdInSubtree` replaced in the web build by an
+  iterative copy (`web/engine/src/main/java/btools/mapaccess/OsmNodesMap.java`); deep-smoke (local list only – CI needs a
+  web.yml PR). The phone keeps the recursive original (BRouter catches the overflow there and stops the cleanup halfway).
+- Website pictures B01–B04, B07, C01, C02, C06, new B11–B14 in onpath.private `aktuell/` (line to cloud-web).
+Open: poipin-smoke „(d) POI name beside its icon at z17+“ flaky (2/3 red locally); umbau phase 2 (piece D „for the laptop's
+look“ – see the backlog); NoStaleDownloadsTest red on main (mehrtage / umbau).
+
 ## State 2026-11-18 ~12:00 – the next laptop session starts HERE
 - **World overview fixed and live (2e15413f)**: the host ignores Range for `overview/*.pmtiles` → the planner reads the
   whole file once (`overview.ts` WholeOrRange). Done.
