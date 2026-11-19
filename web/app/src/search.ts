@@ -110,7 +110,7 @@ export function setupSearch(host: SearchHost, box: HTMLElement, card: HTMLElemen
   const render = (hits: Hit[], note: string) => {
     results.hidden = false;
     results.innerHTML = chipRow() + (hits.length ? hits.map((h, i) => `
-      <button class="hit" data-i="${i}">
+      <button class="hit" data-i="${i}" data-kind="${esc(h.kind)}">
         <span class="glyph" style="background:${h.color}">${esc(h.glyph)}</span>
         <span class="txt"><b>${esc(h.title)}</b><span class="muted">${esc(h.subtitle)}</span>
         ${h.address ? `<span class="muted small">${esc(h.address)}</span>` : ''}</span>
@@ -182,6 +182,9 @@ export function setupSearch(host: SearchHost, box: HTMLElement, card: HTMLElemen
       let mixed: Hit[] | null = null;
       try {
         const r = await fetch(photonUrl(text, c.lat, c.lng));
+        // a newer search (a chip clicked, a key typed) came meanwhile: this answer must not reach the engine's list
+        // (owner's bug 2026-11-19 – the app cancels it, SearchSession.run)
+        if (my !== gen) return;
         if (r.ok) mixed = await host.engine.searchOnline(text, await r.text(), category);
       } catch { /* expected: offline or Photon unreachable – the offline rows stay (the app is silent too) */ }
       if (my !== gen) return;

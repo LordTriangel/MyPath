@@ -107,8 +107,10 @@ object WebSearch {
      * scored on the offline scale and added – the rows on screen stay where they are (keepShown). Returns the list.
      */
     fun online(text: String, photonJson: String, category: String = ""): String {
-        val q = lastQuery?.takeIf { it.text == text } ?: return json(shown ?: lastOffline)
         val cat = categoryOf(category)
+        // a late answer for another text or chip (asked before a chip click, back after it – owner's bug 2026-11-19:
+        // „München“ + „Orte“ still showed everything) changes nothing; the app cancels it (SearchSession.run)
+        val q = lastQuery?.takeIf { it.text == text && it.category == cat } ?: return json(shown ?: lastOffline)
         val key = keyOf(text, cat)
         val kinds = cat?.kinds
         val towns = OnlineRanking.queryTowns(text, emptyList())
