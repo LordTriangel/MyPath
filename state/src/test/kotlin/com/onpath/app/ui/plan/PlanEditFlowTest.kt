@@ -503,6 +503,16 @@ class PlanEditFlowTest {
         assertEquals(0, track.log.count { it.startsWith("clearFollow") })
     }
 
+    /**
+     * From ClearPlanDuringTourTest (class doc, word for word; the rules are in PlanGuidanceTest):
+     * ✕ Neu planen during a tour (owner 2026-11-05: he saw "Navigate without a route" – is that what the app does?): every
+     * guidance ends, the recording never stops; owner 2026-11-06: no question any more, the plan goes under Zuletzt, Undo
+     * brings it back (E2E CoreFieldE2ETest.clearingThePlanDuringATourAsksNothing). The empty sheet ("Die Tour läuft weiter")
+     * and Navigate's free tour line are in the screenshot frames `planEmptyDuringTour` / `navigateFreeTour`.
+     * From PlanGuidanceTest.clearRouteDuringATourEndsTheGuidanceToo: Sheet ⋯ → Clear route is allowed during a tour (owner) and goes through the same plan change.
+     * (the view model's path (clear → the empty-plan rule): E2E CoreFieldE2ETest.clearingThePlanDuringATourAsksNothing)
+     * From TourEditTest: the recording goes on – clearPlan never stops the recording itself (its host has no way to stop one – PlanEditHost).
+     */
     @Test fun clearDuringATourEndsTheGuidanceAndNeverTheRecording() {
         val app = App(listOf(a, b, c))
         app.touring = true; app.followLine = listOf(a, c); app.followIsTrack = true // even a followed track

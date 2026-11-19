@@ -15,8 +15,8 @@ import java.io.File
 
 /**
  * "Du bist angekommen." (owner 2026-11-07): the box offers "Weiter aufzeichnen" and "Tour beenden"; "Tour beenden" saves
- * the tour (the ride check first) and the app is back at the start as after "✕ Neu planen" (SavePathsTest
- * .theEndOfATourGoesBackToTheStartTheNeuPlanenWay, TourFlowPropertyTest.endingGoesBackToTheStartAndKeepsThePlan). Pictures:
+ * the tour (the ride check first) and the app is back at the start as after "✕ Neu planen" (TourEndFlowTest
+ * .aSavedTourIsHandledInTheOrderOfTheRules…, TourFlowPropertyTest.endingGoesBackToTheStartAndKeepsThePlan). Pictures:
  * ScreenshotTest / GermanScreenshotTest / SlideLabelLargeFont(German)Test `arrival`; E2E CoreFieldE2ETest
  * .arrivalEndTourBringsTheStartScreen.
  */
@@ -32,16 +32,16 @@ class ArrivalBoxTest {
         assertEquals("the buttons say it: the title only tells", "Du bist angekommen.", de(Res.string.nav_arrived_title))
     }
 
-    /** "Tour beenden" goes the End tour way: the ride check, then saved at once (no second question). */
-    @Test fun endTourSavesThroughTheRideCheckAndKeepRecordingOnlyClosesTheBox() {
+    /**
+     * "Tour beenden" goes the End tour way: the ride check, then saved at once (no second question). The adapter lines of the screen
+     * stay a pin; what the slice does behind them is TourEndFlowTest.endTourWithoutARideAsksPlainOrSavesAtOnceAsAskedFor (saveIfNoRides)
+     * and .keepRecordingAfterArrivalClosesTheBoxAndTouchesNothingElse (the recording goes on).
+     */
+    @Test fun theArrivalBoxButtonsCallTheEndTourWay() {
         val call = screen.substringAfter("ArrivalDialog(").substringBefore("activity = vm.planRoute.activity")
         assertTrue(call, call.contains("onEnd = { vm.tourEnd.askEndTour(saveIfNoRides = true) }"))
         assertTrue(call, call.contains("onDelete = vm.tourEnd::endTourAndDelete"))
         assertTrue(call, call.contains("onKeepRecording = { vm.tourEnd.keepRecordingAfterArrival() }"))
-        val vm = File("../state/src/main/kotlin/com/onpath/app/ui/tour/TourEndSlice.kt").readText() // moved there in piece 17
-        val keep = vm.substringAfter("fun keepRecordingAfterArrival() {").substringBefore("\n    }\n")
-        assertTrue(keep, keep.contains("tour.arrivalAsk = false"))
-        assertFalse("the recording goes on", keep.contains("stop") || keep.contains("end("))
     }
 
     /**

@@ -427,6 +427,13 @@ class TourEditsFlowTest {
     }
 
     /** A newer edit stops the older follow line: only the newest result is applied, the older changes nothing and tells nothing. */
+    /**
+     * From FollowLineLegsTest (deleted in the test clean-up G05, 2026-11-19), its class doc word for word:
+     * Plan edits during a tour (owner 2026-11-05, docs/design/long-bike-routes.md): the plan run and the tour's follow line
+     * (position → points ahead) share one leg cache, so the follow line routes only position → first point ahead; a newer
+     * edit stops a follow line still running, so the next plan run never waits behind it (field case 2026-11-04: 15 s plan +
+     * 20 s follow line per edit on a 98 km bike plan). Source checks – the flow itself needs the service.
+     */
     @Test fun aNewerEditStopsTheOlderFollowLineOnlyTheNewestIsApplied() {
         startTour()
         ui { planEdit.removePoint(3) }; routeArrives()      // d deleted: ahead c, e
@@ -608,6 +615,14 @@ class TourEditsFlowTest {
     // ======================================================================================================================
 
     /** All points deleted: the files go, "recording only" is set after (the clear resets it), nothing stops; Undo follows again with a check. */
+    /**
+     * From TourEditTest (deleted in the test clean-up G05, 2026-11-19), its class doc word for word:
+     * Plan during a tour (owner 2026-11-05, R5 – was the tile bar of 2026-11-02): the plan row's **"✕ Neu planen"** (owner
+     * 2026-11-03, was "Änderungen verwerfen" – it doubled Undo), the green "▶ Weiter geht's": the plan is emptied, the recording goes on, the sheet shows how to begin again; a saved route clears without a
+     * question (it stays in My routes), an unsaved plan asks "Discard changes?" first; Undo brings the plan back.
+     * ☰ → Save route is the one Save, also during a tour.
+     * Its check "The recording goes on: an empty plan ends only the guidance (the followed line goes), Undo resumes it." is this one.
+     */
     @Test fun anEmptyPlanEndsTheGuidanceNeverTheRecordingAndUndoFollowsAgain() {
         startTour()
         assertFalse("the opposite first", follow.guidanceEndedByEmptyPlan)
@@ -630,6 +645,13 @@ class TourEditsFlowTest {
     }
 
     /** "✕ Neu planen" during a tour: the plan is kept as a draft first, then the guidance ends – the recording goes on. */
+    /**
+     * From ClearPlanDuringTourTest (class doc, word for word; the rules are in PlanGuidanceTest):
+     * ✕ Neu planen during a tour (owner 2026-11-05: he saw "Navigate without a route" – is that what the app does?): every
+     * guidance ends, the recording never stops; owner 2026-11-06: no question any more, the plan goes under Zuletzt, Undo
+     * brings it back (E2E CoreFieldE2ETest.clearingThePlanDuringATourAsksNothing). The empty sheet ("Die Tour läuft weiter")
+     * and Navigate's free tour line are in the screenshot frames `planEmptyDuringTour` / `navigateFreeTour`.
+     */
     @Test fun clearingThePlanDuringATourKeepsADraftThenEndsTheGuidance() {
         startTour()
         ui { planEdit.clearPlan() }
@@ -921,5 +943,98 @@ class TourEditsFlowTest {
         assertEquals(0, routingEx.size); assertEquals(0, pcEx.size)
         assertNull(edits.followCancel)
         assertFalse(edits.loadedOnTheWay)
+    }
+
+    // ======================================================================================================================
+    // test clean-up G05 (2026-11-19): checks of FollowLineLegsTest / RouteBackTest as flows
+    // ======================================================================================================================
+
+    /**
+     * Owner 2026-11-05 (long bike routes): the plan run and the tour's follow line share ONE leg cache – the follow line routes only
+     * the legs the plan run has not routed (field case 2026-11-04: 15 s plan + 20 s follow line per edit on a 98 km plan).
+     */
+    /**
+     * From FollowLineLegsTest (deleted in the test clean-up G05, 2026-11-19), its class doc word for word:
+     * Plan edits during a tour (owner 2026-11-05, docs/design/long-bike-routes.md): the plan run and the tour's follow line
+     * (position → points ahead) share one leg cache, so the follow line routes only position → first point ahead; a newer
+     * edit stops a follow line still running, so the next plan run never waits behind it (field case 2026-11-04: 15 s plan +
+     * 20 s follow line per edit on a 98 km bike plan). Source checks – the flow itself needs the service.
+     */
+    @Test fun theFollowLineRoutesOnlyTheLegsThePlanRunHasNotRoutedYet() {
+        startTour()
+        val line = listOf(c, GeoPoint(46.625, 11.110), e)
+        planRoute.legCache.put(c, e, Activity.HIKE, 3, com.onpath.app.routing.RouteResult(line, 3000.0, 10.0, 10.0, 2000.0))
+        ui { planEdit.removePoint(3) } // d deleted: ahead c, e
+        routeArrives(); stepPc(); stepRouting()
+        assertEquals("c → e came from the plan's cache, only position → c was asked of the engine", listOf(listOf(b, c)), engine.calls.map { it.waypoints })
+        assertEquals(listOf("FOLLOW_CHANGED"), client.actions)
+        assertEquals("ce", sessionStops())
+    }
+
+    /** "Route back to the start?" – No: plain recording; Undo brings the plan and the guidance back (RouteBackTest.noIsPlainRecording…). */
+    @Test fun undoAfterNoToRouteBackBringsThePlanAndTheGuidanceBack() {
+        startTour(track = emptyList())
+        plan.replace(listOf(a, b)); routeNow = routeFor(listOf(a, b)); ui { follow.followPlanned() }; serviceTakes(track = emptyList())
+        here = far
+        ui { planEdit.removePoint(1) }
+        assertTrue(planEdit.routeBackAsk)
+        ui { edits.answerRouteBack(false) }
+        assertEquals("the start stays in the plan", "a", ids(planStore.points))
+        assertNull("no route is followed: Plan shows none", follow.followLine)
+        assertTrue(follow.guidanceEndedByEmptyPlan)
+        client.sent.clear()
+        ui { planEdit.undoStep() }
+        routeArrives()
+        assertEquals("ab", ids(planStore.points))
+        assertFalse("Undo: the tour follows the plan again", follow.guidanceEndedByEmptyPlan)
+        assertEquals(listOf("FOLLOW_CHANGED"), client.actions)
+        assertEquals("ab", sessionStops())
+    }
+
+    /** Yes: one Undo goes back to start → goal (no step of its own), Redo brings the way back again (RouteBackTest.undoAfterYes…). */
+    @Test fun undoAfterYesToRouteBackBringsTheOriginalPlanBackAndRedoTheWayBack() {
+        startTour(track = emptyList())
+        plan.replace(listOf(a, b)); routeNow = routeFor(listOf(a, b)); ui { follow.followPlanned() }; serviceTakes(track = emptyList())
+        here = far
+        ui { planEdit.removePoint(1) }
+        ui { edits.answerRouteBack(true) }
+        assertEquals("position → start", "fa", ids(planStore.points))
+        ui { planEdit.undoStep() }
+        assertEquals("one Undo: the plan before the delete", "ab", ids(planStore.points))
+        routeArrives()
+        assertEquals("what is followed is the plan before the delete", "ab", sessionStops())
+        ui { planEdit.redoStep() }
+        assertEquals("Redo: the way back again", "fa", ids(planStore.points))
+    }
+
+    /**
+     * Undo while "Route back to the start?" is open closes the question by the Undo's own reset (RouteBackTest.undoWhileAskingClosesTheQuestion):
+     * the question is open after the delete, the Undo closes it, and the tour follows the plan before the delete again.
+     */
+    @Test fun undoWhileRouteBackIsAskedClosesTheQuestionAndFollowsThePlanAgain() {
+        startTour(track = emptyList())
+        plan.replace(listOf(a, b)); routeNow = routeFor(listOf(a, b)); ui { follow.followPlanned() }; serviceTakes(track = emptyList())
+        here = far
+        ui { planEdit.removePoint(1) }
+        assertTrue("asked", planEdit.routeBackAsk)
+        ui { planEdit.undoStep() }
+        assertFalse("the Undo closed the question (no answer was given)", planEdit.routeBackAsk)
+        routeArrives()
+        assertEquals("ab", sessionStops())
+    }
+
+    /** Yes without any position: plain recording, and Undo brings the guidance back (RouteBackTest.yesWithoutAPositionIsPlainRecording). */
+    @Test fun undoAfterYesWithoutAPositionBringsTheGuidanceBack() {
+        startTour(track = emptyList())
+        plan.replace(listOf(a, b)); routeNow = routeFor(listOf(a, b)); ui { follow.followPlanned() }; serviceTakes(track = emptyList())
+        here = null
+        ui { planEdit.removePoint(1) }
+        ui { edits.answerRouteBack(true) }
+        assertTrue(follow.guidanceEndedByEmptyPlan)
+        client.sent.clear()
+        ui { planEdit.undoStep() }
+        routeArrives()
+        assertFalse(follow.guidanceEndedByEmptyPlan)
+        assertEquals("ab", sessionStops())
     }
 }

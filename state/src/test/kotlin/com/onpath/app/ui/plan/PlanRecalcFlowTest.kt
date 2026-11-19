@@ -659,11 +659,15 @@ class PlanRecalcFlowTest {
         assertEquals(listOf("default: searchProgress -> 0.5"), log.filter { it.contains("searchProgress") })
     }
 
+    /** The wait bar moves within one long leg (owner 2026-11-05): the router is asked off the main thread, for the plan's thread only. (From FollowLineLegsTest.theWaitBarAsksTheRouterOffTheMainThread, test clean-up G05.) */
     @Test fun theWaitBarIsPolledOffTheMainThreadAndItsShareGrowsWithinTheLegAndIsClearedWhenEveryLegIsRouted() {
         plan(a, b, c); create()
-        progressOf = { _, _ -> 0.5 }
+        val askedFor = ArrayList<Thread>()
+        progressOf = { _, t -> askedFor += t; 0.5 }
+        val routedOn = ArrayList<Thread>()
         val seen = ArrayList<String>()
         engine.onRoute = { n ->
+            routedOn += Thread.currentThread() // the thread the planner (the plan's run) is on
             if (n == 2) {
                 // one leg done (1 of 2) and the router half way in the second: the poll runs on the default thread
                 stepDefault(); advance(250); stepDefault()
@@ -672,6 +676,7 @@ class PlanRecalcFlowTest {
         }
         recalcNow(); advance(150); stepRouting()
         assertEquals(listOf("share=0.75"), seen)
+        assertEquals("the router is asked for the plan's own thread (the one the planner runs on), nobody else's", listOf(routedOn.last()), askedFor.distinct())
         assertEquals(listOf("default: searchProgress -> 0.5"), log.filter { it.contains("searchProgress") })
         // every leg is routed: the share is cleared (the wait window checks the route), the poll is stopped
         assertNull(planRun.routeShare)

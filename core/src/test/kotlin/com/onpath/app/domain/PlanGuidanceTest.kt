@@ -1,6 +1,7 @@
 package com.onpath.app.domain
 
 import com.onpath.app.routing.GeoPoint
+import com.onpath.app.domain.plan.ClearRule
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -9,61 +10,35 @@ import com.onpath.app.domain.plan.RouteBack
 
 /**
  * Owner rule: what Plan shows = what Navigate follows (never an old route followed invisibly). Deleting all points
- * during a tour ends the route
- * guidance (the recording goes on); Undo brings the points and the guidance back. The steps are AppViewModel's
- * (PlanHistory + PlanGuidance).
+ * during a tour ends the route guidance (the recording goes on); Undo brings the points and the guidance back.
+ * The pure rules of PlanGuidance and ClearRule. From ClearPlanDuringTourTest (class doc, word for word):
+ * ✕ Neu planen during a tour (owner 2026-11-05: he saw "Navigate without a route" – is that what the app does?): every
+ * guidance ends, the recording never stops; owner 2026-11-06: no question any more, the plan goes under Zuletzt, Undo
+ * brings it back (E2E CoreFieldE2ETest.clearingThePlanDuringATourAsksNothing). The empty sheet ("Die Tour läuft weiter")
+ * and Navigate's free tour line are in the screenshot frames `planEmptyDuringTour` / `navigateFreeTour`.
+ * The steps as flows of the real slices (test clean-up G05, 2026-11-19): TourEditsFlowTest
+ * .anEmptyPlanEndsTheGuidanceNeverTheRecordingAndUndoFollowsAgain (empty plan + Undo, was the sim test
+ * deletingAllPointsEndsTheGuidanceUndoBringsItBack), .clearingThePlanDuringATourKeepsADraftThenEndsTheGuidance,
+ * PlanEditFlowTest.clearDuringATourEndsTheGuidanceAndNeverTheRecording (was clearRouteDuringATourEndsTheGuidanceToo), E2E
+ * CoreFieldE2ETest.clearingThePlanDuringATourAsksNothing. The empty sheet ("Die Tour läuft weiter") and Navigate's free tour line
+ * are in the screenshot frames `planEmptyDuringTour` / `navigateFreeTour`.
  */
 class PlanGuidanceTest {
     private val a = GeoPoint(46.670, 11.160)
     private val b = GeoPoint(46.672, 11.165)
     private val c = GeoPoint(46.675, 11.170)
 
-    /** A running tour following the plan; the plan as AppViewModel holds it. */
-    private class Tour(var plan: List<GeoPoint>) {
-        val history = PlanHistory()
-        var following = true
-        var endedByEmptyPlan = false
-        val recording = true
-        val followIsTrack = false
-
-        fun edit(to: List<GeoPoint>) { history.record(plan); plan = to; afterChange() }
-        fun undo() { history.undo(plan)?.let { plan = it; afterChange() } }
-        fun redo() { history.redo(plan)?.let { plan = it; afterChange() } }
-
-        private fun afterChange() {
-            if (PlanGuidance.endsGuidance(plan.size, recording, following, followIsTrack)) {
-                following = false; endedByEmptyPlan = true
-            }
-            // route computed for the plan (two points or more)
-            if (plan.size >= 2 && PlanGuidance.resumes(endedByEmptyPlan, recording, following, plan.size)) {
-                following = true; endedByEmptyPlan = false
-            }
-        }
-    }
-
-    @Test fun deletingAllPointsEndsTheGuidanceUndoBringsItBack() {
-        val t = Tour(listOf(a, b, c))
-        t.edit(listOf(a, c)); assertTrue("still 2 points: followed", t.following)
-        t.edit(listOf(a)); assertTrue("one point left: nothing changes yet", t.following)
-        t.edit(emptyList())
-        assertFalse("empty plan: no route followed", t.following)
-        t.undo(); assertFalse("one point is no route", t.following)
-        t.undo()
-        assertTrue("Undo brought two points: the tour follows them again", t.following)
-        assertEquals(listOf(a, c), t.plan)
-    }
-
-    /** Sheet ⋯ → Clear route is allowed during a tour (owner) and goes through the same plan change. */
-    @Test fun clearRouteDuringATourEndsTheGuidanceToo() {
-        // the view model's path (clear → the empty-plan rule): E2E CoreFieldE2ETest.clearingThePlanDuringATourAsksNothing
-        val t = Tour(listOf(a, b))
-        t.edit(emptyList())
-        assertFalse(t.following)
-        t.undo()
-        assertTrue(t.following)
-    }
-
     @Test fun aFollowedTrackOrAFreeRecordingIsNotTouched() {
+        assertTrue("the plan's guidance ends with the empty plan", PlanGuidance.endsGuidance(0, recording = true, following = true, followIsTrack = false))
+        // one or two points left: the plan is still a plan, nothing ends (the rows the deleted model called)
+        assertFalse(PlanGuidance.endsGuidance(1, recording = true, following = true, followIsTrack = false))
+        assertFalse(PlanGuidance.endsGuidance(2, recording = true, following = true, followIsTrack = false))
+        // Undo / a new route brings the guidance back: only after the empty plan ended it, with a route of two points or more
+        assertTrue(PlanGuidance.resumes(endedByEmptyPlan = true, recording = true, following = false, routePoints = 2))
+        assertTrue(PlanGuidance.resumes(endedByEmptyPlan = true, recording = true, following = false, routePoints = 50))
+        assertFalse(PlanGuidance.resumes(endedByEmptyPlan = true, recording = true, following = false, routePoints = 1))
+        assertFalse(PlanGuidance.resumes(endedByEmptyPlan = true, recording = true, following = true, routePoints = 2))
+        assertFalse(PlanGuidance.resumes(endedByEmptyPlan = true, recording = false, following = false, routePoints = 2))
         assertFalse(PlanGuidance.endsGuidance(0, recording = true, following = true, followIsTrack = true))
         assertFalse(PlanGuidance.endsGuidance(0, recording = true, following = false, followIsTrack = false))
         assertFalse(PlanGuidance.endsGuidance(0, recording = false, following = true, followIsTrack = false))
@@ -145,5 +120,26 @@ class PlanGuidanceTest {
         assertFalse(PlanGuidance.oneLeftGoesFromHere(3, 2, true, true, false, false))
         // the view model asks after every edit and every Undo / Redo: PlanFlowPropertyTest (random edit / undo / redo
         // sequences against PlanSession) and E2E deletingTheStartDuringATour… / onePointLeftRightHereEmptiesThePlan
+    }
+
+    @Test fun clearingEndsEveryGuidanceButNeverTheRecording() {
+        // the gap: a followed track was untouched by the empty-plan rule
+        assertFalse(PlanGuidance.endsGuidance(0, recording = true, following = true, followIsTrack = true))
+        assertTrue(PlanGuidance.clearEndsGuidance(recording = true, following = true))
+        assertFalse("no tour: the rule below decides", PlanGuidance.clearEndsGuidance(recording = false, following = true))
+    }
+
+    /** Pixel 2026-11-01: Close plan after an app restart left the old followed line (the way there) without points. */
+    @Test fun withoutATourTheFollowedLineGoesWithThePlan() {
+        // the way there ("Guide me") or a line from before an app restart: it goes
+        assertTrue(ClearRule.dropsFollowWithoutTour(following = true, recording = false, followFromPlan = false,
+            followIsPlanLine = false, followIsTrack = false))
+        assertTrue(ClearRule.dropsFollowWithoutTour(true, false, followFromPlan = true, followIsPlanLine = false, followIsTrack = true))
+        assertTrue(ClearRule.dropsFollowWithoutTour(true, false, followFromPlan = false, followIsPlanLine = true, followIsTrack = true))
+        // a shown GPX track keeps its own line
+        assertFalse(ClearRule.dropsFollowWithoutTour(true, false, followFromPlan = false, followIsPlanLine = false, followIsTrack = true))
+        // during a tour PlanGuidance.clearEndsGuidance decides; nothing followed: nothing to drop
+        assertFalse(ClearRule.dropsFollowWithoutTour(true, recording = true, followFromPlan = true, followIsPlanLine = true, followIsTrack = false))
+        assertFalse(ClearRule.dropsFollowWithoutTour(following = false, recording = false, followFromPlan = true, followIsPlanLine = false, followIsTrack = false))
     }
 }

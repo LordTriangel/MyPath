@@ -1,7 +1,6 @@
 package com.onpath.app.ui
 
 import com.onpath.app.domain.tour.TourEndFlow
-import com.onpath.app.domain.tour.TourEndFlow.Next
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -12,22 +11,12 @@ import org.junit.Test
  * restart. All three show the bus / car / lift summary when a ride was found (core feature C12). The dialogs' buttons
  * (Continue · Delete · Save, the bin note) are in the screenshot frames `unfinishedTour`; the flows in the E2E tests
  * (arrival: Rundgang flow 2, end sheet: flow 7, CoreFieldE2ETest endTour…).
+ * The ride check of the three ways (TourEndFlow.afterRideCheck / unfinishedSave: rides → the summary, none → the plain sheet or saved at
+ * once) is proved on the real slice since the test clean-up G05 (2026-11-19): TourEndFlowTest.endTourWithARideShowsTheSummaryAfterTheCheckOnIo,
+ * .endTourWithoutARideAsksPlainOrSavesAtOnceAsAskedFor (End tour and the arrival box's "Tour beenden"),
+ * .askSaveOfAnInterruptedTourWithARideShowsTheSummaryAndWritesNothing / …WithoutARideSavesAtOnce (the "Interrupted tour" question).
  */
 class TourEndPathsTest {
-    @Test fun endTourAndArrivalRunTheRideCheck() {
-        // End tour: rides → the summary; none → the plain end sheet
-        assertEquals(Next.RIDES, TourEndFlow.afterRideCheck(ridesFound = true, saveIfNoRides = false))
-        assertEquals(Next.ASK_PLAIN, TourEndFlow.afterRideCheck(ridesFound = false, saveIfNoRides = false))
-        // "You have arrived" → Save: rides → the summary too; none → saved at once, no second question
-        assertEquals(Next.RIDES, TourEndFlow.afterRideCheck(ridesFound = true, saveIfNoRides = true))
-        assertEquals(Next.SAVE_NOW, TourEndFlow.afterRideCheck(ridesFound = false, saveIfNoRides = true))
-    }
-
-    @Test fun anInterruptedTourSaveRunsTheRideCheck() {
-        assertEquals(Next.RIDES, TourEndFlow.unfinishedSave(ridesFound = true))
-        assertEquals(Next.SAVE_NOW, TourEndFlow.unfinishedSave(ridesFound = false))
-    }
-
     /** Field bug 2026-10-31: after a reboot the map behind "Interrupted tour" was empty – no service, no track. */
     @Test fun anInterruptedTourIsDrawnBehindItsQuestion() {
         val rec = listOf("running")

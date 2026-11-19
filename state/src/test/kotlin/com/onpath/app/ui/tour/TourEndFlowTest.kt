@@ -1056,4 +1056,19 @@ class TourEndFlowTest {
         assertEquals("refreshTours [rec=null box=null short=null]", log.first())
         assertTrue(problems.said("rides").any { it == "Changing the rides of a tour failed; it stays as it was" })
     }
+
+    // ======================================================================================================================
+    // test clean-up G05 (2026-11-19): TourEndPathsTest.endTourAndArrivalRunTheRideCheck as a flow
+    // ======================================================================================================================
+
+    /** "You have arrived" → "Tour beenden" (saveIfNoRides) also runs the ride check: a tour with a bus ride gets the summary, nothing is saved or stopped yet (core feature C12). */
+    @Test fun theArrivalBoxsEndTourOfATourWithARideShowsTheSummaryAndStopsNothing() {
+        touring(busTour)
+        ctl.arrivalAsk = true
+        ui { slice.askEndTour(saveIfNoRides = true) }
+        stepIo()
+        val ask = ctl.endAsk as EndAsk.Rides
+        assertEquals(busTour, ask.tourId)
+        assertEquals(emptyList<String>(), client.actions)
+    }
 }
