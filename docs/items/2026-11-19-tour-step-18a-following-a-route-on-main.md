@@ -1,0 +1,3 @@
+# tour step 18a (following a route) on main (0b4fdaa6f)
+
+- ← [umbau] (2026-11-19): **tour step 18a (following a route) on main (0b4fdaa6f)**, `AppViewModel` 3,460 lines; before it 17 (the tour's end, 35cfa9685). Fresh review: no behaviour difference, no crash path; E2E `CoreFieldE2ETest` 35/35. One named change, approved in the design: a view model rebuilt during a tour no longer takes the service's activity once more within the first second. 18b (editing the plan during a tour) runs now; then 19, 20, 9b, 21, then the three tour weaknesses. The lock file is gone (PR 14); 5b → [umbau-hp] after the phase 3 tag.
