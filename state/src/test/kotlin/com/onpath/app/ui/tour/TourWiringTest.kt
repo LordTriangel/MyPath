@@ -338,6 +338,8 @@ class TourWiringTest {
             assertTrue("$dep must be declared before the slice", vm.indexOf(dep) < declared)
         }
         assertTrue("the end slice is declared after it", vm.indexOf("val tourEnd: com.onpath.app.ui.tour.TourEndSlice = ") > initAt)
+        // no second collector of the service state (the fused-position `recState.collect` is another text); the view model is never built on the JVM
+        assertEquals(0, count(vm, "recState.map { it?.tourId }") + count(vm, "recording.state.collect") + count(vm, "recording.state.filterNotNull"))
         // the follow state is reached through forwarder properties now: an init above the slice that read one would crash at
         // the app's start (the old plain fields gave their defaults) and ViewModelInitOrderTest does not follow property getters
         assertEquals("only the two known inits stand above the slice – a new one must not read the follow state (review 2026-11-19)",

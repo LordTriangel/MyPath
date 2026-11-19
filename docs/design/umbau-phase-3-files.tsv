@@ -279,7 +279,6 @@ core/src/test/kotlin/com/onpath/app/cells/PoiDensityTest.kt	core/test	cells	71	0
 core/src/test/kotlin/com/onpath/app/cells/PoiTilesStyleTest.kt	core/test	cells	65	1	1	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	3	0	0	4	0		
 core/src/test/kotlin/com/onpath/app/cells/RouterClassCheckTest.kt	core/test	cells	165	6	2	0	0	0	0	0	0	3	0	0	0	0	0	2	0	0	0	0	2	0	0	11	0	1	15	0		
 core/src/test/kotlin/com/onpath/app/cells/StorageNotReadyTest.kt	core/test	cells	122	9	5	0	0	0	0	0	0	4	0	0	0	0	0	1	0	0	0	0	1	0	0	4	0	1	20	0		
-core/src/test/kotlin/com/onpath/app/cells/StoreWriteCostTest.kt	core/test	cells	107	11	4	0	0	0	0	0	0	0	0	0	0	0	0	10	0	0	0	4	12	0	0	2	0	0	41	0		
 core/src/test/kotlin/com/onpath/app/cells/TileHashTest.kt	core/test	cells	58	2	0	1	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	1	0	0	0	3	0	0	6	0		
 core/src/test/kotlin/com/onpath/app/cells/TourCorridorTest.kt	core/test	cells	57	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
 core/src/test/kotlin/com/onpath/app/data/AtomicFilesConcurrencyTest.kt	core/test	data	116	9	4	0	0	0	0	0	3	1	0	1	0	0	0	0	0	0	0	0	2	0	0	6	0	0	20	0		

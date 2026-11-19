@@ -1,9 +1,9 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.sourceFile
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 /**
  * Owner 2026-10-31 (docs/design/ui-style.md): every box (FRAGE, HINWEIS) sits 12 dp under the top element – Plan under
@@ -11,6 +11,8 @@ import java.io.File
  * tabs, Settings under the title. One rule, [MessagePlacement].
  */
 class MessagePlacementTest {
+    private fun src(name: String) = sourceFile("ui/$name").readText()
+
     @Test fun twelveDpUnderTheTopElement() {
         assertEquals(12, MessagePlacement.GAP_DP)
         assertEquals(TOP_BAR_BOTTOM.value.toInt() + 12, MessagePlacement.topDp(MessageScreen.PLAN))
@@ -21,6 +23,21 @@ class MessagePlacementTest {
         assertEquals(12, MessagePlacement.topDp(MessageScreen.NAVIGATE, -5))
         // the small download chip stays right under ☰, above where a box goes
         assertTrue(MessagePlacement.CHIP_TOP_DP < MessagePlacement.topDp(MessageScreen.PLAN))
+    }
+
+    /** The headers the rule assumes: My routes title row (56 dp button + 2×4) + 48 dp tabs, Settings title row. */
+    @Test fun headersMatchTheScreens() {
+        val routes = src("Screens.kt").substringAfter("fun RoutesScreen(")
+        // the title row is a TopBarRow (title never broken inside a word): its padding lives there
+        assertTrue(routes.contains("TopBarRow("))
+        assertTrue(src("TopBar.kt").contains("Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp)"))
+        assertTrue(routes.contains("IconButton(onClick = onBack, Modifier.size(56.dp))"))
+        assertTrue(routes.contains("modifier = Modifier.heightIn(min = 48.dp),"))
+        assertEquals(4 + 56 + 4 + 48, MessagePlacement.ROUTES_HEADER_DP)
+        val settings = src("SettingsScreen.kt")
+        assertTrue(settings.contains("Row(Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {\n" +
+            "                IconButton(onClick = { if (page != null) onPage(null) else onBack() }, Modifier.size(56.dp))"))
+        assertEquals(4 + 56 + 4, MessagePlacement.SETTINGS_HEADER_DP)
     }
 
     /** Every box's buttons are big enough to hit with a glove. */

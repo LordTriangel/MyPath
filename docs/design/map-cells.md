@@ -642,7 +642,7 @@ Every generation rewrites the whole store. Field (owner's Galaxy S10, 0.17.3, pl
 them (g13, g15) only added one **region package** that was ready on the server when the cells' join started – downloaded
 0.5 s after it, then a full rewrite of its own. During a tour nothing is written (`holdUpdates`: joined once after it).
 
-`StoreWriteCostTest` (optional, `ONPATH_STORE_BENCH=1`; synthetic cells of real size, ~10 MB each in the store), laptop
+`StoreWriteCostTest` (measured with this optional test, removed 2026-11-19, see git history before 6e22a1ce9; `ONPATH_STORE_BENCH=1`; synthetic cells of real size, ~10 MB each in the store), laptop
 (NVMe, warm page cache – the S10 is ≈ 20× slower):
 
 | Store | +1 cell | | Store | +1 cell |
