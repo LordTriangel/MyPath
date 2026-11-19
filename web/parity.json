@@ -420,7 +420,7 @@
       "web": [
         "web/app/src/routethumbs.ts"
       ],
-      "blob": "f6e60244c3b24f1c4464259108beb67d8ab56447"
+      "blob": "3abdd7b5f831529c876132cd42d183256e5ffa65"
     },
     {
       "app": "app/src/main/java/com/onpath/app/map/RouteThumbs.kt",
@@ -428,7 +428,7 @@
       "web": [
         "web/app/src/routethumbs.ts"
       ],
-      "blob": "3504e3b4fcc8c32723da715c05609b7966487e6c"
+      "blob": "d77d8825f303ed295c3f8efe02c12bad018f50bf"
     },
     {
       "app": "app/src/main/java/com/onpath/app/domain/routes/RoundTrip.kt",
