@@ -43,9 +43,11 @@ import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.launch
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -56,7 +58,7 @@ import java.io.File
 import java.util.concurrent.AbstractExecutorService
 
 /**
- * Routes I (rebuild phase 2 piece 13) as flows of the REAL [RoutesSlice]: My routes' list read again, a tapped route or tour
+ * Routes I and II (rebuild phase 2 pieces 13 and 14: the second half at the end of the file) as flows of the REAL [RoutesSlice] / [RoutesGoSlice]: My routes' list read again, a tapped route or tour
  * opened on the map, a track made a plan, Delete into the recycle bin. Real neighbours: [PlanDocument], [RoutesState] /
  * [RecentPlans], [SaveSlice] (a plan that leaves the map goes under Zuletzt), [TourController], [PlanRouteSlice] (activity,
  * leg cache, model time) and the rules of `:core`; the tables are real ([JdbcTours]). Only the edges are fakes: the
@@ -165,6 +167,17 @@ class RoutesFlowTest {
         val timesOf = HashMap<Long, TourTimes>()
         val ridesOf = HashMap<Long, com.onpath.app.rides.RideRecord>()
         var failPlanPoints = false
+        /** The followed plan stored with a recorded tour (tour_plan: the JDBC kit has no table access for it). */
+        val copies = HashMap<Long, com.onpath.app.data.TourPlan>()
+        var failTourPlan = false
+        var followIsTrack = false
+        var routingNow = false
+        val stopNames = HashMap<GeoPoint, String>()
+        /** What the share sheet was given: the file's name and text, in order (the gpx lambda is run on the thread the host runs it on). */
+        val shared = ArrayList<com.onpath.app.gpx.GpxFile>()
+        val links = ArrayList<Pair<String, String?>>()
+        var followMeNow = true
+        var freeLook: GeoPoint? = GeoPoint(1.0, 1.0)
         var touring = false
         var recordingId: Long? = null
         var mode = AppMode.PLAN
@@ -172,6 +185,20 @@ class RoutesFlowTest {
         var routeNow: PlannedRoute? = null
         /** Runs once, in the middle of the first list read (on io, after its list was read). */
         var onFirstRow: (() -> Unit)? = null
+        var failSegments = false
+        /** Lets the open run, task by task, up to its last host call – the "planned" callback of "Los geht's" ran in that task and queued its wait. */
+        fun untilTheWaitIsQueued() {
+            var n = 0
+            while (log.none { it.contains("syncRoutingCheck") }) { if (!mainEx.runNext() && !ioEx.runNext()) error("nothing left to run"); check(++n < 50) }
+            check(mainEx.size > 0) { "the wait is queued" }
+        }
+        /** Runs a suspend call of the slice on main (held) and lets the three executors settle; its result. */
+        fun <T> runOn(block: suspend () -> T): T {
+            var r: Result<T>? = null
+            scope.launch { r = runCatching { block() } }
+            settle()
+            return r!!.getOrThrow()
+        }
 
         val routesStore = object : RoutesStore {
             /** The kit's reader leaves out the rides column: what the app's TourDb would read is put on the rows here. */
@@ -185,7 +212,11 @@ class RoutesFlowTest {
         }
         val store = object : ToursStore {
             override fun getTour(id: Long) = db.getTour(id)
-            override fun loadSegments(id: Long): List<List<TrackPoint>> { log += "$where: store.loadSegments $id"; return db.loadSegments(id) }
+            override fun loadSegments(id: Long): List<List<TrackPoint>> {
+                log += "$where: store.loadSegments $id"
+                if (failSegments) throw IllegalStateException("db closed")
+                return db.loadSegments(id)
+            }
             override fun insertPlanned(name: String, row: PlannedRow) =
                 db.insertTour(TourKind.PLANNED, name, row.activity, row.sac, row.segments, row.stops, distance = row.distanceM,
                     ascent = row.ascentM, descent = row.descentM, duration = row.durationS, pinned = row.pins, difficulty = row.difficulty, days = row.days)
@@ -200,6 +231,12 @@ class RoutesFlowTest {
                 return plansOf[id]
             }
             override fun tourTimes(): Map<Long, TourTimes> { log += "$where: store.tourTimes"; return timesOf }
+            override fun listTours(): List<Tour> { log += "$where: store.listTours"; return routesStore.listTours() }
+            override fun getTourPlan(id: Long): com.onpath.app.data.TourPlan? {
+                log += "$where: store.getTourPlan $id"
+                if (failTourPlan) throw IllegalStateException("db closed")
+                return copies[id]
+            }
         }
 
         val plan = PlanDocument(planStore)
@@ -297,6 +334,26 @@ class RoutesFlowTest {
             override fun tourChanged(id: Long) { log += "$where: backup $id; bin=${db.listDeleted().map { it.id }}" }
             override fun syncForget(uuid: String) { log += "$where: forget mark $uuid" }
             override fun syncChanged(why: String) { log += "$where: sync $why; bin=${db.listDeleted().map { it.id }}" }
+            override val route: PlannedRoute? get() = routeNow
+            override val routing: Boolean get() = routingNow
+            override val followIsTrack: Boolean get() = this@App.followIsTrack
+            override fun undoStep() {
+                log += "$where: undoStep; note=${tour.newPlanNote}; plan=${plan.points.size}"
+                plan.undo()?.let { plan.replace(it) }
+            }
+            override fun continueNavigation() { log += "$where: continueNavigation" }
+            override suspend fun share(name: String, gpx: () -> com.onpath.app.gpx.GpxFile) {
+                log += "$where: share $name"
+                shared += gpx()
+            }
+            override fun stopName(p: GeoPoint) = stopNames[p]
+            override fun holdCameraForSharedPlace() { log += "$where: holdCamera" }
+            override var followMe: Boolean
+                get() = followMeNow
+                set(v) { log += "$where: followMe $v"; followMeNow = v }
+            override var freeLookAt: GeoPoint?
+                get() = freeLook
+                set(v) { log += "$where: freeLookAt $v"; freeLook = v }
             override fun say(text: String, kind: NoticeKind, place: NoticePlace) { notes += Triple(text, kind, place); board.say(text, kind, place) }
         }
         val camera = object : Camera {
@@ -305,8 +362,23 @@ class RoutesFlowTest {
             override fun panTo(point: GeoPoint) {}
         }
         var clock = 1_000L
+        val linkFlow = com.onpath.app.ui.sync.PlanLinkFlow(object : com.onpath.app.ui.sync.PlanLinkHost {
+            override fun backToMap() {}
+            override fun sayError(text: String, place: NoticePlace) {}
+            override fun receivePairing(secret: ByteArray, via: String) {}
+            override fun openSyncSettings() {}
+            override suspend fun startModeKnown() {}
+            override fun navigating() = false
+            override fun planPoints() = plan.points.toList()
+            override fun savedPoints() = plan.savedPoints
+            override fun open(plan: com.onpath.app.routing.SharedPlan, via: String) {}
+            override fun share(link: String, title: String?) { log += "$where: link share"; links += link to title }
+            override var storedLinkPoints: List<GeoPoint>? = null
+        }, scope)
+        lateinit var go: RoutesGoSlice
         init {
             slice = RoutesSlice(plan, routes, save, tour, planRoute, store, camera, host, scope, io, main) { clock }
+            go = RoutesGoSlice(plan, routes, tour, planRoute, save, store, linkFlow, slice, camera, host, scope, io)
             apps += this
         }
 
@@ -820,5 +892,535 @@ class RoutesFlowTest {
         assertTrue(problems.said("routing", com.onpath.app.debug.Problems.Level.ERROR).any { it.contains("could not be turned into a plan") })
         assertEquals(NoticePlace.MAP, app.notes.single().third)
         assertEquals(Txt.s(Res.string.plan_from_track_failed), app.notes.single().first)
+    }
+
+    // ================================================================ Routes II (piece 14): go from My routes, the followed plan,
+    // the review, plan links in and out – the real RoutesGoSlice on top of the real RoutesSlice.
+    //
+    // What has NO behaviour test here: "Los geht's" WAITING for its line (the snapshotFlow needs a Compose snapshot apply, which
+    // OwnComposeSnapshot forbids – the START / DROP decisions at the first look are tested), the 60 s timeout, a second go
+    // cancelling the first (not observable without the apply). The tour's own start behind it is the view model's (pieces 16–19).
+
+    private fun route3() = PlannedRoute(listOf(PlannedLeg(listOf(a, b, c), false)), 4_000.0, 0.0, 0.0, 3_000.0, null)
+
+    private fun planCopy(name: String? = "Followed", activity: String = "HIKE", sac: Int = 2, via: List<GeoPoint> = listOf(a, b, c),
+                         source: String? = null, line: List<TrackPoint> = emptyList(), pinned: Set<Int> = emptySet()) =
+        com.onpath.app.data.TourPlan(name, activity, sac, via.mapIndexed { i, p -> GpxWaypoint(p.lat, p.lon, if (i == 0) "Start" else null) },
+            pinned = pinned, line = line, distanceM = 4_000.0, sourceUuid = source)
+
+    /** A done recorded tour with its followed plan [copy] stored (hasPlan as the real query reads it). */
+    private fun recordedWithPlan(app: App, copy: com.onpath.app.data.TourPlan?, name: String = "Ride"): Tour {
+        val t = recorded(name)
+        if (copy != null) app.copies[t.id] = copy
+        return t.copy(hasPlan = copy != null)
+    }
+
+    // ---- navigating, the ⋮ menu, My routes opened
+
+    @Test fun navigatingIsTheNavigateModeOrARecordingAndTheMenuFollowsRouteSavedToursAndNavigating() {
+        val app = App()
+        assertFalse(app.go.navigating(false)); assertTrue(app.go.navigating(true))
+        app.mode = AppMode.NAVIGATE
+        assertTrue("Navigate mode alone", app.go.navigating(false))
+        app.mode = AppMode.PLAN
+        // nothing saved, no route, no points: only "start recording" is open
+        assertEquals(com.onpath.app.domain.RouteMenuState(load = false, save = false, startRecording = true), app.go.menuState(false))
+        planned("Alm"); app.slice.refreshTours(); app.settle()
+        app.routeNow = route3()
+        assertEquals("saved tours: load; a route: save; a route: no start recording", com.onpath.app.domain.RouteMenuState(load = true, save = true, startRecording = false), app.go.menuState(false))
+        assertFalse("while recording nothing loads", app.go.menuState(true).load)
+        app.mode = AppMode.NAVIGATE
+        assertFalse("in Navigate nothing loads", app.go.menuState(false).load)
+        app.mode = AppMode.PLAN; app.routeNow = null; app.draw(a)
+        assertTrue("one point: still may record", app.go.menuState(false).startRecording)
+        app.draw(a, b)
+        assertFalse("two points are a plan: no recording from the menu", app.go.menuState(false).startRecording)
+    }
+
+    @Test fun openRoutesOpensMyRoutesAtOnceAndReadsTheListAgain() {
+        val app = App()
+        planned("One")
+        app.go.openRoutes()
+        assertTrue("open at once", app.routes.open)
+        assertTrue("the list is read on io, not yet shown", app.routes.tours.isEmpty())
+        app.settle()
+        assertEquals(listOf("One"), app.routes.tours.map { it.name })
+        assertTrue(app.routes.open)
+    }
+
+    // ---- a tap in My routes
+
+    @Test fun aTapWithoutATourOpensThePlannedRouteAndLeavesNoNeuerPlanNote() {
+        val app = App()
+        app.draw(c, b)
+        val t = planned("Alm")
+        app.go.requestOpen(t, "a test tap"); app.settle()
+        assertEquals(listOf(a, b, c), app.plan.points.toList())
+        assertNull("no 'Neuer Plan' line without a tour", app.tour.newPlanNote)
+        assertEquals("the plan that was on the map goes under Zuletzt", 1, app.drafts().size)
+        assertTrue(app.log.contains("main: onTheWay false"))
+        assertTrue("the first route may raise the sheet", app.log.contains("main: event NewPlan"))
+        assertTrue(problems.traced("routes").any { it == "Open tour ${t.id} \"Alm\" (PLANNED, 4000 m): a test tap" })
+        assertTrue("no tour code reached", app.log.none { it.contains("followShownNow") || it.contains("continueNavigation") })
+    }
+
+    @Test fun aPlanTappedDuringATourIsFollowedAtOnceWithTheNoteSetBeforeTheLoadAndUndoOffered() {
+        val app = App().also { it.touring = true; it.recordingId = 99; it.mode = AppMode.NAVIGATE }
+        app.draw(c, b)
+        val t = planned("Alm")
+        app.go.requestOpen(t); app.settle()
+        assertEquals("the plan is replaced", listOf(a, b, c), app.plan.points.toList())
+        assertEquals("a plan was on the map: Rückgängig is offered", true, app.tour.newPlanNote?.undo)
+        assertEquals("the tour's activity stays", Activity.HIKE, app.planRoute.activity)
+        assertTrue("the load is 'on the way'", app.log.contains("main: onTheWay true"))
+        assertTrue("no new-plan event: the tour's route stays the tour's", app.log.none { it == "main: event NewPlan" })
+        assertTrue("the plan before went under Zuletzt first", app.log.any { it.startsWith("main: change 3 points; shown=null; drafts=1;") })
+        assertEquals("Navigate is entered (the recording goes on)", "main: enter NAVIGATE", app.log.last { it.contains("enter") })
+        assertTrue(problems.traced("tour").any { it.contains("Plan \"Alm\" tapped during the tour: followed at once") })
+        assertTrue(problems.traced("plan").any { it.contains("Load \"Alm\" during the tour: the plan on the map goes under Zuletzt if not saved") })
+    }
+
+    @Test fun aPlanTappedDuringATourWithAnEmptyPlanOffersNoUndo() {
+        val app = App().also { it.touring = true; it.recordingId = 99 }
+        app.go.requestOpen(planned("Alm")); app.settle()
+        assertEquals("nothing to come back to", false, app.tour.newPlanNote?.undo)
+        assertEquals(3, app.plan.points.size)
+    }
+
+    @Test fun aDoneTourTappedDuringATourIsFollowedAtOnceThroughTheHost() {
+        val app = App().also { it.touring = true; it.recordingId = 99 }
+        app.draw(c, b)
+        app.go.requestOpen(recorded("Ride")); app.settle()
+        assertEquals(true, app.tour.newPlanNote?.undo)
+        assertTrue("followed with the track already shown (tour code: the host)", app.log.contains("main: followShownNow shown=Ride"))
+        assertEquals("the plan on the map stays for the host to clear", listOf(c, b), app.plan.points.toList())
+        assertTrue(problems.traced("tour").any { it.contains("Track \"Ride\" tapped during the tour: followed at once") })
+        assertTrue(problems.traced("plan").any { it.contains("Follow \"Ride\" during the tour: the plan on the map goes under Zuletzt if not saved") })
+    }
+
+    @Test fun aDoneTourTappedWithoutATourIsOnlyShown() {
+        val app = App()
+        app.go.requestOpen(recorded("Ride")); app.settle()
+        assertNull(app.tour.newPlanNote)
+        assertEquals("Ride", app.slice.shown?.name)
+        assertTrue(app.log.none { it.contains("followShownNow") })
+    }
+
+    @Test fun navigateModeAloneCountsAsDuringATourForTheQuestionButTheLoadIsNotOnTheWay() {
+        val app = App().also { it.mode = AppMode.NAVIGATE }       // no recording: touring = false
+        app.draw(c, b)
+        app.go.requestOpen(planned("Alm")); app.settle()
+        assertEquals("followed at once like during a tour", true, app.tour.newPlanNote?.undo)
+        assertTrue("…but not 'on the way': no tour records", app.log.contains("main: onTheWay false"))
+    }
+
+    // ---- Rückgängig on "Neuer Plan"
+
+    private fun newPlanNote(app: App, undo: Boolean) { app.tour.noteNewPlan(undo = undo); app.log.clear() }
+
+    @Test fun undoWithoutANoteDoesNothing() {
+        val app = App().also { it.touring = true; it.recordingId = 1 }
+        app.go.undoNewPlan()
+        assertTrue(app.log.isEmpty())
+    }
+
+    @Test fun undoOfANoteWithoutAPlanBeforeOnlyDropsTheNote() {
+        val app = App().also { it.touring = true; it.recordingId = 1 }
+        newPlanNote(app, undo = false)
+        app.go.undoNewPlan()
+        assertNull(app.tour.newPlanNote)
+        assertTrue("no Undo step", app.log.isEmpty())
+    }
+
+    @Test fun undoBringsThePlanFromBeforeBackInOneStepAfterTheNoteWentAndTheTourKeepsItsFollowedRoute() {
+        val app = App().also { it.touring = true; it.recordingId = 1 }
+        app.draw(c, b)
+        app.plan.edit { clear(); addAll(listOf(a, b, c)) }
+        newPlanNote(app, undo = true)
+        app.go.undoNewPlan()
+        assertEquals("the note is gone when the step runs", listOf("test: undoStep; note=null; plan=3"), app.log)
+        assertEquals(listOf(c, b), app.plan.points.toList())
+        assertTrue(problems.traced("plan").any { it.contains("Rückgängig on \"Neuer Plan\"") })
+    }
+
+    @Test fun undoOfAFollowedTrackMakesTheTourFollowThePlanAgainAfterTheStep() {
+        val app = App().also { it.touring = true; it.recordingId = 1; it.followIsTrack = true }
+        app.draw(c, b); app.plan.edit { clear(); addAll(listOf(a, b, c)) }
+        newPlanNote(app, undo = true)
+        app.go.undoNewPlan()
+        assertEquals(listOf("test: undoStep; note=null; plan=3", "test: continueNavigation"), app.log)
+    }
+
+    @Test fun undoOfAFollowedTrackWithoutARecordingDoesNotTouchTheTour() {
+        val app = App().also { it.followIsTrack = true }           // a track followed, but no tour records
+        app.draw(c, b)
+        newPlanNote(app, undo = true)
+        app.go.undoNewPlan()
+        assertEquals(1, app.log.size); assertTrue(app.log.single().contains("undoStep"))
+    }
+
+    // ---- "Los geht's" in My routes
+
+    @Test fun losGehtsDuringATourIsFolgenAndStartsNothing() {
+        val app = App().also { it.touring = true; it.recordingId = 1 }
+        app.draw(c, b)
+        var started = 0
+        app.go.goFromRoutes(planned("Alm")) { started++ }; app.settle()
+        assertEquals(0, started)
+        assertEquals(true, app.tour.newPlanNote?.undo)
+        assertEquals(listOf(a, b, c), app.plan.points.toList())
+        assertTrue(problems.traced("routes").any { it.contains("Open tour") && it.endsWith("Los geht's in My routes during a tour") })
+    }
+
+    @Test fun losGehtsLoadsThePlanLikePlanenAndStartsOnceItsLineIsThereAfterTheLoadFinished() {
+        val app = App()
+        app.draw(c, b)
+        app.routeNow = route3()                          // the line is there when the wait looks
+        val t = planned("Alm")
+        app.go.goFromRoutes(t) { app.log += "${app.where}: START points=${app.plan.points.size}; saved=${app.plan.savedName}" }
+        assertTrue("nothing before the coroutine runs", app.log.none { it.contains("START") })
+        app.settle()
+        assertEquals(listOf(a, b, c), app.plan.points.toList())
+        assertEquals("the plan that was on the map was kept", 1, app.drafts().size)
+        val start = app.log.indexOf("main: START points=3; saved=Alm")
+        assertTrue(app.log.toString(), start > app.log.indexOf("main: syncRoutingCheck ${t.id}"))
+        assertEquals("started exactly once", 1, app.log.count { it.contains("START") })
+        assertTrue(problems.traced("routes").any { it.contains("Los geht's on \"Alm\" in My routes: loaded as the plan") })
+        assertTrue(problems.traced("routes").any { it.contains("the line of \"Alm\" is there – the normal start") })
+    }
+
+    @Test fun losGehtsWithoutALineStartsNothingAndSaysSo() {
+        val app = App()                                  // no route
+        var started = 0
+        app.go.goFromRoutes(planned("Alm")) { started++ }; app.settle()
+        assertEquals(0, started)
+        assertEquals("the plan is loaded all the same", 3, app.plan.points.size)
+        assertTrue(problems.traced("routes").any { it.contains("no tour started for \"Alm\"") })
+    }
+
+    @Test fun losGehtsStartsNothingWhenThePlanWasChangedMeanwhile() {
+        val app = App()
+        app.routeNow = route3()
+        var started = 0
+        app.go.goFromRoutes(planned("Alm")) { started++ }
+        app.untilTheWaitIsQueued()
+        app.plan.edit { add(c) }                         // the user edits between the load and the wait
+        app.settle()
+        assertEquals(0, started)
+        assertTrue(problems.traced("routes").any { it.contains("no tour started for \"Alm\"") })
+    }
+
+    @Test fun losGehtsStartsNothingWhenATourRecordsMeanwhile() {
+        val app = App()
+        app.routeNow = route3()
+        var started = 0
+        app.go.goFromRoutes(planned("Alm")) { started++ }
+        app.untilTheWaitIsQueued()
+        app.touring = true                               // a recording began between the load and the wait
+        app.settle()
+        assertEquals(0, started)
+    }
+
+    // ---- a recorded tour's followed plan
+
+    @Test fun planenOnAFollowedPlanDuringATourLoadsNothing() {
+        val app = App().also { it.touring = true; it.recordingId = 1 }
+        val t = recordedWithPlan(app, planCopy())
+        app.go.planFollowedPlan(t); app.settle()
+        assertTrue(app.plan.points.isEmpty())
+        assertTrue("the store was not even asked", app.log.none { it.contains("getTourPlan") })
+        assertTrue(problems.traced("routes").any { it == "Planen on tour \"Ride\" during a tour: nothing loaded" })
+    }
+
+    @Test fun planenOnATourWithoutACopySaysTheFollowedPlanIsMissing() {
+        val app = App()
+        val t = recordedWithPlan(app, null)
+        app.go.planFollowedPlan(t)
+        assertNull("nothing before the read", app.save.problem)
+        app.settle()
+        assertEquals(Txt.s(Res.string.routes_followed_plan_missing), app.save.problem)
+        assertEquals(listOf("io: store.getTourPlan ${t.id}"), app.log)
+        assertTrue(app.plan.points.isEmpty())
+    }
+
+    @Test fun planenOnACopyThatCannotBeReadIsReportedAndSaysTheSame() {
+        val app = App().also { it.failTourPlan = true }
+        val t = recordedWithPlan(app, planCopy())
+        app.go.planFollowedPlan(t); app.settle()
+        assertEquals(Txt.s(Res.string.routes_followed_plan_missing), app.save.problem)
+        assertTrue(problems.said("db", com.onpath.app.debug.Problems.Level.ERROR).any { it.contains("The plan tour ${t.id} followed could not be read") })
+    }
+
+    @Test fun planenOnACopyThatIsStillTheSavedRouteLoadsThatRouteItselfWithItsStoredLine() {
+        val app = App()
+        app.draw(c, b)
+        val saved = planned("Alm")
+        val t = recordedWithPlan(app, planCopy(name = "Alm", source = saved.uuid))
+        app.go.planFollowedPlan(t); app.settle()
+        assertEquals(listOf(a, b, c), app.plan.points.toList())
+        assertEquals("loaded as itself: no second route", saved.id, app.plan.savedId)
+        assertEquals("Alm", app.plan.savedName)
+        assertTrue("its line comes from the store on io", app.log.contains("io: store.loadSegments ${saved.id}"))
+        assertEquals("the plan that was on the map is kept", 1, app.drafts().size)
+        assertTrue(problems.traced("routes").any { it.contains("Planen on tour \"Ride\": its followed plan is the saved route \"Alm\" (unchanged), 3 points") })
+        // the copy was read before the list of routes (on io, in this order)
+        val g = app.log.indexOf("io: store.getTourPlan ${t.id}"); val l = app.log.indexOf("io: store.listTours")
+        assertTrue(app.log.toString(), g in 0 until l)
+    }
+
+    @Test fun planenOnACopyWhoseSavedRouteChangedLoadsTheCopyAsANewUnsavedPlanWithItsLine() {
+        val app = App()
+        val saved = planned("Alm")
+        // the saved route has other points now than the copy: not the same plan any more
+        val copy = planCopy(name = "Alm", source = saved.uuid, via = listOf(a, c), line = seg(a, b, c), pinned = setOf(1))
+        val t = recordedWithPlan(app, copy)
+        app.go.planFollowedPlan(t); app.settle()
+        assertEquals(listOf(a, c), app.plan.points.toList())
+        assertEquals("a stand-in is no saved route", -1L, app.plan.savedId)
+        assertNull(app.plan.savedName)
+        assertEquals(setOf(c), app.plan.pinned)
+        assertTrue("its own line, no store read of segments", app.log.none { it.contains("store.loadSegments") })
+        assertTrue("fitted to the copy's 3-point line", app.log.contains("main: fit 3"))
+        assertTrue("the copy's first stop name comes back", app.log.contains("main: place name Start"))
+        assertTrue(problems.traced("routes").any { it.contains("from the tour's copy") && it.endsWith("2 points") })
+    }
+
+    @Test fun aCopyOfAnotherActivityOrLevelIsNotTheSavedRoute() {
+        val app = App()
+        val saved = planned("Alm", sac = 2)
+        val t = recordedWithPlan(app, planCopy(name = "Alm", source = saved.uuid, sac = 3, line = seg(a, b, c)))
+        app.go.planFollowedPlan(t); app.settle()
+        assertEquals(-1L, app.plan.savedId)
+        assertEquals(3, app.planRoute.sac)
+    }
+
+    @Test fun aSavedRouteInTheBinIsNotTheSourceEither() {
+        val app = App()
+        val saved = planned("Alm")
+        db.setDeleted(saved.id, 5L)
+        val t = recordedWithPlan(app, planCopy(name = "Alm", source = saved.uuid, line = seg(a, b, c)))
+        app.go.planFollowedPlan(t); app.settle()
+        assertEquals("loaded from the copy", -1L, app.plan.savedId)
+    }
+
+    @Test fun losGehtsOnAFollowedPlanLoadsItAndStartsThroughTheCallersLambdaOnceTheLineIsThere() {
+        val app = App()
+        app.routeNow = route3()
+        val saved = planned("Alm")
+        val t = recordedWithPlan(app, planCopy(name = "Alm", source = saved.uuid))
+        var started = 0
+        app.go.goFollowedPlan(t) { started++ }; app.settle()
+        assertEquals(listOf(a, b, c), app.plan.points.toList())
+        assertEquals(1, started)
+        assertTrue(problems.traced("routes").any { it.contains("Los geht's on tour \"Ride\": its followed plan is the saved route") })
+    }
+
+    @Test fun losGehtsOnAFollowedPlanDuringATourLoadsNothingAndStartsNothing() {
+        val app = App().also { it.touring = true; it.recordingId = 1 }
+        var started = 0
+        app.go.goFollowedPlan(recordedWithPlan(app, planCopy())) { started++ }; app.settle()
+        assertEquals(0, started); assertTrue(app.plan.points.isEmpty())
+    }
+
+    @Test fun theFollowedPlansLineIsOnlyReadForARecordedTourThatHasOne() {
+        val app = App()
+        val line = seg(a, b, c)
+        val rec = recordedWithPlan(app, planCopy(line = line))
+        val result = app.runOn { app.go.followedPlanLine(rec) }
+        assertEquals(listOf(a, b, c), result)
+        assertEquals("on io", listOf("io: store.getTourPlan ${rec.id}"), app.log)
+        app.log.clear()
+        assertEquals(emptyList<GeoPoint>(), app.runOn { app.go.followedPlanLine(rec.copy(hasPlan = false)) })
+        assertEquals(emptyList<GeoPoint>(), app.runOn { app.go.followedPlanLine(planned("P").copy(hasPlan = true)) })
+        assertTrue("no store read for those", app.log.isEmpty())
+    }
+
+    @Test fun aFollowedPlansLineThatCannotBeReadIsEmptyAndReported() {
+        val app = App().also { it.failTourPlan = true }
+        val rec = recordedWithPlan(app, planCopy())
+        assertEquals(emptyList<GeoPoint>(), app.runOn { app.go.followedPlanLine(rec) })
+        assertTrue(problems.said("db").any { it.contains("The followed plan's line of tour ${rec.id} not read") })
+    }
+
+    // ---- the look back at a done tour
+
+    private fun reviewTour(name: String, activity: String = "HIKE", sac: Int = 2, km: Double): Tour {
+        val id = db.insertTour(TourKind.RECORDED, name, activity, sac, listOf(seg(a, b, c)), distance = km * 1000)
+        return db.getTour(id)!!
+    }
+
+    @Test fun theReviewRanksTheTourAmongTheDoneToursOfTheSameActivityAndLevelOnly() {
+        val app = App()
+        val mine = reviewTour("Mine", km = 10.0)
+        reviewTour("Short", km = 4.0); reviewTour("Long", km = 20.0)
+        reviewTour("Bike", activity = "BIKE_TREKKING", km = 30.0)     // another activity: not counted
+        reviewTour("OtherLevel", sac = 4, km = 50.0)                  // a hike of another T level: not counted
+        planned("Plan")                                               // not recorded: not counted
+        app.slice.refreshTours(); app.settle()
+        app.log.clear()
+        val review = app.runOn { app.go.tourReview(mine) }!!
+        assertEquals("2nd longest of 3", com.onpath.app.time.TourReview.Rank(2, 3), review.rank)
+        assertEquals("the points are read on io", listOf("io: store.loadSegments ${mine.id}"), app.log)
+    }
+
+    @Test fun theReviewOfATourNotInTheListCountsItAsWell() {
+        val app = App()
+        val mine = reviewTour("Mine", km = 10.0)
+        db.updateStats(mine.id, 10_000.0, 0.0, 0.0, 0.0, "active")        // not "done": not in the list
+        reviewTour("Short", km = 4.0); reviewTour("Long", km = 20.0)
+        app.slice.refreshTours(); app.settle()
+        val review = app.runOn { app.go.tourReview(db.getTour(mine.id)!!) }!!
+        assertEquals("counted once, with its own length", com.onpath.app.time.TourReview.Rank(2, 3), review.rank)
+    }
+
+    @Test fun aPlannedRouteHasNoReviewAndNothingIsRead() {
+        val app = App()
+        assertNull(app.runOn { app.go.tourReview(planned("P")) })
+        assertTrue(app.log.isEmpty())
+    }
+
+    @Test fun aReviewWhoseTourPointsCannotBeReadIsNullAndReported() {
+        val app = App()
+        val mine = reviewTour("Mine", km = 10.0)
+        app.failSegments = true
+        assertNull(app.runOn { app.go.tourReview(mine) })
+        assertTrue(problems.said("time").any { it.contains("Review of tour ${mine.id} not computed") })
+    }
+
+    // ---- Plan exportieren
+
+    @Test fun theFollowedPlanIsExportedAsOnePlanGpxNamedAfterTheTourThroughTheHostsShare() {
+        val app = App()
+        val t = recordedWithPlan(app, planCopy(line = seg(a, b, c), pinned = setOf(1)), name = "Hilden")
+        app.go.exportFollowedPlan(t)
+        assertTrue("nothing before the read", app.shared.isEmpty())
+        app.settle()
+        assertEquals(listOf("io: store.getTourPlan ${t.id}", "main: share Hilden"), app.log)
+        val file = app.shared.single()
+        assertEquals("Hilden - plan.gpx", file.fileName)
+        assertTrue("the named route points and the pin", file.text.contains("Start") && file.text.contains(com.onpath.app.gpx.PlanGpx.PINNED))
+        assertTrue(app.notes.isEmpty())
+    }
+
+    @Test fun aTourWithoutAUsablePlanCopySaysSoAndExportsNothing() {
+        val app = App()
+        val one = recordedWithPlan(app, planCopy(via = listOf(a)))
+        app.go.exportFollowedPlan(one); app.settle()
+        assertTrue(app.shared.isEmpty())
+        assertEquals(Triple(Txt.s(Res.string.routes_followed_plan_missing), NoticeKind.ERROR, NoticePlace.ROUTES), app.notes.single())
+        assertTrue(problems.said("gpx", com.onpath.app.debug.Problems.Level.WARN).any { it.contains("Plan export of tour ${one.id}: no usable followed plan") })
+    }
+
+    @Test fun aCopyThatCannotBeReadForTheExportIsReportedAndSaysTheSame() {
+        val app = App().also { it.failTourPlan = true }
+        val t = recordedWithPlan(app, planCopy())
+        app.go.exportFollowedPlan(t); app.settle()
+        assertTrue(app.shared.isEmpty())
+        assertEquals(NoticePlace.ROUTES, app.notes.single().third)
+        assertTrue(problems.said("db").any { it.contains("The followed plan of tour ${t.id} not read for the export") })
+    }
+
+    @Test fun aPlannedRouteOrATourWithoutACopyIsNotExportedAndNothingRuns() {
+        val app = App()
+        app.go.exportFollowedPlan(planned("P").copy(hasPlan = true))
+        app.go.exportFollowedPlan(recordedWithPlan(app, null))
+        app.settle()
+        assertTrue(app.log.isEmpty()); assertTrue(app.notes.isEmpty())
+    }
+
+    // ---- Als Plan übernehmen
+
+    @Test fun aDoneTourBecomesThePlanThroughTheTrackToPlanPathAndTheOldPlanIsKept() {
+        val app = App()
+        app.draw(c, b)
+        app.go.planFromTour(recorded("Ride")); app.settle()
+        assertTrue(app.plan.points.size >= 2)
+        assertNotEquals(listOf(c, b), app.plan.points.toList())
+        assertEquals("the plan that was on the map is kept", 1, app.drafts().size)
+        assertNull("the shown track goes when the plan takes over", app.slice.shown)
+        assertTrue(problems.traced("plan").any { it == "\"Ride\" as the plan: the plan on the map goes under Zuletzt if not saved" })
+    }
+
+    // ---- plan links
+
+    private fun sharedPlan(title: String? = "Link plan", activity: Activity = Activity.BIKE_TREKKING, sac: Int = 9) =
+        com.onpath.app.routing.SharedPlan(listOf(a, b, c), activity, sac, setOf(1), mapOf(0 to "Start", 2 to "Ziel"), title)
+
+    @Test fun aPlanFromALinkBecomesTheNewUnsavedPlanInTheOrderTheMapNeeds() {
+        val app = App().also { it.mode = AppMode.NAVIGATE }
+        app.draw(c, b)
+        app.go.openSharedPlan(sharedPlan(), "a test")
+        assertEquals(listOf(a, b, c), app.plan.points.toList())
+        assertEquals(setOf(b), app.plan.pinned)
+        assertEquals(Activity.BIKE_TREKKING, app.planRoute.activity); assertEquals("T level clamped to 1..5", 5, app.planRoute.sac)
+        assertNull("an unsaved plan: Save asks for a name", app.plan.savedName)
+        assertEquals("the link's name is known for the Save dialog", "Link plan", app.linkFlow.title(listOf(a, b, c)))
+        assertEquals(1, app.drafts().size)
+        assertEquals(listOf(
+            "test: enter PLAN",
+            "test: pref activity BIKE_TREKKING",
+            "test: pref sac 5",
+            "test: change 3 points; shown=null; drafts=1; activity=BIKE_TREKKING/T5; pins=1; routesOpen=false",
+            "test: place name Start", "test: place name Ziel",
+            "test: saved null -1",
+            "test: holdCamera",
+            "test: followMe false",
+            "test: freeLookAt null",
+            "test: event FitNext",
+            "test: fit 3",
+        ), app.log)
+        assertTrue(problems.said("plan").any { it == "Plan link opened (a test): 3 points, BIKE_TREKKING, 1 pinned, 2 names" })
+    }
+
+    @Test fun aHikePlanLinkSaysItsLevelInTheLogAndAShownTrackGoes() {
+        val app = App()
+        app.slice.showTrack(ShownTrack(null, "GPX", listOf(listOf(a, b)), emptyList(), 1.0, 0.0, 0.0, 0.0)); app.log.clear()
+        app.go.openSharedPlan(sharedPlan(activity = Activity.HIKE, sac = 3))
+        assertNull(app.slice.shown)
+        assertTrue("already in Plan: no mode switch", app.log.none { it.contains("enter") })
+        assertTrue(problems.said("plan").any { it == "Plan link opened (after asking): 3 points, HIKE T3, 1 pinned, 2 names" })
+    }
+
+    @Test fun aLinkWithoutPinsPinsNothing() {
+        val app = App()
+        app.go.openSharedPlan(com.onpath.app.routing.SharedPlan(listOf(a, b), Activity.HIKE, 2, emptySet(), emptyMap(), null))
+        assertTrue(app.plan.pinned.isEmpty())
+        assertNull(app.linkFlow.title(listOf(a, b)))
+    }
+
+    @Test fun thePlanOnTheMapIsSharedAsALinkWithItsNamePinsAndActivity() {
+        val app = App()
+        app.go.sharePlan()
+        assertTrue("fewer than two points: no link", app.links.isEmpty())
+        app.draw(a, b, c); app.plan.pin(b)
+        app.stopNames[a] = "Start"
+        app.planRoute.activity = Activity.BIKE_TREKKING
+        app.plan.setSaved("Saved name", 7, listOf(a, b, c))
+        app.go.sharePlan()
+        val (link, title) = app.links.single()
+        assertEquals("Saved name", title)
+        val back = (com.onpath.app.routing.PlanLinks.fromText(link) as com.onpath.app.routing.PlanLinks.Found.Plan).plan
+        assertEquals(listOf(a, b, c), back.points); assertEquals(Activity.BIKE_TREKKING, back.activity); assertEquals(setOf(1), back.pinned)
+        assertEquals(mapOf(0 to "Start"), back.names); assertEquals("Saved name", back.title)
+    }
+
+    @Test fun anUnsavedPlanFromALinkIsSharedWithTheNameTheLinkBrought() {
+        val app = App()
+        app.go.openSharedPlan(sharedPlan(title = "From link")); app.log.clear()
+        app.go.sharePlan()
+        assertEquals("From link", app.links.single().second)
+    }
+
+    @Test fun aSavedPlannedRouteIsSharedAsALinkWithItsStopNamesPinsAndAnUnknownActivityIsHike() {
+        val app = App()
+        app.go.shareRoute(recorded("Track")); app.go.shareRoute(planned("One", via = arrayOf(a)))
+        assertTrue("only planned routes with two points", app.links.isEmpty())
+        val t = planned("Alm", activity = null, sac = 3, pinned = setOf(2), stopNames = mapOf(0 to "Start", 1 to "Mitte"))
+        app.go.shareRoute(t)
+        val (link, title) = app.links.single()
+        assertEquals("Alm", title)
+        val back = (com.onpath.app.routing.PlanLinks.fromText(link) as com.onpath.app.routing.PlanLinks.Found.Plan).plan
+        assertEquals(Activity.HIKE, back.activity); assertEquals(3, back.sac); assertEquals(setOf(2), back.pinned)
+        assertEquals(mapOf(0 to "Start", 1 to "Mitte"), back.names); assertEquals(listOf(a, b, c), back.points)
     }
 }

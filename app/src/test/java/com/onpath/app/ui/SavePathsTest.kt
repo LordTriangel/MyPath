@@ -89,10 +89,12 @@ class SavePathsTest {
         assertFalse(vm.contains("ReplaceAsk") || vm.contains("replaceUnsavedAsk") || vm.contains("replaceAsk"))
         // (clearPlan keeps the plan first: PlanEditFlowTest; the draft call itself is the slice host line pinned in PlanEditAdaptersTest)
         // every way a plan is replaced: a route opened, a track made a plan (a plan GPX, a fitted track) – RoutesSlice (piece 13; the
-        // flows RoutesFlowTest show the draft is there when the plan changes) – and a plan link (still the view model's)
+        // flows RoutesFlowTest show the draft is there when the plan changes) – and a plan link (RoutesGoSlice, piece 14; RoutesFlowTest.aPlanFromALinkBecomes…)
         val routesSlice = com.onpath.app.testkit.sourceFile("ui/routes/RoutesSlice.kt").readText()
         assertEquals(3, routesSlice.split("keepAsDraft(\"replaced by").size - 1)
-        assertTrue(vm.split("keepAsDraft(\"replaced by").size - 1 >= 1)
+        val goSlice = com.onpath.app.testkit.sourceFile("ui/routes/RoutesGoSlice.kt").readText()
+        assertEquals("the plan link keeps the plan it replaces", 1, goSlice.split("keepAsDraft(\"replaced by a plan link\")").size - 1)
+        assertEquals("…and no copy of that rule is left in the view model", 0, vm.split("keepAsDraft(\"replaced by").size - 1)
     }
 
     /** Making a plan of a track still replaces the plan in one Undo step (after the question above). */

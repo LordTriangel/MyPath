@@ -14,6 +14,7 @@ import com.onpath.app.gpx.SportType
 import com.onpath.app.gpx.TrackPoint
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.GeoPoint
+import com.onpath.app.routing.PlannedRoute
 import com.onpath.app.routing.RoutingEngine
 import com.onpath.app.ui.Camera
 import com.onpath.app.ui.NoticeKind
@@ -67,7 +68,7 @@ interface RoutesHost : Say {
     /** The row pictures are made again. */
     fun kickThumbs()
     fun clearHighlight()
-    /** The shown track is followed in the running tour (piece 14). */
+    /** The shown track is followed in the running tour (tour code, pieces 16–19: stays in the view model). */
     fun followShownNow()
     /** Routing data along [parts] is checked / asked for: the parts still missing. */
     fun ensureRoutingData(parts: List<String>): List<String>
@@ -78,6 +79,28 @@ interface RoutesHost : Say {
     /** The browser sync forgets the mark of tour [uuid] (blocking; on the io thread). */
     fun syncForget(uuid: String)
     fun syncChanged(why: String)
+
+    // ---- Routes II (piece 14) ----
+    /** The plan's route (null = none yet); read when a "Los geht's" waits for its line and for the ⋮ menu. */
+    val route: PlannedRoute?
+    /** A route run is going on. */
+    val routing: Boolean
+    /** The followed line is a shown track (tour code: [RoutesGoSlice.undoNewPlan] asks, the view model knows). */
+    val followIsTrack: Boolean
+    /** One Undo step of the plan (lane A: PlanEdit). */
+    fun undoStep()
+    /** Back to Navigate while a tour runs: the tour follows the plan again (tour code; the view model's). */
+    fun continueNavigation()
+    /** Writes the GPX [gpx] builds (off the main thread) and opens the share sheet; a failure is reported by the host. */
+    suspend fun share(name: String, gpx: () -> com.onpath.app.gpx.GpxFile)
+    /** Name of a route point added from a place, or null. */
+    fun stopName(p: GeoPoint): String?
+    /** The start camera keeps away from the position after a shared plan / place was shown. */
+    fun holdCameraForSharedPlace()
+    /** The map follows the position. */
+    var followMe: Boolean
+    /** Navigate free look. */
+    var freeLookAt: GeoPoint?
 }
 
 /**
