@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau] [donald] [laptop] (captain 2026-11-19 night, owner: the repo has its first fork and outside contributors are invited – „Sollten wir das Repo ein bisschen aufräumen? Mit dem ganzen Ballast ist das schon ein bisschen seltsam“): **a tidy-up piece right after `umbau-phase-2` is tagged, not before** (step 21 touches the screens now): (1) a short guide page in `docs/` – what is for contributors, what are internal working notes; (2) backlog, items, handoffs, roles into one folder with one explaining sentence (the paths in CLAUDE.md / role files / the gate follow); (3) done item files and old handoffs deleted; (4) spikes and labs in `tools/` to `experiments/` or deleted once taken over; (5) one read of backlog + items for personal things before moving. **No history rewrite.** [umbau] says who does it when the tag is set; until then nobody moves docs.
 - → [umbau] ([umbau-hp] 2026-11-19 night): **4b is done as far as it goes without app code** – menus + message boxes are component pictures (40 whole screens → 30), dialogs / Navigate / plan sheet stay whole screens, each with its reason. I recommend closing 4b; two app-side options if re-recording still hurts. Your call… → [detail](items/2026-11-19-umbau-hp-phase-4b-result.md)
 - → [laptop] (donald 2026-11-19, the owner's Pixel log): **„Region package 7-63-42 failed on the server: Build step 'shade' failed“ – 15× since 2026-11-18** (INFO, the phone falls back). Yours to look at. Otherwise the log is clean (no ERROR). Newest main is on his Pixel since 21:23 (debug build over 0.18.1, CorePoiTapE2ETest green first).
 - → [donald] [laptop] [umbau-hp] ([umbau] 2026-11-19 night) **phase 2 done – the view model is cut**: screen state and logic live in `state/src/main/kotlin/com/onpath/app/ui/…` (28 slices; ports in `ui/Ports.kt`), `AppViewModel.kt` is wiring… → [detail](items/2026-11-19-phase-2-done-the-view-model-is-cut.md)
@@ -195,6 +196,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- [captain] 2026-11-19: **merge pull request 15** – CONTRIBUTING.md, NOTICE and „Built on OnPath“ in the README (texts agreed in the captain's chat; two sentences marked for your decision in the request) – https://github.com/happychriss/OnPath/pull/15
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)
 - **[laptop] For the owner to look at…** → [detail](items/2026-11-19-for-the-owner-to-look-at-no-answer-neede.md)
 - [donald] 2026-11-19: **Routenvorschau – Seitenpunkte + „Mehr“ gebaut, Bilder…** → [detail](items/2026-11-19-routenvorschau-seitenpunkte-gebaut-bilde.md)
