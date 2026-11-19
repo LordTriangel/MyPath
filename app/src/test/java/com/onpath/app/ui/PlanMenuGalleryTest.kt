@@ -31,8 +31,8 @@ import com.onpath.app.plansync.SyncProblem
  * the test's imitation of a popup. Every state is now drawn in both languages (before: each in one).
  * planMenuUnsaved and planMenuSyncUnpairedInBrowser have no cell: their old pictures were byte for byte planMenuOpen's.
  * The menu has no sign for unsaved changes since the owner's word of 2026-11-06 ([PlanMenu.dotWarn]; the unsaved sheet
- * is in planUnsaved), and "unpaired in the browser" does not show in the menu (the state: SyncSettingsTest
- * .unpairedInTheBrowser, PairEntryTest; the dot rule: SyncSettingsTest.menuDotRule).
+ * is in planUnsaved), and "unpaired in the browser" does not show in the menu (the state: SettingsPagesTest
+ * .unpairedInTheBrowser, PairEntryTest; the dot rule: SettingsPagesTest.menuDotRule).
  */
 abstract class PlanMenuGalleryTest {
     @get:Rule

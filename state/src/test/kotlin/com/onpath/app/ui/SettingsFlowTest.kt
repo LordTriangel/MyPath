@@ -32,7 +32,7 @@ import java.io.File
  * what is STORED and the state the user is left in.
  *
  * Replaces the source pins of the view model's `updateSettings` / `mapGestureMeasured` wiring (ReliefAutoTest.wiring), of
- * the `showSettings` setter (NoticesTest.noDarkBarAnyMore) and of `devToolsShown` (SettingsSummaryTest.developerTools).
+ * the `showSettings` setter (NoticesTest.noDarkBarAnyMore) and of `devToolsShown` (SettingsPagesTest.developerTools).
  */
 class SettingsFlowTest {
     @get:Rule val composeState = OwnComposeSnapshot()
