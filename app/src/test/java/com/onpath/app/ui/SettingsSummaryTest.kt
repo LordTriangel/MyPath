@@ -90,8 +90,7 @@ class SettingsSummaryTest {
         assertTrue(DevToolsUnlock.unlocked(7))
         assertFalse(DevToolsUnlock.shown(unlocked = false))
         assertTrue(DevToolsUnlock.shown(unlocked = true))
-        val vm = java.io.File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
-        assertFalse(vm.substringAfter("var devToolsShown").substringBefore("\n").contains("DEBUG"))
+        // the slice shows them only after the unlock, whatever the build: SettingsFlowTest.developerToolsAreHiddenUntilUnlockedAndStayUnlocked
         // tester review 2026-11-07: Settings hides them unless told otherwise (a caller that forgets the flag shows nothing)
         val screen = java.io.File("src/main/java/com/onpath/app/ui/SettingsScreen.kt").readText()
         assertTrue(screen.contains("    devTools: Boolean = false,\n"))

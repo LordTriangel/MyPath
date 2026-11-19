@@ -335,8 +335,38 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var sac by mutableStateOf(prefs.sac)
         private set
     // --- settings (Settings page) ---
-    var settings by mutableStateOf(prefs.settings)
-        private set
+    /**
+     * Settings ([com.onpath.app.ui.SettingsSlice] in `:state`, rebuild phase 2 piece 4): the settings, open / page / back / the
+     * on-the-way list, relief auto, developer tools, the last visit to Diagnostics, the routing fingerprint. The preferences and
+     * files behind [settingsStore], the rest of the app behind [settingsHost]; the names below forward to it.
+     */
+    private val settingsStore = object : com.onpath.app.ui.SettingsStore {
+        override var settings: AppSettings
+            get() = prefs.settings
+            set(v) { prefs.settings = v }
+        override var reliefAuto: com.onpath.app.map.ReliefAuto.State
+            get() = prefs.reliefAuto
+            set(v) { prefs.reliefAuto = v }
+        override var devToolsUnlocked: Boolean
+            get() = prefs.devToolsUnlocked
+            set(v) { prefs.devToolsUnlocked = v }
+        override var diagnosticsSeenMs: Long
+            get() = prefs.diagnosticsSeenMs
+            set(v) { prefs.diagnosticsSeenMs = v }
+        override fun rd5Files(): List<java.io.File> = dataFiles.segmentsDir.listFiles { f -> f.name.endsWith(".rd5") }.orEmpty().toList()
+        override fun fingerprint(): String = routingFingerprint
+    }
+    private val settingsHost = object : com.onpath.app.ui.SettingsHost {
+        override val planMapShown: Boolean get() = mode == AppMode.PLAN && !searchOpen
+        override fun clearOfflineResult() { offlineResult = null }
+        override fun syncEndedSeen() = sync.endedSeen()
+        override fun mapsWifiOnly(on: Boolean) { cells.wifiOnly = on }
+        override fun retime() = this@AppViewModel.retime()
+        override val tourRecording: Boolean get() = recState.value != null
+        override fun recordingSettingsChanged() = recording.settingsChanged()
+    }
+    private val settingsSlice = com.onpath.app.ui.SettingsSlice(notices, settingsStore, settingsHost, viewModelScope, Dispatchers.IO)
+    val settings: AppSettings get() = settingsSlice.settings
     /**
      * A pairing was just made (first browser or another one, A-017) or ended here: the Plan map shows "Paired. …" /
      * "Unpaired. …" with OK at the top (owner 2026-10-30) until OK or the next Pair / Unpair; never for "already
@@ -345,93 +375,39 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var syncNote by mutableStateOf<SyncNote?>(null)
         private set
 
-    private var settingsShown by mutableStateOf(false)
     var showSettings: Boolean
-        get() = settingsShown
-        set(v) { if (!v) { settingsNote = null; settingsOnTheWay = false }; settingsShown = v } // the line lasts until Settings is left
-    /**
-     * Settings opened from Navigate's ⚙ (owner 2026-11-07): the on-the-way list (Navigation page + the topics for the
-     * way + "Alle Einstellungen"); the tour and the mode are not touched. False after "Alle Einstellungen" or closing.
-     */
-    var settingsOnTheWay by mutableStateOf(false)
-        private set
+        get() = settingsSlice.showSettings
+        set(v) { settingsSlice.showSettings = v }
+    /** Settings opened from Navigate's ⚙ (owner 2026-11-07): the on-the-way list; see [com.onpath.app.ui.SettingsSlice]. */
+    val settingsOnTheWay: Boolean get() = settingsSlice.settingsOnTheWay
     /** Open topic of Settings (list of topics → pages); null = the list. */
-    private var page by mutableStateOf<SettingsPage?>(null)
     var settingsPage: SettingsPage?
-        get() = page
-        set(v) {
-            if (v != SettingsPage.OFFLINE_MAPS) offlineResult = null // the result line lasts until the page is left
-            if (v != page) settingsNote = null
-            if (v == SettingsPage.DIAGNOSTICS || page == SettingsPage.DIAGNOSTICS) markDiagnosticsSeen()
-            if (v == SettingsPage.SYNC) sync.endedSeen() // "ended in the browser" seen: the ☰ item is no longer amber
-            if (v == SettingsPage.DIAGNOSTICS && v != page) loadRoutingInfo()
-            page = v
-        }
-
+        get() = settingsSlice.settingsPage
+        set(v) { settingsSlice.settingsPage = v }
     /** Settings → Diagnostics: the routing fingerprint and the routing data's dates (RoutingFingerprint); null = not read yet. */
-    var routingInfo by mutableStateOf<String?>(null)
-        private set
-
+    val routingInfo: String? get() = settingsSlice.routingInfo
     private val routingFingerprint by lazy {
         com.onpath.app.routing.RoutingFingerprint.of(read = { n -> getApplication<Application>().assets.open("brouter/$n").use { it.readBytes() } })
     }
-
-    private fun loadRoutingInfo() {
-        viewModelScope.launchSafe("app", "loadRoutingInfo") {
-            routingInfo = withContext(Dispatchers.IO) {
-                try {
-                    val rd5 = dataFiles.segmentsDir.listFiles { f -> f.name.endsWith(".rd5") }.orEmpty().map { f ->
-                        f.name to try {
-                            com.onpath.app.routing.Rd5Parts.readIndex(f)?.let { com.onpath.app.routing.Rd5Parts.creationTime(com.onpath.app.routing.Rd5Parts.readTail(f, it)) }
-                        } catch (e: java.io.IOException) {
-                            Problems.info("routing", "Diagnostics: date of routing data ${f.name} not read", e); null
-                        }
-                    }
-                    com.onpath.app.routing.RoutingFingerprint.describe(routingFingerprint, rd5)
-                } catch (e: Exception) {
-                    Problems.warn("routing", "Diagnostics: routing fingerprint not computed", e); null
-                }
-            }
-        }
-    }
-
     /** Developer tools in Diagnostics (owner): after 7 taps on the version (remembered) – also in debug builds (Arch H1). */
-    var devToolsShown by mutableStateOf(DevToolsUnlock.shown(prefs.devToolsUnlocked))
-        private set
-
-    fun unlockDevTools() {
-        prefs.devToolsUnlocked = true
-        devToolsShown = true
-        Problems.info("ui", "Developer tools unlocked (7 taps on the version)")
-    }
+    val devToolsShown: Boolean get() = settingsSlice.devToolsShown
+    fun unlockDevTools() = settingsSlice.unlockDevTools()
 
     /** Round trips („Rundtour von hier“, tour-suggestions.md §7 stage 4) – ui/suggest/SuggestSlice; Übernehmen → [planFromLine]. */
     val suggest = com.onpath.app.ui.suggest.SuggestSlice(viewModelScope, com.onpath.app.ui.suggest.AppSuggestHost(app, prefs, { mapData.routingData },
         fit = { followMe = false; freeLookAt = null; events += UiEvent.Fit(it) }, take = { pts, a, l, done -> if (a != activity) selectActivity(a); selectSac(l)
             planFromLine(pts, com.onpath.app.data.RoutingTiles.forLine(pts, 1_000.0), a, l, done) }), prefs.suggestTest) { prefs.suggestTest = it }
     /** Last visit to Diagnostics: a serious problem after it shows red on the Settings list (owner). */
-    var diagnosticsSeenMs by mutableStateOf(prefs.diagnosticsSeenMs)
-        private set
-
-    private fun markDiagnosticsSeen() {
-        diagnosticsSeenMs = System.currentTimeMillis()
-        prefs.diagnosticsSeenMs = diagnosticsSeenMs
-    }
+    val diagnosticsSeenMs: Long get() = settingsSlice.diagnosticsSeenMs
 
     /** Opens Settings, at [page] if given (map credits → About). */
-    fun openSettings(page: SettingsPage? = null) { settingsPage = page; showSettings = true }
-
+    fun openSettings(page: SettingsPage? = null) = settingsSlice.openSettings(page)
     /** Navigate → ⚙ (owner 2026-11-07): Settings in the on-the-way list; back returns to Navigate, the tour runs on. */
-    fun openSettingsOnTheWay() {
-        Problems.trace("ui", "Navigate ⚙: settings on the way")
-        settingsPage = null; showSettings = true; settingsOnTheWay = true
-    }
-
+    fun openSettingsOnTheWay() = settingsSlice.openSettingsOnTheWay()
     /** On-the-way list → "Alle Einstellungen": the whole topic list (back from it closes Settings). */
-    fun showAllSettings() { settingsOnTheWay = false; settingsPage = null }
-
+    fun showAllSettings() = settingsSlice.showAllSettings()
     /** Back in Settings: a topic page returns to the list, the list closes Settings. */
-    fun settingsBack() { if (settingsPage != null) settingsPage = null else showSettings = false }
+    fun settingsBack() = settingsSlice.settingsBack()
 
     // --- Navigate orientation + next turn (see NavigateScreen, MapController.setCamera) ---
     /** Navigate: heading-up (walking direction up) or north-up; persisted in settings. */
@@ -460,7 +436,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun setHeadingUp(on: Boolean) {
-        if (settings.navHeadingUp != on) { settings = settings.copy(navHeadingUp = on); prefs.settings = settings }
+        if (settings.navHeadingUp != on) { settingsSlice.put(settings.copy(navHeadingUp = on)) }
     }
 
     /** Plan's neutral GPS note after a tap of the user's ([PlanGps]); null = none. [planGpsNoteTick] restarts its time. */
@@ -791,29 +767,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var mapNote: Notice? get() = notices.mapNote; set(v) { notices.mapNote = v }
     val mapNoteTick: Int get() = notices.mapNoteTick
 
-    /** Relief switched off by the app once / set by hand ([com.onpath.app.map.ReliefAuto]). */
-    private var reliefAuto = prefs.reliefAuto
-
-    /**
-     * One map gesture is over (finger down → map at rest, fling included) with its frame times (MapHost, FrameJankMeter):
-     * into the events log and the problem report's tally; on a phone that stutters with relief, relief goes off once,
-     * by itself, with a short line on the map (owner 2026-11-07, [com.onpath.app.map.ReliefAuto]). Decided only in Plan
-     * (where the line can show); Navigate's gestures count towards it.
-     */
-    fun mapGestureMeasured(kind: com.onpath.app.map.ReliefAuto.Kind, stats: com.onpath.app.debug.FrameStats) {
-        val relief = settings.hillshade
-        Problems.trace("map", stats.line("Map ${kind.label}") + ", relief ${if (relief) "on" else "off"}")
-        val tally = com.onpath.app.debug.MapJank.tally
-        tally.add(com.onpath.app.map.ReliefAuto.Gesture(kind, stats.frames, stats.over16, relief))
-        if (mode != AppMode.PLAN || searchOpen) return
-        val v = com.onpath.app.map.ReliefAuto.decide(tally.recent(), relief, reliefAuto) ?: return
-        reliefAuto = com.onpath.app.map.ReliefAuto.switchedOff(reliefAuto); prefs.reliefAuto = reliefAuto
-        settings = settings.copy(hillshade = false); prefs.settings = settings // not by hand: updateSettings would mark it
-        Problems.trace("map", "Relief switched off by the app: ${v.janky} of ${v.frames} frames > 16 ms (${v.percent} %) " +
-            "over ${v.gestures} map gestures with relief on (limit ${(com.onpath.app.map.ReliefAuto.JANK_SHARE * 100).toInt()} %); " +
-            "Settings → Map switches it back on")
-        sayInfo(Txt.s(Res.string.maps_relief_auto_off), NoticePlace.MAP)
-    }
+    /** One map gesture is over with its frame times (MapHost): relief auto – see [com.onpath.app.ui.SettingsSlice.mapGestureMeasured]. */
+    fun mapGestureMeasured(kind: com.onpath.app.map.ReliefAuto.Kind, stats: com.onpath.app.debug.FrameStats) = settingsSlice.mapGestureMeasured(kind, stats)
 
     fun mapGesture(on: Boolean) {
         // the map moved by hand during the flight to a shared place: its menu no longer opens by itself
@@ -1731,18 +1686,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------- planning ----------------
 
-    fun updateSettings(s: AppSettings) {
-        val paceChanged = s.hikePace != settings.hikePace || s.bikePace != settings.bikePace
-        // Relief set by hand (Settings → Map): the user's choice wins, the app never switches it off again (ReliefAuto)
-        if (s.hillshade != settings.hillshade) {
-            reliefAuto = com.onpath.app.map.ReliefAuto.userSet(reliefAuto); prefs.reliefAuto = reliefAuto
-            Problems.trace("map", "Relief ${if (s.hillshade) "on" else "off"} by hand – the app no longer switches it by itself")
-        }
-        settings = s; prefs.settings = s
-        cells.wifiOnly = s.mapsWifiOnly
-        if (paceChanged) retime()
-        if (recState.value != null) recording.settingsChanged()
-    }
+    fun updateSettings(s: AppSettings) = settingsSlice.updateSettings(s)
 
     /**
      * One undoable change of the planned points. No vibration here: the plan vibrates only at the moment of a map hold

@@ -99,15 +99,8 @@ class ReliefAutoTest {
         assertFalse(ReliefAuto.mayDecide(true, State(byUser = true)))
     }
 
-    /** The wiring (the view model needs Android): a hand change in Settings marks the user's choice, the app's own does not. */
+    /** The wiring (MapHost needs Android; the slice's own steps are SettingsFlowTest's flows: a hand change marks the user's choice, the app's own does not). */
     @Test fun wiring() {
-        val vm = java.io.File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
-        val update = vm.substringAfter("fun updateSettings(s: AppSettings) {").substringBefore("\n    }\n")
-        assertTrue(update.contains("if (s.hillshade != settings.hillshade)") && update.contains("ReliefAuto.userSet(reliefAuto)"))
-        val auto = vm.substringAfter("fun mapGestureMeasured(").substringBefore("\n    }\n")
-        assertTrue(auto.contains("ReliefAuto.decide(") && auto.contains("ReliefAuto.switchedOff(reliefAuto)"))
-        assertTrue("the app's switch must not count as the user's", !auto.contains("updateSettings("))
-        assertTrue(auto.contains("sayInfo(Txt.s(Res.string.maps_relief_auto_off), NoticePlace.MAP)"))
         val host = java.io.File("src/main/java/com/onpath/app/ui/MapHost.kt").readText()
         assertTrue(host.contains("MapGestureFrames(w, vm::mapGestureMeasured)") && host.contains("gestureFrames?.idle()"))
     }
