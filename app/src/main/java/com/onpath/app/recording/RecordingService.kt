@@ -112,55 +112,6 @@ import com.onpath.app.data.AppRouting
  */
 internal fun tracksFix(provider: String?): Boolean = provider == LocationManager.GPS_PROVIDER
 
-/** Live recording state for the UI. */
-data class RecState(
-    val tourId: Long,
-    val paused: Boolean,
-    val distanceM: Double,
-    val ascentM: Double,
-    val descentM: Double,
-    val elapsedS: Long,
-    val gpsLost: Boolean,
-    /** Distance to the followed line, null when nothing is followed or no fix. */
-    val offRouteM: Double?,
-    val offRouteAlert: Boolean,
-    val followName: String?,
-    /** Segments of the recorded track (new segment after pause or GPS loss). */
-    val track: List<List<GeoPoint>>,
-    /** Navigation (followed line, re-routing question, grey original line); null for free recording. */
-    val nav: NavState? = null,
-    /** Moving time, breaks, to go and arrival (docs/plan-time-estimate.md); null before the first tick. */
-    val time: TripTime? = null,
-    /** The last track point could not be written (storage full, database broken): the UI must say so. */
-    val saveFailed: Boolean = false,
-    /**
-     * A usable GPS fix came since the service started (this tour or its continuation). False = started indoors: the app
-     * shows its Wi-Fi / fused fix as a provisional position until then ([com.onpath.app.navigation.Provisional]).
-     */
-    val hadGpsFix: Boolean = true,
-    /**
-     * "No GPS" is a quiet grey state, not the amber warning (owner 2026-11-01): standing still ([MoveWatch]), or lost
-     * for less than [com.onpath.app.navigation.VoiceGuide.GPS_LOST_MS] – the warning comes with the spoken one.
-     */
-    val gpsQuiet: Boolean = false,
-    /**
-     * No GPS and the phone lies still by its own motion sensor (owner 2026-11-02, phone on the table): nothing is shown
-     * about GPS at all ([NoGpsShow]); false without a sensor or while it is not sure.
-     */
-    val gpsStill: Boolean = false,
-    /**
-     * The end of the followed line was reached (review H2: checked here, also with the phone in the pocket). Guidance
-     * is quiet from then on (no off-route alarms on the way to the car park); recording goes on. The app asks once.
-     */
-    val arrived: Boolean = false,
-    /**
-     * When the pause began (wall clock, ms; null while recording): Navigate's pause band counts from here (owner
-     * 2026-11-07, variant C of https://claude.ai/artifact/24XVQ4goVZixT53fnQDn7H) – the service holds it, so the band
-     * keeps its time when the app is reopened.
-     */
-    val pausedSinceMs: Long? = null,
-)
-
 /**
  * Foreground service that records the track. Every accepted point goes straight into
  * SQLite, so nothing is lost if the process dies (R-07). Also owns navigation: off-route detection and the
@@ -1707,42 +1658,42 @@ class RecordingService : Service() {
         /** T5 in the background: checked every this many metres on a tour; routing data within this margin. */
         const val T5_STEP_M = 300.0
         const val T5_ROUTING_MARGIN_M = 5_000.0
-        const val ACTION_START = "com.onpath.app.START"
-        const val ACTION_PAUSE = "com.onpath.app.PAUSE"
-        const val ACTION_RESUME = "com.onpath.app.RESUME"
-        const val ACTION_STOP = "com.onpath.app.STOP"
-        const val ACTION_FOLLOW_CHANGED = "com.onpath.app.FOLLOW_CHANGED"
+        const val ACTION_START = RecordingWire.ACTION_START
+        const val ACTION_PAUSE = RecordingWire.ACTION_PAUSE
+        const val ACTION_RESUME = RecordingWire.ACTION_RESUME
+        const val ACTION_STOP = RecordingWire.ACTION_STOP
+        const val ACTION_FOLLOW_CHANGED = RecordingWire.ACTION_FOLLOW_CHANGED
         /** App switched mode: [EXTRA_ON] true = Navigate (off-route checks on), false = Plan. */
-        const val ACTION_NAVIGATING = "com.onpath.app.NAVIGATING"
-        const val EXTRA_ON = "on"
+        const val ACTION_NAVIGATING = RecordingWire.ACTION_NAVIGATING
+        const val EXTRA_ON = RecordingWire.EXTRA_ON
         /** Off-route / re-routing settings changed (no new session). */
-        const val ACTION_SETTINGS = "com.onpath.app.SETTINGS"
+        const val ACTION_SETTINGS = RecordingWire.ACTION_SETTINGS
         /** Answer to the off-route question [EXTRA_QUESTION] (app button or notification action). */
-        const val ACTION_TAKE_ROUTE = "com.onpath.app.TAKE_ROUTE"
-        const val ACTION_KEEP_ROUTE = "com.onpath.app.KEEP_ROUTE"
-        const val ACTION_TAKE_VIA = "com.onpath.app.TAKE_VIA"
+        const val ACTION_TAKE_ROUTE = RecordingWire.ACTION_TAKE_ROUTE
+        const val ACTION_KEEP_ROUTE = RecordingWire.ACTION_KEEP_ROUTE
+        const val ACTION_TAKE_VIA = RecordingWire.ACTION_TAKE_VIA
         /** Never on the route yet (owner 2026-10-31): "Route starts 31 km away" – Guide me / Just record; OK on "no way". */
-        const val ACTION_LEAD_THERE = "com.onpath.app.LEAD_THERE"
-        const val ACTION_JUST_RECORD = "com.onpath.app.JUST_RECORD"
-        const val ACTION_LEAD_FAILED_OK = "com.onpath.app.LEAD_FAILED_OK"
-        const val ACTION_JOIN_HERE = "com.onpath.app.JOIN_HERE"
-        const val EXTRA_QUESTION = "question"
+        const val ACTION_LEAD_THERE = RecordingWire.ACTION_LEAD_THERE
+        const val ACTION_JUST_RECORD = RecordingWire.ACTION_JUST_RECORD
+        const val ACTION_LEAD_FAILED_OK = RecordingWire.ACTION_LEAD_FAILED_OK
+        const val ACTION_JOIN_HERE = RecordingWire.ACTION_JOIN_HERE
+        const val EXTRA_QUESTION = RecordingWire.EXTRA_QUESTION
         /** Activity check: a proposed session for another activity is in ActivityCheck.PROPOSAL_FILE ([EXTRA_TIME_S] = its time). */
-        const val ACTION_PROPOSE_SWITCH = "com.onpath.app.PROPOSE_SWITCH"
-        const val EXTRA_TIME_S = "timeS"
+        const val ACTION_PROPOSE_SWITCH = RecordingWire.ACTION_PROPOSE_SWITCH
+        const val EXTRA_TIME_S = RecordingWire.EXTRA_TIME_S
         /** With ACTION_FOLLOW_CHANGED ("Continue navigation"): check the next fix at once and ask when off route. */
-        const val EXTRA_CHECK_NOW = "checkNow"
+        const val EXTRA_CHECK_NOW = RecordingWire.EXTRA_CHECK_NOW
         /** Speak an app event ([EXTRA_SAY] = [SAY_ARRIVED] / [SAY_NO_DESTINATION]) when spoken directions are on. */
-        const val ACTION_SAY = "com.onpath.app.SAY"
-        const val EXTRA_SAY = "say"
-        const val SAY_ARRIVED = "arrived"
-        const val SAY_NO_DESTINATION = "noDestination"
+        const val ACTION_SAY = RecordingWire.ACTION_SAY
+        const val EXTRA_SAY = RecordingWire.EXTRA_SAY
+        const val SAY_ARRIVED = RecordingWire.SAY_ARRIVED
+        const val SAY_NO_DESTINATION = RecordingWire.SAY_NO_DESTINATION
         /** "Continue navigation" with the same session: check the next fix at once. */
-        const val ACTION_CHECK_NOW = "com.onpath.app.CHECK_NOW"
-        const val EXTRA_CONTINUE_ID = "continueId"
-        const val EXTRA_ACTIVITY = "activity"
+        const val ACTION_CHECK_NOW = RecordingWire.ACTION_CHECK_NOW
+        const val EXTRA_CONTINUE_ID = RecordingWire.EXTRA_CONTINUE_ID
+        const val EXTRA_ACTIVITY = RecordingWire.EXTRA_ACTIVITY
         /** T level (SAC 1..5) the tour is recorded at; missing = the stored one ([Prefs.sac]). */
-        const val EXTRA_SAC = "sac"
+        const val EXTRA_SAC = RecordingWire.EXTRA_SAC
 
         /** T level of a new recorded tour: the one sent with the start ([extra] 1..5), else the [stored] one. */
         fun newTourSac(extra: Int, stored: Int): Int =

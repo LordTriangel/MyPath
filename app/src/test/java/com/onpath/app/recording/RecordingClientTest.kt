@@ -4,6 +4,9 @@ import com.onpath.app.testkit.Sources
 import com.onpath.app.testkit.sourceFile
 import com.onpath.app.testkit.FakeRecordingClient
 import com.onpath.app.ui.tour.tourRecorder
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -47,10 +50,17 @@ class RecordingClientTest {
 
     @Test fun everyActionTheServiceKnowsHasItsCommandAndTheOtherWayRound() {
         val svc = File("src/main/java/com/onpath/app/recording/RecordingService.kt").readText()
-        val declared = Regex("""const val (ACTION_\w+) = "com\.onpath\.app\.""").findAll(svc).map { it.groupValues[1] }.toSet()
+        // the literals live in :core (RecordingWire); the service keeps every constant name as an alias of it
+        val contract = File("../core/src/main/kotlin/com/onpath/app/recording/RecordingClient.kt").readText()
+        val wire = contract.substringAfter("object RecordingWire").substringBefore("\n}\n")
+        val declared = Regex("""const val (ACTION_\w+) = "com\.onpath\.app\.""").findAll(wire).map { it.groupValues[1] }.toSet()
         assertEquals("the service's actions", 17, declared.size)
-        val contract = File("src/main/java/com/onpath/app/recording/RecordingClient.kt").readText()
-        assertEquals("actions without a typed command", emptySet<String>(), declared.filterNot { contract.contains("RecordingService.$it") }.toSet())
+        val companion = contract.substringAfter("companion object")
+        assertEquals("actions without a typed command", emptySet<String>(), declared.filterNot { companion.contains("RecordingWire.$it") }.toSet())
+        val wireNames = Regex("""const val ((?:ACTION|EXTRA|SAY)_\w+) = """).findAll(wire).map { it.groupValues[1] }.toSet()
+        assertEquals("17 actions, 8 extras, 2 SAY values", 27, wireNames.size)
+        assertEquals("a wire string the service has no alias for", emptySet<String>(),
+            wireNames.filterNot { svc.contains("const val $it = RecordingWire.$it") }.toSet())
         // … and each is taken by onStartCommand: a control action in its set and its branch (START is the fall-through)
         val control = svc.substringAfter("val control = intent?.action in setOf(").substringBefore("\n        //")
         val branches = svc.substringAfter("when (intent?.action) {").substringBefore("// Already recording")
@@ -58,6 +68,42 @@ class RecordingClientTest {
             assertTrue("$a is a control action", Regex("""\b$a\b""").containsMatchIn(control))
             assertTrue("$a has its branch", branches.contains("$a ->"))
         }
+    }
+
+    private fun runningTour(id: Long) = RecState(id, paused = false, distanceM = 0.0, ascentM = 0.0, descentM = 0.0, elapsedS = 0,
+        gpsLost = false, offRouteM = null, offRouteAlert = false, followName = null, track = emptyList())
+
+    /** Rule 9 of the tour paper: the service sets `finished` BEFORE `state = null` – the fake does the same. */
+    @Test fun theFakeEndsATourInTheServicesOrder() {
+        client.publish(runningTour(8))
+        var stateWhenFinishedArrived: Long? = -1
+        val seen = ArrayList<Long?>()
+        runBlocking {
+            val job = launch(Dispatchers.Unconfined) {   // delivered at once, as the value is set
+                client.finished.collect { if (it != null) { seen += it; stateWhenFinishedArrived = client.state.value?.tourId } }
+            }
+            client.finish(8, parts = listOf(9))
+            job.cancel()
+        }
+        assertEquals(listOf<Long?>(8L), seen)
+        assertEquals("the tour still runs when `finished` is set (the service's order)", 8L, stateWhenFinishedArrived)
+        assertNull("and the state is null afterwards", client.state.value)
+        assertEquals(listOf(9L), client.takeFinishedParts())
+    }
+
+    @Test fun theServiceFinishesInTheOrderTheFakeCopies() {
+        val finish = File("src/main/java/com/onpath/app/recording/RecordingService.kt").readText().substringAfter("private fun finish(startId: Int)")
+        val iParts = finish.indexOf("_finishedParts = parts"); val iFin = finish.indexOf("_finished.value = tourId"); val iState = finish.indexOf("_state.value = null")
+        assertTrue("finish() found with its three writes", iParts > 0 && iFin > 0 && iState > 0)
+        assertTrue("parts < finished < state = null: a collector of `finished` reads the tour still running", iParts < iFin && iFin < iState)
+    }
+
+    @Test fun onSendSeesTheStateAtTheMomentACommandGoesOut() {
+        client.publish(runningTour(3))
+        val seen = ArrayList<Pair<String, Long?>>()
+        client.onSend = { seen += it.action.substringAfterLast('.') to client.state.value?.tourId }
+        client.stop(); client.publish(null); client.followChanged()
+        assertEquals(listOf("STOP" to 3L, "FOLLOW_CHANGED" to null), seen)
     }
 
     @Test fun theTourControllersFourCommandsGoThroughTheClient() {
