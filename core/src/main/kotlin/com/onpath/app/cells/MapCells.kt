@@ -1139,8 +1139,8 @@ class MapCells(
                 (if (network.unmetered()) "" else " on mobile data"))
             var before = 0L
             set(c, CellState.Downloading(0, total))
-            for (f in m.files) {
-                if (f.name in skip) continue
+            for (f in m.files.filter { it.name !in skip }) {
+                if (!queued(c)) throw Cancelled() // dropped since the worker took its list: no file (the check below fires only every 256 KB)
                 val dest = File(part, f.name)
                 if (!have(f)) {
                     dest.delete()
@@ -1155,7 +1155,7 @@ class MapCells(
                 before += f.size
             }
             // the manifest makes the folder complete: with what it leaves to the installed version in the same file, synced
-            store.writeManifest(part, m, kept)
+            if (queued(c)) store.writeManifest(part, m, kept) else throw Cancelled() // dropped during the last file: not installed
             askedAs[c] = p.reason
             val complete = store.completeDir(m)
             complete.deleteRecursively()
