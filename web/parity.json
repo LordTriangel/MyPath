@@ -393,7 +393,7 @@
       "web": [
         "web/app/src/routethumbs.ts"
       ],
-      "blob": "3abdd7b5f831529c876132cd42d183256e5ffa65"
+      "blob": "44766be7b612a02c97418ebe75061e68209c3f75"
     },
     {
       "app": "app/src/main/java/com/onpath/app/map/RouteThumbs.kt",
@@ -531,7 +531,7 @@
         "web/app/src/loadoverlay.ts",
         "web/app/src/main.ts"
       ],
-      "blob": "ab1d0a1c1b5d75d109f33d1b5d0b00149f9c0919"
+      "blob": "2f9b5879d8ebac57a3ac164b024eb03577c724ca"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/progress/BesideSign.kt",
