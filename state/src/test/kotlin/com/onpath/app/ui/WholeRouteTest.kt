@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.sourceFile
 import com.onpath.app.domain.AppMode
 import com.onpath.app.routing.GeoPoint
 import org.junit.Assert.assertEquals
@@ -58,7 +59,7 @@ class WholeRouteTest {
         // Plan: below the search pill (76 dp) or the strip / box under it, above the sheet
         // map button column not measured yet: a MAP_FAB column (56 dp, owner 2026-11-03) beside, no room above it
         val p = FitPaddingRule.of(plan, d, status, planTopDp = 0, sheetPx = 800, navTopDp = 0, navBottomDp = 0)
-        assertEquals(FitPadding(60, status + 230, (MAP_FAB.value * d).toInt() + 80, 800 + 120), p)
+        assertEquals(FitPadding(60, status + 230, (MAP_FAB_DP * d).toInt() + 80, 800 + 120), p)
         val withBox = FitPaddingRule.of(plan, d, status, planTopDp = 180, sheetPx = 800, navTopDp = 0, navBottomDp = 0)
         assertEquals(status + ((180 + 16) * d).toInt(), withBox.top)
         // Navigate: below the turn / status column (or the box under it), above the slider, clear of the big buttons
@@ -161,10 +162,10 @@ class WholeRouteTest {
         val single = FitPadding(1, 2, 3, 4)
         assertEquals(single, FitPaddingRule.pick(single) { error("not asked") })
         // the map asks the camera for both rooms
-        val ctl = File("src/main/java/com/onpath/app/map/MapController.kt").readText()
+        val ctl = sourceFile("map/MapController.kt").readText()
         val fit = ctl.substringAfter("fun fitTo(").substringBefore("\n    }\n")
         assertTrue(fit.contains("FitPaddingRule.pick(room)"))
-        val screen = File("src/main/java/com/onpath/app/ui/MapScreen.kt").readText()
+        val screen = sourceFile("ui/MapScreen.kt").readText()
         // since onpath.private#43 (2026-11-06) the column stands at a fixed place above the middle, not on the sheet: the
         // fit keeps beside it; the "above the column, full width" room no longer exists in the app (pick() still serves it)
         assertTrue(screen.contains("fabWidthPx = planFab[0],") && screen.contains("fabHeightPx = 0,"))
@@ -182,7 +183,7 @@ class WholeRouteTest {
         assertTrue(!WholeRoute.firstRoute(2, 3)) // later edits never move the map
         assertTrue(!WholeRoute.firstRoute(3, 2))
         assertTrue(!WholeRoute.firstRoute(0, 1))
-        val vm = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+        val vm = sourceFile("ui/AppViewModel.kt").readText()
         // the same fit as "Show whole route", following stopped first
         val fit = vm.substringAfter("private fun fitFirstRoute(").substringBefore("\n    }\n")
         val stop = fit.indexOf("followMe = false")
@@ -207,7 +208,7 @@ class WholeRouteTest {
         assertTrue(WholeRoute.fitAfterPlace(listOf(a, c, b), listOf(a, b, c))) // a planned place made the destination
         assertFalse(WholeRoute.fitAfterPlace(listOf(a, b), listOf(a, b))) // nothing changed (e.g. already a stop)
         assertFalse(WholeRoute.fitAfterPlace(emptyList(), listOf(c))) // a start alone: no route to fit
-        val vm = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+        val vm = sourceFile("ui/AppViewModel.kt").readText()
         // the place card's actions (SMART = "Add as stop N" / "Add as new destination", START, DESTINATION) all go through it
         assertTrue(vm.contains("fun addPlace(place: com.onpath.app.search.Place, role: PlaceRole) = fittingPlaceAdd {"))
         // the candidate's hold menu ("Add as new destination") – a POI of the map held there does not move the map

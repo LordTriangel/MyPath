@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.sourceFile
 import com.onpath.app.domain.AppMode
 import com.onpath.app.recording.GpsStatus
 import org.junit.Assert.assertEquals
@@ -67,7 +68,7 @@ class PlanGpsTest {
         assertEquals(OverviewPillPlace.BESIDE_ACTIVITY_DP, PlanGps.noteStartDp(activityButtonShown = true))
         assertEquals(OverviewPillPlace.EDGE_DP, PlanGps.noteStartDp(activityButtonShown = false))
         // the GPS note and the map's INFO line use the one rule (MapScreen) – one at a time, never stacked
-        val screen = java.io.File("src/main/java/com/onpath/app/ui/MapScreen.kt").readText()
+        val screen = sourceFile("ui/MapScreen.kt").readText()
         assertEquals(2, Regex("""start = PlanGps\.noteStartDp\(""").findAll(screen).count())
         assertTrue(screen.contains("vm.mapNote?.takeIf { vm.mode == AppMode.PLAN && !vm.searchOpen && vm.planGpsNote == null }"))
     }

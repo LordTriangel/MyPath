@@ -85,16 +85,6 @@ enum class PairResult {
     JOIN_FAILED,
 }
 
-/** The strip at the top of the Plan map after a pairing was made or ended here (owner 2026-10-30), until OK. */
-enum class SyncNote {
-    /** "Paired. What you save in the browser comes to your phone – …" */
-    PAIRED,
-    /** "Unpaired. Your routes stay on your phone." */
-    UNPAIRED,
-    /** Unpaired here, the mailbox could not be ended: "… – the browser couldn't be reached, unpair it there too." */
-    UNPAIRED_OFFLINE,
-}
-
 /**
  * Where the app goes after Pair / Unpair (owner 2026-10-30: unpairing as simple as pairing): a pairing made (first
  * browser or another one) or ended → straight back to the Plan screen (Settings and My routes closed) with its strip and

@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import com.onpath.app.data.Prefs
 import com.onpath.app.domain.PlanGuidance
 import com.onpath.app.domain.RouteRules
 import com.onpath.app.domain.plan.PlanSession
@@ -21,25 +20,6 @@ interface PlanStore {
     var savedName: String?
     var savedId: Long
     var savedPoints: List<GeoPoint>?
-}
-
-/** [PlanStore] in the app's preferences (`plan`, `planPinned`, `planSavedName` / `Id` / `Points` – [Prefs]). */
-class PrefsPlanStore(private val prefs: Prefs) : PlanStore {
-    override var points: List<GeoPoint>
-        get() = prefs.planWaypoints
-        set(v) { prefs.planWaypoints = v }
-    override var pinned: Set<GeoPoint>
-        get() = prefs.planPinned
-        set(v) { prefs.planPinned = v }
-    override var savedName: String?
-        get() = prefs.planSavedName
-        set(v) { prefs.planSavedName = v }
-    override var savedId: Long
-        get() = prefs.planSavedId
-        set(v) { prefs.planSavedId = v }
-    override var savedPoints: List<GeoPoint>?
-        get() = prefs.planSavedPoints
-        set(v) { prefs.planSavedPoints = v }
 }
 
 /**

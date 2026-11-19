@@ -85,9 +85,6 @@ data class MobileQuestion(val areas: Int, val bytes: Long?) {
         else Txt.p(Res.plurals.maps_mobile_question_mb, areas, areas, mb(bytes))
 }
 
-/** Whole MB, at least 1 for anything non-empty. */
-internal fun mb(bytes: Long): Long = if (bytes <= 0) 0 else maxOf(1, (bytes + 524_288) / 1_048_576)
-
 /** Pure: card content from the trigger's job and the cell states (unit-tested). */
 object CellCards {
     const val MAX_ROWS = 3
@@ -252,25 +249,6 @@ fun OverviewPill(onLoad: () -> Unit, modifier: Modifier = Modifier) {
             Text(action, style = MaterialTheme.typography.labelLarge, color = OnPathColors.ActionEdit)
         }
     }
-}
-
-/**
- * Where [OverviewPill] sits (owner 2026-11-06: it must cover nothing): on the row of the round activity button (top
- * left under the search band, 48 dp at 12 dp from the edge), right of it – or at the left edge when that button is not
- * shown; the map controls on the right start lower ([ControlsPlacement]), so the row is free to the right edge. Below
- * the background-download strip while that shows. Pure, unit-tested.
- */
-object OverviewPillPlace {
-    const val HEIGHT_DP = 48
-    const val EDGE_DP = 12
-    /** The activity button: 48 dp at [EDGE_DP], plus a gap. */
-    const val BESIDE_ACTIVITY_DP = EDGE_DP + 48 + 10
-
-    fun startDp(activityButtonShown: Boolean): Int = if (activityButtonShown) BESIDE_ACTIVITY_DP else EDGE_DP
-
-    /** [rowTopDp]: the activity button's top; [stripBottomDp]: the download strip's bottom while it shows, else null. */
-    fun topDp(rowTopDp: Int, stripBottomDp: Int?): Int =
-        if (stripBottomDp != null) maxOf(rowTopDp, stripBottomDp + MessagePlacement.GAP_DP) else rowTopDp
 }
 
 /**

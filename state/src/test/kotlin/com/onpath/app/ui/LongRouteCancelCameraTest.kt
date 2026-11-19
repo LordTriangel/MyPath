@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.testkit.sourceFile
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.ui.LongRouteCancelCamera.Target
 import org.junit.Assert.assertEquals
@@ -37,7 +38,7 @@ class LongRouteCancelCameraTest {
     @Test fun noPointTheMapStays() = assertEquals(Target.Stay, LongRouteCancelCamera.after(emptyList(), null, false, true))
 
     @Test fun onlyTheLongRouteCancelMovesTheMap() {
-        val vm = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+        val vm = sourceFile("ui/AppViewModel.kt").readText()
         val answer = vm.substringAfter("fun answerLongRoute(").substringBefore("\n    }\n")
         assertTrue(answer, answer.contains("LongRouteCancelCamera.after(waypoints.toList(), route?.points"))
         // the shared cancel (slow plan, Stop) leaves the camera alone

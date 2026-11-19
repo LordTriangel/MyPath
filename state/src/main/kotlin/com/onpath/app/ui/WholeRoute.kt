@@ -7,7 +7,7 @@ import com.onpath.app.routing.GeoPoint
  * The "Show whole route" map button (owner 2026-10-31, the browser planner's ⛶ `fit_screen`): when it shows and what
  * the camera fits. Pure – AppViewModel.showWholeRoute does the tap, MapController.fitTo the camera.
  */
-internal object WholeRoute {
+object WholeRoute {
 
     /** Which line the button shows. */
     enum class Source { SHOWN, PLANNED, FOLLOWED }
@@ -80,7 +80,7 @@ data class FitPadding(val left: Int, val top: Int, val right: Int, val bottom: I
  * - Navigate: below the turn / status column or the message box under it ([navTopDp]); above the slider
  *   ([navBottomDp]); clear of the big map buttons on the right.
  */
-internal object FitPaddingRule {
+object FitPaddingRule {
     const val SIDE_DP = 48
     const val GAP_DP = 12
     /** Navigate's right edge: 16 dp margin + a 56 dp map button + 8 dp. */
@@ -101,7 +101,7 @@ internal object FitPaddingRule {
             AppMode.PLAN -> {
                 // a marker's radius under the search pill (a 12 dp gap cut the top of a point there – Pixel 2026-11-07)
                 val top = statusBarPx + px(maxOf(planTopDp, TOP_BAR_DP) + AIR_DP)
-                val fabW = if (fabWidthPx > 0) fabWidthPx else (MAP_FAB.value * density).toInt()
+                val fabW = if (fabWidthPx > 0) fabWidthPx else (MAP_FAB_DP * density).toInt()
                 // over the whole width, above the button column (only once its height is known)
                 val above = if (fabHeightPx <= 0) null
                     else FitPadding(px(PLAN_SIDE_DP), top, px(PLAN_SIDE_DP), sheetPx + px(FAB_BOTTOM_DP + AIR_DP) + fabHeightPx)
@@ -141,5 +141,5 @@ internal object FitPaddingRule {
     }
 
     /** [TOP_BAR_BOTTOM] in dp (search pill + ☰ below the status bar). */
-    private val TOP_BAR_DP = TOP_BAR_BOTTOM.value.toInt()
+    private val TOP_BAR_DP = TOP_BAR_BOTTOM_DP
 }

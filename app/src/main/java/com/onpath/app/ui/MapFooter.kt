@@ -103,7 +103,7 @@ const val MAP_CREDIT = "©\u00A0OpenStreetMap\u00A0· OpenMapTiles"
 const val CREDIT_MAX_FONT = 1.3f
 
 /** Size of one map control (owner 2026-11-03: "trifft man kaum" – 56 dp in both modes, was 48 in Plan). */
-val MAP_FAB = 56.dp
+val MAP_FAB = MAP_FAB_DP.dp
 
 fun gpsColor(status: GpsStatus): Color = when (status) {
     GpsStatus.GOOD -> OnPathColors.Good

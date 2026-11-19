@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.onpath.app.debug.Problems
+import com.onpath.app.debug.launchSafe
 import com.onpath.app.routing.Activity
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.suggest.SuggestAsk
@@ -96,7 +97,7 @@ interface SuggestHost {
  * Developer tools) turns it off.
  * Main thread; the work runs in [SuggestHost.suggest] (the runner: a background thread, one run at a time).
  */
-class SuggestSlice(private val scope: CoroutineScope, internal var host: SuggestHost, on: Boolean = true,
+class SuggestSlice(private val scope: CoroutineScope, var host: SuggestHost, on: Boolean = true,
                    private val onSwitch: (Boolean) -> Unit = {}) {
     /** The developer switch (on by default): the menus offer „Rundtour von hier“ only while it is on. */
     var on by mutableStateOf(on)
@@ -198,7 +199,7 @@ class SuggestSlice(private val scope: CoroutineScope, internal var host: Suggest
         phase = SuggestPhase.WAIT
         cards = emptyList(); notes = emptyList(); chosen = -1; loop = null
         val ask = w.ask()
-        job = scope.launch {
+        job = scope.launchSafe("suggest", "Tour suggestions run") {
             val r = try {
                 answer(ask)
             } catch (e: CancellationException) {
@@ -208,7 +209,7 @@ class SuggestSlice(private val scope: CoroutineScope, internal var host: Suggest
                 Problems.error("suggest", "Tour suggestions failed", e)
                 null
             }
-            if (r == null || r.routingToLoad.isNotEmpty()) { phase = SuggestPhase.FAILED; return@launch }
+            if (r == null || r.routingToLoad.isNotEmpty()) { phase = SuggestPhase.FAILED; return@launchSafe }
             cards = r.cards
             notes = r.notes
             phase = SuggestPhase.CARDS

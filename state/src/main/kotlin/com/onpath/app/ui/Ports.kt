@@ -11,3 +11,22 @@ package com.onpath.app.ui
 fun interface Say {
     fun say(text: String, kind: NoticeKind, place: NoticePlace)
 }
+
+/**
+ * The map's camera, as the slices ask for it (defined here, used from piece 3 on): the view model turns each call into the
+ * matching UiEvent (Fit / CenterOn / PanTo) of :app.
+ */
+interface Camera {
+    /** Show all [points] (north up or at the current bearing by the session's one orientation). */
+    fun fit(points: List<com.onpath.app.routing.GeoPoint>)
+    /** Fly to one place at [zoom]. */
+    fun centerOn(point: com.onpath.app.routing.GeoPoint, zoom: Double)
+    /** Move the map to [point] at once, same zoom. */
+    fun panTo(point: com.onpath.app.routing.GeoPoint)
+}
+
+/** The two clocks the slices read: wall time (stored stamps) and elapsed real time (waits, never goes back). */
+interface Clock {
+    fun nowMs(): Long
+    fun elapsedMs(): Long
+}

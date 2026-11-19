@@ -71,7 +71,7 @@
         "web/app/src/position.ts",
         "web/app/src/main.ts"
       ],
-      "blob": "4be358bb93dc974ba7016285e0149a9041afbabd"
+      "blob": "ebb7c58c030538af710cd11c43ea50ef38759fb2"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/recording/GpsStatus.kt",
@@ -169,7 +169,7 @@
         "web/app/src/plans.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "474e7df3132f74172c52337f41e34cb34d862778"
+      "blob": "6412e065b4abf8b2709e84de102b82a0f49e8332"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -260,7 +260,7 @@
       "web": [
         "web/app/src/areas.ts"
       ],
-      "blob": "f59a6e4b5b755b6a8da8dd43d87a154101ac89cb"
+      "blob": "53f801bbf7579623c537b5a2c50095b52adba229"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/cells/CellTriggers.kt",
@@ -280,12 +280,12 @@
       "blob": "aa590937851fe361f89c1d15951e621121a1146d"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/WholeRoute.kt",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/WholeRoute.kt",
       "what": "SETTLE_MS and \"not after a map gesture\" – the rules are shared now (routing/RouteFit, engine routeFirst / routeFitAfterPlace)",
       "web": [
         "web/app/src/main.ts"
       ],
-      "blob": "ff02f7b3a4db84e9777523963d8b04501810fbd9"
+      "blob": "fb9a93ccb01fdb1b8c470cb2210cf1bbc885e699"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/domain/routes/RouteSort.kt",
@@ -420,7 +420,7 @@
       "blob": "3fe621fbbe60a8efa52619b1dc48397c725c532e"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/LongRouteCancelCamera.kt",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/LongRouteCancelCamera.kt",
       "what": "very long route → Cancel: the map back to the plan from before (whole plan / its one point / stays); no tour on the web",
       "web": [
         "web/app/src/longroute.ts",

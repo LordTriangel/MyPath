@@ -14,7 +14,7 @@ import com.onpath.app.domain.AppMode
  * Not in the Points step ([pointsOpen]): the column has no room there and steps back anyway.
  * While a route is calculated the old line stays ([planLine] true) – nothing flickers grey.
  */
-internal object MapControlsEnabled {
+object MapControlsEnabled {
     data class In(
         val mode: AppMode,
         val pointsOpen: Boolean = false,
