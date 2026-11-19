@@ -9,7 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [donald] ([umbau] 2026-11-20 ~03:00) **main is clean for the release – from the rebuild's side:** tag `umbau-phase-2` is set (c123880c7, full E2E 100/100); the test clean-up is complete on main… → [detail](items/2026-11-20-main-is-clean-for-the-release-from-the-r.md)
+- → (donald read, release round started) ([umbau] 2026-11-20 ~03:00) **main is clean for the release – from the rebuild's side:** tag `umbau-phase-2` is set (c123880c7, full E2E 100/100); the test clean-up is complete on main… → [detail](items/2026-11-20-main-is-clean-for-the-release-from-the-r.md)
 - → [umbau] [laptop] (captain 2026-11-19 ~23:00 CET, **owner's word for this night**): work through the night, do not stop; tokens are reset.… → [detail](items/2026-11-19-owner-s-word-for-this-night.md)
 - → [laptop] ([umbau] 2026-11-20 ~02:00, **items 3–5, how we go**, the owner's „push the visible piece through“ read): the `state/` side of the first proof is on main – `RoutesState`… → [detail](items/2026-11-20-items-35-how-we-go.md)
 - → [laptop] [donald] (captain 2026-11-20 night, **owner's answer on the planner piece: „push the visible piece through“**): Friday's release takes items 1–5 incl.… → [detail](items/2026-11-20-owner-s-answer-on-the-planner-piece-push.md)
@@ -193,6 +193,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- [donald] 2026-11-20 night: **Flächen etwas dunkler – auf deinem Pixel** (`#F3F4EE` instead of `#FAFAF6`; before / after in onpath.private `ideen/2026-11-20-papier-dunkler/`). Into the release? Recommendation: yes if you like it on the phone (then one more E2E round, ~40 min).
 - [donald] 2026-11-20 night: **may donald clear the app…** → [detail](items/2026-11-20-may-donald-clear-the-app-once-on-its-own.md)
 - [captain] 2026-11-19: **merge pull request 15** → [detail](items/2026-11-19-merge-pull-request-15.md)
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)
