@@ -232,7 +232,7 @@
         "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt",
         "web/app/src/plans.ts"
       ],
-      "blob": "967c32d63ac8ebeff99819cc8ae40fafd0e15d19"
+      "blob": "a7ff7af50e5df6dbb0e7f01cb9319222346ed1f1"
     },
     {
       "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddSlice.kt",
@@ -3132,6 +3132,10 @@
         "* than [OneBar.MAX_GAP_MS] (the screen was off, not polled) – such a wait teaches nothing ([hadPause]). Pure.",
         "if (running && gap in 0..OneBar.MAX_GAP_MS) active[prev] = (active[prev] ?: 0L) + gap else hadPause = true"
       ]
+    },
+    "core/src/main/kotlin/com/onpath/app/rides/RideApply.kt": {
+      "blob": "e8d7d7838b8f75775a38f178eb44dc6196ec7be0",
+      "perf": []
     }
   }
 }
