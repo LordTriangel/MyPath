@@ -56,8 +56,8 @@ class FoundPlacePinTest {
     @Test fun thePinGoesOnlyByTheOwnersFourWays() {
         val close = body(vm, "fun closeMapOverlays(")
         assertFalse("closing a menu keeps the pin: $close", close.contains("searchMark = null"))
-        assertTrue(body(vm, "fun clearPlan(").contains("removePin(\"plan cleared\")"))
-        val remove = body(vm, "fun removePin(")
+        // Clear removes the pin (after the plan went and the menus closed): PlanEditFlowTest.clearKeepsThePlanForZuletztFirstThenEmptiesInOneUndoStepAndNeverAsks
+        val remove = body(vm, "    fun removePin(why: String) {") // the function itself (the planEdit host has an override of the same name)
         assertTrue(remove, remove.contains("searchMark = null"))
         // adding the place and a new search pick replace it on their own
         assertTrue(body(vm, "fun addPoiPoint(").contains("takePin(poi.lat, poi.lon)"))

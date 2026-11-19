@@ -36,7 +36,10 @@ class TourEditTest {
         val end = vm.substringAfter("private fun endGuidanceIfPlanEmpty()").substringBefore("\n    }\n")
         assertTrue(end, end.contains("clearFollow()") && end.contains("guidanceEndedByEmptyPlan = true"))
         // clearPlan never stops the recording itself
-        val clear = vm.substringAfter("fun clearPlan()").substringBefore("\n    }\n")
+        // (the slice's own body since piece 10; its host has no way to stop a recording – PlanEditHost – and the flow
+        // PlanEditFlowTest.clearDuringATourEndsTheGuidanceAndNeverTheRecording shows only the follow is touched)
+        val clear = src("ui/plan/PlanEditSlice.kt").substringAfter("    fun clearPlan() {").substringBefore("\n    }\n")
+        assertTrue("the anchor was found", clear.contains("host.keepAsDraft(") && clear.contains("host.guidanceEndedByEmptyPlan()"))
         assertFalse(clear, clear.contains("stopRecording") || clear.contains("endTour"))
         assertEquals(0, com.onpath.app.navigation.TourSplit.outcome(listOf(a, b), emptyList(), setOf(0)).let {
             if (it == com.onpath.app.navigation.TourSplit.Outcome.Empty) 0 else 1 })

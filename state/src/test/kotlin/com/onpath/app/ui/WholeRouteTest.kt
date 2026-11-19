@@ -187,7 +187,8 @@ class WholeRouteTest {
         // the same fit as "Show whole route", following stopped first; a touch meanwhile keeps the user's view:
         // MapViewFlowTest.theFirstRouteIsFittedOnceTheSheetHasSettledWithFollowingStoppedFirst / aHandOnTheMapMeanwhileKeepsTheUsersView
         assertTrue(vm.contains("private fun fitFirstRoute(line: List<GeoPoint>, pts: List<GeoPoint>, extraMs: Long = 0L) = map.fitFirstRoute(line, pts, extraMs)"))
-        assertTrue(vm.contains("if (WholeRoute.firstRoute(before.size, waypoints.size)) routeEvent(RouteRun.Event.FitNext)"))
+        // the first route asks the fit in change(): PlanEditFlowTest.theFirstTwoPointsAreStoredAtOnceAndTheFirstRouteAsksTheFit
+        // (fitNext false after one point, true after the second; aLaterEditNeverAsksTheFitAgain)
         // once per order: RouteRunTest.theFirstRouteIsFittedOnce
         assertTrue(vm.contains("if (take.fit) fitFirstRoute(it.points, pts, if (take.rises) SheetRise.FIT_WAIT_MS else 0L)"))
         // a plan link: following stops, the start camera keeps away, the route is fitted once computed

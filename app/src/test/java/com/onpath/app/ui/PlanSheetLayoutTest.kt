@@ -73,7 +73,7 @@ class PlanSheetLayoutTest {
     @Test fun clearNeverAsks() {
         assertFalse(Regex("onSave\\w*").containsMatchIn(panel))
         val vm = src("ui/AppViewModel.kt")
-        assertTrue(vm.contains("fun requestClear() = clearPlan()"))
+        assertTrue(vm.contains("fun requestClear() = planEdit.clearPlan()"))
         assertFalse(vm.contains("discardSaveFirst") || vm.contains("canSaveBeforeClear") || vm.contains("discardAsk"))
         assertTrue(DecisionLayout.oneRow(300f, 312f)); assertFalse(DecisionLayout.oneRow(330f, 312f))
     }

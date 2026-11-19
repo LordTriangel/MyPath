@@ -772,11 +772,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val followHistory = FollowHistory()
     val canUndo: Boolean get() = plan.canUndo
     val canRedo: Boolean get() = plan.canRedo
-    /**
-     * Plan panel size (full / compact / mini / rolled up), kept while the app runs: a plan opens at the summary step
-     * (owner 2026-10-31); rolled up by the user it stays rolled up through route updates until opened again.
-     */
-    var planSize by mutableStateOf(PlanSize.MINI)
+    /** Plan panel size, kept while the app runs ([PlanEditSlice.planSize]). */
+    var planSize: PlanSize
+        get() = planEdit.planSize
+        set(v) { planEdit.planSize = v }
 
     /**
      * A tap on the open map in Plan (owner 2026-11-03, novice fix): the plan sheet says "Gedrückt halten, um hier einen
@@ -826,8 +825,57 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             override fun noCorridor() = mapData.corridorFollowsPlan(null)
             override fun loadDeferredMaps(before: List<GeoPoint>) = cellsForNewPoints(before, waypoints)
             override fun recalc() = this@AppViewModel.recalc()
-            override fun cancelRun(why: NotRouted) = this@AppViewModel.cancelRun(why)
+            override fun cancelRun(why: NotRouted) = planEdit.cancelRun(why)
         },
+    )
+    /**
+     * The plan's points edited ([PlanEditSlice], rebuild phase 2 piece 10): the one [change] every edit goes through, the
+     * Points list, reverse / round trip, Undo / Redo, Clear, Cancel's take-back and the names of unnamed points. The tour
+     * hooks (what an edit means for a tour in progress) stay below behind [com.onpath.app.ui.plan.PlanEditHost]. Declared
+     * before init {} and before [multiDay] (which gets [change]).
+     */
+    private val planEdit: com.onpath.app.ui.plan.PlanEditSlice = com.onpath.app.ui.plan.PlanEditSlice(
+        plan = plan, planRun = planRun, runCauses = planRoute.runCauses,
+        host = object : com.onpath.app.ui.plan.PlanEditHost {
+            override fun cancelHoldMeasure(why: String) = this@AppViewModel.cancelHoldMeasure(why)
+            override fun stopFollowingWhenMapTurns() { if (mode == AppMode.PLAN && headingUp && followMe) followMe = false }
+            override fun closePointMenu(why: String) = this@AppViewModel.closePointMenu(why)
+            override fun clearFirstPointMenu() { firstPointMenu = null }
+            override fun clearHoldAddMenu() { holdAddMenu = null }
+            override fun clearHighlight() { highlight = null }
+            override fun removePin(why: String) = this@AppViewModel.removePin(why)
+            override fun menuAction(what: String): Int? = this@AppViewModel.menuAction(what)
+            override fun setRoutingSpot(spot: GeoPoint?) { routingSpot = spot }
+            override fun loadMapsForNewPoints(before: List<GeoPoint>) = cellsForNewPoints(before, waypoints)
+            override fun keepAsDraft(why: String) = save.keepAsDraft(why)
+            override fun routeLine(): List<GeoPoint>? = route?.points
+            override fun recalc() = this@AppViewModel.recalc()
+            override fun restoreActivity(c: PlanStatus.Cause.ActivityChange) = this@AppViewModel.restoreActivity(c)
+            override fun planChanged() = this@AppViewModel.planChanged()
+            override fun myPosition(): GeoPoint? = this@AppViewModel.myPosition()
+            override fun touring(): Boolean = recState.value != null
+            override fun following(): Boolean = followLine != null
+            override fun followIsTrack(): Boolean = this@AppViewModel.followIsTrack
+            override fun followsLine(line: List<GeoPoint>): Boolean = followLine == line
+            override fun followFromPlan(): Boolean = this@AppViewModel.followFromPlan
+            override fun splitOf(before: List<GeoPoint>, after: List<GeoPoint>): TourSplit.Outcome? = this@AppViewModel.splitOf(before, after)
+            override fun sayNoDestination() = sayEvent(RecordingService.SAY_NO_DESTINATION)
+            override fun oneLeftGoesFromHere(before: List<GeoPoint>, mayEmpty: Boolean) = this@AppViewModel.oneLeftGoesFromHere(before, mayEmpty)
+            override fun endGuidanceIfPlanEmpty() = this@AppViewModel.endGuidanceIfPlanEmpty()
+            override fun clearFollow() = this@AppViewModel.clearFollow()
+            override fun guidanceEndedByEmptyPlan() { this@AppViewModel.guidanceEndedByEmptyPlan = true }
+            override fun stopName(p: GeoPoint): String? = this@AppViewModel.stopName(p)
+            override suspend fun pointNames(): com.onpath.app.ui.plan.PointNames {
+                val index = search.offlineIndex()
+                return com.onpath.app.ui.plan.PointNames { p ->
+                    com.onpath.app.search.RouteNamer.label(p, com.onpath.app.search.RouteNamer.placesNear(index, listOf(p)))
+                }
+            }
+            override var searchMark: com.onpath.app.search.Place?
+                get() = this@AppViewModel.searchMark
+                set(v) { this@AppViewModel.searchMark = v }
+        },
+        scope = viewModelScope, io = Dispatchers.IO,
     )
     private val routeRun get() = planRun.routeRun
     val routing: Boolean get() = planRun.routing
@@ -1565,39 +1613,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateSettings(s: AppSettings) = settingsSlice.updateSettings(s)
 
-    /**
-     * One undoable change of the planned points. No vibration here: the plan vibrates only at the moment of a map hold
-     * (PlanHaptics, owner), never after an edit.
-     */
-    private fun change(block: MutableList<GeoPoint>.() -> Unit) {
-        cancelHoldMeasure("plan changed")
-        pinTaken = null // a newer edit: only the add itself can bring its pin back (the add sets it after this)
-        // editing on a map that keeps turning is confusing: stop following, the map stays at its angle (owner)
-        if (mode == AppMode.PLAN && headingUp && followMe) followMe = false
-        val before = plan.edit(block)
-        if (WholeRoute.firstRoute(before.size, waypoints.size)) routeEvent(RouteRun.Event.FitNext)
-        routingSpot = RoutingSpot.of(before, waypoints)
-        cellsForNewPoints(before, waypoints)
-        prunePinned()
-        routeEvent(RouteRun.Event.PlanEdited)
-        val split = splitOf(before, waypoints.toList())
-        val pos = myPosition()
-        // the one point left is where I stand (or only the start the one-point rule put in): nothing to ask about – the
-        // plan empties in oneLeftGoesFromHere (field bug 2026-11-06; standing on point 1 also counts it as passed, so the
-        // split says NothingAhead)
-        val leftIsHere = plan.leftIsHere(pos)
-        routeBackAsk = !leftIsHere && (split == TourSplit.Outcome.NothingAhead ||
-            RouteBack.asks(before, waypoints, recState.value != null, followLine != null, followIsTrack, pos))
-        if (routeBackAsk) {
-            Problems.trace("plan", "Edit during the tour left no point ahead: asking \"No destination ahead\"")
-            sayEvent(RecordingService.SAY_NO_DESTINATION)
-        }
-        oneLeftGoesFromHere(before, mayEmpty = true)
-        planChanged()
-        endGuidanceIfPlanEmpty()
-        runCauses.pointEdit()
-        recalc()
-    }
+    /** One undoable change of the planned points ([PlanEditSlice.change]). */
+    private fun change(block: MutableList<GeoPoint>.() -> Unit) = planEdit.change(block)
+    /** The found place the last edit added ([TakenPin]): a Cancel that undoes that edit shows its pin again ([PlanEditSlice.pinTaken]). */
+    private var pinTaken: TakenPin?
+        get() = planEdit.pinTaken
+        set(v) { planEdit.pinTaken = v }
 
     /** A tour event for the spoken directions (the service says it when they are on). */
     private fun sayEvent(what: String) {
@@ -1651,12 +1672,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return o
     }
 
-    /**
-     * The goal of a start → goal plan was deleted during a tour (owner, [RouteBack]): "Route back to the start?" stays
-     * until answered (never self-dismissing). The followed line is unchanged while it is open.
-     */
-    var routeBackAsk by mutableStateOf(false)
-        private set
+    /** "Route back to the start?" is asked ([PlanEditSlice.routeBackAsk]); the tour's answer below sets it too. */
+    var routeBackAsk: Boolean
+        get() = planEdit.routeBackAsk
+        private set(v) { planEdit.routeBackAsk = v }
 
     /**
      * Yes: the plan becomes position → start and the tour follows it (followEditedPlan) – no extra Undo step, so one
@@ -2033,10 +2052,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Plan point [index] deleted (map menu, search card): a round trip stays closed, as in the Points list. */
-    fun removePoint(index: Int) {
-        val after = com.onpath.app.routing.PlanPoints.deleteAt(waypoints, index)
-        if (after.size != waypoints.size) set(after)
-    }
+    fun removePoint(index: Int) = planEdit.removePoint(index)
 
     /** Search result shown in the place card (search, ui/search); map-held POIs use [poiMenu]. */
     var planPoi by mutableStateOf<com.onpath.app.poi.Poi?>(null)
@@ -2221,53 +2237,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------- Points section of the full plan sheet (PointsSection, routing/PlanPoints) ----------------
 
-    /** Nearest place / hut / peak for route points without a name of their own (offline index, RouteNamer.label). */
-    private var nearbyNames by mutableStateOf<Map<GeoPoint, String>>(emptyMap())
-    private var namesJob: Job? = null
-
-    /** Rows of the Points section: names (pinned POI / search first, then the nearest place), leg distances. */
-    fun planPointRows(): List<com.onpath.app.routing.PlanPointRow> {
-        val pts = waypoints.toList()
-        val line = route?.takeIf { !routing }?.points
-        return com.onpath.app.routing.PlanPoints.rows(pts, line) { i -> pts.getOrNull(i)?.let { stopName(it) ?: nearbyNames[it] } }
-    }
-
-    /** Names the route points from the offline place index (once per point, off the main thread). */
-    fun refreshPointNames() {
-        val todo = waypoints.toList().filter { it !in nearbyNames && stopName(it) == null }.distinct()
-        if (todo.isEmpty() || namesJob?.isActive == true) return
-        namesJob = viewModelScope.launchSafe("app", "refreshPointNames") {
-            // only the places near each point are read from the index file (off the main thread)
-            val index = try { search.offlineIndex() }
-                catch (e: kotlinx.coroutines.CancellationException) { throw e }
-                catch (e: Exception) { Problems.info("plan", "No place index for point names; \"Point N\" shown", e); return@launchSafe }
-            val names = withContext(Dispatchers.IO) {
-                todo.mapNotNull { p ->
-                    com.onpath.app.search.RouteNamer.label(p, com.onpath.app.search.RouteNamer.placesNear(index, listOf(p)))?.let { p to it }
-                }.toMap()
-            }
-            nearbyNames = nearbyNames + names
-        }
-    }
-
-    /** Route details (way types, surfaces, difficulty, full profile) – opened from the sheet's profile or badge. */
-    var routeDetailsOpen by mutableStateOf(false)
-
-    /** Points list: row [from] dropped at row [to] (hold ≡ and drag); to the top = the new start. Undo reverts. */
-    fun movePointInList(from: Int, to: Int) {
-        val after = com.onpath.app.routing.PlanPoints.move(waypoints, from, to)
-        if (after == waypoints.toList()) return
-        Problems.trace("plan", "Points list: point ${from + 1} moved to ${to + 1} (plan ${waypoints.size} points)")
-        set(after)
-    }
-
-    /** Points list → ✕: deleted at once (Undo brings it back); a round trip stays closed at its start. */
-    fun deletePointFromList(index: Int) {
-        val after = com.onpath.app.routing.PlanPoints.delete(waypoints, index)
-        if (after.size == waypoints.size) return
-        Problems.trace("plan", "Points list: point ${index + 1} deleted (plan ${waypoints.size} → ${after.size})")
-        set(after)
-    }
+    /** Rows of the Points section ([PlanEditSlice.planPointRows]). */
+    fun planPointRows(): List<com.onpath.app.routing.PlanPointRow> = planEdit.planPointRows(route)
+    /** Names the route points from the offline place index ([PlanEditSlice.refreshPointNames]). */
+    fun refreshPointNames() = planEdit.refreshPointNames()
+    /** Route details open ([PlanEditSlice.routeDetailsOpen]). */
+    var routeDetailsOpen: Boolean
+        get() = planEdit.routeDetailsOpen
+        set(v) { planEdit.routeDetailsOpen = v }
+    private val nearbyNames: Map<GeoPoint, String> get() = planEdit.nearbyNames
+    /** Points list: row dropped at another row ([PlanEditSlice.movePointInList]). */
+    fun movePointInList(from: Int, to: Int) = planEdit.movePointInList(from, to)
+    /** Points list → ✕ ([PlanEditSlice.deletePointFromList]). */
+    fun deletePointFromList(index: Int) = planEdit.deletePointFromList(index)
 
     /**
      * Points list → row tapped: the map shows that point (following stopped first – CLAUDE.md map camera rule) with a
@@ -2282,19 +2264,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launchSafe("app", "showPointFromList") { delay(3_000); if (highlight == p) highlight = null }
     }
 
-    /** Point menu → "Delete" (Undo brings it back). */
-    fun deletePointFromMenu() {
-        val i = menuAction("Delete") ?: return
-        val before = waypoints.size
-        val gone = waypoints[i]
-        removePoint(i)
-        // another marker on the same spot still looks like "the point stayed" (a point snapped next to it)
-        val twin = waypoints.withIndex().minByOrNull { com.onpath.app.data.Geo.distance(it.value, gone) }
-            ?.takeIf { com.onpath.app.data.Geo.distance(it.value, gone) < 100.0 }
-        Problems.trace("plan", "Point ${i + 1} deleted: plan $before → ${waypoints.size}, route recalculation " +
-            (if (routing) "started" else "not needed") +
-            (twin?.let { ", point ${it.index + 1} is only ${com.onpath.app.data.Geo.distance(it.value, gone).toInt()} m away" } ?: ""))
-    }
+    /** Point menu → "Delete" ([PlanEditSlice.deletePointFromMenu]). */
+    fun deletePointFromMenu() = planEdit.deletePointFromMenu()
 
     /** Point menu → "Open in Google Maps" (closes the menu; the caller opens the link). */
     fun googleFromMenu(): GeoPoint? = menuAction("Open in Google Maps")?.let { waypoints[it] }
@@ -2380,8 +2351,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return m
     }
 
-    /** The found place the last edit added ([TakenPin]): a Cancel that undoes that edit shows its pin again. */
-    private var pinTaken: TakenPin? = null
     /**
      * [block] adds a place from the place card or the candidate marker's menu: the new route is fitted once computed
      * ([WholeRoute.fitAfterPlace], the same fit as the first route).
@@ -2468,95 +2437,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         searchFlow.openSharedMenuIfArrived(cameraLat, cameraLon, metersPerPx, arrivedPx)
     private fun holdCameraForSharedPlace() = searchFlow.holdCameraForSharedPlace()
 
-    fun makeDestination(index: Int) {
-        // the last row; a round trip stays closed at its start (as dragging the row to the end of the Points list)
-        if (index in waypoints.indices && index != waypoints.lastIndex) set(com.onpath.app.routing.PlanPoints.move(waypoints, index, waypoints.size - 1))
-    }
-    /** "⇅ Umkehren" changes the plan (greyed out for an out-and-back over one point, owner 2026-11-06 #40). */
-    fun canReverse(): Boolean = PlanEdits.reverseChanges(waypoints)
-    fun reverseRoute() {
-        if (!PlanEdits.reverseChanges(waypoints)) {
-            Problems.trace("plan", "Reverse: nothing to reverse (plan ${waypoints.size} points, the same backwards)"); return
-        }
-        Problems.trace("plan", "Reverse: plan ${waypoints.size} points")
-        set(PlanEdits.reverse(waypoints))
-    }
-
-    /** "↻ Rundtour" can be switched: on (adds the way back to the start) or off (the plan is a round trip). */
-    fun canRoundTrip(): Boolean = PlanEdits.isRoundTrip(waypoints) || PlanEdits.canRoundTrip(waypoints)
-
-    /**
-     * "↻ Rundtour" is a switch (owner 2026-11-06, onpath.private#40): on → the start becomes the final destination; on a
-     * round trip a tap takes it back – the closing point goes (A → B → A → A → B). One Undo step either way.
-     */
-    fun roundTrip() {
-        val on = PlanEdits.isRoundTrip(waypoints)
-        val w = if (on) PlanEdits.unRoundTrip(waypoints) else PlanEdits.roundTrip(waypoints)
-        if (w.size == waypoints.size) { Problems.trace("plan", "Round trip: nothing to change (plan ${waypoints.size} points)"); return }
-        Problems.trace("plan", "Round trip ${if (on) "off" else "on"}: plan ${waypoints.size} → ${w.size} points")
-        set(w)
-    }
-
-    fun undoStep() = step(plan.undo(), "Undo")
-    fun redoStep() = step(plan.redo(), "Redo")
-
-    private fun step(prev: List<GeoPoint>?, what: String) {
-        if (prev == null) { Problems.trace("plan", "$what: nothing to ${what.lowercase()}"); return }
-        Problems.trace("plan", "$what: plan ${waypoints.size} → ${prev.size} points")
-        pinTaken = null // the user's own Undo / Redo: a later Cancel does not bring a pin back
-        val before = waypoints.toList()
-        routingSpot = RoutingSpot.of(before, prev)
-        val split = splitOf(before, prev)
-        plan.replace(prev)
-        // the plan an open question was about is gone; one point left where I stand asks nothing (standing on it counts it
-        // as passed, so the split says NothingAhead – GitHub run 2026-11-07, as for edits in change())
-        routeBackAsk = split == TourSplit.Outcome.NothingAhead && !plan.leftIsHere(myPosition())
-        oneLeftGoesFromHere(before)
-        closePointMenu("undo / redo"); firstPointMenu = null; holdAddMenu = null; cancelHoldMeasure(what)
-        routeEvent(RouteRun.Event.PlanEdited)
-        planChanged()
-        endGuidanceIfPlanEmpty()
-        runCauses.step(undo = what == "Undo")
-        recalc()
-    }
-
-    /** Clear the plan right away (owner): one Undo step brings it back, so no question. */
-    /**
-     * ✕ / ☰ Neu planen: the plan leaves the map at once – no question, also during a tour (owner 2026-11-06): a plan not
-     * saved as it is goes under My routes → Zuletzt ([SaveSlice.keepAsDraft]), one Undo step brings it back, and during a tour the
-     * empty sheet says "Tour läuft weiter – …" (the recording goes on, the guidance ends).
-     */
-    fun requestClear() = clearPlan()
-
-    /**
-     * Resets the whole plan in one undoable step: points, route line, pinned marks (kept while
-     * undo can bring them back), error, highlight, notice and point menu. A routing job still
-     * running is cancelled and its result ignored (recalc → a new [RouteRun.gen]).
-     * A followed copy of this plan goes too, unless a recording is using it right now.
-     */
-    fun clearPlan() {
-        save.keepAsDraft("cleared")
-        Problems.trace("plan", "Clear route: plan ${waypoints.size} → 0 points" + if (recState.value != null) " (tour running)" else "")
-        val planLine = route?.points
-        if (waypoints.isNotEmpty()) change { clear() } else recalc()
-        closePointMenu("plan cleared"); firstPointMenu = null; holdAddMenu = null; highlight = null
-        removePin("plan cleared")
-        // the empty sheet says how to start a plan: not rolled up
-        if (planSize == PlanSize.COLLAPSED) planSize = PlanSize.MINI
-        // no tour: the followed line goes with the plan – also when it was the way there ("Guide me") or the app restarted
-        // meanwhile (followFromPlan lives in memory only; Pixel 2026-11-01: a blue line without points stayed). A shown
-        // GPX track keeps its own line.
-        if (com.onpath.app.domain.plan.ClearRule.dropsFollowWithoutTour(following = followLine != null,
-                recording = recState.value != null, followFromPlan = followFromPlan,
-                followIsPlanLine = planLine != null && followLine == planLine, followIsTrack = followIsTrack)) clearFollow()
-        // during a tour (owner 2026-11-05): "Neu planen" ends every guidance – also a followed track, also when the plan was
-        // already empty; Navigate shows a free tour, the recording never stops. Undo brings the points (and following them).
-        if (PlanGuidance.clearEndsGuidance(recState.value != null, followLine != null)) {
-            Problems.trace("plan", "Plan cleared during the tour: route guidance ended, recording continues")
-            clearFollow()
-            guidanceEndedByEmptyPlan = true
-        }
-    }
+    fun makeDestination(index: Int) = planEdit.makeDestination(index)
+    /** "⇅ Umkehren" changes the plan ([PlanEditSlice.canReverse]). */
+    fun canReverse(): Boolean = planEdit.canReverse()
+    fun reverseRoute() = planEdit.reverseRoute()
+    /** "↻ Rundtour" can be switched ([PlanEditSlice.canRoundTrip]). */
+    fun canRoundTrip(): Boolean = planEdit.canRoundTrip()
+    fun roundTrip() = planEdit.roundTrip()
+    fun undoStep() = planEdit.undoStep()
+    fun redoStep() = planEdit.redoStep()
+    /** ✕ / ☰ Neu planen: the plan leaves the map at once, no question ([PlanEditSlice.clearPlan]). */
+    fun requestClear() = planEdit.clearPlan()
+    fun clearPlan() = planEdit.clearPlan()
 
     fun answerLongRoute(plan: Boolean) {
         val effects = routeEvent(RouteRun.Event.LongAnswer(plan, waypoints.toList()))
@@ -2578,30 +2470,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             LongRouteCancelCamera.Target.Me -> locate()
             is LongRouteCancelCamera.Target.Fit -> { followMe = false; freeLookAt = null; events += UiEvent.Fit(target.points) }
             LongRouteCancelCamera.Target.Stay -> Unit
-        }
-    }
-
-    /**
-     * Cancel of the long-route question or of a running calculation: a point edit is
-     * undone (Undo / Redo the other way), an activity / T level change gets the previous activity back, anything else
-     * just stops and leaves the points unrouted.
-     */
-    private fun cancelRun(why: NotRouted) {
-        val cause = runCauses.takeForCancel()
-        val what = PlanStatus.onCancel(cause, canUndo, canRedo)
-        Problems.trace("routing", "Cancel ($why) of a run for ${cause::class.simpleName}: ${what.name.lowercase()}")
-        val taken = pinTaken; pinTaken = null
-        leaveUnrouted(why)
-        when (what) {
-            PlanStatus.OnCancel.UNDO -> undoStep()
-            PlanStatus.OnCancel.REDO -> redoStep()
-            PlanStatus.OnCancel.RESTORE_ACTIVITY -> (cause as? PlanStatus.Cause.ActivityChange)?.let { restoreActivity(it) }
-            PlanStatus.OnCancel.KEEP_POINTS -> Unit
-        }
-        // the add of a found place taken back: the place stays as its pin (field 2026-11-07, S10 – never forgotten)
-        TakenPin.back(taken, waypoints.toList(), searchMark)?.let { p ->
-            searchMark = p
-            Problems.trace("plan", "Cancel took back the add of \"${p.title()}\": its pin is shown again")
         }
     }
 

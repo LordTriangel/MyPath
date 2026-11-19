@@ -50,7 +50,7 @@ class FarDestinationTest {
         assertTrue(com.onpath.app.routing.LongRoute.needsAsk(listOf(hilden, bonn, at), com.onpath.app.routing.Activity.HIKE))
     }
 
-    /** The ViewModel wiring: every add from the pin remembers it, Cancel's undo asks [TakenPin.back], a newer edit forgets it. */
+    /** The ViewModel wiring: every add from the pin remembers it (Cancel / a newer edit: PlanEditFlowTest). */
     @Test fun cancelOfARunShowsThePinOfTheAddItTookBack() {
         val vm = src("ui/AppViewModel.kt")
         for (f in listOf("fun addPoiPoint(", "fun poiFromMyLocation(", "private fun addPoiWith(", "fun addPlace(")) {
@@ -58,10 +58,9 @@ class FarDestinationTest {
             assertTrue("$f takes the pin", b.contains("takePin("))
             assertTrue("$f remembers it", b.contains("pinTaken = pin?.let { TakenPin(it, p) }"))
         }
-        val cancel = body(vm, "private fun cancelRun(")
-        assertTrue(cancel, cancel.contains("val taken = pinTaken; pinTaken = null"))
-        assertTrue(cancel, cancel.contains("TakenPin.back(taken, waypoints.toList(), searchMark)"))
-        assertTrue(body(vm, "private fun change(").contains("pinTaken = null"))
+        // Cancel asks TakenPin.back (once, a newer search pick wins) and a newer edit / the user's Undo forgets the pin:
+        // PlanEditFlowTest.cancelBringsTheFoundPlacesPinBackWhenTheAddIsTakenBackAndNewerThingsWin,
+        // anEditForgetsThePinOfAnEarlierAddAndTheAddSetsItAfterwards, theUsersOwnUndoForgetsAPinThatACancelWouldBringBack
     }
 
     /**
