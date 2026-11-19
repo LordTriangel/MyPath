@@ -4,7 +4,7 @@
 #   1. routing fingerprint inputs equal: BRouter version + PLANNER_VERSION (routing/RoutingFingerprint.kt), the
 #      profiles + lookups.dat (app/src/main/assets/brouter/), the BRouter jars (app/libs/)
 #   2. sync format equal: the shared sync/ files
-#   3. every other app file the planner compiles (app/web-shared-files.txt, else appFiles in web/engine/build.gradle.kts) equal
+#   3. every other file the planner compiles from the app (the :core folder minus the engine's stand-ins / excludes + app/web-shared-files.txt, else appFiles in web/engine/build.gradle.kts) equal
 #   4. CI green: unit.yml on the app ref, "Web planner" (web.yml) on the planner ref (needs gh; else "unknown")
 # One branch since 2026-11-06 (web-spike merged into main): both refs are main, 1–3 hold by construction and only CI
 # is checked. web.yml runs only when the planner or the app code it compiles changed – then its newest run on main
@@ -61,12 +61,21 @@ for dir in app/src/main/assets/brouter app/libs; do
     bad "$dir differs:"; diff <(echo "$a") <(echo "$w") | grep '^[<>]' | awk '{print "      " $1 " " $3}'; fi
 done
 
-# 2 + 3. the app files the planner compiles: app/web-shared-files.txt ([files]) – the one list since 2026-11-01 –
-# else appFiles in web/engine/build.gradle.kts (older trees before it read the list)
+# 2 + 3. the files the planner compiles from the app: the whole :core folder minus the stand-ins of web/engine (same path
+# below web/engine/src/main/kotlin/com/onpath/app/) minus web/engine/core-excludes.txt, plus the app files app/web-shared-files.txt
+# ([files]) still names (umbau phase 1, piece D; the same rule as web/engine/build.gradle.kts). Older trees: the list alone
+# (all its files, wherever they live), else appFiles in web/engine/build.gradle.kts (before the list existed).
 LIST=app/web-shared-files.txt BUILD=web/engine/build.gradle.kts
+EXCL=web/engine/core-excludes.txt STAND=web/engine/src/main/kotlin/com/onpath/app
 shared_files() { # ref → file names below $SRC
   if git cat-file -e "$1:$LIST" 2>/dev/null; then
     git show "$1:$LIST" | awk '/^\[files\]/{on=1; next} /^\[/{on=0} on' | sed 's/#.*//; s/[[:space:]]//g' | grep -v '^$'
+    if git cat-file -e "$1:$EXCL" 2>/dev/null; then
+      { git ls-tree -r --name-only "$1" -- "$STAND/" | sed "s#^$STAND/##; s/^/stand /"
+        git show "$1:$EXCL" | sed 's/#.*//; s/[[:space:]]//g' | grep -v '^$' | sed 's/^/stand /'
+        git ls-tree -r --name-only "$1" -- "$CORE_SRC/" | sed "s#^$CORE_SRC/##" | grep '\.kt$' | sed 's/^/core /'
+      } | awk '$1=="stand"{skip[$2]=1; next} $1=="core" && !($2 in skip){print $2}'
+    fi
   elif git cat-file -e "$1:$BUILD" 2>/dev/null; then
     git show "$1:$BUILD" | awk '/^val appFiles = listOf\(/{on=1; next} on && /^\)/{exit} on' | grep -v '^\s*//' |
       grep -o '"[^"]*\.kt"' | tr -d '"'

@@ -503,12 +503,29 @@ def shared_list(section):
     return out
 
 
+ENGINE_KT = "web/engine/src/main/kotlin/com/onpath/app"
+ENGINE_EXCLUDES = "web/engine/core-excludes.txt"
+
+
+def core_compiled():
+    """The core/src/main files the planner compiles: the whole folder minus the files a stand-in replaces (same path below
+    web/engine/src/main/kotlin/com/onpath/app/) minus web/engine/core-excludes.txt – the rule of web/engine/build.gradle.kts,
+    web/parity/check.mjs and SharedFilesRuleTest. Paths repo-relative."""
+    def walk(base):
+        out = []
+        for d, _, fs in os.walk(os.path.join(ROOT, base)):
+            out += [os.path.relpath(os.path.join(d, f), os.path.join(ROOT, base)).replace(os.sep, "/") for f in fs if f.endswith(".kt")]
+        return out
+    stand_ins = set(walk(ENGINE_KT))
+    excludes = {l.split("#")[0].strip() for l in read(ENGINE_EXCLUDES).split("\n")} - {""}
+    return sorted(f"{CORE_MAIN}/{f}" for f in walk(CORE_MAIN) if f not in stand_ins and f not in excludes)
+
+
 def lock_hash():
-    """sha256 over the sorted (path NUL content NUL) of the core/ files the planner compiles ([files] / [tests] entries that
-    resolve into core/src/main|test|testkit). SharedFilesRuleTest recomputes the same."""
+    """sha256 over the sorted (path NUL content NUL) of the core/ files the planner compiles (core_compiled() + the [tests]
+    entries that resolve into core/src/test|testkit). SharedFilesRuleTest recomputes the same."""
     import hashlib
-    paths = [f"{CORE_MAIN}/{f}" for f in shared_list("files")] + \
-            [f"{b}/{f}" for f in shared_list("tests") for b in (CORE_TEST, CORE_KIT)]
+    paths = core_compiled() + [f"{b}/{f}" for f in shared_list("tests") for b in (CORE_TEST, CORE_KIT)]
     paths = sorted(p for p in paths if os.path.isfile(os.path.join(ROOT, p)))
     h = hashlib.sha256()
     for p in paths:
@@ -516,10 +533,28 @@ def lock_hash():
     return h.hexdigest(), len(paths)
 
 
+def prune_list(moved_rel, dry):
+    """A [files] entry of app/web-shared-files.txt that moved to :core goes: the planner compiles the whole core folder."""
+    path = os.path.join(ROOT, "app/web-shared-files.txt")
+    lines, out, cur, n = open(path, encoding="utf-8").read().split("\n"), [], "", 0
+    for line in lines:
+        s = line.split("#")[0].strip()
+        if s.startswith("["):
+            cur = s
+        elif s and cur == "[files]" and s in moved_rel:
+            n += 1
+            continue
+        out.append(line)
+    if n and not dry:
+        open(path, "w", encoding="utf-8").write("\n".join(out))
+    return n
+
+
 def write_lock(dry=False):
     digest, n = lock_hash()
-    text = f"""# web/engine/core-shared.lock – a fingerprint of the core/ files the planner compiles (the entries of
-# app/web-shared-files.txt that live in core/src/main|test|testkit/kotlin), written by: python3 tools/dev/core_move.py lock
+    text = f"""# web/engine/core-shared.lock – a fingerprint of the core/ files the planner compiles (core/src/main/kotlin minus the
+# stand-ins in web/engine/src/main/kotlin and web/engine/core-excludes.txt, + the [tests] of app/web-shared-files.txt
+# that live in core/src/test|testkit/kotlin), written by: python3 tools/dev/core_move.py lock
 # Why: web.yml's path filters and the engine cache key do not know core/** yet, so an edit of a shared file in core/ would
 # neither start the planner run nor change the cache key. This file is under web/engine/** (both know that), and
 # SharedFilesRuleTest fails when it is out of date.  It goes when web.yml knows core/**.
@@ -759,6 +794,7 @@ def cmd_move(args):
             print(f"  WARNING: {model.rel(old)} is listed in app/web-shared-files.txt [tests] and now has a rewritten path – check web/engine test")
     n = lint_drop(moved_rel, dry)
     print(f"-- app/lint-baseline.xml: {n} issue(s) of moved files dropped")
+    print(f"-- app/web-shared-files.txt: {prune_list(moved_rel, dry)} [files] entr(ies) dropped (moved to core: the planner compiles the folder)")
     write_lock(dry)
     n = parity_rewrite(moved_rel, moved_test_rel, dry)
     print(f"-- web/parity.json: {n} key(s) renamed")

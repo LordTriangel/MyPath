@@ -545,43 +545,1177 @@
     }
   ],
   "shared": {
-    "core/src/main/kotlin/com/onpath/app/routing/RoutingContract.kt": {
-      "blob": "ebf536c8c9a2fa3bac6eb37fc3af0a8a2549c0e7",
+    "core/src/main/kotlin/com/onpath/app/backup/BackupCodec.kt": {
+      "blob": "905b5a81728a04bd2e19a32d5c54ce419b6adb21",
       "perf": [
-        "* [timedOut] = the router gave up for time (search budget used up, or the engine stayed busy): another try with the",
-        "* same or shorter budget (leg by leg) would time out too, so the planner does not retry.",
-        "* request that is nothing else is [Kind.TIMEOUT].",
-        "val kind: Kind = kind ?: Kind.of(message).let { if (it == Kind.OTHER && timedOut) Kind.TIMEOUT else it }",
-        "/** Out of memory / too complex: fewer or closer points help. */",
-        "/** The request took too long (also: no route within the time limit). */",
-        "TIMEOUT,",
-        "Problems.warn(\"routing\", \"Route cancel hook failed; the request runs until its timeout\", e)",
-        "/** Time-limit periods for the search ([RouteTimeLimit] × rounds): 2+ after \"Weiter warten\" ([SlowPlan]). */",
-        "* @param sacLimit hiking difficulty limit 1..5 (SAC T1..T5), only used for HIKE."
+        "const val MAX_NAME = 80",
+        "name.replace(Regex(\"\\\\s+\"), \" \").replace(bad, \"_\").trim().trim('.', ' ').take(MAX_NAME).trim().ifBlank { \"Tour\" }"
       ]
     },
-    "core/src/main/kotlin/com/onpath/app/routing/Rd5Parts.kt": {
-      "blob": "b7ec78d4b0a0439e5adc700d340e002bd16c0711",
+    "core/src/main/kotlin/com/onpath/app/backup/BackupQueue.kt": {
+      "blob": "07b44d853ce5e49e7dae64c784b2a3742e70f6e4",
       "perf": [
-        "const val INDEX_BYTES = 200",
-        "const val CORRIDOR_MARGIN_M = OfflineCorridor.MAX_M",
-        "val raw: ByteArray = raw.copyOf(INDEX_BYTES)",
-        "require(raw.size >= INDEX_BYTES) { \"rd5 index needs $INDEX_BYTES bytes, got ${raw.size}\" }",
-        "val b = ByteBuffer.wrap(raw, 0, INDEX_BYTES)",
-        "fun start(i: Int): Long = if (i == 0) INDEX_BYTES.toLong() else end(i - 1)",
-        "val b = ByteBuffer.allocate(INDEX_BYTES)",
-        "var pos = INDEX_BYTES.toLong()",
-        "if (!file.isFile || file.length() < INDEX_BYTES) return null",
-        "val b = ByteArray(INDEX_BYTES)"
+        "* after [RETRY_DELAYS_MS] (via [later]), at the next backup (tour end, save …) and at the next app start, and only",
+        "* still not ready after [WARN_AFTER_MS] and on a later occasion than the first (another app start or backup) – or at",
+        "val keepsFailing = t - q.sinceMs!! >= WARN_AFTER_MS && q.occasions >= 2",
+        "val delay = RETRY_DELAYS_MS.getOrNull(retryStep)",
+        "val RETRY_DELAYS_MS = listOf(30_000L, 120_000L, 600_000L, 1_800_000L)",
+        "const val WARN_AFTER_MS = 10 * 60_000L"
       ]
     },
-    "core/src/main/kotlin/com/onpath/app/routing/OfflineCorridor.kt": {
-      "blob": "3c1fbeadd00e7223fd88bbc464937716ea5211e3",
+    "core/src/main/kotlin/com/onpath/app/backup/BackupVolumes.kt": {
+      "blob": "a46a4aebe3d10992edbf7a92537fe8bc21dfa332",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/backup/TourBackup.kt": {
+      "blob": "c7ad9df2920d9f0b1679c594f163d9c9e9db040b",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/CellApi.kt": {
+      "blob": "a484b612d6ab3b9315d78eca1dc088208a0e76d1",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/CellManifest.kt": {
+      "blob": "330fd45375d6ed148ff52f35d62eed21238377f8",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/CellMath.kt": {
+      "blob": "5dde7651b7225d3d2a7e34ee4cd1dfcb560a86bd",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/CellStore.kt": {
+      "blob": "ef47fcf9e8f14bcfd748ce8f19084bfd476ce1d9",
       "perf": [
-        "const val MAX_M = BIKE_M",
-        "/** Corridor either side of a route for [activity]; null (not known) → [MAX_M]. */",
-        "null -> MAX_M"
+        "* Kept in memory per store folder for the whole process ([cache]): a complete generation never changes after its",
+        "val snap = cache[key]?.takeIf { it.epoch == e0 }",
+        "if (epoch.get() == e0) cache[key] = fresh // changed meanwhile: the next call lists and reads again",
+        "Problems.error(\"cells\", \"Map POIs could not be prepared as tiles; drawn the old way (more memory)\", e)",
+        "private val cache = java.util.concurrent.ConcurrentHashMap<String, Snapshot>()",
+        "fun forget(storeDir: File) { cache.remove(storeDir.absolutePath) }"
       ]
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/CellTriggers.kt": {
+      "blob": "0a7aafad67ff648db456e427b66584733514f4dd",
+      "perf": [
+        "* rule: they load on mobile data – the user is out there). Quiet: no card. Each cell at most every [AHEAD_RETRY_MS].",
+        "val want = needed(around).filter { c -> lastAhead[c]?.let { t - it >= AHEAD_RETRY_MS } ?: true }",
+        "* [FRESH_CHECK_MS]. Quiet: no card. Returns the cells asked for.",
+        ".filter { c -> lastFresh[c]?.let { t - it >= FRESH_CHECK_MS } ?: true }",
+        "const val AHEAD_RETRY_MS = 30 * 60_000L",
+        "const val FRESH_CHECK_MS = 3600_000L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/GeoJsonMerge.kt": {
+      "blob": "6f1bf44d9b297e0d2cc307021059897cae9fb0b7",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/MapCells.kt": {
+      "blob": "752c34a753d86e1cb3c4a4d8d5927d65aff24462",
+      "perf": [
+        "private val backgroundPollMs: Long = BACKGROUND_POLL_MS,",
+        "private val batchMs: Long = BATCH_MS,",
+        "private val maxBatchMs: Long = MAX_BATCH_MS,",
+        "private val freshMs: Long = FRESH_MS,",
+        "* is ready the store is not read, nothing is joined, removed or downloaded and requests wait in memory ([closed]).",
+        "* background) – at most every [BACKGROUND_POLL_MS].",
+        "val answer = cells.chunked(MAX_PER_CALL).map { a.status(it.map { c -> c.id }) }",
+        "// storage not ready: the request waits in memory and is asked again once the store is read ([start])",
+        "* [PACKAGE_CHECK_MS] is asked for again (the server answers \"ready\" with the same version when nothing is newer).",
+        "val want = CellId.packagesFor(cells).filter { p -> have[p]?.let { t - it.installedAt > PACKAGE_CHECK_MS } ?: true }",
+        "* server's pace like cells being built, not after [IDLE_MS].",
+        "// MapLibre reads the POIs as tiles, not GeoJSON, with the density limit (PoiDensity)",
+        "if (userBusy) return BUSY_RECHECK_MS",
+        "val asking = quiet < ASK_WAIT_MS && (foreground || tourInBackground || loadInBackground) && network.connected() &&",
+        "if (!due) return if (more) 0L else if (asking) ASK_RECHECK_MS else (batchMs - quiet).coerceAtLeast(1L)",
+        "if (pending.isEmpty()) return IDLE_MS",
+        "return IDLE_MS",
+        "if (!foreground && !tourInBackground && !loadInBackground) return IDLE_MS",
+        "?: return if (cellPending.isEmpty()) PACKAGE_RETRY_MS else IDLE_MS",
+        "return if (!stillBuilding) IDLE_MS",
+        "for ((reason, list) in unsent.groupBy { it.reason }) for (chunk in list.chunked(MAX_PER_CALL)) {",
+        "pending.chunked(MAX_PER_CALL).map { api.status(it.map { p -> p.id.id }) }.reduce { a, b -> merge(a, b) }",
+        "now() - mine.installedAt < DEV_KEEP_MS) {",
+        "if ((r == CellReason.POINT || r == CellReason.NEAR) && t - at > STALE_MS) { stale += c; continue }",
+        "private const val IDLE_MS = 15 * 60_000L",
+        "const val BACKGROUND_POLL_MS = 30_000L",
+        "private const val MAX_PER_CALL = 40",
+        "const val BATCH_MS = 10_000L",
+        "const val MAX_BATCH_MS = 60_000L",
+        "const val FRESH_MS = 5_000L",
+        "const val DEV_KEEP_MS = 24L * 3600 * 1000",
+        "private const val BUSY_RECHECK_MS = 1_000L",
+        "private const val ASK_WAIT_MS = 5_000L",
+        "private const val ASK_RECHECK_MS = 300L",
+        "private const val PACKAGE_RETRY_MS = 5 * 60_000L",
+        "const val PACKAGE_CHECK_MS = 30L * 24 * 3600 * 1000",
+        "const val STALE_MS = 24L * 3600 * 1000"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/MapCleanup.kt": {
+      "blob": "d901f693a92e90a90a0fd0e2dc38e0ef06b719b8",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/PmTiles.kt": {
+      "blob": "375eb8d6d6409c7a18c5bb49f79f85e93c0d29df",
+      "perf": [
+        "const val HEADER_SIZE = 127",
+        "const val ROOT_LIMIT = 16_384 - HEADER_SIZE",
+        "val b = ByteBuffer.allocate(HEADER_SIZE).order(ByteOrder.LITTLE_ENDIAN)",
+        "if (h.size < HEADER_SIZE || String(h, 0, 7, Charsets.US_ASCII) != \"PMTiles\") throw IOException(\"not a PMTiles file\")",
+        "val h = ByteArray(HEADER_SIZE)",
+        "if (length < 0 || length > Int.MAX_VALUE) throw IOException(\"bad length $length\")",
+        "var minX = Double.MAX_VALUE; var minY = Double.MAX_VALUE; var maxX = -Double.MAX_VALUE; var maxY = -Double.MAX_VALUE",
+        "val rootOff = HEADER_SIZE.toLong()",
+        "* Writes an archive from tiles in memory (\"z/x/y\" → stored bytes): small archives for tests and fixtures. Identical",
+        "val h = Header(HEADER_SIZE.toLong(), root.size.toLong(), HEADER_SIZE.toLong() + root.size, meta.size.toLong(),",
+        "HEADER_SIZE.toLong() + root.size + meta.size, leaves.size.toLong(),",
+        "HEADER_SIZE.toLong() + root.size + meta.size + leaves.size, data.size().toLong(),",
+        "/** Root + leaf directories (gzip) so that the root fits [ROOT_LIMIT]. */",
+        "if (rootOnly.size <= ROOT_LIMIT) return rootOnly to ByteArray(0)",
+        "if (root.size <= ROOT_LIMIT) return root to leaves.toByteArray()"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/PoiDensity.kt": {
+      "blob": "3fe621fbbe60a8efa52619b1dc48397c725c532e",
+      "perf": [
+        "* The density limit for city POIs (owner 2026-11-13, central London: „Vielleicht ab einer bestimmten Zahl Restaurants",
+        "/** From this zoom every POI is drawn (no limit). */"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/PoiTiles.kt": {
+      "blob": "79a09f2be5c75cde9dc4a0eda8584ad9bb75fdce",
+      "perf": [
+        "* cut – ~5.5 KB per POI, 0.8 GB native heap for 145 k POIs (19 cells), more after each join. From PMTiles MapLibre only",
+        "const val MAX_ZOOM = 14",
+        "* 1 = every POI from its kind's zoom; 2 = the density limit for city POIs ([PoiDensity], 2026-11-13).",
+        "else -> MAX_ZOOM",
+        "val METADATA = \"\"\"{\"name\":\"OnPath POIs\",\"format\":\"pbf\",\"vector_layers\":[{\"id\":\"$LAYER\",\"minzoom\":$MIN_ZOOM,\"maxzoom\":$MAX_ZOOM,\"fields\":{}}]}\"\"\"",
+        "* cell's tiles are encoded on their own and the cells joined with [PmTiles.merge] – memory stays at one cell's POIs.",
+        "// the density limit (PoiDensity): drawn only from its first zoom – left out of the tiles below it",
+        "for (z in maxOf(MIN_ZOOM, minZoom(kind), minOf(dz, MAX_ZOOM))..MAX_ZOOM) {",
+        "* First pass over one cell's POIs: line number → first zoom, only for POIs the density limit draws later than their"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/RouterClassCheck.kt": {
+      "blob": "2db8dcde90ae03e81f78649f23418c9d77a02899",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/cells/TourCorridor.kt": {
+      "blob": "abdc5fb395a68131395a68606fc5258ebb7e7a96",
+      "perf": [
+        "const val CELL_BYTES = 12_500_000L",
+        "* size of an area, null = not known yet ([CELL_BYTES] then).",
+        "return Maps(all, missing, missing.sumOf { knownSize(it)?.takeIf { s -> s > 0 } ?: CELL_BYTES })"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/data/AppSettings.kt": {
+      "blob": "a825d21d7b897c244a5e7ae549354371f9db88e9",
+      "perf": [
+        "* turn and on a tap; [PHONE] = no keep-screen-on, the phone's own timeout.",
+        "val navHoldMs: Int = HoldSetting.DEFAULT_MS,"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/data/AtomicFiles.kt": {
+      "blob": "703e35d6aafecce4dc088740a950bc9b41703bee",
+      "perf": [
+        "const val STALE_TMP_MS = 3_600_000L",
+        "* [STALE_TMP_MS]. Returns how many went; quiet (traces only).",
+        "dir.listFiles { f -> f.isFile && f.name.endsWith(\".tmp\") && now - f.lastModified() > STALE_TMP_MS }.orEmpty().forEach {"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/data/DataImporter.kt": {
+      "blob": "928efddcd8fdb2e5f629350d051e1e13010473ed",
+      "perf": [
+        "val free = dest.parentFile?.usableSpace ?: Long.MAX_VALUE"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/data/DataNames.kt": {
+      "blob": "c6d033829d8ec407cf86f595c43a5a4e64ff0c4c",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/data/Dem.kt": {
+      "blob": "0af46cc1ad8f291a5a6b05c8ff5f4c3acd17f8c4",
+      "perf": [
+        "* Bilinear between pixel centres at the finest zoom there is (≤ [MAX_ZOOM]: z13 ≈ 13 m per pixel in South Tyrol);",
+        "const val MAX_ZOOM = 13",
+        "private val cache = object : LinkedHashMap<Long, DemTile>(16, 0.75f, true) {",
+        "val t = cache[key] ?: (tiles.heights(z, x, y) ?: NONE).also { cache[key] = it }",
+        "val top = minOf(MAX_ZOOM, tiles.maxZoom)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/data/FollowFile.kt": {
+      "blob": "1f7cad3850ac352fa8627a087f72f0011b76b2f7",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/data/FollowProgress.kt": {
+      "blob": "adc016172a04d7182fcca6f9b8e8df0760fd1225",
+      "perf": [
+        "var bestI = -1; var bestD = Double.MAX_VALUE"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/data/Format.kt": {
+      "blob": "aa590937851fe361f89c1d15951e621121a1146d",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/data/Geo.kt": {
+      "blob": "6afc436075050d24280bb36c08740ba900f4920f",
+      "perf": [
+        "var best = line[0]; var bestD = Double.MAX_VALUE",
+        "if (line.isEmpty()) return Double.MAX_VALUE",
+        "var best = Double.MAX_VALUE"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/data/HoldSetting.kt": {
+      "blob": "cfe0fde808fa366ee70021cba419f619f983124c",
+      "perf": [
+        "const val STEP_MS = 500",
+        "const val MAX_MS = 2_000",
+        "const val DEFAULT_MS = 1_000",
+        "val STEPS_MS: List<Int> = (0..MAX_MS step STEP_MS).toList()",
+        "val SLIDER_STEPS = STEPS_MS.size - 2",
+        "fun snap(ms: Float): Int = ((ms.coerceIn(0f, MAX_MS.toFloat()) / STEP_MS).roundToInt() * STEP_MS)",
+        "* on or never set → [DEFAULT_MS].",
+        "else -> DEFAULT_MS"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/data/LastActivity.kt": {
+      "blob": "8bd85477c1b32fa4db38cb7ebe349998d4a5b539",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/data/LegFiles.kt": {
+      "blob": "985f6337160bdd33c0bc10a699aa4f2a997018fc",
+      "perf": [
+        "private val maxFiles: Int = MAX_FILES,",
+        "private val maxBytes: Long = MAX_BYTES,",
+        "const val MAX_FILES = 3_000",
+        "const val MAX_BYTES = 40L * 1024 * 1024"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/data/MultiDay.kt": {
+      "blob": "77d9647fc5580bb8a1067b70dbc42750a8efe8ba",
+      "perf": [
+        "val days = o.getInt(\"days\").takeIf { it in 1..PlanCode.MAX_DAYS } ?: return null"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/data/RoutingDataNotice.kt": {
+      "blob": "6f7664a5f685f21e589f9ee209068c2eeab16bec",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/data/StorageGate.kt": {
+      "blob": "5b7ea08c0c1ab46feb8bd713e2c357effa3f8fee",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/data/Tour.kt": {
+      "blob": "e5c0757cdc1f4dc2e73aebbc6937c3bbae332308",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/data/TourJson.kt": {
+      "blob": "32b8854a727ac1e11da26947a897e3278e09901e",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/data/TourPlan.kt": {
+      "blob": "408d4dce1542bc61ec0875dd6fb558a95db30bb2",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/debug/EventLog.kt": {
+      "blob": "91ff64c5f6d832dc34cc8990718b237fc39d1356",
+      "perf": [
+        "* The long event trace on disk (owner: \"no errors is the objective\"); the in-memory list covers only a few hours.",
+        "*   [MAX_AGE_MS] (14 days) are dropped at start and at every rotation; export skips such lines too.",
+        "const val DEFAULT_MAX_BYTES = 5L * 1024 * 1024",
+        "const val MAX_AGE_MS = 14L * 24 * 3600 * 1000",
+        "/** Lines waiting for the writer; more are dropped (and counted) so a runaway trace cannot fill the memory. */",
+        "private const val MAX_QUEUE = 20_000",
+        "@Volatile var maxBytes: Long = DEFAULT_MAX_BYTES",
+        "/** Call once at start (Problems.init). Drops files older than [MAX_AGE_MS]. */",
+        "if (queued.incrementAndGet() > MAX_QUEUE) { queued.decrementAndGet(); dropped.incrementAndGet(); return }",
+        "try { writer.submit { drain() }.get(timeoutMs, TimeUnit.MILLISECONDS) } catch (_: Exception) { } // expected: timeout – export what is there",
+        "/** The last [n] events (oldest first) from the end of the files – read at start for the in-memory list. */",
+        "/** Writes both files into [os] without lines older than [MAX_AGE_MS]. */",
+        "if (t == null || now - t <= MAX_AGE_MS) { os.write(l.toByteArray()); os.write('\\n'.code) }",
+        "val p = line.split('\\t', limit = 4)",
+        "if (f.isFile && now - f.lastModified() > MAX_AGE_MS) { if (name == CURRENT) closeOut(); f.delete() }"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/debug/MainStall.kt": {
+      "blob": "bcaf1be25bf06d984ea48c40dae0f4356a987471",
+      "perf": [
+        "* did not show where the time went. So: a stall that starts within [FIRST_FRAME_MS] after a screen was created is an",
+        "* Two samples (at [EARLY_SAMPLE_MS] and [Health.STALL_MS]) and the top frames of the last one go into the message.",
+        "const val FIRST_FRAME_MS = 3_000L",
+        "/** The earlier of the two stack samples (the later one is at [Health.STALL_MS]). */",
+        "const val EARLY_SAMPLE_MS = 250L",
+        "const val MAX_FRAMES = 5",
+        "sinceCreatedMs != null && sinceCreatedMs in 0..FIRST_FRAME_MS -> Kind.FIRST_FRAME",
+        "* MapView.onDraw:120; at 250 ms in: Style.load:88)\". [early] / [last] = the stacks at [EARLY_SAMPLE_MS] and",
+        "* [Health.STALL_MS] (empty = not readable); the early one is named only where it differs.",
+        "else \"; at $EARLY_SAMPLE_MS ms in: $earlyText\"",
+        "fun frames(stack: List<StackTraceElement>, max: Int = MAX_FRAMES): List<String> {"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/debug/MapJank.kt": {
+      "blob": "37652bb1b0ab4c08dd793e03e922ef1c2b074b11",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/debug/MapLibreLogLevel.kt": {
+      "blob": "76e66543c945a00a8923f458de4fd5deb84547c9",
+      "perf": [
+        "\"network\", \"timeout\", \"timed out\", \"unknownhost\",",
+        "\"out of memory\", \"egl\", \"opengl\", \"gl error\", \"render\", \"native crash\", \"abort\","
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/debug/SafeLaunch.kt": {
+      "blob": "8c75ff409ccbefc3df548e0f29cf5cc7447d898d",
+      "perf": [
+        "* Cancellation is never reported (it is how work ends). A [VirtualMachineError] (out of memory, stack overflow) is"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/debug/ScreenLifecycle.kt": {
+      "blob": "52dd2193a6bf9cbf18d8130ba23f3720533a7fd8",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/debug/UserText.kt": {
+      "blob": "d608ad403f31c7f925f9ea7c256faf36a9deb177",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/AppMode.kt": {
+      "blob": "8f7452f7e7001fe41492adba454d142828d320ea",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/HoldPaths.kt": {
+      "blob": "7ef44dd649025899f15a6518c97f791588af2d20",
+      "perf": [
+        "* timeout or any failure (no routing data, an engine error, a spot on an island) gives the straight-line numbers back",
+        "private val timeoutMs: Long = TIMEOUT_MS,",
+        "Outcome(straight, false, ms, \"timeout after $timeoutMs ms\")",
+        "const val TIMEOUT_MS = 1_500L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/LoadSmoother.kt": {
+      "blob": "2e2e2b649553da6584c58177b173c1a632885501",
+      "perf": [
+        "*   up to [CREEP_CAP] – the user sees that it is still working.",
+        "* - It does not jump either: at most [MAX_STEP_PER_S] per second towards the target.",
+        "target > shown -> min(target, shown + MAX_STEP_PER_S * max(dt, 1.0))",
+        "else -> if (shown < CREEP_CAP) min(CREEP_CAP, shown + CREEP_PER_S * dt) else shown",
+        "const val CREEP_CAP = 95.0",
+        "const val MAX_STEP_PER_S = 4.0"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/LocateDistance.kt": {
+      "blob": "a4fb4972052cf96e2dec5d5af6cdf29bc5b0cad0",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/LockScreenNav.kt": {
+      "blob": "ae314e6864979ef58eac99c01f7a3962d03ab022",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/MapGestures.kt": {
+      "blob": "60a525dad678d4bee79f0498af6d20e51d3ec383",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/MapReload.kt": {
+      "blob": "9283ddcbf83a105c581414f6ea154c31fadc92b4",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/OfflineReady.kt": {
+      "blob": "ca293f20c69784a706aba3d47d638b239852ba7b",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/PinMenuPlace.kt": {
+      "blob": "8f5d908fcc71f2b640e7b31fcf1e077968f46dbc",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/PlaceAddMenu.kt": {
+      "blob": "89f8e61d89ed0043c7925f6a0f3bba8849757dbc",
+      "perf": [
+        "var insert = Double.MAX_VALUE",
+        "var detour = Double.MAX_VALUE"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/PlaceMenuMeasure.kt": {
+      "blob": "7f0444aeafff427be701477d112aaf9807c16124",
+      "perf": [
+        "* are measured on the paths ([HoldPaths]: off the main thread, at most its time limit, the straight lines on a timeout or"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/PlanCamera.kt": {
+      "blob": "de91cd51bc14bebe2b4441c24bf44ded11fadba5",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/PlanGaps.kt": {
+      "blob": "77cbe65a8797a5fd8481dbf7a1aa36774b1ccd49",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/PlanGuidance.kt": {
+      "blob": "a2155713c9b5e2283f7a2b7db81034f5c488f8c5",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/PlanHaptics.kt": {
+      "blob": "918cd91fdf0387065a4d2b48624694fa52fb2393",
+      "perf": [
+        "const val MAX_UNLABELLED_TOUCH_SEGMENTS = 3"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/PlanState.kt": {
+      "blob": "9605a5157a2962e28e3a2026d278fc892a78038f",
+      "perf": [
+        "class PlanHistory(private val limit: Int = 100) {",
+        "if (undo.size > limit) undo.removeFirst()",
+        "undo.clear(); undo.addAll(undoSteps.takeLast(limit)); redo.clear(); redo.addAll(redoSteps)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/PlanStatus.kt": {
+      "blob": "8b28d0eeac067308bfa74d1447949aa40b43d88b",
+      "perf": [
+        "* route. Keeps the highest value it gave – a new search inside the same leg (a retry) or a leg from the cache never"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/PointsDeleteGuard.kt": {
+      "blob": "2e4ab495820704eb57fe8b33a93fb3732dcaedad",
+      "perf": [
+        "* \"Deleted\" placeholder for [QUIET_MS], so nothing shifts under the finger; meanwhile taps on the list (✕, row, drag)",
+        "fun quiet(now: Long): Boolean = now - since < QUIET_MS",
+        "const val QUIET_MS = 1_200L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/RouteRules.kt": {
+      "blob": "064dc3bf82ef7f70707371772d74bbb1dd267a1e",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/RouteShape.kt": {
+      "blob": "2d8c73c68a8341e9fc8fdb8d8fdefa168b2f5f3b",
+      "perf": [
+        "const val MAX_POINTS = 200",
+        "fun of(segments: List<List<GeoPoint>>, w: Float, h: Float, pad: Float, maxPoints: Int = MAX_POINTS,",
+        "val scale = min(if (ex > 0) room.first / ex else Double.MAX_VALUE, if (ey > 0) room.second / ey else Double.MAX_VALUE)",
+        "val us = max(1, ceil(under.size / MAX_POINTS.toDouble()).toInt())",
+        "var x0 = Float.MAX_VALUE; var x1 = -Float.MAX_VALUE; var y0 = Float.MAX_VALUE; var y1 = -Float.MAX_VALUE"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/RouteWarnings.kt": {
+      "blob": "c92a101492dab80260f8b4c81a099a851aadd8f3",
+      "perf": [
+        "const val MAX_ITEMS = 3",
+        "steepPercent(activity)?.let { limit ->",
+        "val steep = BooleanArray(points.size - 1) { i -> grades[i]?.let { abs(it) > limit } == true }",
+        "/** The amber line, or null when there is nothing to know: at most [MAX_ITEMS] items, then \" +N\". */",
+        "val more = items.size - MAX_ITEMS",
+        "return items.take(MAX_ITEMS).joinToString(\" · \") + if (more > 0) \" +$more\" else \"\""
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/RoutesTab.kt": {
+      "blob": "4d4409dc64ad66fa6fd75a3af5919f1696670876",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/SharedPlaceMenu.kt": {
+      "blob": "9554d0c8e9980fcba47e3be144748f0a4b463f0d",
+      "perf": [
+        "const val SETTLE_MS = 150L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/SheetDrag.kt": {
+      "blob": "9e8a6e1af3822dd11cdd7af2e1436345d00f7272",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/StartCamera.kt": {
+      "blob": "7b07980385c2141930b22ff8eb958d0e312d20a4",
+      "perf": [
+        "* A fresh fix centres at once; if none comes within [FRESH_WAIT_MS], the last known position is used (even if",
+        "const val FRESH_WAIT_MS = 4_000L",
+        "const val ANY_WAIT_MS = 60_000L",
+        "!modeKnown -> if (elapsedMs >= ANY_WAIT_MS) Step.GIVE_UP else Step.WAIT",
+        "fixAgeS != null && (fixAgeS <= FRESH_AGE_S || elapsedMs >= FRESH_WAIT_MS) -> Step.CENTRE",
+        "else -> Step.WAIT // no position yet: keep waiting (no time limit)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/TakenPin.kt": {
+      "blob": "29705e3145f3e421709a9536cfd719a23a23b321",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/map/MapOrientation.kt": {
+      "blob": "807bb500223a4fd2bccb063f6dacc1b9db70a220",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/plan/ClearRule.kt": {
+      "blob": "86841fc2da63d722aef2f691cced9fdafcdc4719",
+      "perf": [
+        "* when it was the way there (\"Guide me\") or the app restarted meanwhile (followFromPlan lives in memory only; Pixel"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/plan/DayFollow.kt": {
+      "blob": "00be70b63aa09d429d1bd12a9765dc193cfa594f",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/plan/FollowHistory.kt": {
+      "blob": "51b123f937fe88957be90fe19aaafac3f81bda5f",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/plan/LivePlan.kt": {
+      "blob": "4b036fb8e916363c705bbb62424338809c899908",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/plan/PlanSession.kt": {
+      "blob": "73a1b806427e51d520db964fa63f0c8bbad77ab3",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/plan/RouteBack.kt": {
+      "blob": "af3d3d5cf564eb432259c2e557eeef85c91c050b",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/plan/RouteRun.kt": {
+      "blob": "2ce2b7499682c74e01115ef3a123dcfd3b5ebca7",
+      "perf": [
+        "*   [Phase.AskLong], nothing routed or loaded. Else → [Phase.Routing] + [Effect.StartRouting]. Always: the time-limit",
+        "/** Time-limit periods of the next run: 1, or more after \"Weiter warten\". */",
+        "/** The run reached its time limit after [rounds] period(s): \"Weiter warten?\" is open. */",
+        "/** … at its time limit after [rounds] period(s), asking. */",
+        "/** Route the plan as run [gen] with [rounds] time-limit periods; [askAtLimit]: ask at the limit instead of straight legs. */"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/plan/RoutingSpot.kt": {
+      "blob": "dbcdd218b5aeba7e8a78739bdb522c5bffe93af2",
+      "perf": [
+        "const val DELAY_MS = 400L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/plan/RunCause.kt": {
+      "blob": "749278378ebaefb9359a93ee083a42c44a3d0504",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/routes/ListTop.kt": {
+      "blob": "bde32b373be51a3b8a802cc7964e0625ea6ca5f7",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/routes/OverviewPages.kt": {
+      "blob": "ba016c0a73563866389ebe4919979ce8480ede20",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/routes/RouteSort.kt": {
+      "blob": "088806ada7877188bbe747d1b8d9e3e55c0cf969",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/routes/RoutesGo.kt": {
+      "blob": "786f75c942228a2aaa62b7c70ca15de434025446",
+      "perf": [
+        "const val MAX_WAIT_MS = 60_000L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/routes/SaveFlow.kt": {
+      "blob": "9d0523464a100c7686ae8da9478abae57f757478",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/tour/NextStop.kt": {
+      "blob": "5899ef024da3ddb47c78a036fbe2619a35f34066",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/tour/PocketLogic.kt": {
+      "blob": "fd96341e5267d655f41132a736b9641830b89740",
+      "perf": [
+        "const val POCKET_SLEEP_MS = 60_000L",
+        "*   is held all the time (as before). Bike: [BIKE_ARM_MS] – a hand reaching for the handlebar phone does not count; a",
+        "class PocketLogic(private val armMs: Long, private val sleepMs: Long = POCKET_SLEEP_MS) {",
+        "const val BIKE_ARM_MS = 5_000L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/tour/QuietGate.kt": {
+      "blob": "d8de5ebc8870ba6f3ea798bb144eef8f047a77f3",
+      "perf": [
+        "if (busy && now < first + maxBusyMs) return BUSY_RECHECK_MS.coerceAtMost(first + maxBusyMs - now)",
+        "const val BUSY_RECHECK_MS = 300L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/tour/ShortRecording.kt": {
+      "blob": "90bb26363f9900d46ec475f892f3c2b78ae87da5",
+      "perf": [
+        "* [com.onpath.app.recording.PointFilter.BRIDGE_MAX_MS] or a jump starts a new piece that adds 0 m – a two-hour hike"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/tour/SmartScreen.kt": {
+      "blob": "994379b1874cb0f1dc98297d5c939da2c39ad136",
+      "perf": [
+        "* only after [PocketLogic.BIKE_ARM_MS] covered (owner 2026-10-30: a hand reaching for the handlebar phone must not turn",
+        "else ScreenPolicy(keepOn = s.bikeScreen.keepsOn, pocketAfterMs = PocketLogic.BIKE_ARM_MS.takeIf { s.bikeScreen.keepsOn },",
+        "* - [LEAD_S] before the next event at the current speed (the highest of the last [SPEED_WINDOW_MS]), but at least",
+        "*   [MIN_LEAD_M] before it, and stays until [AFTER_MS] after it is passed;",
+        "* - for [TAP_MS] after the last touch of the screen (a tap on the rest view, a pan, a button);",
+        "*   not following the position) and [AFTER_MS] after it.",
+        "const val AFTER_MS = 10_000L",
+        "const val TAP_MS = 30_000L",
+        "const val SPEED_WINDOW_MS = SpeedWindow.WINDOW_MS",
+        "/** Speed the lead is computed with: the highest of the last [SPEED_WINDOW_MS] (speeding up counts at once). */",
+        "if (i.touchedMs > 0) tapUntil = maxOf(tapUntil, i.touchedMs + TAP_MS)",
+        "if (i.attention) attentionUntil = nowMs + AFTER_MS",
+        "if (held != null && held != i.targetKey) { afterUntil = nowMs + AFTER_MS; heldKey = null }"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/tour/TourEndRules.kt": {
+      "blob": "86f21cc4fdb901a8998a42bfc462745524376a50",
+      "perf": [
+        "* The end sheet ignores a tap whose finger went down within [GUARD_MS] of the sheet appearing (field bug 2026-11-06",
+        "const val GUARD_MS = 500L",
+        "fun accepts(shownAtMs: Long, pressedAtMs: Long): Boolean = pressedAtMs - shownAtMs >= GUARD_MS"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/tour/TourPlanCopy.kt": {
+      "blob": "41f5b82f1c1f0a9b9bc1549848caece486c42657",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/tour/UnlockWindow.kt": {
+      "blob": "8ddf507c72a872a3c9cc7d699b83798b78e34734",
+      "perf": [
+        "* for [OPEN_MS]. While it is open every button (Pause | Planen; paused Weiter · Beenden · ✎) acts on a plain tap and shows",
+        "* its full colour, and every tap starts the window again. It locks again after [OPEN_MS] without a tap, when the screen",
+        "const val OPEN_MS = 10_000L",
+        "/** End-to-end tests only: a short window instead of [OPEN_MS] (no test waits 10 s); null = the real one. */",
+        "val openMs: Long get() = openMsForTests ?: OPEN_MS",
+        "* The screen went off – power button, timeout, the app in the background (ON_STOP) or the proximity sensor in the"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/gpx/GpxModel.kt": {
+      "blob": "02902d35f3a30dd29c34a56b5304211c4b11d909",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/gpx/GpxParser.kt": {
+      "blob": "e5e37dc1f72c2d14f5fe0867a57fd404b966da8d",
+      "perf": [
+        "const val MAX_BYTES = 60L * 1024 * 1024",
+        "/** A damaged file is scanned for points only up to this size (memory); bigger ones keep their readable part. */",
+        "const val RECOVERY_MAX_BYTES = 15 * 1024 * 1024",
+        "// the scan holds the file as text (twice its size) plus the matches: only for files up to RECOVERY_MAX_BYTES,",
+        "// and memory running out keeps the readable part (review routing M6: a cut-off 50 MB export crashed the app)",
+        "val recovered = if (bytes.size > RECOVERY_MAX_BYTES) null else try { RegexRecovery.parse(String(bytes, Charsets.UTF_8)) }",
+        "catch (e: OutOfMemoryError) { Problems.warn(\"gpx\", \"Not enough memory to scan the damaged GPX; imported the readable part\", e); null }",
+        "if (total > MAX_BYTES) throw GpxException(Txt.s(Res.string.routes_gpx_too_large, (MAX_BYTES / (1024 * 1024)).toInt()))",
+        "if (idx < 0) return ByteArray(0)",
+        "internal fun parseCoord(s: String?, limit: Double): Double? {",
+        "return if (v.isNaN() || v < -limit || v > limit) null else v"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/gpx/GpxWriter.kt": {
+      "blob": "292aed365996b033db237a183b9f8fd0c20e69b1",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/gpx/PlanGpx.kt": {
+      "blob": "36c890cfb757fd4f56463080608ae8d0c583c2ee",
+      "perf": [
+        "const val MAX_STOPS = 200",
+        "if (line.size < 2 || waypoints.size < 2 || waypoints.size > MAX_STOPS) return null"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/gpx/SportType.kt": {
+      "blob": "f4c8b2d7dd72d824c0fcf58e7d52fc49be88691e",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/map/ReliefAuto.kt": {
+      "blob": "548cd79a6c029faade9035c0176c8e5e02a4f01c",
+      "perf": [
+        "*   budget (8.3 ms at 120 Hz) would count the Pixel 8's ordinary busy frames and switch its relief off for nothing."
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/ActivityCheck.kt": {
+      "blob": "c3597cf8ebdfd88543337abf98317cc686551543",
+      "perf": [
+        "*   too hard, steps, above the SAC limit – the router's profile avoids them);",
+        "const val TIMEOUT_MS = 15_000L",
+        "const val MAX_TRACK_VIAS = 12",
+        "val step = max(TRACK_VIA_M, restM / (MAX_TRACK_VIAS + 1))",
+        "while (a < active.lengthM - step / 2 && vias.size < MAX_TRACK_VIAS) { vias += active.pointAt(a); a += step }",
+        "val step = max(TRACK_VIA_M, orig.lengthM / (MAX_TRACK_VIAS + 1))",
+        "while (a < orig.lengthM - step / 2 && vias.size < MAX_TRACK_VIAS) { vias += orig.pointAt(a); a += step }",
+        "val d = other.match(r.pointAt(a))?.distanceM ?: Double.MAX_VALUE"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/CueRule.kt": {
+      "blob": "ba340a51711dba1ed444f14bc063ab9787b40b43",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/FollowStore.kt": {
+      "blob": "e048aa824d1b930abe0ec904b2ab89fde9f3b215",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/GoalSide.kt": {
+      "blob": "bc54ffa31084dcb99e7d8c655643ea2e6b84afe3",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/JogRule.kt": {
+      "blob": "37d32e72601298c3073d704989c47959cfebb21d",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/JunctionCues.kt": {
+      "blob": "7341c276f21ca4b55f509f5248d581ee41733407",
+      "perf": [
+        "* - Cue once, a time before the junction at the current speed: bike [LEAD_S] ([MIN_LEAD_M]…[MAX_LEAD_M]), on foot",
+        "const val MAX_LEAD_M = 100.0",
+        "fun bikeLeadM(speedMps: Double): Double = (speedMps * LEAD_S).coerceIn(MIN_LEAD_M, MAX_LEAD_M)",
+        "JunctionCue.Side.LEFT -> longArrayOf(0, PULSE_MS)",
+        "JunctionCue.Side.RIGHT -> longArrayOf(0, PULSE_MS, GAP_MS, PULSE_MS)",
+        "const val PULSE_MS = 250L",
+        "const val GAP_MS = 220L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/NavLine.kt": {
+      "blob": "d5d9ca625178c385dfb81e86148d3ce2fe2d0304",
+      "perf": [
+        "val segD = DoubleArray(n) { Double.MAX_VALUE }",
+        "var best = Double.MAX_VALUE",
+        "var bestGap = Double.MAX_VALUE"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/NavSession.kt": {
+      "blob": "a40e03903405c0f1253f1d2774fd381dda120fda",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/NavText.kt": {
+      "blob": "afd5d5b29bc1cb850d7a8d32b24c6d398f0a0b96",
+      "perf": [
+        "if (via == null) stopLabel(q, Int.MAX_VALUE)?.let { append(\" · \").append(Txt.s(Res.string.nav_without_stop, it)) }"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/Navigator.kt": {
+      "blob": "efe68f00df18f2e8926a082bc807dc22b2a1bc76",
+      "perf": [
+        "/** No way back (no data, nothing found, timeout): arrow + distance to the route. */",
+        "session.sac, perRequestMs = LEAD_REQUEST_MS, totalMs = LEAD_TOTAL_MS, toStart = true))",
+        "if (moved >= REFRESH_MOVE_M && since >= REFRESH_MIN_MS) {",
+        "if (failures < MAX_FAILURES && pr.reason != Rerouter.Reason.UNAVAILABLE && (moved >= RETRY_MOVE_M || since >= RETRY_MS)) {",
+        "val wait = min(KEEP_WAIT_MS shl (keeps - 1).coerceIn(0, 2), KEEP_WAIT_MAX_MS)",
+        "const val REFRESH_MIN_MS = 30_000L",
+        "/** After \"no way found\": retry after moving this far or after [RETRY_MS]; at most [MAX_FAILURES] times. */",
+        "const val RETRY_MS = 120_000L",
+        "const val MAX_FAILURES = 3",
+        "const val KEEP_WAIT_MS = 120_000L",
+        "const val KEEP_WAIT_MAX_MS = 480_000L",
+        "* so more time than a way back ([Rerouter.PER_REQUEST_MS] / [Rerouter.TOTAL_MS]).",
+        "const val LEAD_REQUEST_MS = 20_000L",
+        "const val LEAD_TOTAL_MS = 30_000L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/NotificationsOff.kt": {
+      "blob": "a55cb408a446a0aa0a516e2309932588a1f5807e",
+      "perf": [
+        "* tour whose chip was confirmed with OK (null = none; kept in memory, not stored)."
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/OffRouteDetector.kt": {
+      "blob": "f7f8dd00ea3cba49b725b18d27ecf5dc993f3b72",
+      "perf": [
+        "* - Off-route distance = setting + accuracy margin (min(accuracy, [MAX_MARGIN_M])).",
+        "* - Confirmed only after [CONFIRM_MS] off **and** having moved [MOVE_M] (+ margin) since leaving: a break with GPS",
+        "*   ([shownAlongM] null) and it is confirmed after [EARLY_CONFIRM_MS] and [MOVE_M] instead of [CONFIRM_MS]. It stays",
+        "fun offDistance(accuracyM: Double) = offRouteM + min(max(accuracyM, 0.0), MAX_MARGIN_M)",
+        "val needMove = MOVE_M + min(f.accuracyM, MAX_MARGIN_M)",
+        "if (f.timeMs - leaveStartMs >= (if (leaveEarly) EARLY_CONFIRM_MS else CONFIRM_MS) && leaveMoved >= needMove) {",
+        "while (recent.size > 2 && f.timeMs - recent.first().timeMs > HEADING_MAX_MS) recent.removeFirst()",
+        "if (now.timeMs - o.timeMs > HEADING_MAX_MS) break",
+        "const val CONFIRM_MS = 15_000L",
+        "const val EARLY_CONFIRM_MS = 4_000L",
+        "const val MAX_MARGIN_M = 20.0",
+        "const val HEADING_MAX_MS = 180_000L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/OffRouteSteps.kt": {
+      "blob": "ef1d3b7d250159b59527cc34d3d4a4a4610d49ee",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/Onward.kt": {
+      "blob": "5601e2fbf743545e9752a2bd51251b8362a531b6",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/Provisional.kt": {
+      "blob": "a24bc9969e21e6db7d9ab1e044921ffe4ced7313",
+      "perf": [
+        "const val MAX_AGE_MS = 120_000L",
+        "const val MAX_ACCURACY_M = NET_MAX_ACCURACY_M",
+        "* app's current fix. A GPS fix the service takes anyway (≤ [PointFilter.MAX_ACCURACY_M]) is never provisional –",
+        "if (!hasAccuracy || accuracyM > MAX_ACCURACY_M || ageMs > MAX_AGE_MS) return null",
+        "if (gps && accuracyM <= PointFilter.MAX_ACCURACY_M) return null"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/RerouteTargets.kt": {
+      "blob": "971ddd26fee0470d3a80ff6499c77831ea9c6cfc",
+      "perf": [
+        "const val MAX_CANDIDATES = 4",
+        "val limit = nextStop?.let { stops[it].alongM } ?: line.lengthM",
+        "if (a >= limit - MIN_GAP_M) {",
+        "if (out.none { it.stopIndex != null } && limit - baseM <= STOP_MAX_AHEAD_M) {",
+        "out += RejoinTarget(limit, line.pointAt(limit), nextStop)",
+        "return kept.take(MAX_CANDIDATES) + pastNext(line, baseM, stops, nextStop)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/Rerouter.kt": {
+      "blob": "7d8606d784df2f32f6c8ca2162c402120fdc25a5",
+      "perf": [
+        "* background thread. At most [RerouteTargets.MAX_CANDIDATES] short engine requests ([PER_REQUEST_MS] each,",
+        "* [TOTAL_MS] together); the candidate with the lowest \"way back + rest of the original\" time wins (ties → nearer).",
+        "val perRequestMs: Long = PER_REQUEST_MS,",
+        "val totalMs: Long = TOTAL_MS,",
+        "enum class Reason { NO_DATA, NO_WAY, TIMEOUT, CANCELLED, UNAVAILABLE }",
+        "var bestScore = Double.MAX_VALUE",
+        "var bestPastScore = Double.MAX_VALUE",
+        "if (left < MIN_LEFT_MS) break",
+        "return via?.let { build(it, null) } ?: Failed(firstReason ?: Reason.TIMEOUT, firstError ?: \"No time left\", took)",
+        "if (left < MIN_LEFT_MS) return Failed(Reason.TIMEOUT, \"No time left\", clock() - t0)",
+        "if (left < MIN_LEFT_MS) return null",
+        "const val PER_REQUEST_MS = 8_000L",
+        "const val TOTAL_MS = 12_000L",
+        "private const val MIN_LEFT_MS = 300L",
+        "RoutingException.Kind.BUSY, RoutingException.Kind.TIMEOUT -> Reason.TIMEOUT"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/ScreenTurns.kt": {
+      "blob": "2ca066c81aca6fc9aab9bb78f922382317a0960e",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/SnapToRoute.kt": {
+      "blob": "a2cc6c71ab1453942eba067900dd40159650eba8",
+      "perf": [
+        "const val MAX_OFF_M = 6.0",
+        "if (offM > MAX_OFF_M) return null"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/SpeedWindow.kt": {
+      "blob": "8bd749f5159b1c9c06370d50f33476b36ea507a5",
+      "perf": [
+        "class SpeedWindow(private val windowMs: Long = WINDOW_MS, private val fallbackMps: Double = FALLBACK_MPS) {",
+        "const val WINDOW_MS = 10_000L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/StopSkip.kt": {
+      "blob": "112537c0511101ad810271f745aa7a0baa0696a1",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/TourSplit.kt": {
+      "blob": "be2f6894b71571302afe72f143cb9fe11f7e942b",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/TurnRound.kt": {
+      "blob": "f79be477732e328c371cdffb61b0f8669cf42f10",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/VisitRadius.kt": {
+      "blob": "3570eb3737292bf2c03921bd9938592b704f0dd6",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/VoiceGuide.kt": {
+      "blob": "4765ca05b1c7cdadaf426a6297422a599eeb3ccd",
+      "perf": [
+        "* - At least [GAP_MS] between sentences; off route / arrival / no destination never wait. A sentence that had to wait",
+        "*   is dropped after [STALE_MS]; a junction is simply said at the next fix (with its distance then).",
+        "* - Quiet while paused; \"No GPS\" once after [GPS_LOST_MS] without a fix while moving (owner 2026-11-01: a short gap is no",
+        "*   news, standing still in a shop never), only after the start, at most every [NO_GPS_EVERY_MS].",
+        "* - State sentences have a minimum interval (field 2026-11-01): \"off the route\" every [OFF_ROUTE_EVERY_MS] (not after a",
+        "*   route\" only after [BACK_ON_AFTER_MS] (15 s) of the question that was said, \"arrived\" every [ARRIVED_EVERY_MS].",
+        "* - The tour's voice memory ([Memory]) is kept with the tour, not with the service: a recording service recreated",
+        "val speechStartMs: Long = SPEECH_START_MS,",
+        "/** Junctions whose \"now\" was said a second time (once is the limit). */",
+        "private var arrivalClosestM = Double.MAX_VALUE",
+        "data class Memory(",
+        "/** The tour's voice memory, to keep with the tour ([continueTour] after a restart). */",
+        "fun memory(): Memory = Memory(started, offRouteSaidMs, noGpsSaidMs, arrivedSaidMs)",
+        "fun continueTour(m: Memory) {",
+        "// the off-route question: said once when it opens (at most every OFF_ROUTE_EVERY_MS – jumping fixes open and",
+        "offRouteSpoken = !i.quiet && since(offRouteSaidMs, i.nowMs) >= OFF_ROUTE_EVERY_MS",
+        "if (offRouteSpoken && !(newLine && i.rerouted) && since(offRouteSaidMs, i.nowMs) >= BACK_ON_AFTER_MS) {",
+        "// GPS: said once; again only after the GPS was good for [GPS_REARM_MS] while walking (owner 2026-11-01: \"einmal und",
+        "if (!gpsSaid && started && !i.quiet && i.nowMs - since >= GPS_LOST_MS && since(noGpsSaidMs, i.nowMs) >= NO_GPS_EVERY_MS) {",
+        "else if (i.nowMs - (gpsGoodSince ?: i.nowMs.also { gpsGoodSince = it }) >= GPS_REARM_MS) { gpsSaid = false; gpsGoodSince = null }",
+        "while (waiting.isNotEmpty() && i.nowMs - waiting.first().second > STALE_MS) waiting.removeFirst()",
+        "val gapOk = since >= GAP_MS",
+        "(i.fixAgeMs.coerceIn(0, MAX_FIX_AGE_MS) + i.speechStartMs.coerceIn(0, MAX_SPEECH_START_MS)) / 1000.0 + NOW_WORD_S",
+        "val along = i.alongM ?: return Double.MAX_VALUE",
+        "val k = alongs.indices.firstOrNull { needed[it] && it !in said && alongs[it] >= along - JunctionCues.PASSED_M } ?: return Double.MAX_VALUE",
+        "/** An app event (arrival, nothing ahead after an edit): said at once, never waits; \"arrived\" at most every [ARRIVED_EVERY_MS]. */",
+        "if (since(arrivedSaidMs, nowMs) < ARRIVED_EVERY_MS) return null",
+        "* goal or [ARRIVE_WAIT_MS] went by – the turns before it are still said ([update] goes on while [arrivalPending]).",
+        "if (since(arrivedSaidMs, i.nowMs) < ARRIVED_EVERY_MS) return null",
+        "if (arrivalSince == null) { arrivalSince = i.nowMs; arrivalClosestM = Double.MAX_VALUE }",
+        "* The service's clock (every second) while \"Ziel erreicht.\" waits: said without another fix once [ARRIVE_WAIT_MS] went",
+        "* by since the gate fired, or no fix came for [ARRIVE_NO_FIX_MS] since [lastFixMs] (the gate fired within 50 m of the",
+        "val noFix = lastFixMs != null && lastFixMs <= nowMs && nowMs - lastFixMs >= ARRIVE_NO_FIX_MS",
+        "if (!noFix && !(since <= nowMs && nowMs - since >= ARRIVE_WAIT_MS)) return null",
+        "val there = minOf(toGoal ?: Double.MAX_VALUE, toEnd ?: Double.MAX_VALUE) <= ARRIVE_SAY_BIKE_M",
+        "val sayNow = force || !bike || toEnd == null || there || passed || i.quiet || i.nowMs - since >= ARRIVE_WAIT_MS",
+        "* Handy schauen.\" Only inside an open question (its opening is said by [update]), not within [GAP_MS] of the last",
+        "if (!lastOffRoute || quiet || since(offRouteSaidMs, nowMs) < GAP_MS) return null",
+        "private fun since(last: Long?, nowMs: Long): Long = if (last == null || last > nowMs) Long.MAX_VALUE else nowMs - last",
+        "* [NOW_REPEAT_AFTER_MS], or when it was said at least [NOW_REPEAT_FACTOR] × the lead ahead – and the rider moves.",
+        "return i.nowMs - t0 >= NOW_REPEAT_AFTER_MS || d0 >= NOW_REPEAT_FACTOR * lead",
+        "const val SPEECH_START_MS = 500L",
+        "const val MAX_SPEECH_START_MS = 2_500L",
+        "const val MAX_FIX_AGE_MS = 3_000L",
+        "const val NOW_REPEAT_AFTER_MS = 20_000L",
+        "const val ARRIVE_WAIT_MS = 20_000L",
+        "const val ARRIVE_NO_FIX_MS = 5_000L",
+        "const val GAP_MS = 10_000L",
+        "const val STALE_MS = 30_000L",
+        "const val GPS_LOST_MS = 150_000L",
+        "const val NO_GPS_EVERY_MS = 10 * 60_000L",
+        "const val GPS_REARM_MS = 2 * 60_000L",
+        "const val OFF_ROUTE_EVERY_MS = 2 * 60_000L",
+        "const val BACK_ON_AFTER_MS = 15_000L",
+        "const val ARRIVED_EVERY_MS = 5 * 60_000L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/VoiceText.kt": {
+      "blob": "8179605bfb71a739a1c3abf3e73a7e154f51f1b9",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/net/HttpDownload.kt": {
+      "blob": "320c3ca8e874efbcbb3418aa1d75c94fe6c334f6",
+      "perf": [
+        "* - redirects followed by hand, to **https only** (a downgrade to http is refused), at most [MAX_REDIRECTS];",
+        "const val MAX_REDIRECTS = 5",
+        "if (loc == null || hops++ >= MAX_REDIRECTS) throw IOException(\"Too many or broken redirects ($code)\")"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/plansync/BrowserLink.kt": {
+      "blob": "9b89ec69048519d6c4bd46bc8cbfca255ec66b00",
+      "perf": [
+        "* [CLOCK_SLACK_MS] before [at] – browsers' clocks differ a little, an old hello the phone had not pulled yet is older)",
+        "* unpair, and [expired] after [WAIT_MS] with a good pass meanwhile (a browser that was live already and scanned again",
+        "val was = known[h.id] ?: return h.updatedAt >= at - CLOCK_SLACK_MS",
+        "fun expired(now: Long, passOk: Boolean): Boolean = passOk && now - at > WAIT_MS",
+        "const val CLOCK_SLACK_MS = 15 * 60_000L",
+        "const val WAIT_MS = 30 * 60_000L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/plansync/HttpMailbox.kt": {
+      "blob": "6c09afdb9b0decc5c74266fa2c45236e30bf9c56",
+      "perf": [
+        "* [TIMEOUT_MS] for connect and read, the token as `Authorization: Bearer`. Never throws: no answer is",
+        "connectTimeout = TIMEOUT_MS; readTimeout = TIMEOUT_MS",
+        "// expected: no network, timeout, DNS – the caller says \"offline\" (INFO)",
+        "const val TIMEOUT_MS = 15_000"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/plansync/PassGate.kt": {
+      "blob": "c6a8fca828fd8bba81af0437564b91e36cef64f8",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/plansync/RouteItems.kt": {
+      "blob": "df0da764b6d18db217c232bfffdf3cc62b2f2ad2",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/plansync/StuckOutbox.kt": {
+      "blob": "2807e21c2d9cd7b4c36899c42a1f7d801e63b166",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/plansync/SyncFiles.kt": {
+      "blob": "e2ba6b0f923fc3adae28f8ab551a00a055bac5c5",
+      "perf": [
+        "val d = SyncFormat.newDevice(random(SyncFormat.DEVICE_BYTES))"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/plansync/SyncMarks.kt": {
+      "blob": "3009f71ea649f1592be52b47b41e7815ed08234e",
+      "perf": [
+        "* (storage full) is reported and the mark kept in memory for this run."
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/plansync/SyncRouting.kt": {
+      "blob": "732d7bd3c8b02644772c09a255accb60ef6ed9f3",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/plansync/SyncedRouting.kt": {
+      "blob": "745074390d3a7333ef5f1e920db4d04657fe141e",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/poi/PinnedPoiKinds.kt": {
+      "blob": "9674709c5f64d0e0385b4ccc665d5effde3ba38c",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/poi/Poi.kt": {
+      "blob": "96b5f3f8b4b3f52b617635ffdbdf3e8347fdc5f5",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/poi/PoiFilter.kt": {
+      "blob": "28c0deaf625bcf21c802b26874984d224b44170e",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/poi/PoiKinds.kt": {
+      "blob": "6dffc68f99b5f3ee5c3bc0bcc5f06fa2fffa7d20",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/AscentCounter.kt": {
+      "blob": "e2940176a90c26ad6ffef7e097fd7374a4812cb0",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/DemoPath.kt": {
+      "blob": "9eea405a3d9fad2bcb5d7e4c709a881fbf5d4c8e",
+      "perf": [
+        "var best = Double.MAX_VALUE; var bestI = 0",
+        "var pick = bestI; var pickDiff = Double.MAX_VALUE",
+        "const val MIN_SPEED_MS = 0.3",
+        "// never backwards, never slower than MIN_SPEED_MS (a model glitch must not stop the ride)",
+        "s[i] = maxOf(model, s[i - 1]).coerceAtMost(s[i - 1] + span / MIN_SPEED_MS)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/FixRules.kt": {
+      "blob": "720a374b3197961a464e6926f1cad67a604c2178",
+      "perf": [
+        "const val GPS_STALE_MS = 30_000L",
+        "const val NET_FRESH_MS = 12_000L",
+        "(nowElapsed - lastGpsElapsed > GPS_STALE_MS || (lastGpsAccuracyM > GPS_WEAK_M && accuracyM * 2 <= lastGpsAccuracyM)))",
+        "nowElapsed - lastNetElapsed > NET_FRESH_MS || lastNetAccuracyM * 2 > gpsAccuracyM"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/GpsStatus.kt": {
+      "blob": "cdb0c3c4cfb30c02ee3b8953ef5b7f63760a6c75",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/GpsWatchdog.kt": {
+      "blob": "92f93d32861cd3b6b346e24dfd9b15505922d10a",
+      "perf": [
+        "* for such a restart (never for a tour started indoors – owner: quiet while standing still): no GPS fix within [AFTER_MS]",
+        "companion object { const val AFTER_MS = 5 * 60_000L }",
+        "if (paused || fired || nowMs - at < AFTER_MS) return false"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/GrowingTrack.kt": {
+      "blob": "00e9bbde879f139549678d35cf70cf51d34bb152",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/GuidanceGate.kt": {
+      "blob": "f6dcbf31833f18e8e5140657094528d8ea4c58a6",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/InterruptedLog.kt": {
+      "blob": "c9e16a80db9b8ba3cd0b883b39f7ac6e4377d9bc",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/LatestFileWriter.kt": {
+      "blob": "98a160ecfc1c76f814dd1d938a4d169d83fec123",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/ModeQuiet.kt": {
+      "blob": "153fd7eff8f9843c0faac9c5e6595825883cee0d",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/MoveWatch.kt": {
+      "blob": "29b84c24d9b4c8d033db9e9f97d8bff3f96e6d00",
+      "perf": [
+        "* again and again): moving = a track point was accepted ([PointFilter] drops standing-still fixes) within [WINDOW_MS].",
+        "const val WINDOW_MS = 120_000L",
+        "/** A tour starts / continues / resumes: counts as moving for the first [WINDOW_MS] (a far start is still asked). */",
+        "/** Moved within [WINDOW_MS] before [atMs] (for a GPS loss: the time of the last good fix). */",
+        "fun moving(atMs: Long): Boolean = lastMovedMs?.let { atMs - it in 0..WINDOW_MS || it > atMs } ?: false"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/PauseWatch.kt": {
+      "blob": "c18089a765bced11c1cd83b61a882008f43817e3",
+      "perf": [
+        "const val GPS_MS = 10_000L",
+        "const val MAX_ACCURACY_M = 30.0",
+        "if (warned || accuracyM.isNaN() || accuracyM > MAX_ACCURACY_M) return false"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/PointFilter.kt": {
+      "blob": "e926bb2f483134cb1f9671d5b8af498c99e941b0",
+      "perf": [
+        "* - Fixes worse than [MAX_ACCURACY_M] are dropped. 50 m keeps the track whole in gorges and under forest, where",
+        "* - An impossible speed since the previous point ([MAX_SPEED_MS]) is a GPS jump: dropped.",
+        "const val MAX_ACCURACY_M = 50f",
+        "const val MAX_SPEED_MS = 35.0       // ~126 km/h: anything faster is a GPS jump",
+        "const val BRIDGE_MAX_MS = 5 * 60_000L",
+        "const val BRIDGE_MAX_SPEED_MS = 15.0",
+        "fun accuracyOk(hasAccuracy: Boolean, accuracyM: Float): Boolean = hasAccuracy && accuracyM <= MAX_ACCURACY_M",
+        "if (dt > 0 && d / dt > MAX_SPEED_MS) return Verdict.JUMP to 0.0",
+        "if (dtMs <= 0 || dtMs > BRIDGE_MAX_MS) return false",
+        "return d / (dtMs / 1000.0) <= BRIDGE_MAX_SPEED_MS"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/PointQueue.kt": {
+      "blob": "e9ecc7bed2e6fd828b8c386a05eb5d2fb7b70e2b",
+      "perf": [
+        "/** ~5 h at one point a second: beyond that the oldest unwritten point is given up (memory). */"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/RecNotifText.kt": {
+      "blob": "1f53d332ba9bfea2bcfaeec7276d7bd256c8cd9e",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/RestWatch.kt": {
+      "blob": "48cc9ed14a866d2e8d21b033143c2f5120725e6d",
+      "perf": [
+        "* - Resting: all good fixes (≤ [REST_MAX_ACCURACY_M]) for [REST_AFTER_MS] stayed within [STILL_M] of the first one, none",
+        "*   reported a speed above [STILL_SPEED_MS], and there was no gap longer than [MAX_GAP_MS] between them. So never while",
+        "* - Moving again at once: the first fix more than [WAKE_M] from the rest point or faster than [WAKE_SPEED_MS] – also a",
+        "const val NORMAL_MS = 1_000L",
+        "const val REST_MS = 10_000L",
+        "const val REST_AFTER_MS = 60_000L",
+        "const val STILL_SPEED_MS = 0.5f",
+        "const val MAX_GAP_MS = 15_000L",
+        "const val WAKE_SPEED_MS = 0.7f",
+        "fun lostAfterMs(resting: Boolean): Long = if (resting) REST_MS * 2 + 5_000L else 8_000L",
+        "val intervalMs: Long get() = if (resting) REST_MS else NORMAL_MS",
+        "val gap = lastMs != Long.MIN_VALUE && timeMs - lastMs > MAX_GAP_MS",
+        "if (!far && (speedMs == null || speedMs <= WAKE_SPEED_MS)) return null",
+        "if (speedMs != null && speedMs > STILL_SPEED_MS) { anchorLat = Double.NaN; return null }",
+        "if (timeMs - anchorMs < REST_AFTER_MS) return null"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/SeaLevel.kt": {
+      "blob": "6fc1cbb56febeb725988701e3a0f8dc35406cd4e",
+      "perf": [
+        "* - the first [SETTLE_MS] after the first fix: no height (the GPS height settles – a false 40 m descent at the start).",
+        "const val SETTLE_MS = 15_000L",
+        "if (sinceFirstFixMs < SETTLE_MS) return null"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/StopQuiet.kt": {
+      "blob": "9b07c2d27fc5e674c0301c873019105b7aa143ac",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/TourChannels.kt": {
+      "blob": "a699efa7423c95314cac107b4209b1422ad9a12a",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/TourRun.kt": {
+      "blob": "741c18a3d419290887dd17a49665fd8dede45cd6",
+      "perf": [
+        "* Kept out on purpose: the voice memory ([com.onpath.app.navigation.VoiceGuide]) and the pace ([com.onpath.app.time.TripPace])"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/rides/RideDetector.kt": {
+      "blob": "26057aff2613e1729883713cc99e351475efa936",
+      "perf": [
+        "* above the limit – hike > 12 km/h for ≥ 60 s and ≥ 500 m, bike / MTB / e-bike > 50 km/h for ≥ 60 s and ≥ 1 km.",
+        "const val FOOT_LIMIT_MS = 12 / 3.6",
+        "const val FOOT_PEAK_MS = 20 / 3.6",
+        "const val BIKE_LIMIT_MS = 50 / 3.6",
+        "const val BIKE_ANY_MS = 80 / 3.6",
+        "const val LIFT_VERTICAL_MS = 1.0",
+        "const val LIFT_BIKE_DOWN_VERTICAL_MS = 2.0",
+        "val limit = if (foot) FOOT_LIMIT_MS else BIKE_LIMIT_MS",
+        "if ((w.p[j] - w.p[i]) / dt > limit) for (k in i until j) fast[k] = true",
+        "while (s < e && w.pairSpeed(s) < limit / 2) s++",
+        "while (e > s && w.pairSpeed(e - 1) < limit / 2) e--",
+        "if (dur < MIN_S || dist < minM || dist / dur <= limit) return@mapNotNull null",
+        "if (foot && w.peakSpeed(s, e, PEAK_WINDOW_S) <= FOOT_PEAK_MS) return@mapNotNull null",
+        "if (!foot && dist / dur <= BIKE_ANY_MS) {",
+        "if (abs(w.ele[j] - w.ele[i]) / dt > LIFT_VERTICAL_MS) for (k in i until j) steep[k] = true",
+        "while (s < e && (w.ele[s].isNaN() || w.vertical(s) < LIFT_VERTICAL_MS / 2)) s++",
+        "while (e > s && (w.ele[e].isNaN() || w.vertical(e - 1) < LIFT_VERTICAL_MS / 2)) e--",
+        "if (abs(dz) < LIFT_MIN_VERTICAL_M || abs(dz) / dur <= LIFT_VERTICAL_MS) return@mapNotNull null",
+        "val grade = if (straight > 1) abs(dz) / straight else Double.MAX_VALUE",
+        "if (bikeDown && abs(dz) / dur <= LIFT_BIKE_DOWN_VERTICAL_MS) return@mapNotNull null"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/rides/RideView.kt": {
+      "blob": "7b7f8e23f1d4a7a7f69529d38387a653cf26ad8c",
+      "perf": [
+        "const val MOVING_MS = 0.5",
+        "if (ta != null && tb != null && tb > ta && di / ((tb - ta) / 1000.0) >= MOVING_MS) moving += (tb - ta) / 1000.0"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/rides/Rides.kt": {
+      "blob": "0fcc170c1e58ec9f83158f65456dbbb310b13aab",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/ArrivalGate.kt": {
+      "blob": "0158cbcbcfef86d4b778a9871498d9aa993eeade",
+      "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/routing/BRouterWayStats.kt": {
       "blob": "f4e62015fea9f66c3b2b4a63b6ea7a74d274958f",
@@ -590,102 +1724,13 @@
         "val a = cache.getOrPut(cols[9]) { attrs(parseTags(cols[9])) }"
       ]
     },
-    "core/src/main/kotlin/com/onpath/app/routing/WaypointSnap.kt": {
-      "blob": "16d81f9b8796e1ec97be181021cb80cf3ed67e7b",
-      "perf": [
-        "const val MAX_MOVE_M = 1000.0",
-        "maxM: Double = MAX_MOVE_M,"
-      ]
-    },
-    "app/src/main/java/com/onpath/app/routing/BRouterEngine.kt": {
-      "blob": "abb8d8cc77d73f34fc5390086584be27a9a24d6d",
-      "perf": [
-        "* request (same points, activity and SAC limit) returns instantly.",
-        "* Via points are hints: BRouter snaps each to the nearest usable way (within [MAX_SNAP_M]) and,",
-        "var nearest = Double.MAX_VALUE",
-        "private val cache = object : LinkedHashMap<CacheKey, RouteResult>(CACHE_SIZE + 1, 0.75f, true) {",
-        "override fun removeEldestEntry(eldest: MutableMap.MutableEntry<CacheKey, RouteResult>?) = size > CACHE_SIZE",
-        "/** With a time limit (incl. waiting for a running request) and a cancel signal (BRouter `terminate()`). */",
-        "cache[key] ?: run {",
-        "val budget = limits?.let { (it.timeoutMs - (System.currentTimeMillis() - start)).coerceAtLeast(MIN_BUDGET_MS) }",
-        "routeLocked(waypoints, activity, sacLimit, budget, limits?.cancel, limits?.rounds ?: 1)",
-        "}.also { cache[key] = it }",
-        "Problems.error(\"routing\", \"BRouter ran out of memory\", e)",
-        "val limit = RouteTimeLimit.forRoute(waypoints, activity, rounds)",
-        "val timeoutMs = budgetMs?.coerceAtMost(limit) ?: limit",
-        "try { engine.doRun(left.coerceAtLeast(MIN_BUDGET_MS)) } finally { cancel?.onCancel(null); running = null }",
-        "if (way == null || skipWays.size >= MAX_ISLAND_SKIPS || timeoutMs - (System.currentTimeMillis() - t0) < MIN_BUDGET_MS) {",
-        "val limit = if (i == 0 || i == waypoints.size - 1) MAX_SNAP_M else MAX_SNAP_M + viaCorrectionM(activity)",
-        "if (d > limit) {",
-        "// snap points within MAX_SNAP_M in one pass and fail fast (before any search) when a point",
-        "kv[\"waypointCatchingRange\"] = MAX_SNAP_M.toInt().toString()",
-        "// above the limit = forbidden (profile). Preferred = the limit but at most T3: a marked T2/T3 trail beats the",
-        "private fun isTimeout(m: String) = m.contains(\"timeout\") || m.contains(\"killed\")",
-        "Txt.s(Res.string.plan_err_not_mapped, pointNameFromBRouter(who), MAX_SNAP_M.toInt(), activity.label)",
-        "m.contains(\"memory limit\") ->",
-        "private const val MIN_BUDGET_MS = 500L",
-        "private const val MAX_ISLAND_SKIPS = 3",
-        "/** BRouter retries a start on an island this often (its `freezeCount` limit) before \"no track found\". */",
-        "private const val CACHE_SIZE = 8",
-        "private const val MAX_SNAP_M = 1000.0",
-        "// keep parsed profiles of several activities in memory"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/StraightLineEngine.kt": {
-      "blob": "6f6f3ba3497664221309fc21fd9f0b479860cff6",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/RouteTimeLimit.kt": {
-      "blob": "097af462b87a65f7ff0b7b5edaf2de14ac65cdf7",
-      "perf": [
-        "* BRouter's search time limit for one request, by straight-line distance and profile.",
-        "* A short route that is not found quickly is almost always unreachable (only via paths above the SAC limit, an island),",
-        "* so it keeps a short limit. Search cost grows with distance and differs by profile: measured on a PC for",
-        "* makes long bike / MTB routes time out. No limit is below 15 s + 0.5 s/km (max 30 s). Cancel stays possible at any",
-        "const val MIN_MS = 15_000L",
-        "/** Limit for [km] straight-line kilometres with [activity]. */",
-        "return (MIN_MS + km.coerceAtLeast(0.0) * r.msPerKm).toLong().coerceIn(MIN_MS, r.capMs)",
-        "* Limit for a request through [waypoints] (straight-line sum of the legs); [rounds] periods after \"Weiter warten\""
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/TurnDetector.kt": {
-      "blob": "dc8e79c9ed4e1918a463c784395a5d7d6ce11874",
+    "core/src/main/kotlin/com/onpath/app/routing/BreakdownRules.kt": {
+      "blob": "c0b32eb2d2cac99324fa3b853a04a641f9f6d82e",
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/routing/Junctions.kt": {
       "blob": "ece866248097738df720edda477146aa79130770",
       "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/Planner.kt": {
-      "blob": "940a11f389698e98d48f9701c0b84626fcc30d21",
-      "perf": [
-        "* points = same legs = same route: the cache saves time, never changes a line.",
-        "* A leg without a route becomes a straight dashed line (R-12/R-13); after a timeout the legs still to route are straight",
-        "* at once (each would wait its own limit) – or, in Plan, the user is asked \"Weiter warten?\" ([SlowPlan]).",
-        "/** Wall clock in ms (tests pass their own: the short-trip retry's time budget, [retryShortDetour]). */",
-        "* A plan run the user started in Plan (owner 2026-11-03, [SlowPlan]): at the time limit [plan] throws",
-        "/** Time-limit periods of this run (2+ after \"Weiter warten\", [RouteLimits.rounds]). */",
-        "* comes from the cache. On the planning thread.",
-        "/** One engine request of this planner: points, time, outcome (\"ok\", \"timeout\", \"failed\"), wait for the engine lock. */",
-        "/** \"2 pts 1.2 s ok; 3 pts 0.4 s ok (2 legs from the cache)\" – short, for the event log. */",
-        "} + if (cachedLegs > 0) \"${if (tries.isEmpty()) \"\" else \"; \"}$cachedLegs legs from the cache\" +",
-        "/** [limitMs] = this request's own time limit (the short-trip retry, [retryShortDetour]); null = the engine's usual one. */",
-        "return (if (limitMs != null) engine.route(pts, activity, sac, RouteLimits(minOf(limitMs, PLAN_LIMIT_MS), cancel))",
-        "else engine.route(pts, activity, sac, RouteLimits(PLAN_LIMIT_MS * rounds.coerceAtLeast(1), cancel, rounds))).also { outcome = \"ok\" }",
-        "outcome = if (e.timedOut) \"timeout\" else if (cancel?.isCancelled == true) \"cancelled\" else \"failed\"",
-        "// at the time limit in Plan: the user is asked \"Weiter warten?\" (owner 2026-11-03, SlowPlan) – the legs",
-        "// done so far are in the cache, the next run starts after them",
-        "// each leg would get its own limit and the wait multiplies: the rest straight at once",
-        "* Time: the retry counts against the leg's time limit ([RouteTimeLimit.forRoute], started at [t0]); it gets only what",
-        "* is left of it and does not start with less than [MIN_RETRY_MS]. Returns [r] when nothing was taken.",
-        "if (left < MIN_RETRY_MS) { Problems.trace(\"routing\", \"$leg → no time left to retry via the midpoint\"); return r }",
-        "// expected: RoutingException = no route via the midpoint (an island, a timeout) – the first route stays",
-        "/** The legs still to route after a timeout (straight lines at once). */",
-        "/** A retry does not start with less than this left of its leg's time limit (ms). */",
-        "const val MIN_RETRY_MS = 1_000L",
-        "/** With a cancel signal: the overall wait for the router (each request keeps its own search budget). */",
-        "const val PLAN_LIMIT_MS = 10 * 60_000L"
-      ]
     },
     "core/src/main/kotlin/com/onpath/app/routing/LegCache.kt": {
       "blob": "cafbd677a9cc24c3a28691cf4db73a6aabbbb958",
@@ -712,99 +1757,17 @@
         "/** The T level counts only for Hike (the bike profiles ignore it – same as BRouterEngine's own cache key). */"
       ]
     },
-    "core/src/main/kotlin/com/onpath/app/routing/SlowPlan.kt": {
-      "blob": "2efd3f158775ca48d2d2fb32e3c5e517f5480f70",
-      "perf": [
-        "* A plan calculation that reaches its time limit ([RouteTimeLimit]) – owner 2026-11-02 / 03 (onpath.private#13, #21 B):",
-        "* - \"Weiter warten\": the calculation runs again with one more time-limit period ([RouteLimits.rounds] + 1) – BRouter",
-        "*   cannot resume a search, so the new run gets the whole longer budget; routed pieces come from the engine's cache.",
-        "*   At that limit it asks again (no maximum: the user decides).",
-        "/** What happens when a run reaches its limit: [ask] = a plan run the user started in Plan. */",
-        "/** Thrown by [Planner] (asking) when its run reached the limit of [rounds] periods; the caller shows the question. */",
-        "class TimeLimit(val rounds: Int) : Exception(\"Route calculation reached its time limit ($rounds period(s))\")"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/WaypointInsertion.kt": {
-      "blob": "65e1a772d4f33af8081e1c1053acf674b948d8e8",
-      "perf": [
-        "var bestCost = Double.MAX_VALUE",
-        "val appendCost = if (loop || stopOnly) Double.MAX_VALUE else Geo.distance(waypoints.last(), p)",
-        "var bestD = Double.MAX_VALUE"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/PlanEdits.kt": {
-      "blob": "1c033499f4298198bb4306633264c82401f18e4e",
-      "perf": [
-        "var bestCost = Double.MAX_VALUE"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/RouteSummary.kt": {
-      "blob": "35029d127c7be762a68ebb2c9b86134fa892b8b3",
+    "core/src/main/kotlin/com/onpath/app/routing/LongRoute.kt": {
+      "blob": "34084104a7bf35caac8aa4fa2ceb5d6dfbbee16d",
       "perf": []
     },
-    "core/src/main/kotlin/com/onpath/app/navigation/JunctionCues.kt": {
-      "blob": "7341c276f21ca4b55f509f5248d581ee41733407",
+    "core/src/main/kotlin/com/onpath/app/routing/OfflineCorridor.kt": {
+      "blob": "3c1fbeadd00e7223fd88bbc464937716ea5211e3",
       "perf": [
-        "* - Cue once, a time before the junction at the current speed: bike [LEAD_S] ([MIN_LEAD_M]…[MAX_LEAD_M]), on foot",
-        "const val MAX_LEAD_M = 100.0",
-        "fun bikeLeadM(speedMps: Double): Double = (speedMps * LEAD_S).coerceIn(MIN_LEAD_M, MAX_LEAD_M)",
-        "JunctionCue.Side.LEFT -> longArrayOf(0, PULSE_MS)",
-        "JunctionCue.Side.RIGHT -> longArrayOf(0, PULSE_MS, GAP_MS, PULSE_MS)",
-        "const val PULSE_MS = 250L",
-        "const val GAP_MS = 220L"
+        "const val MAX_M = BIKE_M",
+        "/** Corridor either side of a route for [activity]; null (not known) → [MAX_M]. */",
+        "null -> MAX_M"
       ]
-    },
-    "core/src/main/kotlin/com/onpath/app/navigation/CueRule.kt": {
-      "blob": "ba340a51711dba1ed444f14bc063ab9787b40b43",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/navigation/JogRule.kt": {
-      "blob": "37d32e72601298c3073d704989c47959cfebb21d",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/navigation/SpeedWindow.kt": {
-      "blob": "8bd749f5159b1c9c06370d50f33476b36ea507a5",
-      "perf": [
-        "class SpeedWindow(private val windowMs: Long = WINDOW_MS, private val fallbackMps: Double = FALLBACK_MPS) {",
-        "const val WINDOW_MS = 10_000L"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/data/Geo.kt": {
-      "blob": "6afc436075050d24280bb36c08740ba900f4920f",
-      "perf": [
-        "var best = line[0]; var bestD = Double.MAX_VALUE",
-        "if (line.isEmpty()) return Double.MAX_VALUE",
-        "var best = Double.MAX_VALUE"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/data/Format.kt": {
-      "blob": "aa590937851fe361f89c1d15951e621121a1146d",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/time/PaceModel.kt": {
-      "blob": "b0a07a016005d1261804f39dadcd63b176382cc0",
-      "perf": [
-        "const val GROUP_LIMIT = 0.05",
-        "grade < -GROUP_LIMIT -> DOWN",
-        "grade > GROUP_LIMIT -> UP",
-        "const val ASSIST_LIMIT_MS = 25 / 3.6",
-        "if (b.assistW > 0) v = maxOf(v, minOf(solve(b.riderW + b.assistW, b.massKg, b.drag, cr, g), ASSIST_LIMIT_MS))",
-        "fun limit(c: Double, k: Double) { cr = maxOf(cr, c); cap = minOf(cap, k) }",
-        "\"intermediate\" -> limit(0.0, 25.0)",
-        "\"bad\", \"robust_wheels\" -> if (mtb) limit(0.0, 20.0) else limit(0.025, 15.0)",
-        "\"very_bad\", \"high_clearance\" -> if (mtb) limit(0.03, 15.0) else limit(0.035, 10.0)",
-        "if (mtb) limit(0.045, 10.0) else return Ride(cr, cap, 1.0)",
-        "1 -> limit(0.03, 15.0)",
-        "2 -> limit(0.045, 10.0)",
-        "3 -> limit(0.06, 6.0)",
-        "1 -> limit(0.035, 12.0)",
-        "if (b.assistW > 0) v = maxOf(v, minOf(solve(b.riderW + b.assistW, b.massKg, b.drag, r.cr, g), ASSIST_LIMIT_MS))",
-        "/** Highest flat speed of e-bikes at any level (km/h): the assist limit. */"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/time/RouteTimes.kt": {
-      "blob": "038b7c8d9bb0e71cbcfc6c8272d718617d58d9b1",
-      "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/routing/PlanCode.kt": {
       "blob": "4d11652b07aa053a1a2e6c5930d2df5807d15b4f",
@@ -836,12 +1799,6 @@
         "?.take(MAX_DESCRIPTION)?.trim()?.takeIf { it.isNotEmpty() }"
       ]
     },
-    "core/src/main/kotlin/com/onpath/app/routing/PlanPoints.kt": {
-      "blob": "7301c5f0ca06814840aa55f5d45fd83bdf5bcc94",
-      "perf": [
-        "var best = Double.MAX_VALUE"
-      ]
-    },
     "core/src/main/kotlin/com/onpath/app/routing/PlanDays.kt": {
       "blob": "94fa7638cf8ade64a86a2e91a46268df9e99398b",
       "perf": [
@@ -858,175 +1815,437 @@
         "if (days < nights.size + 1 || days < 1 || days > PlanCode.MAX_DAYS) return null"
       ]
     },
+    "core/src/main/kotlin/com/onpath/app/routing/PlanEdits.kt": {
+      "blob": "1c033499f4298198bb4306633264c82401f18e4e",
+      "perf": [
+        "var bestCost = Double.MAX_VALUE"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/PlanLinks.kt": {
+      "blob": "dbb85f63ff3a53cd27e94955e0978db344464a8f",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/PlanNames.kt": {
+      "blob": "da0473777e0012de06d5d51d36e920985e23c11c",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/PlanPoints.kt": {
+      "blob": "7301c5f0ca06814840aa55f5d45fd83bdf5bcc94",
+      "perf": [
+        "var best = Double.MAX_VALUE"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/PlanReach.kt": {
+      "blob": "835ceac3782bf6d1d4ad9767192d756a924db5d8",
+      "perf": [
+        "const val TRY_TIMEOUT_MS = 5_000L",
+        "eng.route(ask, a, level, RouteLimits(TRY_TIMEOUT_MS, cancel))"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/PlanResult.kt": {
+      "blob": "2dfaad9e0739c2a172d6417608895a50f7d4922f",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/Planner.kt": {
+      "blob": "7341a6e1dba257663369802638dc374847168304",
+      "perf": [
+        "* points = same legs = same route: the cache saves time, never changes a line.",
+        "* A leg without a route becomes a straight dashed line (R-12/R-13); after a timeout the legs still to route are straight",
+        "* at once (each would wait its own limit) – or, in Plan, the user is asked \"Weiter warten?\" ([SlowPlan]).",
+        "/** Wall clock in ms (tests pass their own: the short-trip retry's time budget, [retryShortDetour]). */",
+        "* A plan run the user started in Plan (owner 2026-11-03, [SlowPlan]): at the time limit [plan] throws",
+        "/** Time-limit periods of this run (2+ after \"Weiter warten\", [RouteLimits.rounds]). */",
+        "* comes from the cache. On the planning thread.",
+        "/** One engine request of this planner: points, time, outcome (\"ok\", \"timeout\", \"failed\"), wait for the engine lock. */",
+        "/** \"2 pts 1.2 s ok; 3 pts 0.4 s ok (2 legs from the cache)\" – short, for the event log. */",
+        "} + if (cachedLegs > 0) \"${if (tries.isEmpty()) \"\" else \"; \"}$cachedLegs legs from the cache\" +",
+        "/** [limitMs] = this request's own time limit (the short-trip retry, [retryShortDetour]); null = the engine's usual one. */",
+        "return (if (limitMs != null) engine.route(pts, activity, sac, RouteLimits(minOf(limitMs, PLAN_LIMIT_MS), cancel))",
+        "else engine.route(pts, activity, sac, RouteLimits(PLAN_LIMIT_MS * rounds.coerceAtLeast(1), cancel, rounds))).also { outcome = \"ok\" }",
+        "outcome = if (e.timedOut) \"timeout\" else if (cancel?.isCancelled == true) \"cancelled\" else \"failed\"",
+        "// at the time limit in Plan: the user is asked \"Weiter warten?\" (owner 2026-11-03, SlowPlan) – the legs",
+        "// done so far are in the cache, the next run starts after them",
+        "// each leg would get its own limit and the wait multiplies: the rest straight at once",
+        "* Time: the retry counts against the leg's time limit ([RouteTimeLimit.forRoute], started at [t0]); it gets only what",
+        "* is left of it and does not start with less than [MIN_RETRY_MS]. Returns [r] when nothing was taken.",
+        "if (left < MIN_RETRY_MS) { Problems.trace(\"routing\", \"$leg → no time left to retry via the midpoint\"); return r }",
+        "// expected: RoutingException = no route via the midpoint (an island, a timeout) – the first route stays",
+        "/** The legs still to route after a timeout (straight lines at once). */",
+        "/** A retry does not start with less than this left of its leg's time limit (ms). */",
+        "const val MIN_RETRY_MS = 1_000L",
+        "/** With a cancel signal: the overall wait for the router (each request keeps its own search budget). */",
+        "const val PLAN_LIMIT_MS = 10 * 60_000L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/ProfileData.kt": {
+      "blob": "2e1f4f29dd8bb52c4090409b721625f2635b581d",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/Rd5Parts.kt": {
+      "blob": "b7ec78d4b0a0439e5adc700d340e002bd16c0711",
+      "perf": [
+        "const val INDEX_BYTES = 200",
+        "const val CORRIDOR_MARGIN_M = OfflineCorridor.MAX_M",
+        "val raw: ByteArray = raw.copyOf(INDEX_BYTES)",
+        "require(raw.size >= INDEX_BYTES) { \"rd5 index needs $INDEX_BYTES bytes, got ${raw.size}\" }",
+        "val b = ByteBuffer.wrap(raw, 0, INDEX_BYTES)",
+        "fun start(i: Int): Long = if (i == 0) INDEX_BYTES.toLong() else end(i - 1)",
+        "val b = ByteBuffer.allocate(INDEX_BYTES)",
+        "var pos = INDEX_BYTES.toLong()",
+        "if (!file.isFile || file.length() < INDEX_BYTES) return null",
+        "val b = ByteArray(INDEX_BYTES)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/RouteProgress.kt": {
+      "blob": "8b75c32c4bad711b9e9371aeeebe797f63df744e",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/RouteSummary.kt": {
+      "blob": "35029d127c7be762a68ebb2c9b86134fa892b8b3",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/RouteTimeLimit.kt": {
+      "blob": "097af462b87a65f7ff0b7b5edaf2de14ac65cdf7",
+      "perf": [
+        "* BRouter's search time limit for one request, by straight-line distance and profile.",
+        "* A short route that is not found quickly is almost always unreachable (only via paths above the SAC limit, an island),",
+        "* so it keeps a short limit. Search cost grows with distance and differs by profile: measured on a PC for",
+        "* makes long bike / MTB routes time out. No limit is below 15 s + 0.5 s/km (max 30 s). Cancel stays possible at any",
+        "const val MIN_MS = 15_000L",
+        "/** Limit for [km] straight-line kilometres with [activity]. */",
+        "return (MIN_MS + km.coerceAtLeast(0.0) * r.msPerKm).toLong().coerceIn(MIN_MS, r.capMs)",
+        "* Limit for a request through [waypoints] (straight-line sum of the legs); [rounds] periods after \"Weiter warten\""
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/RouterClassHash.kt": {
+      "blob": "08b2ca53da87cd08b9357f347c3858c857c0a9c6",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/RouterRules.kt": {
+      "blob": "ba283d44fdfd8411ad330f486ddb7e8e5c5e2f78",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/RoutingContract.kt": {
+      "blob": "26010e569f8dedf3df50cce762c3f31ec84c209d",
+      "perf": [
+        "* [timedOut] = the router gave up for time (search budget used up, or the engine stayed busy): another try with the",
+        "* same or shorter budget (leg by leg) would time out too, so the planner does not retry.",
+        "* request that is nothing else is [Kind.TIMEOUT].",
+        "val kind: Kind = kind ?: Kind.of(message).let { if (it == Kind.OTHER && timedOut) Kind.TIMEOUT else it }",
+        "/** Out of memory / too complex: fewer or closer points help. */",
+        "/** The request took too long (also: no route within the time limit). */",
+        "TIMEOUT,",
+        "Problems.warn(\"routing\", \"Route cancel hook failed; the request runs until its timeout\", e)",
+        "/** Time-limit periods for the search ([RouteTimeLimit] × rounds): 2+ after \"Weiter warten\" ([SlowPlan]). */",
+        "* @param sacLimit hiking difficulty limit 1..5 (SAC T1..T5), only used for HIKE."
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/RoutingFingerprint.kt": {
+      "blob": "0b2b0c7d5cbe1f9d8f4321489e6fc670826991e0",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/SlowPlan.kt": {
+      "blob": "2efd3f158775ca48d2d2fb32e3c5e517f5480f70",
+      "perf": [
+        "* A plan calculation that reaches its time limit ([RouteTimeLimit]) – owner 2026-11-02 / 03 (onpath.private#13, #21 B):",
+        "* - \"Weiter warten\": the calculation runs again with one more time-limit period ([RouteLimits.rounds] + 1) – BRouter",
+        "*   cannot resume a search, so the new run gets the whole longer budget; routed pieces come from the engine's cache.",
+        "*   At that limit it asks again (no maximum: the user decides).",
+        "/** What happens when a run reaches its limit: [ask] = a plan run the user started in Plan. */",
+        "/** Thrown by [Planner] (asking) when its run reached the limit of [rounds] periods; the caller shows the question. */",
+        "class TimeLimit(val rounds: Int) : Exception(\"Route calculation reached its time limit ($rounds period(s))\")"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/StoredLine.kt": {
+      "blob": "06e7323b02774bcc4f33a622952e439104902d3d",
+      "perf": [
+        "* - every leg fresh in the [LegCache] (memory or the phone's leg store, data/LegFiles) → no stand-in: the plan run",
+        "private const val MAX_CELLS = 4_000_000L",
+        "val temp = LegCache(capacity = n + 1)",
+        "if (k < 2 || m <= k || k.toLong() * m > MAX_CELLS) return null",
+        "/** Never asked: every leg of a stand-in is in its cache. */"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/StraightLineEngine.kt": {
+      "blob": "6f6f3ba3497664221309fc21fd9f0b479860cff6",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/TrackToPlan.kt": {
+      "blob": "c188645d3d2fb9b9f361ddff3fb2da69f316029d",
+      "perf": [
+        "* two halves again. Repeat until every leg follows the track or [MAX_CALLS] routing calls are used. The track's points",
+        "const val LEG_TIMEOUT_MS = 120_000L",
+        "const val MAX_CALLS = 60",
+        "* A long track's call budget: one per this many metres (stage 0, 2026-11-17: München–Venedig, 564 km, needed 351",
+        "/** The routing calls a track of [lengthM] may use: [MAX_CALLS], more for a long one ([CALL_PER_M]). */",
+        "fun maxCalls(lengthM: Double): Int = maxOf(MAX_CALLS, kotlin.math.ceil(lengthM / CALL_PER_M).toInt())",
+        "else engine.route(listOf(t[i], t[j]), activity, sacLimit, RouteLimits(LEG_TIMEOUT_MS, cancel))"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/TurnDetector.kt": {
+      "blob": "dc8e79c9ed4e1918a463c784395a5d7d6ce11874",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/WaypointInsertion.kt": {
+      "blob": "65e1a772d4f33af8081e1c1053acf674b948d8e8",
+      "perf": [
+        "var bestCost = Double.MAX_VALUE",
+        "val appendCost = if (loop || stopOnly) Double.MAX_VALUE else Geo.distance(waypoints.last(), p)",
+        "var bestD = Double.MAX_VALUE"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/routing/WaypointSnap.kt": {
+      "blob": "16d81f9b8796e1ec97be181021cb80cf3ed67e7b",
+      "perf": [
+        "const val MAX_MOVE_M = 1000.0",
+        "maxM: Double = MAX_MOVE_M,"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/search/AddPreview.kt": {
+      "blob": "52985c65da9b1f5a417ab9238d00236715bf2af4",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/search/AddressQuery.kt": {
+      "blob": "cfa5a52bb938cc4abd03cf41c11e8d5af801989f",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/search/BaseMapPlaces.kt": {
+      "blob": "cf8e84875a59b5b107238aaacabdf2aefb1698ed",
+      "perf": []
+    },
     "core/src/main/kotlin/com/onpath/app/search/Place.kt": {
       "blob": "f3b3191bf1121f3fe593f68dacb9b4867c9f833b",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/search/PlaceGeocoder.kt": {
+      "blob": "e6ad1f0f18e84f2be5b254e6c37f79e84a8a3ade",
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/search/SearchText.kt": {
       "blob": "f8841b83815235f708604bb741d233546b0e3868",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/search/OfflineIndex.kt": {
-      "blob": "d874c5745e8103220facfc003e3aa892c02f182c",
-      "perf": [
-        "val limit: Int = 60,",
-        "* In-memory offline search index over one map folder: POIs (pois.geojson), peaks/passes and place names",
-        "private const val CACHE = \"search-places-v1.tsv\"",
-        "val cache = File(cacheDir, CACHE)",
-        "if (cache.isFile) try {",
-        "val lines = cache.readLines()",
-        "} catch (e: Exception) { Problems.warn(\"search\", \"Search place cache unreadable; reading the base map again\", e) }",
-        "val tmp = File(cacheDir, \"$CACHE.tmp\")",
-        "if (!tmp.renameTo(cache)) Problems.warn(\"search\", \"Search place cache not saved (rename failed); rebuilt on next start\")",
-        "} catch (e: Exception) { Problems.warn(\"search\", \"Search place cache not written; rebuilt on next start\", e) }",
-        "return withRoute.sortedWith(ORDER).take(q.limit)"
-      ]
-    },
-    "app/src/main/java/com/onpath/app/search/OnlineSearch.kt": {
-      "blob": "25994b984ff60b2bcc54b4f65f587cfeb8c89fd4",
-      "perf": [
-        "fun search(query: String, lat: Double, lon: Double, limit: Int = 10): List<Place>",
-        "fun url(query: String, lat: Double, lon: Double, limit: Int): String {",
-        "return \"$baseUrl?q=$q&lat=${f(lat)}&lon=${f(lon)}&zoom=12&location_bias_scale=0.3&limit=$limit&lang=de\"",
-        "fun placesUrl(query: String, lat: Double, lon: Double, limit: Int): String =",
-        "url(query, lat, lon, limit) + PLACE_LAYERS.joinToString(\"\") { \"&layer=$it\" }",
-        "override fun search(query: String, lat: Double, lon: Double, limit: Int): List<Place> {",
-        "val main = get(url(query, lat, lon, limit))",
-        "val places = try { get(placesUrl(query, lat, lon, PLACES_LIMIT)) } catch (e: Exception) {",
-        "const val PLACES_LIMIT = 5"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/search/BaseMapPlaces.kt": {
-      "blob": "cf8e84875a59b5b107238aaacabdf2aefb1698ed",
+    "core/src/main/kotlin/com/onpath/app/search/SharedPlace.kt": {
+      "blob": "56b4a3f2b4cd4868a6b2563cd53f43c6492f3b9f",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/search/AddressSearch.kt": {
-      "blob": "295f1890c9c8a261201c71d5aaad43324c5697b2",
-      "perf": [
-        "* wins over a farm group next door. Null when none is near. Pure lookup in memory.",
-        "val cands = db.rows(\"SELECT DISTINCT w FROM word WHERE w >= ? AND w < ? LIMIT 20000\", head, upper(head))",
-        "db.rows(\"SELECT street FROM word WHERE w IN (${chunk.joinToString(\",\") { \"?\" }}) LIMIT 5000\", *chunk.toTypedArray())",
-        "private fun streetsWithPrefix(w: String, enough: Int = Int.MAX_VALUE): Set<Long> {",
-        "var page = if (enough == Int.MAX_VALUE) WORD_ROWS else 2 * enough",
-        "val rows = db.rows(\"SELECT street FROM word WHERE w >= ? AND w < ? ORDER BY w, street LIMIT $n OFFSET $offset\", w, upper(w))",
-        "val done = try { pool.invokeAll(tasks) } catch (e: InterruptedException) {",
-        "private val pool: ExecutorService by lazy {"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/search/AddressQuery.kt": {
-      "blob": "cfa5a52bb938cc4abd03cf41c11e8d5af801989f",
+    "core/src/main/kotlin/com/onpath/app/search/SharedPlaceLookup.kt": {
+      "blob": "4e05520fc9ac1696a28ed66a97083f657bb8b6a9",
       "perf": []
     },
-    "core/src/main/kotlin/com/onpath/app/search/AddPreview.kt": {
-      "blob": "52985c65da9b1f5a417ab9238d00236715bf2af4",
+    "core/src/main/kotlin/com/onpath/app/search/SharedPlaceResolve.kt": {
+      "blob": "75d707c13c1cb2481d4e57b4fd727fea44748166",
       "perf": []
-    },
-    "app/src/main/java/com/onpath/app/search/PlaceIndex.kt": {
-      "blob": "5652838f1e371c7a8ba844f0c2f86b85b5a46ed6",
-      "perf": [
-        "* The offline place index as the app uses it: [DiskIndex] (SQLite file, the app) or [OfflineIndex] (all in memory –",
-        "/** Prepares what [search] needs (reads the word index into memory), so the first keystroke answers fast. */"
-      ]
-    },
-    "app/src/main/java/com/onpath/app/search/SavedPlaces.kt": {
-      "blob": "bad38bba5a4a70205769eaa8c57a464066f97f32",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/poi/Poi.kt": {
-      "blob": "13f90ac3e37e02a2723e677336c504170d410bec",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/poi/PoiKinds.kt": {
-      "blob": "6dffc68f99b5f3ee5c3bc0bcc5f06fa2fffa7d20",
-      "perf": []
-    },
-    "app/src/main/java/com/onpath/app/search/RouteNamer.kt": {
-      "blob": "1bfff7ef95bf5f0e22dc4e814d9cefcb278f0ea3",
-      "perf": [
-        "const val MAX_LEN = 40",
-        "if (!loop && top != null) \"$s – $top – $s\".takeIf { it.length <= MAX_LEN }?.let { return it }",
-        "via?.let { Txt.s(Res.string.search_route_via, base, it) }?.takeIf { it.length <= MAX_LEN } ?: fit(base)",
-        "private fun fit(s: String): String = if (s.length <= MAX_LEN + 15) s else s.take(MAX_LEN + 14).trimEnd() + \"…\""
-      ]
     },
     "core/src/main/kotlin/com/onpath/app/search/SharedPlaceText.kt": {
       "blob": "cc2f7ad1eb46f842c8e6d7050d140c1377f4389d",
       "perf": []
     },
-    "core/src/main/kotlin/com/onpath/app/poi/PoiFilter.kt": {
-      "blob": "28c0deaf625bcf21c802b26874984d224b44170e",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/domain/PlanState.kt": {
-      "blob": "9605a5157a2962e28e3a2026d278fc892a78038f",
+    "core/src/main/kotlin/com/onpath/app/setup/PhoneCheck.kt": {
+      "blob": "5058104e4c89c8c504bb937c5b365b7538eba00d",
       "perf": [
-        "class PlanHistory(private val limit: Int = 100) {",
-        "if (undo.size > limit) undo.removeFirst()",
-        "undo.clear(); undo.addAll(undoSteps.takeLast(limit)); redo.clear(); redo.addAll(redoSteps)"
+        "const val SNOOZE_MS = 7L * 24 * 3600 * 1000"
       ]
     },
-    "core/src/main/kotlin/com/onpath/app/domain/MapGestures.kt": {
-      "blob": "60a525dad678d4bee79f0498af6d20e51d3ec383",
+    "core/src/main/kotlin/com/onpath/app/setup/SetupGuide.kt": {
+      "blob": "473dfd8cfed2e880edcb7b143338710452c514a5",
       "perf": []
     },
-    "app/src/main/java/com/onpath/app/poi/GoogleMapsLink.kt": {
-      "blob": "3a84411529d20afbea8aab649c2c03a5500d3718",
+    "core/src/main/kotlin/com/onpath/app/setup/VoiceSetup.kt": {
+      "blob": "f976c8379c715b6228a8a69e55da286da8f888ff",
       "perf": [
-        "val path = title.trim().replace(' ', '_').split('#', limit = 2).let { parts ->"
+        "const val SILENT_AFTER_MS = 6_000L"
       ]
     },
-    "core/src/main/kotlin/com/onpath/app/domain/RouteWarnings.kt": {
-      "blob": "d1af9e57296b94b6c090bf7ede4d43a248fa23db",
+    "core/src/main/kotlin/com/onpath/app/suggest/Aims.kt": {
+      "blob": "d6daf88240f3c9de20dd76e462dadb8773af8c5f",
       "perf": [
-        "const val MAX_ITEMS = 3",
-        "steepPercent(activity)?.let { limit ->",
-        "val steep = BooleanArray(points.size - 1) { i -> grades[i]?.let { abs(it) > limit } == true }",
-        "/** The amber line, or null when there is nothing to know: at most [MAX_ITEMS] items, then \" +N\". */",
-        "val more = items.size - MAX_ITEMS",
-        "return items.take(MAX_ITEMS).joinToString(\" · \") + if (more > 0) \" +$more\" else \"\""
+        "var d = Double.MAX_VALUE",
+        "var hit = Double.MAX_VALUE"
       ]
     },
-    "core/src/main/kotlin/com/onpath/app/domain/PlaceAddMenu.kt": {
-      "blob": "89f8e61d89ed0043c7925f6a0f3bba8849757dbc",
+    "core/src/main/kotlin/com/onpath/app/suggest/Candidate.kt": {
+      "blob": "02d3008eb8f796fcf566887cdf927c505cfe7f6d",
       "perf": [
-        "var insert = Double.MAX_VALUE",
-        "var detour = Double.MAX_VALUE"
+        "* One loop of the pool – ours or an official signed loop laid onto the network – with everything the judging, the"
       ]
     },
-    "core/src/main/kotlin/com/onpath/app/domain/LocateDistance.kt": {
-      "blob": "a4fb4972052cf96e2dec5d5af6cdf29bc5b0cad0",
+    "core/src/main/kotlin/com/onpath/app/suggest/Character.kt": {
+      "blob": "6715e0d08981ffb1f153c4578da5963a927e26f8",
       "perf": []
     },
-    "core/src/main/kotlin/com/onpath/app/gpx/GpxModel.kt": {
-      "blob": "02902d35f3a30dd29c34a56b5304211c4b11d909",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/gpx/GpxWriter.kt": {
-      "blob": "292aed365996b033db237a183b9f8fd0c20e69b1",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/gpx/SportType.kt": {
-      "blob": "f4c8b2d7dd72d824c0fcf58e7d52fc49be88691e",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/data/LastActivity.kt": {
-      "blob": "8bd85477c1b32fa4db38cb7ebe349998d4a5b539",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/sync/SyncCrypto.kt": {
-      "blob": "98c91bea6c78193644b6e25ef836ff366d233961",
+    "core/src/main/kotlin/com/onpath/app/suggest/Facts.kt": {
+      "blob": "aee13012d2fba1cd844602ba54d03b278f23e65a",
       "perf": [
-        "var t = ByteArray(0)"
+        "// from grid to grid), then each grid's links together – only one grid's tables are in memory at a time",
+        "private var pool = ByteArray(256 * 64)",
+        "return if (b < 0) 0.0 else weights[pool[b * 256 + ((x and 15) shl 4) + (y and 15)].toInt() and 0xff]",
+        "if (blocks * 256 > pool.size) pool = pool.copyOf(pool.size * 2)",
+        "pool[b * 256 + ((x and 15) shl 4) + (y and 15)] = code.toByte()",
+        "val c = pool[b * 256 + i].toInt() and 0xff",
+        "pool = ByteArray(0)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/Generate.kt": {
+      "blob": "f31388ac1bac1c5b75b8e5c6429bea24731f5193",
+      "perf": [
+        "* Building loops – one pool, one assembly routine (the POC's `generate.py`). Every loop is a list of turning points",
+        "* quarter turn away, two in a chain; a wished Ziel's aims always). When the pool stays small (mountains: few ways, most",
+        "/** generate.py `pool`: all loops worth judging; loops that fit but climb more than wished go to [Place.steep]. */",
+        "fun pool(): List<Candidate> {",
+        "// (made when needed, not kept: on wheels each is a few MB, the POC's cache of them would hold dozens)",
+        "var w = Double.MAX_VALUE; var s = Double.MAX_VALUE; var e = -Double.MAX_VALUE; var n = -Double.MAX_VALUE"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/Land.kt": {
+      "blob": "bafbddfbc9a4c12fa820fe649758b1fb9ce69d59",
+      "perf": [
+        "/** Gives the tables and the rim cache back (made again when needed, the same values). */"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/LongIntMap.kt": {
+      "blob": "79ca53d9fbfd12a2f3702543044881b6c09ca295",
+      "perf": [
+        "/** Empty, and gives the memory back (the map stays usable). */"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/Named.kt": {
+      "blob": "88f9561590798692a64c0b59989adf04e361fee7",
+      "perf": [
+        "class DoubleList(capacity: Int = 64) {",
+        "private var a = DoubleArray(capacity)",
+        "class IntList(capacity: Int = 16) {",
+        "private var a = IntArray(capacity)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/NetReader.kt": {
+      "blob": "a843be8b5c8b92552a0acbfbd6d004f818dcdb99",
+      "perf": [
+        "private inner class Tiles(val rc: RoutingContext, private val budget: Long) {",
+        "if (bytes > budget) evict(key)",
+        "/** Least recently used tiles first, those without queued nodes; tiles with queued nodes only above 4 × budget. */",
+        "while (bytes > (if (hard == 0) budget else 4 * budget) && it.hasNext()) {",
+        "// nodes in position order (local offsets < 2^15), the cache index in the low 20 bits",
+        "var pool = ByteArray(n * 8 + 64)",
+        "if (gN + g.size > pool.size) pool = pool.copyOf(maxOf(pool.size * 2, gN + g.size))",
+        "System.arraycopy(g, 0, pool, gN, g.size)",
+        "entFwd.copyOf(m), fwdKind.copyOf(fw), geoOff.copyOf(fw + 1), pool.copyOf(gN))"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/NetSearch.kt": {
+      "blob": "d2ef4b7743d1e001305481df0b631360aa98f855",
+      "perf": [
+        "* expanded. Ties are broken by node number, as Python's heap of (cost, node) does. [withMetres] false: [metres]",
+        "// a 4-ary heap of (cost, node): (cost, node) pairs are unique (a node is pushed again only cheaper), so any heap",
+        "// takes them out in the same order as Python's heapq – this one with half the levels of a binary heap"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/Official.kt": {
+      "blob": "6632c739fc0c452e5422e27716d7707666bd6995",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/Place.kt": {
+      "blob": "05c12b18beefef1481e3b8e8235e8704b114ef57",
+      "perf": [
+        "/** loops that fit but climb more than wished (generate.pool) */"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/PyIntSet.kt": {
+      "blob": "93e2cf16b5d0686ffa47c5a57aae23647bc6acd2",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/RouterProfile.kt": {
+      "blob": "bf7769a24e7ede0416a1836f607f8117fdfdb064",
+      "perf": [
+        "* the same parameters (SAC limit, e-bike power …), so the network's \"allowed\" is the router's verdict (a suggestion must",
+        "private const val MAX_SNAP_M = 1000.0",
+        "// snap points within MAX_SNAP_M in one pass and fail fast (before any search) when a point",
+        "kv[\"waypointCatchingRange\"] = MAX_SNAP_M.toInt().toString()",
+        "// above the limit = forbidden (profile). Preferred = the limit but at most T3: a marked T2/T3 trail beats the"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/Score.kt": {
+      "blob": "2348949c2110775776804dd802bf378cb67821da",
+      "perf": [
+        "if (s.length > 40 && \" · \" in s) s = s.split(\" · \", limit = 2)[1]"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/SuggestCards.kt": {
+      "blob": "9df06d2bdf046b0aca61ff0080c297ffa6ccaef7",
+      "perf": [
+        "/** loops the method built and judged (the pool) */",
+        "var lo = Double.MAX_VALUE; var hi = -Double.MAX_VALUE; var sum = 0.0",
+        "var best = causes[0].first; var top = -Double.MAX_VALUE"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/SuggestFile.kt": {
+      "blob": "4e384d9fc5114fa6447f02aed79c47e6aba6dbf1",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/SuggestGeo.kt": {
+      "blob": "be2aaa10375f58fa912be6338ffe2906d7f5e901",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/SuggestSettings.kt": {
+      "blob": "84e4e9e3365b7cc9c62e69fbef2797b669d06c9c",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/SuggestText.kt": {
+      "blob": "3c5c29f8144ef1a821a8605edb70ef0aa4f47bcf",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/TourSuggester.kt": {
+      "blob": "410c03e8042880c4bb713b776cb1123df5b70e4b",
+      "perf": [
+        "/** What one wish gave: the shown suggestions first (in list order), then the rest of the pool by points. */",
+        "* `ensureActive`, so a newer wish stops this one at the next phase instead of letting two runs hold memory at once.",
+        "var cands = Generate(P, S).pool()",
+        "cands = Generate(P, S).pool()"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/WayKinds.kt": {
+      "blob": "01b733a9f82066ac42b148f1efe6dee2ff68ed77",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/WayNet.kt": {
+      "blob": "d1c3523ab570124cfd7fe4fa148da67d9e039fd2",
+      "perf": [
+        "/** Heap size of the arrays, spare room and adjacency included (bytes). */",
+        "/** Heap of the arrays so far, with their spare room (bytes). */"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/app/SuggestFetch.kt": {
+      "blob": "0ff757b38aa6c202f930620f5c5ff4da72b0949d",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/app/SuggestRunner.kt": {
+      "blob": "14eb9bd97daed1741402312a13db407af54b8e15",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/suggest/app/SuggestService.kt": {
+      "blob": "50767a05bfcc5c62077a338ce79c04fecd9aa369",
+      "perf": [
+        "* Memory: everything a run reads (network, place, parsed suggest files ~45 MB for a 3 h bike wish) is local to [suggest]"
       ]
     },
     "core/src/main/kotlin/com/onpath/app/sync/PairCode.kt": {
-      "blob": "3990c2d59bae121544a1634b1be58a5d98ab4aa1",
+      "blob": "eed4e4019c1210279c1eb1b11223cca3ebfadc77",
       "perf": [
         "const val SECRET_BYTES = 32",
         "require(secret.size == SECRET_BYTES) { \"pairing secret must be $SECRET_BYTES bytes\" }",
         "if (b.size < 1 + SECRET_BYTES || b[0].toInt() != VERSION) return null",
         "return b.copyOfRange(1, 1 + SECRET_BYTES)",
         "init { require(secret.size == PairCode.SECRET_BYTES) }"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/sync/SaveRule.kt": {
+      "blob": "7bb98ba5026d477bc2ff90438075932a70100a6f",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/sync/SyncCrypto.kt": {
+      "blob": "98c91bea6c78193644b6e25ef836ff366d233961",
+      "perf": [
+        "var t = ByteArray(0)"
       ]
     },
     "core/src/main/kotlin/com/onpath/app/sync/SyncItem.kt": {
@@ -1080,6 +2299,19 @@
         "if (l.isEmpty() || '\\n' in l || '\\r' in l || l.encodeToByteArray().size > SyncFormat.MAX_PLACE) return null"
       ]
     },
+    "core/src/main/kotlin/com/onpath/app/sync/SyncLedger.kt": {
+      "blob": "7eeaf2fb9cb1f7acb22d85c9143faad8c2e022aa",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/sync/SyncLimits.kt": {
+      "blob": "3cb012c76ff6b420b21034353224772894278f5d",
+      "perf": [
+        "* deleted ones (tombstones) and the history of copies do not count. Saving a NEW tour beyond [MAX_TOURS] is refused on",
+        "const val MAX_TOURS = 250",
+        "const val WARN_TOURS = MAX_TOURS * 4 / 5",
+        "fun canAdd(tours: Int): Boolean = tours < MAX_TOURS"
+      ]
+    },
     "core/src/main/kotlin/com/onpath/app/sync/SyncMerge.kt": {
       "blob": "3b3217ab60ebf131a361a069ff9d44b7ce2e1732",
       "perf": [
@@ -1087,31 +2319,6 @@
         "val base = (loser.title ?: \"Plan\").take(SyncFormat.MAX_TITLE - COPY.length)",
         "return loser.copy(id = B64.encode(Sha256.hash(seed).copyOf(SyncFormat.ID_BYTES)), title = base + COPY)"
       ]
-    },
-    "core/src/main/kotlin/com/onpath/app/sync/SyncLedger.kt": {
-      "blob": "7eeaf2fb9cb1f7acb22d85c9143faad8c2e022aa",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/sync/TrackCode.kt": {
-      "blob": "017fff5885189c234de4c193359f05c1508e9138",
-      "perf": [
-        "const val MAX_POINTS = 200_000",
-        "const val MAX_SEGMENTS = 2_000",
-        "const val MAX_MARKS = 300",
-        "const val MAX_NAME = 100",
-        "val segs = t.segments.filter { it.isNotEmpty() }.take(MAX_SEGMENTS)",
-        "for (m in t.marks.take(MAX_MARKS)) {",
-        "fun fit(t: SyncTrack, maxBytes: Int = SyncFormat.MAX_TRACK): String? {",
-        "require(n in 0..MAX_SEGMENTS.toLong())",
-        "val counts = List(n.toInt()) { r.varint().also { require(it in 0..MAX_POINTS.toLong()) }.toInt() }",
-        "require(counts.sumOf { it.toLong() } <= MAX_POINTS)",
-        "if (tag == TAG_MARK.toLong() && marks.size < MAX_MARKS) {",
-        "private fun clean(s: String?): String? = s?.filter { it >= ' ' }?.trim()?.take(MAX_NAME)?.trim()?.takeIf { it.isNotEmpty() }"
-      ]
-    },
-    "app/src/main/java/com/onpath/app/sync/PlaceSync.kt": {
-      "blob": "1b8eb4d6b92f6849b396654336957b12acf68e9a",
-      "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/sync/SyncRound.kt": {
       "blob": "c0dff1eaa3d19a729f71bb07f60ac7a73b8c2d91",
@@ -1137,290 +2344,231 @@
         "else (RETRY_MS shl (failures - 1).coerceIn(0, 10)).coerceAtMost(MAX_RETRY_MS)"
       ]
     },
-    "core/src/main/kotlin/com/onpath/app/routing/LongRoute.kt": {
-      "blob": "34084104a7bf35caac8aa4fa2ceb5d6dfbbee16d",
+    "core/src/main/kotlin/com/onpath/app/sync/TrackCode.kt": {
+      "blob": "85c48041b37cfe9fc56f10642f24f0702c143f5d",
+      "perf": [
+        "const val MAX_POINTS = 200_000",
+        "const val MAX_SEGMENTS = 2_000",
+        "const val MAX_MARKS = 300",
+        "const val MAX_NAME = 100",
+        "val segs = t.segments.filter { it.isNotEmpty() }.take(MAX_SEGMENTS)",
+        "for (m in t.marks.take(MAX_MARKS)) {",
+        "fun fit(t: SyncTrack, maxBytes: Int = SyncFormat.MAX_TRACK): String? {",
+        "require(n in 0..MAX_SEGMENTS.toLong())",
+        "val counts = List(n.toInt()) { r.varint().also { require(it in 0..MAX_POINTS.toLong()) }.toInt() }",
+        "require(counts.sumOf { it.toLong() } <= MAX_POINTS)",
+        "if (tag == TAG_MARK.toLong() && marks.size < MAX_MARKS) {",
+        "private fun clean(s: String?): String? = s?.filter { it >= ' ' }?.trim()?.take(MAX_NAME)?.trim()?.takeIf { it.isNotEmpty() }"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/time/BreakDetector.kt": {
+      "blob": "851cdab4f77a390ca1225f41f39c43dc425681b4",
+      "perf": [
+        "val slowGap = gap >= minS && Geo.distance(lastLat, lastLon, lat, lon) / gap < GAP_SPEED_MS",
+        "while (recent.size > MAX_RECENT) recent.removeFirst()",
+        "private const val GAP_SPEED_MS = 0.15",
+        "private const val MAX_RECENT = 2000"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/time/PaceModel.kt": {
+      "blob": "b0a07a016005d1261804f39dadcd63b176382cc0",
+      "perf": [
+        "const val GROUP_LIMIT = 0.05",
+        "grade < -GROUP_LIMIT -> DOWN",
+        "grade > GROUP_LIMIT -> UP",
+        "const val ASSIST_LIMIT_MS = 25 / 3.6",
+        "if (b.assistW > 0) v = maxOf(v, minOf(solve(b.riderW + b.assistW, b.massKg, b.drag, cr, g), ASSIST_LIMIT_MS))",
+        "fun limit(c: Double, k: Double) { cr = maxOf(cr, c); cap = minOf(cap, k) }",
+        "\"intermediate\" -> limit(0.0, 25.0)",
+        "\"bad\", \"robust_wheels\" -> if (mtb) limit(0.0, 20.0) else limit(0.025, 15.0)",
+        "\"very_bad\", \"high_clearance\" -> if (mtb) limit(0.03, 15.0) else limit(0.035, 10.0)",
+        "if (mtb) limit(0.045, 10.0) else return Ride(cr, cap, 1.0)",
+        "1 -> limit(0.03, 15.0)",
+        "2 -> limit(0.045, 10.0)",
+        "3 -> limit(0.06, 6.0)",
+        "1 -> limit(0.035, 12.0)",
+        "if (b.assistW > 0) v = maxOf(v, minOf(solve(b.riderW + b.assistW, b.massKg, b.drag, r.cr, g), ASSIST_LIMIT_MS))",
+        "/** Highest flat speed of e-bikes at any level (km/h): the assist limit. */"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/time/PlanTimesStore.kt": {
+      "blob": "9d12564e508f829ddb1836c0e36747a40dac5dde",
       "perf": []
     },
-    "core/src/main/kotlin/com/onpath/app/domain/PlanStatus.kt": {
-      "blob": "8b28d0eeac067308bfa74d1447949aa40b43d88b",
-      "perf": [
-        "* route. Keeps the highest value it gave – a new search inside the same leg (a retry) or a leg from the cache never"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/domain/PlanGaps.kt": {
-      "blob": "77cbe65a8797a5fd8481dbf7a1aa36774b1ccd49",
+    "core/src/main/kotlin/com/onpath/app/time/RouteTimes.kt": {
+      "blob": "038b7c8d9bb0e71cbcfc6c8272d718617d58d9b1",
       "perf": []
     },
-    "core/src/main/kotlin/com/onpath/app/routing/PlanReach.kt": {
-      "blob": "835ceac3782bf6d1d4ad9767192d756a924db5d8",
-      "perf": [
-        "const val TRY_TIMEOUT_MS = 5_000L",
-        "eng.route(ask, a, level, RouteLimits(TRY_TIMEOUT_MS, cancel))"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/gpx/GpxParser.kt": {
-      "blob": "e5e37dc1f72c2d14f5fe0867a57fd404b966da8d",
-      "perf": [
-        "const val MAX_BYTES = 60L * 1024 * 1024",
-        "/** A damaged file is scanned for points only up to this size (memory); bigger ones keep their readable part. */",
-        "const val RECOVERY_MAX_BYTES = 15 * 1024 * 1024",
-        "// the scan holds the file as text (twice its size) plus the matches: only for files up to RECOVERY_MAX_BYTES,",
-        "// and memory running out keeps the readable part (review routing M6: a cut-off 50 MB export crashed the app)",
-        "val recovered = if (bytes.size > RECOVERY_MAX_BYTES) null else try { RegexRecovery.parse(String(bytes, Charsets.UTF_8)) }",
-        "catch (e: OutOfMemoryError) { Problems.warn(\"gpx\", \"Not enough memory to scan the damaged GPX; imported the readable part\", e); null }",
-        "if (total > MAX_BYTES) throw GpxException(Txt.s(Res.string.routes_gpx_too_large, (MAX_BYTES / (1024 * 1024)).toInt()))",
-        "if (idx < 0) return ByteArray(0)",
-        "internal fun parseCoord(s: String?, limit: Double): Double? {",
-        "return if (v.isNaN() || v < -limit || v > limit) null else v"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/TrackToPlan.kt": {
-      "blob": "10c189429aa5eb3bc5aa03a7f121dafe0b01eb40",
-      "perf": [
-        "* two halves again. Repeat until every leg follows the track or [MAX_CALLS] routing calls are used. The track's points",
-        "const val LEG_TIMEOUT_MS = 120_000L",
-        "const val MAX_CALLS = 60",
-        "* A long track's call budget: one per this many metres (stage 0, 2026-11-17: München–Venedig, 564 km, needed 351",
-        "/** The routing calls a track of [lengthM] may use: [MAX_CALLS], more for a long one ([CALL_PER_M]). */",
-        "fun maxCalls(lengthM: Double): Int = maxOf(MAX_CALLS, kotlin.math.ceil(lengthM / CALL_PER_M).toInt())",
-        "else engine.route(listOf(t[i], t[j]), activity, sacLimit, RouteLimits(LEG_TIMEOUT_MS, cancel))"
-      ]
+    "core/src/main/kotlin/com/onpath/app/time/TimeBreakdown.kt": {
+      "blob": "3e88e645669b240ea8b1f6523076c6acb40ff8aa",
+      "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/time/TimeEstimate.kt": {
       "blob": "3ce7c7bed6f32b2d9786c19fed1beedf493715ca",
       "perf": []
     },
-    "core/src/main/kotlin/com/onpath/app/data/AppSettings.kt": {
-      "blob": "a825d21d7b897c244a5e7ae549354371f9db88e9",
+    "core/src/main/kotlin/com/onpath/app/time/TourReview.kt": {
+      "blob": "822902106fac159c686307f1233e7b6d5e31ef63",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/time/TourTimesStore.kt": {
+      "blob": "b0c22aa8903a2c8396209e7d3d7f3bc9981ca7ed",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/time/TripPace.kt": {
+      "blob": "29092c958fb209b4bef0a9bbf38efeebb0f97176",
       "perf": [
-        "* turn and on a tap; [PHONE] = no keep-screen-on, the phone's own timeout.",
-        "val navHoldMs: Int = HoldSetting.DEFAULT_MS,"
+        "*   yet take half of the trip factor ([RHO]); clamped to [MIN_F]…[MAX_F].",
+        "*   moves later as time passes (checked every 30 s). A new setting resets that limit once. A **new line** (plan edit,",
+        "*   offset blended out over [OFFSET_BLEND_MS]; when the arrival moves by more than [NOTE_MIN_MS] that way, the",
+        "* blended out over [OFFSET_BLEND_MS]); a move of more than [NOTE_MIN_MS] is explained once ([LineNote]).",
+        "if (d > MAX_JUMP_M || sp <= 0 || a <= 0) return // GPS jump, a lift, nothing to compare",
+        "if (ratio < MIN_RATIO || ratio > MAX_RATIO) return",
+        "fun tripFactor(): Double = ((TAU_S + sumA.sum()) / (TAU_S + sumP.sum())).coerceIn(MIN_F, MAX_F)",
+        "1 + w * (((TAU_G * start + sumA[g]) / (TAU_G + sumP[g])).coerceIn(MIN_F, MAX_F) - 1)",
+        "val k = 1.0 - (wallMs - from).toDouble() / OFFSET_BLEND_MS",
+        "if (matched && (resetCalm || shown == null || (moved && wallMs - lastShowWall >= MIN_SHOW_MS))) {",
+        "if (abs(next - was) > NOTE_MIN_MS) lineNote = LineNote(was, next) else noteFrom = null",
+        "} else if (wallMs - lastShowWall >= SHOW_EVERY_MS) {",
+        "if (matched && raw * 1000 < NOTE_MIN_MS) lineNote = null",
+        "const val MAX_F = 2.0",
+        "const val MAX_JUMP_M = 400.0",
+        "const val MAX_RATIO = 3.0",
+        "const val SHOW_EVERY_MS = 30_000L",
+        "const val MIN_SHOW_MS = 10_000L",
+        "const val OFFSET_BLEND_MS = 600_000L",
+        "const val NOTE_MIN_MS = 300_000L"
       ]
     },
-    "core/src/main/kotlin/com/onpath/app/data/HoldSetting.kt": {
-      "blob": "cfe0fde808fa366ee70021cba419f619f983124c",
+    "core/src/main/kotlin/com/onpath/app/time/TripTime.kt": {
+      "blob": "85d063c222b41b7eae2e382a51d9eb54093637e2",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/ui/StopTokens.kt": {
+      "blob": "df082184884c7055ff2f4c26afaad64d4848d3ce",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/update/AppVersions.kt": {
+      "blob": "e478453100a4c23b3412134fe030e5ac78cab3a4",
+      "perf": []
+    },
+    "app/src/main/java/com/onpath/app/routing/BRouterEngine.kt": {
+      "blob": "a6a515b11f3888244225008f240235d2acb6ada5",
       "perf": [
-        "const val STEP_MS = 500",
-        "const val MAX_MS = 2_000",
-        "const val DEFAULT_MS = 1_000",
-        "val STEPS_MS: List<Int> = (0..MAX_MS step STEP_MS).toList()",
-        "val SLIDER_STEPS = STEPS_MS.size - 2",
-        "fun snap(ms: Float): Int = ((ms.coerceIn(0f, MAX_MS.toFloat()) / STEP_MS).roundToInt() * STEP_MS)",
-        "* on or never set → [DEFAULT_MS].",
-        "else -> DEFAULT_MS"
+        "* request (same points, activity and SAC limit) returns instantly.",
+        "* Via points are hints: BRouter snaps each to the nearest usable way (within [MAX_SNAP_M]) and,",
+        "var nearest = Double.MAX_VALUE",
+        "private val cache = object : LinkedHashMap<CacheKey, RouteResult>(CACHE_SIZE + 1, 0.75f, true) {",
+        "override fun removeEldestEntry(eldest: MutableMap.MutableEntry<CacheKey, RouteResult>?) = size > CACHE_SIZE",
+        "/** With a time limit (incl. waiting for a running request) and a cancel signal (BRouter `terminate()`). */",
+        "cache[key] ?: run {",
+        "val budget = limits?.let { (it.timeoutMs - (System.currentTimeMillis() - start)).coerceAtLeast(MIN_BUDGET_MS) }",
+        "routeLocked(waypoints, activity, sacLimit, budget, limits?.cancel, limits?.rounds ?: 1)",
+        "}.also { cache[key] = it }",
+        "Problems.error(\"routing\", \"BRouter ran out of memory\", e)",
+        "val limit = RouteTimeLimit.forRoute(waypoints, activity, rounds)",
+        "val timeoutMs = budgetMs?.coerceAtMost(limit) ?: limit",
+        "try { engine.doRun(left.coerceAtLeast(MIN_BUDGET_MS)) } finally { cancel?.onCancel(null); running = null }",
+        "if (way == null || skipWays.size >= MAX_ISLAND_SKIPS || timeoutMs - (System.currentTimeMillis() - t0) < MIN_BUDGET_MS) {",
+        "val limit = if (i == 0 || i == waypoints.size - 1) MAX_SNAP_M else MAX_SNAP_M + viaCorrectionM(activity)",
+        "if (d > limit) {",
+        "// snap points within MAX_SNAP_M in one pass and fail fast (before any search) when a point",
+        "kv[\"waypointCatchingRange\"] = MAX_SNAP_M.toInt().toString()",
+        "// above the limit = forbidden (profile). Preferred = the limit but at most T3: a marked T2/T3 trail beats the",
+        "private fun isTimeout(m: String) = m.contains(\"timeout\") || m.contains(\"killed\")",
+        "Txt.s(Res.string.plan_err_not_mapped, pointNameFromBRouter(who), MAX_SNAP_M.toInt(), activity.label)",
+        "m.contains(\"memory limit\") ->",
+        "private const val MIN_BUDGET_MS = 500L",
+        "private const val MAX_ISLAND_SKIPS = 3",
+        "/** BRouter retries a start on an island this often (its `freezeCount` limit) before \"no track found\". */",
+        "private const val CACHE_SIZE = 8",
+        "private const val MAX_SNAP_M = 1000.0",
+        "// keep parsed profiles of several activities in memory"
       ]
+    },
+    "app/src/main/java/com/onpath/app/search/OfflineIndex.kt": {
+      "blob": "0df57e108f200416e2f1538aeaae11462aa88211",
+      "perf": [
+        "val limit: Int = 60,",
+        "* In-memory offline search index over one map folder: POIs (pois.geojson), peaks/passes and place names",
+        "private const val CACHE = \"search-places-v1.tsv\"",
+        "val cache = File(cacheDir, CACHE)",
+        "if (cache.isFile) try {",
+        "val lines = cache.readLines()",
+        "} catch (e: Exception) { Problems.warn(\"search\", \"Search place cache unreadable; reading the base map again\", e) }",
+        "val tmp = File(cacheDir, \"$CACHE.tmp\")",
+        "if (!tmp.renameTo(cache)) Problems.warn(\"search\", \"Search place cache not saved (rename failed); rebuilt on next start\")",
+        "} catch (e: Exception) { Problems.warn(\"search\", \"Search place cache not written; rebuilt on next start\", e) }",
+        "return withRoute.sortedWith(ORDER).take(q.limit)"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/search/OnlineSearch.kt": {
+      "blob": "25994b984ff60b2bcc54b4f65f587cfeb8c89fd4",
+      "perf": [
+        "fun search(query: String, lat: Double, lon: Double, limit: Int = 10): List<Place>",
+        "fun url(query: String, lat: Double, lon: Double, limit: Int): String {",
+        "return \"$baseUrl?q=$q&lat=${f(lat)}&lon=${f(lon)}&zoom=12&location_bias_scale=0.3&limit=$limit&lang=de\"",
+        "fun placesUrl(query: String, lat: Double, lon: Double, limit: Int): String =",
+        "url(query, lat, lon, limit) + PLACE_LAYERS.joinToString(\"\") { \"&layer=$it\" }",
+        "override fun search(query: String, lat: Double, lon: Double, limit: Int): List<Place> {",
+        "val main = get(url(query, lat, lon, limit))",
+        "val places = try { get(placesUrl(query, lat, lon, PLACES_LIMIT)) } catch (e: Exception) {",
+        "const val PLACES_LIMIT = 5"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/search/AddressSearch.kt": {
+      "blob": "295f1890c9c8a261201c71d5aaad43324c5697b2",
+      "perf": [
+        "* wins over a farm group next door. Null when none is near. Pure lookup in memory.",
+        "val cands = db.rows(\"SELECT DISTINCT w FROM word WHERE w >= ? AND w < ? LIMIT 20000\", head, upper(head))",
+        "db.rows(\"SELECT street FROM word WHERE w IN (${chunk.joinToString(\",\") { \"?\" }}) LIMIT 5000\", *chunk.toTypedArray())",
+        "private fun streetsWithPrefix(w: String, enough: Int = Int.MAX_VALUE): Set<Long> {",
+        "var page = if (enough == Int.MAX_VALUE) WORD_ROWS else 2 * enough",
+        "val rows = db.rows(\"SELECT street FROM word WHERE w >= ? AND w < ? ORDER BY w, street LIMIT $n OFFSET $offset\", w, upper(w))",
+        "val done = try { pool.invokeAll(tasks) } catch (e: InterruptedException) {",
+        "private val pool: ExecutorService by lazy {"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/search/PlaceIndex.kt": {
+      "blob": "5652838f1e371c7a8ba844f0c2f86b85b5a46ed6",
+      "perf": [
+        "* The offline place index as the app uses it: [DiskIndex] (SQLite file, the app) or [OfflineIndex] (all in memory –",
+        "/** Prepares what [search] needs (reads the word index into memory), so the first keystroke answers fast. */"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/search/SavedPlaces.kt": {
+      "blob": "bad38bba5a4a70205769eaa8c57a464066f97f32",
+      "perf": []
+    },
+    "app/src/main/java/com/onpath/app/search/RouteNamer.kt": {
+      "blob": "1bfff7ef95bf5f0e22dc4e814d9cefcb278f0ea3",
+      "perf": [
+        "const val MAX_LEN = 40",
+        "if (!loop && top != null) \"$s – $top – $s\".takeIf { it.length <= MAX_LEN }?.let { return it }",
+        "via?.let { Txt.s(Res.string.search_route_via, base, it) }?.takeIf { it.length <= MAX_LEN } ?: fit(base)",
+        "private fun fit(s: String): String = if (s.length <= MAX_LEN + 15) s else s.take(MAX_LEN + 14).trimEnd() + \"…\""
+      ]
+    },
+    "app/src/main/java/com/onpath/app/poi/GoogleMapsLink.kt": {
+      "blob": "3a84411529d20afbea8aab649c2c03a5500d3718",
+      "perf": [
+        "val path = title.trim().replace(' ', '_').split('#', limit = 2).let { parts ->"
+      ]
+    },
+    "app/src/main/java/com/onpath/app/sync/PlaceSync.kt": {
+      "blob": "1b8eb4d6b92f6849b396654336957b12acf68e9a",
+      "perf": []
     },
     "app/src/main/java/com/onpath/app/map/Overview.kt": {
       "blob": "9c76e0a2cfc6cedd6c386b87e71d72ea2a38029d",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/map/ActivityLayers.kt": {
-      "blob": "0f40da6a97b3db191b6ff0f18a1742a0f48b9243",
+      "blob": "daff315bf987a7e921a9aa43c1ead9653efe426f",
       "perf": [
         "* Filters of the hiking band for the T level [limit] (SAC T1–T5): [HIKE_BAND_LAYERS] id → MapLibre style",
         "fun hikeRouteFilters(limit: Int): Map<String, String> {",
         "val t = limit.coerceIn(1, 6)"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/PlanResult.kt": {
-      "blob": "2dfaad9e0739c2a172d6417608895a50f7d4922f",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/ProfileData.kt": {
-      "blob": "2e1f4f29dd8bb52c4090409b721625f2635b581d",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/gpx/PlanGpx.kt": {
-      "blob": "36c890cfb757fd4f56463080608ae8d0c583c2ee",
-      "perf": [
-        "const val MAX_STOPS = 200",
-        "if (line.size < 2 || waypoints.size < 2 || waypoints.size > MAX_STOPS) return null"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/RoutingFingerprint.kt": {
-      "blob": "0b2b0c7d5cbe1f9d8f4321489e6fc670826991e0",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/data/RoutingDataNotice.kt": {
-      "blob": "6f7664a5f685f21e589f9ee209068c2eeab16bec",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/BreakdownRules.kt": {
-      "blob": "c0b32eb2d2cac99324fa3b853a04a641f9f6d82e",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/PlanNames.kt": {
-      "blob": "da0473777e0012de06d5d51d36e920985e23c11c",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/sync/SaveRule.kt": {
-      "blob": "7bb98ba5026d477bc2ff90438075932a70100a6f",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/sync/SyncLimits.kt": {
-      "blob": "3cb012c76ff6b420b21034353224772894278f5d",
-      "perf": [
-        "* deleted ones (tombstones) and the history of copies do not count. Saving a NEW tour beyond [MAX_TOURS] is refused on",
-        "const val MAX_TOURS = 250",
-        "const val WARN_TOURS = MAX_TOURS * 4 / 5",
-        "fun canAdd(tours: Int): Boolean = tours < MAX_TOURS"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/LongIntMap.kt": {
-      "blob": "79ca53d9fbfd12a2f3702543044881b6c09ca295",
-      "perf": [
-        "/** Empty, and gives the memory back (the map stays usable). */"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/WayKinds.kt": {
-      "blob": "01b733a9f82066ac42b148f1efe6dee2ff68ed77",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/WayNet.kt": {
-      "blob": "d1c3523ab570124cfd7fe4fa148da67d9e039fd2",
-      "perf": [
-        "/** Heap size of the arrays, spare room and adjacency included (bytes). */",
-        "/** Heap of the arrays so far, with their spare room (bytes). */"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/NetReader.kt": {
-      "blob": "a843be8b5c8b92552a0acbfbd6d004f818dcdb99",
-      "perf": [
-        "private inner class Tiles(val rc: RoutingContext, private val budget: Long) {",
-        "if (bytes > budget) evict(key)",
-        "/** Least recently used tiles first, those without queued nodes; tiles with queued nodes only above 4 × budget. */",
-        "while (bytes > (if (hard == 0) budget else 4 * budget) && it.hasNext()) {",
-        "// nodes in position order (local offsets < 2^15), the cache index in the low 20 bits",
-        "var pool = ByteArray(n * 8 + 64)",
-        "if (gN + g.size > pool.size) pool = pool.copyOf(maxOf(pool.size * 2, gN + g.size))",
-        "System.arraycopy(g, 0, pool, gN, g.size)",
-        "entFwd.copyOf(m), fwdKind.copyOf(fw), geoOff.copyOf(fw + 1), pool.copyOf(gN))"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/NetSearch.kt": {
-      "blob": "d2ef4b7743d1e001305481df0b631360aa98f855",
-      "perf": [
-        "* expanded. Ties are broken by node number, as Python's heap of (cost, node) does. [withMetres] false: [metres]",
-        "// a 4-ary heap of (cost, node): (cost, node) pairs are unique (a node is pushed again only cheaper), so any heap",
-        "// takes them out in the same order as Python's heapq – this one with half the levels of a binary heap"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/RouterProfile.kt": {
-      "blob": "1ea24631c4c515649016de38f71641b3aaf223fc",
-      "perf": [
-        "* the same parameters (SAC limit, e-bike power …), so the network's \"allowed\" is the router's verdict (a suggestion must",
-        "private const val MAX_SNAP_M = 1000.0",
-        "// snap points within MAX_SNAP_M in one pass and fail fast (before any search) when a point",
-        "kv[\"waypointCatchingRange\"] = MAX_SNAP_M.toInt().toString()",
-        "// above the limit = forbidden (profile). Preferred = the limit but at most T3: a marked T2/T3 trail beats the"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/SuggestFile.kt": {
-      "blob": "4e384d9fc5114fa6447f02aed79c47e6aba6dbf1",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/SuggestSettings.kt": {
-      "blob": "84e4e9e3365b7cc9c62e69fbef2797b669d06c9c",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/SuggestGeo.kt": {
-      "blob": "be2aaa10375f58fa912be6338ffe2906d7f5e901",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/PyIntSet.kt": {
-      "blob": "93e2cf16b5d0686ffa47c5a57aae23647bc6acd2",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/Character.kt": {
-      "blob": "6715e0d08981ffb1f153c4578da5963a927e26f8",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/Land.kt": {
-      "blob": "bafbddfbc9a4c12fa820fe649758b1fb9ce69d59",
-      "perf": [
-        "/** Gives the tables and the rim cache back (made again when needed, the same values). */"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/Named.kt": {
-      "blob": "88f9561590798692a64c0b59989adf04e361fee7",
-      "perf": [
-        "class DoubleList(capacity: Int = 64) {",
-        "private var a = DoubleArray(capacity)",
-        "class IntList(capacity: Int = 16) {",
-        "private var a = IntArray(capacity)"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/Facts.kt": {
-      "blob": "aee13012d2fba1cd844602ba54d03b278f23e65a",
-      "perf": [
-        "// from grid to grid), then each grid's links together – only one grid's tables are in memory at a time",
-        "private var pool = ByteArray(256 * 64)",
-        "return if (b < 0) 0.0 else weights[pool[b * 256 + ((x and 15) shl 4) + (y and 15)].toInt() and 0xff]",
-        "if (blocks * 256 > pool.size) pool = pool.copyOf(pool.size * 2)",
-        "pool[b * 256 + ((x and 15) shl 4) + (y and 15)] = code.toByte()",
-        "val c = pool[b * 256 + i].toInt() and 0xff",
-        "pool = ByteArray(0)"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/Place.kt": {
-      "blob": "05c12b18beefef1481e3b8e8235e8704b114ef57",
-      "perf": [
-        "/** loops that fit but climb more than wished (generate.pool) */"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/Candidate.kt": {
-      "blob": "02d3008eb8f796fcf566887cdf927c505cfe7f6d",
-      "perf": [
-        "* One loop of the pool – ours or an official signed loop laid onto the network – with everything the judging, the"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/Generate.kt": {
-      "blob": "f31388ac1bac1c5b75b8e5c6429bea24731f5193",
-      "perf": [
-        "* Building loops – one pool, one assembly routine (the POC's `generate.py`). Every loop is a list of turning points",
-        "* quarter turn away, two in a chain; a wished Ziel's aims always). When the pool stays small (mountains: few ways, most",
-        "/** generate.py `pool`: all loops worth judging; loops that fit but climb more than wished go to [Place.steep]. */",
-        "fun pool(): List<Candidate> {",
-        "// (made when needed, not kept: on wheels each is a few MB, the POC's cache of them would hold dozens)",
-        "var w = Double.MAX_VALUE; var s = Double.MAX_VALUE; var e = -Double.MAX_VALUE; var n = -Double.MAX_VALUE"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/Official.kt": {
-      "blob": "6632c739fc0c452e5422e27716d7707666bd6995",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/Score.kt": {
-      "blob": "2348949c2110775776804dd802bf378cb67821da",
-      "perf": [
-        "if (s.length > 40 && \" · \" in s) s = s.split(\" · \", limit = 2)[1]"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/TourSuggester.kt": {
-      "blob": "410c03e8042880c4bb713b776cb1123df5b70e4b",
-      "perf": [
-        "/** What one wish gave: the shown suggestions first (in list order), then the rest of the pool by points. */",
-        "* `ensureActive`, so a newer wish stops this one at the next phase instead of letting two runs hold memory at once.",
-        "var cands = Generate(P, S).pool()",
-        "cands = Generate(P, S).pool()"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/Aims.kt": {
-      "blob": "d6daf88240f3c9de20dd76e462dadb8773af8c5f",
-      "perf": [
-        "var d = Double.MAX_VALUE",
-        "var hit = Double.MAX_VALUE"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/SuggestText.kt": {
-      "blob": "3c5c29f8144ef1a821a8605edb70ef0aa4f47bcf",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/suggest/SuggestCards.kt": {
-      "blob": "9df06d2bdf046b0aca61ff0080c297ffa6ccaef7",
-      "perf": [
-        "/** loops the method built and judged (the pool) */",
-        "var lo = Double.MAX_VALUE; var hi = -Double.MAX_VALUE; var sum = 0.0",
-        "var best = causes[0].first; var top = -Double.MAX_VALUE"
       ]
     },
     "core/src/test/kotlin/com/onpath/app/routing/OfflineCorridorTest.kt": {
@@ -1584,7 +2732,7 @@
       "perf": []
     },
     "core/src/test/kotlin/com/onpath/app/routing/LegCacheTest.kt": {
-      "blob": "751ffebe9ee6f07bcbf7678a8b7257371ba97788",
+      "blob": "7ae8ade7ba19fc0c568aee79edff2cd4cee9c3d7",
       "perf": [
         "* The leg cache (owner 2026-11-05, \"long bike routes faster\"): an edit routes only the legs it changed, same points give",
         "* the same route, the wait card's progress counts only the legs routed, Cancel and the time-limit question keep what",
@@ -1674,11 +2822,11 @@
       "perf": []
     },
     "strings/src/commonMain/composeResources/values/strings_navigate.xml": {
-      "blob": "b0bcf2dee2355888474fa0259763f09dc39a0253",
+      "blob": "1a5882a2a25a5235d8c6654513c46383aeed0e21",
       "perf": []
     },
     "strings/src/commonMain/composeResources/values/strings_plan.xml": {
-      "blob": "d6e0f9b9aa8a8ae6afe7cc43569abb09a044041d",
+      "blob": "5330907c8ba37f6857e6d40c0efbaf61f68dcaa6",
       "perf": []
     },
     "strings/src/commonMain/composeResources/values/strings_poi.xml": {
@@ -1702,7 +2850,7 @@
       "perf": []
     },
     "strings/src/commonMain/composeResources/values/strings_suggest.xml": {
-      "blob": "007ed3075eeb85032d19da4d493525fc1b856055",
+      "blob": "4cac7f1277167ce34cf8881a09542f0ab7645072",
       "perf": []
     },
     "strings/src/commonMain/composeResources/values/strings_sync.xml": {
@@ -1742,11 +2890,11 @@
       "perf": []
     },
     "strings/src/commonMain/composeResources/values-de/strings_navigate.xml": {
-      "blob": "29b30b5be52f5654612fa8f9cee8766c5e6f68f0",
+      "blob": "5a12afbdd56310d1d873f0afba96969f35bbed25",
       "perf": []
     },
     "strings/src/commonMain/composeResources/values-de/strings_plan.xml": {
-      "blob": "62e7d4103860026181459b69ff39d22c891c5601",
+      "blob": "00eb91d98b7eee3ffab0c3d782f6dfa9a69b9d8c",
       "perf": []
     },
     "strings/src/commonMain/composeResources/values-de/strings_poi.xml": {
@@ -1770,7 +2918,7 @@
       "perf": []
     },
     "strings/src/commonMain/composeResources/values-de/strings_suggest.xml": {
-      "blob": "e9b98f1aee19cfa03de4a73701a4b7ab102ad9a9",
+      "blob": "4f4c4f804d392127002900700b47c188a87166fd",
       "perf": []
     },
     "strings/src/commonMain/composeResources/values-de/strings_sync.xml": {
@@ -1827,14 +2975,6 @@
     },
     "app/src/main/assets/style/f2/onpath.json": {
       "blob": "1c409cb28ff79aaf7c56578053c9e792a41f66c0",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/routing/RouterRules.kt": {
-      "blob": "ba283d44fdfd8411ad330f486ddb7e8e5c5e2f78",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/data/DataNames.kt": {
-      "blob": "c6d033829d8ec407cf86f595c43a5a4e64ff0c4c",
       "perf": []
     }
   }

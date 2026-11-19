@@ -39,7 +39,7 @@ Home of other rules (not repeated here): push / pull-request policy → `CLAUDE.
 | Releases (version, `docs/release-notes/`) | a unit after the owner's word and the captain's GO (`.claude/rules/release.md`) |
 | `.github/workflows/`, signing, secrets | the owner – a pull request only |
 | Website onpath.earth, marketing (`happychriss/onpath.earth`, `onpath.private`) | **cloud-web** |
-| Routing engine (`routing/BRouter*`, `app/libs`, `assets/brouter`), shared code (`app/web-shared-files.txt`) | whoever claims it; a change is announced to the other side in the backlog |
+| Routing engine (`routing/BRouter*`, `app/libs`, `assets/brouter`), shared code (`:core` as a whole + the short `app/web-shared-files.txt`) | whoever claims it; a change is announced to the other side in the backlog |
 | New features, bug fixes | whoever claims them in the backlog |
 | `docs/requirements.md` | edited in the repo by any session (new IDs at the end of a section); the owner checks |
 
@@ -79,7 +79,7 @@ the session's own chat; open ones under "Waiting for the owner" in the backlog; 
 "For the roles" (owner 2026-11-07: no more issues for this). **Sessions do not
 message each other**; only the captain can, with the owner's tap per call, for something urgent the owner asked for
 (`docs/roles/captain.md`). A role's word to the captain goes under "For the captain" in the backlog, the captain's word
-to a role under "For the roles". Shared code between app and planner (`app/web-shared-files.txt`): a change is announced
+to a role under "For the roles". Shared code between app and planner (`core/src/main/kotlin` as a whole + the few app files in `app/web-shared-files.txt`): a change is announced
 to the other side in the backlog, and a release / planner deploy that touches it needs `tools/ci/release_check.sh` GO.
 The tested platform facts behind this: `docs/roles/multi-agent-lernen.md` §2.
 

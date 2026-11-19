@@ -1,17 +1,25 @@
 package com.onpath.app.debug
 
 /**
- * Web stand-in for the app's Problems log (the real one needs android.util.Log / SharedPreferences): same calls,
+ * Web stand-in for core's Problems log – it stays because the real one cannot run in the browser build: it starts a
+ * scheduled executor and writes problems.json with java.nio / FileDescriptor (TeaVM has none of them; checked 2026-11-19:
+ * the Wasm build fails on Executors, ConcurrentLinkedQueue (EventLog), File.toPath, FileOutputStream.getFD). Same calls,
  * keeps the last messages so the page can show them (and prints them to the browser console via stderr).
+ * Level and Event are here only so the core files that name them (EventLog, MainStall, MapLibreLogLevel) compile.
  */
 object Problems {
+    enum class Level { INFO, WARN, ERROR, CRASH }
+    data class Event(val time: Long, val area: String, val message: String)
+
     private val recent = ArrayDeque<String>()
 
-    fun info(area: String, message: String, t: Throwable? = null) = report(area, message, t, "INFO")
-    fun warn(area: String, message: String, t: Throwable? = null) = report(area, message, t, "WARN")
-    fun error(area: String, message: String, t: Throwable? = null) = report(area, message, t, "ERROR")
-    fun trace(area: String, message: String) = report(area, message, null, "TRACE")
-    fun report(area: String, message: String, t: Throwable? = null, level: Any = "WARN") {
+    fun info(area: String, message: String, t: Throwable? = null) = report(area, message, t, Level.INFO)
+    fun warn(area: String, message: String, t: Throwable? = null) = report(area, message, t, Level.WARN)
+    fun error(area: String, message: String, t: Throwable? = null) = report(area, message, t, Level.ERROR)
+    fun trace(area: String, message: String) = add("TRACE", area, message, null)
+    fun report(area: String, message: String, t: Throwable? = null, level: Level = Level.WARN) = add(level.name, area, message, t)
+
+    private fun add(level: String, area: String, message: String, t: Throwable?) {
         val line = "$level $area: $message" + (t?.let { " ($it)" } ?: "")
         System.err.println("[Problems] $line")
         recent.addLast(line)

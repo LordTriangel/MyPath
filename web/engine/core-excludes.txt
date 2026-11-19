@@ -1,0 +1,2 @@
+# Core files the engine build does not compile (path below core/src/main/kotlin/com/onpath/app/, one per line),
+# each with its reason. Read by web/engine/build.gradle.kts, SharedFilesRuleTest and tools/dev/core_move.py.

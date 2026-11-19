@@ -1,7 +1,7 @@
 // Web ⇄ app parity check (docs/design/web-planner.md §14). The web never drifts silently from the app:
 // - mirrors (web/parity.json): app logic the web re-implements. If the app file changed since the mirror was last
 //   checked (git blob hash), this FAILS – look at the app change, adjust the web, then record it with --update.
-// - shared: every app file the engine compiles as it is (app/web-shared-files.txt – web/engine/build.gradle.kts reads it), the string
+// - shared: every file the engine compiles as it is (the :core folder minus stand-ins / excludes, the app files in app/web-shared-files.txt, its tests), the string
 //   files, BRouter's jars and profiles. They reach the web by merging main; changes are listed as warnings, and lines
 //   that matter for performance / memory (caches, limits, timeouts, buffers – the phone's memory work) are shown
 //   added / removed, so the web side (Wasm heap, worker, prefetch) can be checked too.
@@ -37,22 +37,44 @@ function perfLines(rel) {
   return [...new Set(fs.readFileSync(f, 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && PERF.test(l) && !l.startsWith('import ')))];
 }
 
-/** The app files the engine compiles: app/web-shared-files.txt ([files] / [tests] – the engine build reads it), strings, BRouter. */
+/** Every *.kt below a folder (repo-relative, sorted). */
+function walk(rel) {
+  const out = [];
+  for (const e of fs.readdirSync(path.join(repo, rel), { withFileTypes: true })) {
+    const r = `${rel}/${e.name}`;
+    if (e.isDirectory()) out.push(...walk(r));
+    else if (e.name.endsWith('.kt')) out.push(r);
+  }
+  return out.sort();
+}
+
+/**
+ * The core files the engine compiles: the whole folder core/src/main/kotlin minus the files a stand-in replaces (the same path
+ * below web/engine/src/main/kotlin/com/onpath/app/) minus web/engine/core-excludes.txt (web/engine/build.gradle.kts, the lock in
+ * tools/dev/core_move.py and SharedFilesRuleTest compute the same set).
+ */
+function coreCompiled() {
+  const base = 'core/src/main/kotlin/com/onpath/app/';
+  const standIns = new Set(walk('web/engine/src/main/kotlin/com/onpath/app').map((f) => f.slice('web/engine/src/main/kotlin/com/onpath/app/'.length)));
+  const excludes = new Set(fs.readFileSync(path.join(repo, 'web/engine/core-excludes.txt'), 'utf8').split('\n').map((l) => l.replace(/#.*/, '').trim()).filter(Boolean));
+  return walk(base.slice(0, -1)).filter((f) => !standIns.has(f.slice(base.length)) && !excludes.has(f.slice(base.length)));
+}
+
+/** The files the engine compiles: the core folder (minus stand-ins / excludes), the app files app/web-shared-files.txt names ([files]), its tests ([tests]), strings, BRouter. */
 function sharedFiles() {
   let section = '';
   const rows = fs.readFileSync(path.join(repo, 'app/web-shared-files.txt'), 'utf8').split('\n').map((l) => l.replace(/#.*/, '').trim()).filter(Boolean)
     .flatMap((l) => (l.startsWith('[') ? ((section = l), []) : [[section, l]]));
-  // a file lives in :core (core/src/main/kotlin) once tools/dev/core_move.py moved it there, else in :app
   // a listed file that is in none of the places is an error, never skipped (the engine build fails the same way)
   const home = (dirs, f) => {
     const hit = dirs.find((d) => fs.existsSync(path.join(repo, d + f)));
     if (!hit) throw new Error(`app/web-shared-files.txt lists ${f}, but it is in none of: ${dirs.join(', ')}`);
     return hit + f;
   };
-  const main = rows.filter(([s]) => s === '[files]').map(([, f]) => home(['core/src/main/kotlin/com/onpath/app/', 'app/src/main/java/com/onpath/app/'], f));
+  const main = rows.filter(([s]) => s === '[files]').map(([, f]) => home(['app/src/main/java/com/onpath/app/'], f));
   const tests = rows.filter(([s]) => s === '[tests]').map(([, f]) => home(['core/src/test/kotlin/com/onpath/app/', 'core/src/testkit/kotlin/com/onpath/app/', 'app/src/test/java/com/onpath/app/'], f));
   const dir = (d, re) => fs.readdirSync(path.join(repo, d)).filter((f) => re.test(f)).sort().map((f) => `${d}/${f}`);
-  return [...main, ...tests, 'app/src/main/java/btools/router/OnPathHints.java',
+  return [...coreCompiled(), ...main, ...tests, 'app/src/main/java/btools/router/OnPathHints.java',
     ...dir('strings/src/commonMain/composeResources/values', /\.xml$/), ...dir('strings/src/commonMain/composeResources/values-de', /\.xml$/),
     ...dir('app/libs', /\.jar$/),
     ...dir('app/src/main/assets/brouter', /\.(brf|dat)$/), 'app/src/main/assets/style/f2/onpath.json'];

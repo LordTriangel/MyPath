@@ -1,149 +1,34 @@
 # The app files the web planner compiles as they are (web/engine/build.gradle.kts, tools/routing/jvm-test)
 # and the app's unit tests the web build runs for them – ONE list for both builds (review Arch 5, owner 2026-11-01).
-# Paths below app/src/main/java/com/onpath/app/ (files) and app/src/test/java/com/onpath/app/ (tests).
-# The app's SharedFilesRuleTest checks on every gate: each file exists, imports only what the web build provides
+# Everything in :core (core/src/main/kotlin) is compiled as a whole folder (minus web/engine's stand-ins and
+# web/engine/core-excludes.txt) and is NOT listed here (umbau phase 1, piece D); a file that moves to :core leaves [files].
+# [files]: paths below app/src/main/java/com/onpath/app/ (the files still in :app); [tests]: below app/src/test/java/com/onpath/app/,
+# core/src/test/kotlin/com/onpath/app/ or core/src/testkit/kotlin/com/onpath/app/ (named one by one).
+# The app's SharedFilesRuleTest checks on every gate: each listed file exists and imports only what the web build provides
 # (its stand-ins and stubs), and every test exists. A change to a listed file is shared code: tell cloud-plan (backlog).
-# cloud-plan reads this file in the web build instead of its own list.
 
 [files]
-routing/RoutingContract.kt
-routing/Rd5Parts.kt
-# the offline corridor per activity (owner 2026-11-07: hike 10 km, bike 20 km) – Rd5Parts.forCorridor's default
-routing/OfflineCorridor.kt
-routing/BRouterWayStats.kt
-routing/WaypointSnap.kt
+# BRouter adapter (the engine's own routing; Context is a web stand-in)
 routing/BRouterEngine.kt
-routing/RouterRules.kt
-routing/StraightLineEngine.kt
-routing/RouteTimeLimit.kt
-routing/TurnDetector.kt
-routing/Junctions.kt
-routing/Planner.kt
-routing/LegCache.kt
-routing/SlowPlan.kt
-routing/WaypointInsertion.kt
-routing/PlanEdits.kt
-routing/RouteSummary.kt
-navigation/JunctionCues.kt
-navigation/CueRule.kt
-navigation/JogRule.kt
-navigation/SpeedWindow.kt
-data/Geo.kt
-data/Format.kt
-data/DataNames.kt
-time/PaceModel.kt
-time/RouteTimes.kt
-routing/PlanCode.kt
-routing/PlanPoints.kt
-routing/PlanDays.kt
 # search (docs/design/web-planner.md §10): the app's index, ranking and Photon parsing
-search/Place.kt
-search/SearchText.kt
 search/OfflineIndex.kt
 search/OnlineSearch.kt
-search/BaseMapPlaces.kt
 search/AddressSearch.kt
-search/AddressQuery.kt
-search/AddPreview.kt
 search/PlaceIndex.kt
 # kept places (owner 2026-11-15, „Orte merken“, F-PLAN-14): Zuhause + favourites, the empty search's lists (WebKept.kt)
 search/SavedPlaces.kt
-poi/Poi.kt
-poi/PoiKinds.kt
-# web UI (docs/design/web-planner.md §13): route name proposal (Save), POI kind filters (Map content)
+# web UI (docs/design/web-planner.md §13): route name proposal (Save)
 search/RouteNamer.kt
-# multi-day tours stage 2 (2026-11-17, „Hotel hinterlegen“): a pasted Google Maps link / address read like a shared place
-search/SharedPlaceText.kt
-poi/PoiFilter.kt
-# page parity with the phone (docs/design/web-planner.md §11): undo / redo, hold and point menus, Google link-out
-domain/PlanState.kt
-domain/MapGestures.kt
+# Google link-out (page parity with the phone, web-planner.md §11)
 poi/GoogleMapsLink.kt
-domain/RouteWarnings.kt
-# a held place's add entries („Als Zwischenstopp“ / „Als neues Ziel“) and the locate distance off the map (owner 2026-11-07)
-domain/PlaceAddMenu.kt
-domain/LocateDistance.kt
-gpx/GpxModel.kt
-gpx/GpxWriter.kt
-gpx/SportType.kt
-data/LastActivity.kt
-# plan sync, phase 2 (docs/design/web-sync.md): pairing code, keys, crypto, item format, conflict rule, ledger
-sync/SyncCrypto.kt
-sync/PairCode.kt
-sync/SyncItem.kt
-sync/SyncMerge.kt
-sync/SyncLedger.kt
-sync/TrackCode.kt
 # kept places (Zuhause + favourites) ⇄ the ledger – the same export / import on phone and planner (web-sync.md §5.4)
 sync/PlaceSync.kt
-# the app's sync pass over a mailbox (A-007; the page runs its own loop in sync.ts – compiled for SyncTrackTest only)
-sync/SyncRound.kt
-# long-route question (web-planner.md §15): the app's LongRoute rule and plan status texts
-routing/LongRoute.kt
-domain/PlanStatus.kt
-domain/PlanGaps.kt
-# what reaches a stop the route does not reach ("② erst ab T2 erreichbar", owner 2026-11-07) – PlanGaps.reachText reads it
-routing/PlanReach.kt
-# GPX import (web-planner.md §15): the app's tolerant parser (SAX → onpathweb stand-ins in Wasm), track → plan, time
-gpx/GpxParser.kt
-routing/TrackToPlan.kt
-time/TimeEstimate.kt
-data/AppSettings.kt
-data/HoldSetting.kt
 # the world overview below the cells (web-planner.md §16): the app's style merge (org.json, as on Android; run on
 # the JVM at build time – task overviewStyle – so it adds nothing to the Wasm)
 map/Overview.kt
 # the map look per activity (owner 2026-10-31: identical in browser and app): which style layers show, the hiking
 # band's T-level filter – the app's MapController applies the same table
 map/ActivityLayers.kt
-# one plan computation for app and web (docs/design/web-planner.md §22): route + model time, snapped points, gaps,
-# warnings, rating, profile – Engine.plan calls PlanResult.plan like AppViewModel.recalc
-routing/PlanResult.kt
-routing/ProfileData.kt
-# the app's plan GPX (docs/design/web-planner.md §22): line + route points as <wpt>, "<name> - plan.gpx", re-import
-gpx/PlanGpx.kt
-# the routing fingerprint (docs/design/routing-fingerprint.md): diagnostics + sync field 7
-routing/RoutingFingerprint.kt
-# the plan sheet's routing-data notice and way-type / surface line (docs/design/web-planner.md §22)
-data/RoutingDataNotice.kt
-routing/BreakdownRules.kt
-# The app's own unit tests for the shared files the web adds (the app's Gradle build needs an Android SDK; these run on
-# the plain JVM here, so web CI checks them too).
-# new on main 2026-11-01 (cloud-app): pure rules the web mirrored or will use
-routing/PlanNames.kt
-sync/SaveRule.kt
-# tours per phone in sync (owner 2026-11-07: 250)
-sync/SyncLimits.kt
-# tour suggestions, the core (docs/design/tour-suggestions.md §7, IR 2026-11-16): the way network read from the rd5
-# parts into compact arrays and the graph searches – not called by WebApi yet
-suggest/LongIntMap.kt
-suggest/WayKinds.kt
-suggest/WayNet.kt
-suggest/NetReader.kt
-suggest/NetSearch.kt
-suggest/RouterProfile.kt
-# the method itself (stage 2 of the build plan, IR 2026-11-16, the frozen POC ported – tools/suggest-poc/port/):
-# suggest file reader, settings, character, facts, place, loops, judging, selection, words – not called by WebApi yet
-suggest/SuggestFile.kt
-suggest/SuggestSettings.kt
-suggest/SuggestGeo.kt
-suggest/PyIntSet.kt
-suggest/Character.kt
-suggest/Land.kt
-suggest/Named.kt
-suggest/Facts.kt
-suggest/Place.kt
-suggest/Candidate.kt
-suggest/Generate.kt
-suggest/Official.kt
-suggest/Score.kt
-suggest/TourSuggester.kt
-# the batch of 2026-11-17 (IR, stage 3a): aims as turning points and reached-aim scoring; the card words from the
-# shared strings (strings_suggest.xml, Txt – DE / EN)
-suggest/Aims.kt
-suggest/SuggestText.kt
-# the light cards app and planner show (stage 3 / 4, IR 2026-11-18): card fields, the sketch-7 pills, the wish as asked
-suggest/SuggestCards.kt
 
 [tests]
 routing/OfflineCorridorTest.kt

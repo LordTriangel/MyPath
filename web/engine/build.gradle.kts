@@ -5,16 +5,20 @@ plugins {
 
 val root = rootDir.resolve("../..")
 val app = root.resolve("app/src/main/java/com/onpath/app")
-val core = root.resolve("core/src/main/kotlin/com/onpath/app")
-// a listed file lives in :core (core/src/main/kotlin) once it moved there (tools/dev/core_move.py), else in :app
+// a listed test lives in core's test / testkit folder once it moved there (tools/dev/core_move.py), else in :app
 // (a listed file that is nowhere fails the build – never skipped silently)
 fun inModules(rel: String, vararg dirs: File): File =
     dirs.map { it.resolve(rel) }.firstOrNull { it.isFile } ?: error("app/web-shared-files.txt lists $rel, but it is in none of: ${dirs.joinToString()}")
 val stubs = root.resolve("tools/routing/jvm-test/stubs")
 
-// The app files the engine compiles as they are, and the app's own unit tests for them (they run on the plain JVM
-// here, so web CI checks them too): ONE list for app and web, app/web-shared-files.txt ([files] / [tests]) – the app's
-// SharedFilesRuleTest guards it on every gate (review Arch 5, owner 2026-11-01). web/parity/check.mjs reads it too.
+// What the engine compiles from the app (docs/design/umbau-phase-1.md, piece D):
+//  1. the WHOLE folder core/src/main/kotlin (module :core), minus
+//     - the files a stand-in REPLACES: src/main/kotlin/<same path> under com/onpath/app/ (a stand-in with no core / app
+//       counterpart any more fails the build, so dead stand-ins cannot stay), and
+//     - web/engine/core-excludes.txt (explicit, each with its reason; SharedFilesRuleTest and core_move.py read it too);
+//  2. the few files still in :app, named one by one in app/web-shared-files.txt [files];
+//  3. the app's own unit tests for them (they run on the plain JVM here, so web CI checks them too): [tests].
+// ONE list for app and web, read by web/parity/check.mjs too; the app's SharedFilesRuleTest guards it on every gate.
 fun sharedList(section: String): List<String> {
     var current = ""
     return root.resolve("app/web-shared-files.txt").readLines().map { it.substringBefore('#').trim() }.filter { it.isNotEmpty() }
@@ -22,6 +26,25 @@ fun sharedList(section: String): List<String> {
 }
 val appFiles = sharedList("files")
 val appTests = sharedList("tests")
+
+fun pathList(f: File) = f.readLines().map { it.substringBefore('#').trim() }.filter { it.isNotEmpty() }
+val coreMain = root.resolve("core/src/main/kotlin")
+val coreExcludes = pathList(projectDir.resolve("core-excludes.txt"))   // relative to com/onpath/app/
+val standInDir = projectDir.resolve("src/main/kotlin")
+// stand-ins of app / core classes (same path below src/main/kotlin/com/onpath/app/) replace the real file
+val overrides = fileTree(standInDir.resolve("com/onpath/app")) { include("**/*.kt") }.files
+    .map { it.relativeTo(standInDir.resolve("com/onpath/app")).invariantSeparatorsPath }.sorted()
+overrides.forEach { rel ->
+    if (!coreMain.resolve("com/onpath/app/$rel").isFile && !app.resolve(rel).isFile)
+        error("stand-in web/engine/src/main/kotlin/com/onpath/app/$rel replaces nothing (no such file in core/ or app/) – delete it")
+}
+coreExcludes.forEach { rel ->
+    if (!coreMain.resolve("com/onpath/app/$rel").isFile) error("web/engine/core-excludes.txt names $rel, which is not in core/ – delete the line")
+}
+appFiles.forEach { rel ->
+    if (coreMain.resolve("com/onpath/app/$rel").isFile) error("app/web-shared-files.txt lists $rel, which lives in core/ now – the folder covers it, delete the line")
+    if (!app.resolve(rel).isFile) error("app/web-shared-files.txt lists $rel, but it is not in app/")
+}
 
 sourceSets {
     main {
@@ -45,6 +68,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.11.0") // the app gets it with MapLibre; search reads GeoJSON with it
     // TeaVM maps java.time to ThreeTen backport (its classlib's substitution); gpx/GpxParser reads GPX times with it
     implementation("org.threeten:threetenbp:1.6.9")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0") // :core's own (core/build.gradle.kts); reachable code only
     implementation("org.json:json:20240303") // Android ships org.json; map/Overview.kt builds the style with it
     compileOnly("org.teavm:teavm-extension-spi:0.16.0") // XmlSubstitution (onpathweb SAX stand-ins for the Wasm build)
     testImplementation("junit:junit:4.13.2")
@@ -151,7 +175,10 @@ val generateStrings by tasks.registering {
 }
 kotlin.sourceSets["main"].kotlin.srcDir(generateStrings)
 
-tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") { source(appFiles.map { inModules(it, core, app) }) }
+tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileKotlin") {
+    source(fileTree(coreMain) { exclude((overrides + coreExcludes).map { "com/onpath/app/$it" }) })
+    source(appFiles.map { app.resolve(it) })
+}
 tasks.named<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>("compileTestKotlin") {
     source(appTests.map { inModules(it, root.resolve("core/src/test/kotlin/com/onpath/app"), root.resolve("core/src/testkit/kotlin/com/onpath/app"), root.resolve("app/src/test/java/com/onpath/app")) })
 }
