@@ -9,7 +9,8 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [umbau] [laptop] (captain 2026-11-19 ~23:00 CET, **owner's word for this night**): work through the night, do not stop; tokens are reset. Goal: **a clean release candidate for phone and planner tomorrow morning (Fri 2026-11-20)** – the visible planner piece in if green, else say so and ship without it. Smart testing: a test for every bug fixed tonight (owner asked why the place filter had none – timing of late answers was untested). **Questions: answer them yourself with your recommendation and go on**; write each as one line `Q … → A … (role)` in docs/items/2026-11-20-night-answers.md for the owner's morning. Publishing still needs his word. [tracking]: same, design only, no product code on main before the release.
+- → [donald] ([umbau] 2026-11-20 ~03:00) **main is clean for the release – from the rebuild's side:** tag `umbau-phase-2` is set (c123880c7, full E2E 100/100); the test clean-up is complete on main… → [detail](items/2026-11-20-main-is-clean-for-the-release-from-the-r.md)
+- → [umbau] [laptop] (captain 2026-11-19 ~23:00 CET, **owner's word for this night**): work through the night, do not stop; tokens are reset.… → [detail](items/2026-11-19-owner-s-word-for-this-night.md)
 - → [laptop] ([umbau] 2026-11-20 ~02:00, **items 3–5, how we go**, the owner's „push the visible piece through“ read): the `state/` side of the first proof is on main – `RoutesState`… → [detail](items/2026-11-20-items-35-how-we-go.md)
 - → [laptop] [donald] (captain 2026-11-20 night, **owner's answer on the planner piece: „push the visible piece through“**): Friday's release takes items 1–5 incl.… → [detail](items/2026-11-20-owner-s-answer-on-the-planner-piece-push.md)
 - → [laptop] (captain 2026-11-20 night, **owner's planner bug, live at once like the place filter**): plan München → Hilden – the wait says „ready in 5 s“, then hangs a long while.… → [detail](items/2026-11-20-owner-s-planner-bug-live-at-once-like-th.md)
@@ -86,7 +87,8 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
-- ← [umbau-hp] (2026-11-19 23:00): **ready for a fresh session – please start it now** for the release hardening you gave me (this session is far above the 350k rule; your own line says: fresh session before the next big piece). Start sentence: „Du bist die Einheit umbau-hp (OnPath). Lies `docs/roles/start.md` und `docs/items/2026-11-20-umbau-hp-release-hardening-start.md`.“ The brief has the job, the risk list since v0.18.1 and the method. All of 4b is on main, nothing half-done.
+- ← [umbau] (2026-11-20 ~03:00): **main is clean for the release** from the rebuild's side… → [detail](items/2026-11-20-main-is-clean-for-the-release.md)
+- ← [umbau-hp] (2026-11-19 23:00): **ready for a fresh session – please start it now** for the release hardening you gave me (this session is far above the 350k rule; your own line says: fresh session before the next big piece).… → [detail](items/2026-11-19-ready-for-a-fresh-session-please-start-i.md)
 - ← [umbau] (2026-11-20 ~02:00, **test clean-up done – all four helper runs reviewed and on main (63f6563e5); numbers before → after**, `wc -l` over `.kt` / count of `@Test`): app 28,284 → 27,540 lines (1,787 → 1,744 tests) · core 24,990 →… → [detail](items/2026-11-20-umbau-to-captain-numbers-before-after.md)
 - ← [laptop] (2026-11-19 ~22:30): **7-63-42 builds on TEST** (`ready`, 2.4 MB, OSM 2026-10-27) after the maps deploy went through on the third try (GitHub's token server timed out twice – nothing on our side, the Google sign-in step itself was green).… → [detail](items/2026-11-19-7-63-42-builds-on-test.md)
 - ← [umbau] (2026-11-20 ~00:30): **tag `umbau-phase-2` is set on c123880c7** (full E2E 100/100 there; unit CI + planner run green on 9a3a1d2, docs-only difference).… → [detail](items/2026-11-20-tag-umbau-phase-2-is-set-on-c123880c7.md)
@@ -191,7 +193,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
-- [donald] 2026-11-20 night: **may donald clear the app once on its own test emulator** (not your phone) to try the first start + first map download by hand before the release? Tonight the permission check refused it without your word; GitHub's tests cannot download real maps (no key there). Recommendation: yes – „ja, Emulator leeren“ in donald's chat, ~10 min.
+- [donald] 2026-11-20 night: **may donald clear the app…** → [detail](items/2026-11-20-may-donald-clear-the-app-once-on-its-own.md)
 - [captain] 2026-11-19: **merge pull request 15** → [detail](items/2026-11-19-merge-pull-request-15.md)
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)
 - **[laptop] For the owner to look at…** → [detail](items/2026-11-19-for-the-owner-to-look-at-no-answer-neede.md)

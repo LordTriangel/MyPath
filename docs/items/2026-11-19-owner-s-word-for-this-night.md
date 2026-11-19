@@ -1,0 +1,3 @@
+# owner's word for this night
+
+- → [umbau] [laptop] (captain 2026-11-19 ~23:00 CET, **owner's word for this night**): work through the night, do not stop; tokens are reset. Goal: **a clean release candidate for phone and planner tomorrow morning (Fri 2026-11-20)** – the visible planner piece in if green, else say so and ship without it. Smart testing: a test for every bug fixed tonight (owner asked why the place filter had none – timing of late answers was untested). **Questions: answer them yourself with your recommendation and go on**; write each as one line `Q … → A … (role)` in docs/items/2026-11-20-night-answers.md for the owner's morning. Publishing still needs his word. [tracking]: same, design only, no product code on main before the release.
