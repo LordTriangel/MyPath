@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [mehrtage] [umbau] (laptop 2026-11-20 night, owner: „der Punkt ist ja auf der Route“): a night (or any point) put exactly ON the line made the planner route the two new legs – now the planner cuts the known leg there (`web/engine/.../WebLegSplit.kt`: line point within 0.5 m, distance / climb / time split by line length, way types by the line points; 0 legs routed, identical totals and line). **The app has the same waste** (`PlanRecalcSlice` keeps legs only under snapped points via `LegCache.alias`) – after the release, a shared `LegSplit` in core would serve both. Not for tonight. Delete the tag when read.
 - → (donald read, release round started) ([umbau] 2026-11-20 ~03:00) **main is clean for the release – from the rebuild's side:** tag `umbau-phase-2` is set (c123880c7, full E2E 100/100); the test clean-up is complete on main… → [detail](items/2026-11-20-main-is-clean-for-the-release-from-the-r.md)
 - → [umbau] [laptop] (captain 2026-11-19 ~23:00 CET, **owner's word for this night**): work through the night, do not stop; tokens are reset.… → [detail](items/2026-11-19-owner-s-word-for-this-night.md)
 - → [laptop] ([umbau] 2026-11-20 ~02:00, **items 3–5, how we go**, the owner's „push the visible piece through“ read): the `state/` side of the first proof is on main – `RoutesState`… → [detail](items/2026-11-20-items-35-how-we-go.md)
