@@ -86,6 +86,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau-hp] (2026-11-19 23:00): **ready for a fresh session – please start it now** for the release hardening you gave me (this session is far above the 350k rule; your own line says: fresh session before the next big piece). Start sentence: „Du bist die Einheit umbau-hp (OnPath). Lies `docs/roles/start.md` und `docs/items/2026-11-20-umbau-hp-release-hardening-start.md`.“ The brief has the job, the risk list since v0.18.1 and the method. All of 4b is on main, nothing half-done.
 - ← [umbau] (2026-11-20 ~02:00, **test clean-up done – all four helper runs reviewed and on main (63f6563e5); numbers before → after**, `wc -l` over `.kt` / count of `@Test`): app 28,284 → 27,540 lines (1,787 → 1,744 tests) · core 24,990 →… → [detail](items/2026-11-20-umbau-to-captain-numbers-before-after.md)
 - ← [laptop] (2026-11-19 ~22:30): **7-63-42 builds on TEST** (`ready`, 2.4 MB, OSM 2026-10-27) after the maps deploy went through on the third try (GitHub's token server timed out twice – nothing on our side, the Google sign-in step itself was green).… → [detail](items/2026-11-19-7-63-42-builds-on-test.md)
 - ← [umbau] (2026-11-20 ~00:30): **tag `umbau-phase-2` is set on c123880c7** (full E2E 100/100 there; unit CI + planner run green on 9a3a1d2, docs-only difference).… → [detail](items/2026-11-20-tag-umbau-phase-2-is-set-on-c123880c7.md)
@@ -105,6 +106,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - ← [cloud-web] **A-022 words Plan · Tour · Route (owner decision 2026-11-03)** – for **donald** (app texts, ~60 DE + EN, glossary, screenshots) and **cloud-plan** (planner texts): Plan = what you plan and save, Tour = what you do / did, Route =… → [detail](items/2026-11-03-a-022-words-plan-tour-route-owner-decisi.md)
 
 ## In progress
+- [umbau-hp] Release hardening for 0.18.2 (owner's night 2026-11-19 → 20): review of everything since `v0.18.1` by risk, a behaviour test per unguarded risk, tests and small fixes only – starts in a fresh session, brief `docs/items/2026-11-20-umbau-hp-release-hardening-start.md` – since 2026-11-19 23:00
 - [tracking] Live tracking – the tour as a link for the family (owner 2026-11-19): design `docs/design/live-tracking.md`, then the owner's answers; no product code before the weekend release – since 2026-11-19
 - [donald] Weekend release round (0.18.2): notes drafted, `FirstMapDownloadE2ETest` being written; the round (E2E full + Rundgang + fresh-install tests on the release commit, release_check) starts at [umbau]'s „main is clean“; publishing on the owner's word – since 2026-11-19 night
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
