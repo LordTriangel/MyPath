@@ -30,6 +30,14 @@ fun interface Position {
     fun here(): com.onpath.app.routing.GeoPoint?
 }
 
+/**
+ * A piece of work that can be stopped (the running route calculation of [com.onpath.app.ui.plan.PlanRunSlice]): the slice only
+ * ever asks it to stop. The app wraps its coroutine `Job` in one (`JobHandle`), the planner its own task.
+ */
+fun interface Cancellable {
+    fun cancel()
+}
+
 /** The two clocks the slices read: wall time (stored stamps) and elapsed real time (waits, never goes back). */
 interface Clock {
     fun nowMs(): Long

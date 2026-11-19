@@ -18,6 +18,7 @@ import com.onpath.app.routing.Planner
 import com.onpath.app.routing.RouteCancel
 import com.onpath.app.routing.RoutingEngine
 import com.onpath.app.routing.WaypointSnap
+import com.onpath.app.ui.Cancellable
 import com.onpath.app.ui.MapViewSlice
 import com.onpath.app.ui.NoticeKind
 import com.onpath.app.ui.NoticePlace
@@ -36,6 +37,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+
+/** The app's [Cancellable] for the route run: stops the coroutine [job] ([PlanRunSlice.routeJob]; `cancel()` on that same job). */
+class JobHandle(val job: Job) : Cancellable {
+    override fun cancel() = job.cancel()
+}
 
 /**
  * The map data and routing data the route run asks for (rebuild phase 2 piece 9b). The app implements it over `MapDataFlow`
@@ -159,8 +165,8 @@ class PlanRecalcSlice(
     private val routeRun get() = planRun.routeRun
     private val routing: Boolean get() = planRun.routing
     private var routeJob: Job?
-        get() = planRun.routeJob
-        set(v) { planRun.routeJob = v }
+        get() = (planRun.routeJob as? JobHandle)?.job
+        set(v) { planRun.routeJob = v?.let(::JobHandle) }
     private var routeCancel: RouteCancel?
         get() = planRun.routeCancel
         set(v) { planRun.routeCancel = v }

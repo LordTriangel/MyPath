@@ -440,7 +440,7 @@ class PlanRecalcFlowTest {
      */
     @Test fun theHeadLetsGoOfTheOldRunInItsOrder() {
         plan(a, b); ui { recalc.recalc() } // a run is under way: job + router signal
-        val oldJob = planRun.routeJob!!; val oldCancel = planRun.routeCancel!!
+        val oldJob = (planRun.routeJob as JobHandle).job; val oldCancel = planRun.routeCancel!!
         highlightNow = c; reachNow = com.onpath.app.routing.PlanReach(1, com.onpath.app.routing.PlanReach.Fix.None, emptyList())
         planRoute.spotLine = listOf(a, b); planRoute.spotsOpen = true
         planRun.routeProgress = 1 to 3; planRun.routeShare = 0.4f
@@ -572,7 +572,7 @@ class PlanRecalcFlowTest {
     @Test fun twoQuickEditsTheFirstRunNeverReachesTheRouterAndItsHandlesAreFired() {
         plan(a, b); create()
         recalcNow()
-        val first = planRun.routeCancel!!; val firstJob = planRun.routeJob!!
+        val first = planRun.routeCancel!!; val firstJob = (planRun.routeJob as JobHandle).job
         advance(100) // inside the debounce
         plan.replace(listOf(a, b, c))
         recalcNow()
@@ -698,7 +698,7 @@ class PlanRecalcFlowTest {
     @Test fun aRouteIsTakenItsStateAndItsCorridorInTheOldOrderOnTheOldThreads() {
         plan(a, b); create()
         recalcNow()
-        val job = planRun.routeJob!!
+        val job = (planRun.routeJob as JobHandle).job
         finishRun()
         assertTrue("the run's job is through: its slow timer and its poll ended with it", job.isCompleted)
         // the order: the corridor work is done (default thread) before the result is taken (main), the route is set before the reach,

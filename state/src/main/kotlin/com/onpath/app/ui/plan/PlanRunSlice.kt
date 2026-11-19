@@ -9,7 +9,7 @@ import com.onpath.app.domain.plan.RouteRun
 import com.onpath.app.domain.plan.RunCause
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.RouteCancel
-import kotlinx.coroutines.Job
+import com.onpath.app.ui.Cancellable
 
 /** What [PlanRunSlice] asks from the rest of the app (main thread). */
 interface PlanRunHost {
@@ -54,8 +54,8 @@ class PlanRunSlice(
 
     /** Cancel signal of the route being calculated (Cancel button; a newer request stops the older one). */
     var routeCancel: RouteCancel? = null
-    /** The running calculation. */
-    var routeJob: Job? = null
+    /** The running calculation (stopped by [cancel]; the app's is a `JobHandle` around its coroutine). */
+    var routeJob: Cancellable? = null
     /** The points before the edit that made the plan very long: its maps load only after "Plan anyway". */
     var longRouteDeferred: List<GeoPoint>? = null
     /** The wait card's progress: legs done / legs to route; null = none known yet. */

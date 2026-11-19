@@ -71,7 +71,7 @@ class PlanRunFlowTest {
 
         /** The handles `recalc` sets for a run it launched. */
         fun launchHandles() {
-            job = Job().also { slice.routeJob = it }
+            job = Job().also { slice.routeJob = JobHandle(it) }
             cancel = RouteCancel().also { slice.routeCancel = it }
             slice.routeProgress = 1 to 3; slice.routeShare = 0.4f
         }

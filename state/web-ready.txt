@@ -12,6 +12,13 @@ ui/routes/RoutesState.kt
 ui/routes/SaveDialog.kt
 # KeptPlacesSlice: ports PlacesStore (4 members: saved, update, backupChanged, syncChanged) and KeptPlacesHost (2: searchMark, isCandidate)
 ui/plan/KeptPlacesSlice.kt
+# NoticeBoard: no port to implement; it IS the Say port (1 member) and asks 3 lambdas (routesOpen, settingsOpen, mapShown: () -> Boolean)
+ui/NoticeBoard.kt
+# MultiDayFlow: port MultiDayPrefs (5 properties, see ports below) + a lambda linkedId: () -> Long; reads / writes JSON with org.json
+ui/MultiDayFlow.kt
+# PlanRunSlice: ports PlanRunHost (6 members: points, clearRoute, noCorridor, loadDeferredMaps, recalc, cancelRun) and Cancellable
+#   (1: cancel; the run's handle `routeJob`, set by the host's own recalc), plus the RunCause object of core (pure)
+ui/plan/PlanRunSlice.kt
 
 # -- state types (data / enum / sealed, no behaviour beyond a getter) ----------------------------------------------------
 ui/NoticeTypes.kt
