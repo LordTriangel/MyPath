@@ -6,11 +6,49 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Owner 2026-11-08 (father's feedback: nobody found that the plan sheet pulls up): the plan's first route raises the
- * sheet once – evening, on the Pixel: only so far that "✕ Neu planen · ⇅ Umkehren · ↻ Rundtour" is fully in view (the
- * summary step), not to the profile; never on a re-route, never during a tour, never down from a higher step.
+ * The plan sheet's and Navigate card's gestures (converted from ExpandGestureTest and SheetRiseTest – test-audit G11):
+ * tap and drag open / close, the first route raises the sheet once.
  */
-class SheetRiseTest {
+class SheetGestureTest {
+    // ---- from ExpandGestureTest.kt ----
+    // Tap and drag both open / close (owner 2026-11-06 23:42): Navigate's card and the plan sheet's handle.
+    private val t = 60f
+
+    /** Navigate's card: drag down opens, drag up closes, a short wobble changes nothing, going further the same way keeps the state. */
+    @Test fun theCardFollowsADragPastTheThresholdOnly() {
+        assertTrue("pulling the closed card down opens it", ExpandGesture.cardAfterDrag(false, 120f, t))
+        assertFalse("pushing the open card up closes it", ExpandGesture.cardAfterDrag(true, -120f, t))
+        assertFalse("a short wobble: closed stays closed", ExpandGesture.cardAfterDrag(false, 30f, t))
+        assertTrue("a short wobble: open stays open", ExpandGesture.cardAfterDrag(true, -30f, t))
+        assertFalse("no movement: closed stays closed", ExpandGesture.cardAfterDrag(false, 0f, t))
+        assertTrue("pulling the open card further down keeps it open", ExpandGesture.cardAfterDrag(true, 200f, t))
+        assertFalse("pushing the closed card up keeps it closed", ExpandGesture.cardAfterDrag(false, -200f, t))
+    }
+
+    @Test fun aTapToggles() {
+        assertTrue(ExpandGesture.cardAfterTap(false))
+        assertFalse(ExpandGesture.cardAfterTap(true))
+    }
+
+    @Test fun theHandleTapWalksTheSteps() {
+        // rolled → one row → profile → points → back to profile (the established order, PlanSize.tapped); Material 3: a tap on the drag handle grows the sheet one step, the top step goes back to the middle (the old SheetRiseTest.aTapOnTheHandleStepsUpOneStep had the same four asserts)
+        assertEquals(PlanSize.MINI, PlanSize.COLLAPSED.tapped())
+        assertEquals(PlanSize.COMPACT, PlanSize.MINI.tapped())
+        assertEquals(PlanSize.FULL, PlanSize.COMPACT.tapped())
+        assertEquals(PlanSize.COMPACT, PlanSize.FULL.tapped())
+    }
+
+    @Test fun theHandleSaysBiggerExceptOnTheLargestStep() {
+        assertTrue(ExpandGesture.handleGrows(PlanSize.COLLAPSED))
+        assertTrue(ExpandGesture.handleGrows(PlanSize.MINI))
+        assertTrue(ExpandGesture.handleGrows(PlanSize.COMPACT))
+        assertFalse(ExpandGesture.handleGrows(PlanSize.FULL))
+    }
+
+    // ---- from SheetRiseTest.kt ----
+    // Owner 2026-11-08 (father's feedback: nobody found that the plan sheet pulls up): the plan's first route raises the
+    // sheet once – evening, on the Pixel: only so far that "✕ Neu planen · ⇅ Umkehren · ↻ Rundtour" is fully in view (the
+    // summary step), not to the profile; never on a re-route, never during a tour, never down from a higher step.
     /** A plan's life: routes come one after the other; [SheetRise] decides, the caller remembers "risen". */
     private class Plan(var size: PlanSize = PlanSize.COLLAPSED, var risen: Boolean = false) {
         var rose = 0
@@ -73,13 +111,5 @@ class SheetRiseTest {
         assertFalse(SheetRise.rises(risen = false, size = PlanSize.COLLAPSED, plan = true, tour = true))
         assertFalse(SheetRise.rises(risen = false, size = PlanSize.COLLAPSED, plan = false, tour = false))
         assertTrue(SheetRise.rises(risen = false, size = PlanSize.COLLAPSED, plan = true, tour = false))
-    }
-
-    @Test fun aTapOnTheHandleStepsUpOneStep() {
-        // Material 3: a tap on the drag handle grows the sheet one step; the top step goes back to the middle
-        assertEquals(PlanSize.MINI, PlanSize.COLLAPSED.tapped())
-        assertEquals(PlanSize.COMPACT, PlanSize.MINI.tapped())
-        assertEquals(PlanSize.FULL, PlanSize.COMPACT.tapped())
-        assertEquals(PlanSize.COMPACT, PlanSize.FULL.tapped())
     }
 }

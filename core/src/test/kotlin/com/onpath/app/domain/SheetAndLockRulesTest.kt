@@ -1,13 +1,19 @@
-package com.onpath.app.domain.tour
+package com.onpath.app.domain
 
+import com.onpath.app.domain.tour.UnlockWindow
+import com.onpath.app.domain.tour.UnlockWindow.BarButton as B
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import com.onpath.app.domain.tour.UnlockWindow.BarButton as B
 
-/** One hold unlocks the bar for 10 s (owner 2026-11-07 09:05; 10 s since 2026-11-08) – [UnlockWindow]. */
-class UnlockWindowTest {
+/**
+ * The tour bar's unlock window and the plan sheet's settling (converted from UnlockWindowTest and SheetDragTest –
+ * test-audit G11): one hold unlocks 10 s, where the dragged sheet settles.
+ */
+class SheetAndLockRulesTest {
+    // ---- from UnlockWindowTest.kt ----
+    // One hold unlocks the bar for 10 s (owner 2026-11-07 09:05; 10 s since 2026-11-08) – [UnlockWindow].
     private val t0 = 1_000_000L
 
     @Test fun shutAtTheStartAndATapNeverUnlocks() {
@@ -73,5 +79,50 @@ class UnlockWindowTest {
             assertEquals(t0 + 1_500, UnlockWindow.afterFire(t0))
         } finally { UnlockWindow.openMsForTests = null }
         assertEquals(t0 + UnlockWindow.OPEN_MS, UnlockWindow.afterFire(t0))
+    }
+
+    // ---- from SheetDragTest.kt ----
+    // Where the dragged plan sheet settles (three steps, no jumping).
+    // small 200, profile 500, points 900
+    private val steps = listOf(200f, 500f, 900f)
+    private fun target(shown: Float, v: Float = 0f) = SheetDrag.target(shown, steps, v, flingPxS = 1000f)
+
+    @Test fun smallMovementGoesBack() {
+        assertEquals(1, target(450f))
+        assertEquals(1, target(560f))
+    }
+
+    @Test fun settlesAtTheNearestStep() {
+        assertEquals(0, target(330f))
+        assertEquals(2, target(720f))
+        assertEquals(2, target(1000f))  // rubber band above the top step
+        assertEquals(0, target(120f))
+    }
+
+    /** A long pull goes past a step: from the small sheet straight to the points. */
+    @Test fun aLongPullSkipsAStep() = assertEquals(2, target(850f))
+
+    @Test fun aFlingGoesToTheNextStepInItsDirection() {
+        assertEquals(2, target(510f, v = -2000f))
+        assertEquals(0, target(490f, v = 2000f))
+        assertEquals(1, target(300f, v = -2000f))
+        assertEquals(1, target(800f, v = 2000f))
+    }
+
+    @Test fun aFlingBeyondTheEndsStaysAtTheEnd() {
+        assertEquals(2, target(950f, v = -2000f))
+        assertEquals(0, target(150f, v = 2000f))
+    }
+
+    @Test fun aSlowReleaseIsNoFling() = assertEquals(1, target(520f, v = -600f))
+
+    @Test fun theReleaseLineNamesPositionStepsSpeedAndTarget() = assertEquals(
+        "Sheet let go at 1143 px (steps 536 / 938 / 1602 px, -12 px/s) → step 1",
+        SheetDrag.describe(1143.4f, listOf(536f, 938.2f, 1602f), -12.3f, 1))
+
+    @Test fun followsTheFingerWithRubberBandAtTheEnds() {
+        assertEquals(400f, SheetDrag.follow(400f, 100f, 800f), 0f)
+        assertEquals(830f, SheetDrag.follow(900f, 100f, 800f), 1e-3f)
+        assertEquals(70f, SheetDrag.follow(0f, 100f, 800f), 1e-3f)
     }
 }

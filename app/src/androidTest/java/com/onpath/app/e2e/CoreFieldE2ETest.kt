@@ -1288,7 +1288,7 @@ class CoreFieldE2ETest : E2EBase() {
     @Test fun lockOnOneHoldOpensTheBarWeiterOnATapLocksAgain() {
         var before: com.onpath.app.data.AppSettings? = null
         val holdMs = com.onpath.app.data.HoldSetting.MAX_MS // see lockOnHoldPauseThenHoldEnd (a short tap on Weiter resumed: HoldFillTest)
-        // the window long: this test checks what ONE hold opens, not the window's length (UnlockWindowTest) – a loaded
+        // the window long: this test checks what ONE hold opens, not the window's length (SheetAndLockRulesTest) – a loaded
         // GitHub emulator took 13 s from the fired hold to the next step (run 42363890364)
         UnlockWindow.openMsForTests = 60_000
         scenario.onActivity { before = vm(it).settingsSlice.settings; vm(it).settingsSlice.updateSettings(vm(it).settingsSlice.settings.copy(navHoldMs = holdMs)) }
