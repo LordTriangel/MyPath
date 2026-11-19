@@ -219,7 +219,7 @@
         "web/app/src/main.ts",
         "web/app/src/longroute.ts"
       ],
-      "blob": "ca4464f129c036ab70345ed6f677b64e5755d36e"
+      "blob": "8e0fc3c99a4d94811e500a31596e823ece4e90f4"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/AppViewModel.kt",

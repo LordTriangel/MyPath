@@ -203,7 +203,7 @@ class PlanEditSlice(
 
     /** Points list: row [from] dropped at row [to] (hold ≡ and drag); to the top = the new start. Undo reverts. */
     fun movePointInList(from: Int, to: Int) {
-        val after = com.onpath.app.routing.PlanPoints.move(waypoints, from, to)
+        val after = com.onpath.app.routing.PlanPoints.move(waypoints.toList(), from, to) // a copy: move() hands the list itself back when nothing moves
         if (after == waypoints.toList()) return
         Problems.trace("plan", "Points list: point ${from + 1} moved to ${to + 1} (plan ${waypoints.size} points)")
         set(after)

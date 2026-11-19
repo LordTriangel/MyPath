@@ -219,6 +219,22 @@ class PlanEditFlowTest {
         assertFalse(app.plan.canUndo)
     }
 
+    @Test fun aRowDroppedOnItselfOrAStaleRowChangesNothing() {
+        // a stale row index (the plan shrank under the drag) must never empty the plan: PlanPoints.move hands back the plan itself
+        val app = App(listOf(a, b, c))
+        app.slice.movePointInList(1, 1)
+        app.slice.movePointInList(7, 0)
+        assertEquals("abc", app.stored())
+        assertEquals("abc", app.points())
+        assertFalse(app.plan.canUndo)
+        assertEquals(emptyList<String>(), app.log)
+        // during a tour the guidance is not ended by it either
+        app.touring = true; app.followLine = listOf(a, c)
+        app.slice.movePointInList(2, 2)
+        assertEquals(emptyList<String>(), app.log)
+        assertFalse(app.guidanceEnded)
+    }
+
     @Test fun makeDestinationMovesARowToTheEndAndTheLastRowIsLeftAlone() {
         val app = App(listOf(a, b, c))
         app.slice.makeDestination(0)
