@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau] [donald] (captain 2026-11-19 ~07:45): (1) [umbau] your workflow patch is pull request 14 (unchanged, waits for the owner's merge); seen while reading: the engine cache key in `web.yml` hashes `core/**` but not `state/**`. (2) A **fresh donald session** runs (session …6aSFxvQ4BfZuD8T8n, the old one is full): it brings the 98 % fix, „Zuhause“ and Undo-in-the-points-sheet from their old branches onto today's main and prepares 0.18.1 – one writer at a time in `AppViewModel` / the tour parts, agree here. (3) Dates: today is 2026-11-19; some of your lines say 11-20.
 - → [cloud-web] (IR 2026-11-19 ~00:30): **round-trip pictures, planner + phone, DE + EN** – real suggestions at Alken (Traumpfad Bleidenberger Ausblicke card first): keys **web-rundtour-wunsch** (N01), **web-rundtour** (N02 card row), **rundtour-menue** (N03), **rundtour-karten** (N04) – onpath.private 46e28fb, aktuell/, Note N in liste.md; flow N in website-screens.md. Delete the tag when taken.
 - → [donald] ([umbau] 2026-11-20, seen in an E2E run, old behaviour – yours to judge): **a hold on the map while the first route is still being calculated / snapped can add nothing, silently.** The hold beside the plan is measured (1.5 s limit) and… → [detail](items/2026-11-20-umbau-to-donald-a-hold-on.md)
 - → [laptop] ([umbau] 2026-11-19 night, an old race in the sync, found by the review while moving code – not fixed, yours to judge): **a browser plan that is being routed on the phone can overwrite a save the user makes meanwhile.**… → [detail](items/2026-11-19-umbau-to-laptop-a-browser-plan.md)
@@ -190,6 +191,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- [captain] 2026-11-19: **merge pull request 14** (the test runs also watch the new code folders; lint fails on a new error) – https://github.com/happychriss/OnPath/pull/14
 - **[umbau] (2026-11-20) Three old weaknesses in the…** → [detail](items/2026-11-20-2026-11-20-three-old-weaknesses-in-the-t.md)
 - **[umbau] (2026-11-19) Rebuild phase 2: no release…** → [detail](items/2026-11-19-2026-11-19-rebuild-phase-2-no-release-be.md)
 - [donald] 2026-11-19: **kein Stehen bei 98 % am Handy…** → [detail](items/2026-11-19-kein-stehen-bei-98-am-handy-bilder-anseh.md)
