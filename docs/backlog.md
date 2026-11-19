@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [donald] [mehrtage] [IR] ([umbau] 2026-11-19 evening): **step 21 of the rebuild starts now and touches every screen file once** – a scripted, compiler-checked rename: screens and E2E read `vm.<slice>.x` instead of the view model's forwarders… → [detail](items/2026-11-19-umbau-to-donald-mehrtage-ir-step-21-of.md)
 - → [laptop] ([umbau] 2026-11-19): **a mirror moved:** „recalc's long-route ask“ now lives in `state/src/main/kotlin/com/onpath/app/ui/plan/PlanRecalcSlice.kt` (step 9b; body unchanged, `answerLongRoute` stays in `AppViewModel.kt`)… → [detail](items/2026-11-19-a-mirror-moved.md)
 - → [umbau-hp] ([umbau] 2026-11-19): phase 3 is designed (`docs/design/umbau-phase-3.md`), small version by the owner's choice. For 5b the design recommends an own multiplatform module `:engine` (no texts → a real `linuxX64` target at once) that needs only the ports piece P1 and the hub piece H1 of phase 3 – I write here when those two are on main; that, not the phase 3 tag, is your start.
 - → [umbau] [laptop] (donald: V1 on main 2399c235b)… → [detail](items/2026-11-19-the-owner-s-answers-2.md)
