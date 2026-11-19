@@ -48,7 +48,10 @@ class RouteThumbs(val dir: File) {
 /** Which pictures to make, and the key of a line (JVM tested). */
 object ThumbRules {
     /** Raised when the picture's look changes (size, line width): every picture is made again once. */
-    const val VERSION = 2 // 2: no route networks, the whole route with its ends inside (owner 2026-11-13)
+    // 2: no route networks, the whole route with its ends inside (owner 2026-11-13); 3: the pictures up to 0.18.1 made
+    // again – some were drawn while their map files were being replaced and showed the line on an empty map (field
+    // report 2026-11-19; [plan] now really makes a picture of an older version again, it was only re-keyed)
+    const val VERSION = 3
 
     /** The edge of a picture (dp): the L1 tile. */
     const val TILE_DP = 84
@@ -130,7 +133,9 @@ object ThumbRules {
             queried++
             val key = key(t, lineKey(t))
             if (key in skip) continue
-            if (have != null && have.substringAfter('|', "") == key.substringAfter('|')) rekey += t to key else make += t to key
+            // the same line under a new signature: only the key – unless the picture is of an older look ([VERSION])
+            if (have != null && have.startsWith("v$VERSION ") && have.substringAfter('|', "") == key.substringAfter('|')) rekey += t to key
+            else make += t to key
         }
         make.sortWith(compareBy<Pair<Tour, String>>({ it.first.uuid != first }, { -it.first.createdMs }))
         return Plan(make, rekey, queried)

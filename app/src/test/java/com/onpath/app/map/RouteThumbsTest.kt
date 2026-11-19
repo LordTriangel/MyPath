@@ -78,6 +78,42 @@ class RouteThumbsTest {
             skip = setOf(ThumbRules.key(fresh, "b"))).make.map { it.first.id })
     }
 
+    /**
+     * Field report on 0.18.1 (owner 2026-11-19: „der Kartenhintergrund hinter den Routenbildern fehlt“): pictures drawn
+     * while their map was not there stay as they are – the key knows the line, not the map. Raising [ThumbRules.VERSION]
+     * must make every picture again, as its comment promises; a picture of an older version with the same line was only
+     * re-keyed (kept). The pictures made up to 0.18.1 (version 2) are made again.
+     */
+    @Test fun aPictureOfAnOlderVersionIsMadeAgainNotOnlyReKeyed() {
+        val t = tour(1)
+        val mine = ThumbRules.sig(t).substringAfter(' ')
+        for (old in 1 until ThumbRules.VERSION) {
+            val plan = ThumbRules.plan(listOf(t), { "v$old $mine|a" }, { "a" })
+            assertEquals("a picture of version $old", listOf(1L), plan.make.map { it.first.id })
+            assertTrue(plan.rekey.isEmpty())
+        }
+        assertTrue("the pictures of 0.18.1 (version 2) are made again", ThumbRules.VERSION >= 3)
+        // the same version and line under a new signature: still only the key
+        val moved = t.copy(distanceM = 2.0)
+        assertEquals(listOf(1L), ThumbRules.plan(listOf(moved), { ThumbRules.key(t, "a") }, { "a" }).rekey.map { it.first.id })
+    }
+
+    /**
+     * Each picture of a pass is drawn on the map as it is when that picture is made: the style (which map files it reads)
+     * is asked for every picture, not once per pass – a pass over many tours outlives a map update (new map areas joined,
+     * the folder the first style named deleted), and every picture after it would show the line on an empty map.
+     */
+    @Test fun eachPictureOfAPassReadsTheMapAsItIsThen() {
+        val thumbs = RouteThumbs(tmp.newFolder("t3"))
+        var gen = 1
+        val seen = mutableListOf<String>()
+        val maker = ThumbMaker(thumbs, CoroutineScope(Dispatchers.Unconfined), binned = { emptySet() }, lineKey = { "x${it.id}" },
+            line = { listOf(listOf(GeoPoint(46.6, 11.1), GeoPoint(46.7, 11.2))) }, style = { "g$gen" },
+            snap = { json, _, _ -> seen += json; gen++; byteArrayOf(1) }, busy = { false }, made = {}, io = Dispatchers.Unconfined, pauseMs = 0)
+        maker.kick(listOf(tour(1), tour(2), tour(3)))
+        assertEquals(listOf("g1", "g2", "g3"), seen)
+    }
+
     private class Maker(dir: java.io.File) {
         var busy = false
         var snaps = 0

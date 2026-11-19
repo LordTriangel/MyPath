@@ -34,7 +34,7 @@ class ThumbMaker(
     private val lineKey: (Tour) -> String?,
     /** The tour's line as My routes draws it. */
     private val line: (Tour) -> List<List<GeoPoint>>,
-    /** The map style for a snapshot (offline cells + overview); null = no map now (nothing made, tried again later). */
+    /** The map style for a snapshot (offline cells + overview), read for every picture; null = no map now (nothing made, tried again later). */
     private val style: suspend () -> String?,
     /** The picture of [line] on [style] as file bytes ([render]); null = not made (reported there). */
     private val snap: suspend (style: String, segments: List<List<GeoPoint>>, t: Tour) -> ByteArray?,
@@ -88,11 +88,13 @@ class ThumbMaker(
         first = null
         for ((t, key) in plan.rekey) if (thumbs.writeKey(t.uuid, key)) keys[t.uuid] = key
         if (plan.make.isEmpty()) return
-        val json = style() ?: return
         for ((t, key) in plan.make) {
             if (busy()) { Problems.trace("routes", "Map pictures wait: a tour runs (${plan.make.size} to make)"); return }
             val segs = line(t).filter { it.size >= 2 }
             if (segs.isEmpty()) { if (thumbs.write(t.uuid, key, null)) keys[t.uuid] = key; continue } // the row's sign stays
+            // the map as it is now, for every picture: a pass outlives a map update (areas joined, the folder the first
+            // style named deleted) – the pictures after it showed the line on an empty map (field report 2026-11-19)
+            val json = style() ?: return
             val t0 = clock()
             val bytes = snap(json, segs, t)
             val ms = clock() - t0

@@ -62,8 +62,12 @@ class RoutePictures(
             binned = { db.listDeleted().mapTo(HashSet()) { it.uuid } },
             lineKey = { t -> db.lineKey(t.id) },
             line = { t -> routes.line(t) { emptyList() } },
-            style = { snapshotStyle() },
-            snap = { json, segs, t -> com.onpath.app.map.ThumbMaker.render(app, json, segs, argbOf(RouteShape.tint(t.kind))) },
+            style = { snapshotStyle().also { thumbStyle = it }?.json },
+            // kept only when drawn on the map as it still is (MapPictureGuard, field report 2026-11-19)
+            snap = { json, segs, t ->
+                com.onpath.app.map.MapPictureGuard.drawn(thumbStyle?.takeIf { it.json === json }, { snapshotStyle() }, { mapDirNow() },
+                    { j -> com.onpath.app.map.ThumbMaker.render(app, j, segs, argbOf(RouteShape.tint(t.kind))) })
+            },
             busy = { host.mode == AppMode.NAVIGATE || host.recState.value != null },
             made = { scope.launchSafe("routes", "Map picture shown", Dispatchers.Main) { thumbVersion++ } })
     }
@@ -122,21 +126,32 @@ class RoutePictures(
      */
     suspend fun routeSnapshot(segments: List<List<GeoPoint>>, tint: RouteShape.Tint, widthPx: Int, heightPx: Int,
                               paddingPx: Int, under: List<GeoPoint> = emptyList()): com.onpath.app.map.RouteSnapshot.Shot? {
-        val json = snapshotStyle() ?: return null
         val color = argbOf(tint)
         val planBlue = RouteShape.Tint.PLAN.color().let { c ->
             android.graphics.Color.argb(255, (c.red * 255).toInt(), (c.green * 255).toInt(), (c.blue * 255).toInt())
         }
-        return com.onpath.app.map.RouteSnapshot.make(app, json, segments, color, widthPx, heightPx, paddingPx,
-            app.resources.displayMetrics.density, under, planBlue)
+        // kept only when drawn on the map as it still is (MapPictureGuard, field report 2026-11-19)
+        return com.onpath.app.map.MapPictureGuard.drawn(null, { snapshotStyle() }, { mapDirNow() }, { json ->
+            com.onpath.app.map.RouteSnapshot.make(app, json, segments, color, widthPx, heightPx, paddingPx,
+                app.resources.displayMetrics.density, under, planBlue)
+        }, { it.bitmap.recycle() })
     }
 
-    /** The map style a snapshot draws (the app's own: offline cells, the overview map elsewhere); null = failed (reported). */
-    private suspend fun snapshotStyle(): String? {
+    /** The style the row pictures' maker read last, with its map folder (the maker draws right after reading it). */
+    @Volatile private var thumbStyle: com.onpath.app.map.MapPictureGuard.Style? = null
+
+    /** The map's folder now (the data folder or the current generation of map cells). */
+    private suspend fun mapDirNow(): java.io.File = withContext(Dispatchers.Main) { host.dataFiles.mapDir() }
+
+    /**
+     * The map style a snapshot draws (the app's own: offline cells, the overview map elsewhere) and the map folder it reads;
+     * null = failed (reported).
+     */
+    private suspend fun snapshotStyle(): com.onpath.app.map.MapPictureGuard.Style? {
         val (dataDir, theme, mapDir) = withContext(Dispatchers.Main) { Triple(host.dataFiles.dir, host.settings.mapTheme, host.dataFiles.mapDir()) }
         val (cover, dev, packages) = withContext(Dispatchers.Main) { Triple(host.detailedAreas(), host.devToolsShown, host.packageAreas()) }
         return withContext(io) {
-            runCatching { com.onpath.app.map.StyleLoader.load(app, dataDir, theme, mapDir, cover, dev, packages) }
+            runCatching { com.onpath.app.map.MapPictureGuard.Style(com.onpath.app.map.StyleLoader.load(app, dataDir, theme, mapDir, cover, dev, packages), mapDir) }
                 .onFailure { Problems.warn("routes", "Overview: map style could not be built – the shape is shown alone", it) }
                 .getOrNull()
         }

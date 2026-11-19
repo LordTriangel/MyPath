@@ -30,6 +30,16 @@ class OverviewPicturesTest {
         assertNotEquals(base, OverviewRules.key("L", emptyList(), 1000, 1200, "dark"))
     }
 
+    /**
+     * Field report on 0.18.1 (owner 2026-11-19): overview pictures without the map behind the line are kept by their key;
+     * the pictures 0.18.1 stored (key version 1) are made again after the update.
+     */
+    @Test fun thePicturesOf0181AreMadeAgain() {
+        assertTrue(OverviewRules.VERSION >= 2)
+        assertNotEquals("o1 1000x1200 classic|u0|L", OverviewRules.key("L", emptyList(), 1000, 1200, "classic"))
+        assertTrue(OverviewRules.key("L", emptyList(), 1000, 1200, "classic").startsWith("o${OverviewRules.VERSION} "))
+    }
+
     @Test fun theNewestTwentyAndEveryFavourite() {
         val tours = (1L..30L).map { tour(it, it * 1000, fav = it == 2L) } +
             tour(40, 99_000, draft = true) + tour(41, 98_000, state = "active") + tour(42, 97_000, uuid = "") +

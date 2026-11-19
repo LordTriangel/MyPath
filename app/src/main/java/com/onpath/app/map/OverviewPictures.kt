@@ -78,7 +78,7 @@ class OverviewPictures(val dir: File) {
 /** Which overview pictures to keep and make, and their key (JVM tested). */
 object OverviewRules {
     /** Raised when the picture's look changes: every picture is made again once. */
-    const val VERSION = 1
+    const val VERSION = 2 // 2: the pictures up to 0.18.1 made again (some showed the line on an empty map, 2026-11-19)
 
     /** The background makes pictures for the newest this many tours … */
     const val NEWEST = 20
