@@ -1,7 +1,5 @@
 package com.onpath.app.ui.sync
 
-import com.onpath.app.plansync.PlanSync
-import com.onpath.app.plansync.PlanSyncPass
 import com.onpath.app.plansync.SyncMark
 import com.onpath.app.plansync.SyncPoll
 import com.onpath.app.sync.SyncRound
@@ -19,6 +17,9 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import com.onpath.app.plansync.SyncState
+import com.onpath.app.plansync.SyncReport
+import com.onpath.app.plansync.SyncPassResult
 
 /**
  * When the browser sync runs while the app is open ([SyncDriver], cleanup piece 4): the triggers the view model wired
@@ -30,7 +31,7 @@ class SyncDriverTest {
     @get:Rule val problems = ProblemsRule()
 
     private class FakeEngine : SyncEngine {
-        override val state = MutableStateFlow(PlanSync.State(paired = true))
+        override val state = MutableStateFlow(SyncState(paired = true))
         override val marks = MutableStateFlow<Map<String, SyncMark>>(emptyMap())
         val asked = ArrayList<String>()
         val seen = ArrayList<String>()
@@ -86,7 +87,7 @@ class SyncDriverTest {
     private val driver = SyncDriver(engine, host, recording, { recording.value }, scope, Dispatchers.Unconfined, clock = { now }, sleep = ::sleep)
 
     private fun done(manual: Boolean = false) =
-        PlanSync.Report(manual, PlanSyncPass.Result(SyncRound.Outcome.Done(pulled = 0, pushed = 0, unreadable = 0)))
+        SyncReport(manual, SyncPassResult(SyncRound.Outcome.Done(pulled = 0, pushed = 0, unreadable = 0)))
 
     // ---------------- triggers ----------------
 
@@ -143,7 +144,7 @@ class SyncDriverTest {
     @Test fun aFailedPassBacksOffAndAGoodOneResets() {
         driver.start()
         host.show(SyncPoll.Shown.ROUTES_PLANNED)
-        driver.onReport(PlanSync.Report(manual = false, result = null, error = true))
+        driver.onReport(SyncReport(manual = false, result = null, error = true))
         wake() // the 15 s it slept already: not due yet, 30 s count from the failed pass
         assertEquals(listOf("my routes opened"), engine.asked)
         assertEquals(listOf(SyncPoll.BASE_MS), waits)
@@ -170,13 +171,13 @@ class SyncDriverTest {
     }
 
     @Test fun unpairedNothingIsAsked() {
-        engine.state.value = PlanSync.State(paired = false)
+        engine.state.value = SyncState(paired = false)
         driver.start()
         host.show(SyncPoll.Shown.SYNC_PAGE)
         driver.pull()
         assertTrue(engine.asked.isEmpty()); assertTrue(waits.isEmpty()); assertFalse(driver.pulling)
         // paired now (the code was scanned on this page): the poll starts
-        engine.state.value = PlanSync.State(paired = true)
+        engine.state.value = SyncState(paired = true)
         assertEquals(listOf("poll"), engine.asked)
     }
 
@@ -232,19 +233,19 @@ class SyncDriverTest {
     @Test fun whatAPassBroughtIsHandedToTheViewModel() {
         driver.onReport(done())
         assertTrue("nothing came: nothing read again", host.log.isEmpty())
-        driver.onReport(PlanSync.Report(false, PlanSyncPass.Result(SyncRound.Outcome.Done(2, 0, 0), toRoute = listOf(7L, 9L),
+        driver.onReport(SyncReport(false, SyncPassResult(SyncRound.Outcome.Done(2, 0, 0), toRoute = listOf(7L, 9L),
             toursChanged = true, newerData = listOf("E10_N45"), placesChanged = true)))
         assertEquals(listOf("places", "tours [7, 9]", "data [E10_N45]"), host.log)
     }
 
     /** Zuhause / favourites from the browser alone: the kept places are read again, My routes is not. */
     @Test fun keptPlacesFromTheBrowserAreReadAgainWithoutTheList() {
-        driver.onReport(PlanSync.Report(false, PlanSyncPass.Result(SyncRound.Outcome.Done(1, 0, 0), placesChanged = true)))
+        driver.onReport(SyncReport(false, SyncPassResult(SyncRound.Outcome.Done(1, 0, 0), placesChanged = true)))
         assertEquals(listOf("places"), host.log)
     }
 
     @Test fun thePairingEndedInTheBrowserIsSaid() {
-        driver.onReport(PlanSync.Report(manual = false, result = null, ended = true))
+        driver.onReport(SyncReport(manual = false, result = null, ended = true))
         assertEquals(listOf("ended"), host.log)
     }
 

@@ -17,6 +17,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import java.util.Locale
+import com.onpath.app.plansync.SyncState
+import com.onpath.app.plansync.SyncProblem
 
 /**
  * The ☰ menu of Plan in all its states, three small pictures per language (two states side by side): per cell the top bar (search pill, mode pill and ☰
@@ -37,7 +39,7 @@ abstract class PlanMenuGalleryTest {
     val paparazzi = ShotGallery.paparazzi()
 
     private val syncNow = 1_761_150_000_000L
-    private val paired = PlanSync.State(paired = true, peer = "Chrome on Linux", lastOkMs = syncNow - 60_000,
+    private val paired = SyncState(paired = true, peer = "Chrome on Linux", lastOkMs = syncNow - 60_000,
         sinceMs = syncNow - 86_400_000, checkedMs = syncNow - 60_000)
     private val withRoute get() = RouteRules.menu(hasRoute = true, pointCount = 3, savedCount = 3, navigating = false, recording = false)
 
@@ -90,7 +92,7 @@ abstract class PlanMenuGalleryTest {
         Gallery {
             cell("planMenuSyncPaired") { MenuCell(withRoute, sync = { SyncMenuUi.of(paired, "Pixel 8", syncNow) }) }
             cell("planMenuSyncProblem") {
-                MenuCell(withRoute, sync = { SyncMenuUi.of(paired.copy(problem = PlanSync.Problem.Refused(507, "full")), "Pixel 8", syncNow) })
+                MenuCell(withRoute, sync = { SyncMenuUi.of(paired.copy(problem = SyncProblem.Refused(507, "full")), "Pixel 8", syncNow) })
             }
         }
     }

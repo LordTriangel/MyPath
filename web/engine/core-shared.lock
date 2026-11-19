@@ -4,4 +4,4 @@
 # Why: web.yml's path filters and the engine cache key do not know core/** yet, so an edit of a shared file in core/ would
 # neither start the planner run nor change the cache key. This file is under web/engine/** (both know that), and
 # SharedFilesRuleTest fails when it is out of date.  It goes when web.yml knows core/**.
-sha256 a98337ed4ba132c7f2563299b104d344c4a9e24e156a9bdc028d54b36fee5a91
+sha256 663c5b6190547e2f3bfb971ee2f80d11e2d29a886100da33e71afcf16d0f2ed4

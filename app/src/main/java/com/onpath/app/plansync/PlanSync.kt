@@ -77,8 +77,8 @@ class PlanSync(
     context: Context,
     private val store: TourStore,
     private val recording: () -> Boolean,
-    /** Main thread: a pass ended ([Report.manual] = the pass right after pairing). */
-    private val onReport: (Report) -> Unit,
+    /** Main thread: a pass ended ([SyncReport.manual] = the pass right after pairing). */
+    private val onReport: (SyncReport) -> Unit,
     private val server: String = SERVER,
     dir: File = File(context.filesDir, SyncFiles.DIR),
     /** This phone's routing (fingerprint + rd5 dates) for the plans it saves and the synced plans it opens. */
@@ -94,51 +94,12 @@ class PlanSync(
     private val main = Handler(Looper.getMainLooper())
     @Volatile private var pendingRun: ScheduledFuture<*>? = null
     @Volatile private var manualWaiting = false
-    /** When the last pass ended in this run of the app ([State.checkedMs]); only the worker thread writes it. */
+    /** When the last pass ended in this run of the app ([SyncState.checkedMs]); only the worker thread writes it. */
     @Volatile private var checkedMs = 0L
     /** A scan arms it once: the next run is the handshake even during a tour ([PlanSyncPass.handshake]), never a loop. */
     private val gate = PassGate()
-    /** Whether the last run during a tour left the routes for after it ([State.afterTour]); only the worker writes it. */
+    /** Whether the last run during a tour left the routes for after it ([SyncState.afterTour]); only the worker writes it. */
     @Volatile private var afterTour = false
-
-    /** What Settings → Browser sync shows. */
-    data class State(
-        val paired: Boolean = false,
-        /** The browser's name from its hello ("Chrome on Linux"); null = none yet. */
-        val peer: String? = null,
-        val lastOkMs: Long = 0,
-        val running: Boolean = false,
-        val problem: Problem? = null,
-        /** The six check digits of the pairing ("395 514"). */
-        val check: String? = null,
-        /** When the pairing was made (ms; 0 = unknown / not paired). */
-        val sinceMs: Long = 0,
-        /** When the last pass ended in this run of the app, well or not (ms; 0 = none yet). */
-        val checkedMs: Long = 0,
-        /** The pairing was ended in the browser and Settings → Browser sync was not opened since (☰ shows it amber). */
-        val ended: Boolean = false,
-        /**
-         * Paired: is a browser at the other end ([BrowserLink], from the browser hellos)? [BrowserLink.UNPAIRED] = the
-         * browser unpaired itself (☰ "Pair with browser" + grey "Unpaired in the browser"). Not paired: unused.
-         */
-        val browser: BrowserLink = BrowserLink.CONNECTED,
-        /** A tour is recording and the routes wait for its end (grey "Routes sync after the tour"). */
-        val afterTour: Boolean = false,
-    )
-
-    /** Why the last pass did not end well. */
-    sealed interface Problem {
-        data object Offline : Problem
-        data class Refused(val status: Int, val error: String?) : Problem
-        /** Items from a newer app (update OnPath). */
-        data class NewerApp(val count: Int) : Problem
-        /** Routes from the browser could not be saved on the phone (tried again next time). */
-        data class NotSaved(val count: Int) : Problem
-        /** The sync files could not be written (storage full). */
-        data object Storage : Problem
-        /** [count] routes stayed unsent for [StuckOutbox.PASSES] passes in a row (review sync M8: was "synced"). */
-        data class Stuck(val count: Int) : Problem
-    }
 
     /** Passes in a row that ended with routes still waiting to be sent. */
     private var stuckPasses = 0
@@ -149,11 +110,9 @@ class PlanSync(
     /** Counts [request] calls: a pass schedules its follow-up only when nothing was asked for while it ran. */
     @Volatile private var asked = 0
 
-    /** A pass, pairing or unpairing ended. */
-    data class Report(val manual: Boolean, val result: PlanSyncPass.Result?, val ended: Boolean = false, val error: Boolean = false)
 
-    private val _state = MutableStateFlow(State())
-    val state: StateFlow<State> = _state
+    private val _state = MutableStateFlow(SyncState())
+    val state: StateFlow<SyncState> = _state
 
     /** This phone's name for the browser (its hello): the user's device name, else the model ([deviceName]). */
     val deviceName: String by lazy { deviceName(app) }
@@ -212,13 +171,13 @@ class PlanSync(
         val mine = asked
         val manual = manualWaiting
         manualWaiting = false
-        if (files.pairing() == null) { if (manual) report(Report(true, null)); return }
+        if (files.pairing() == null) { if (manual) report(SyncReport(true, null)); return }
         val step = gate.next(recording())
         val handshake = step == PassGate.Step.HANDSHAKE
         if (step == PassGate.Step.SKIP) {
             if (!quiet) Problems.trace("sync", "Sync ($why) skipped: a tour is recording – after the tour")
             if (!afterTour) { afterTour = true; _state.value = _state.value.copy(afterTour = true) }
-            if (manual) report(Report(true, null))
+            if (manual) report(SyncReport(true, null))
             return
         }
         _state.value = _state.value.copy(running = true)
@@ -227,8 +186,8 @@ class PlanSync(
         val r = try { if (handshake) pass().handshake() else pass().run(recording) } catch (e: Exception) {
             Problems.error("sync", "Sync files could not be written", e)
             checkedMs = System.currentTimeMillis()
-            _state.value = _state.value.copy(running = false, problem = Problem.Storage, checkedMs = checkedMs)
-            report(Report(manual, null, error = true))
+            _state.value = _state.value.copy(running = false, problem = SyncProblem.Storage, checkedMs = checkedMs)
+            report(SyncReport(manual, null, error = true))
             return
         }
         val ended = r?.outcome is SyncRound.Outcome.Ended
@@ -241,7 +200,7 @@ class PlanSync(
         // kept places from the browser: into the places backup file (OnPath Orte.gpx) like a change in the place menu
         if (r?.placesChanged == true) com.onpath.app.backup.Backups.placesChanged(app)
         refreshState(r)
-        report(Report(manual, r, ended = ended))
+        report(SyncReport(manual, r, ended = ended))
         if (!handshake) paceNext(r?.outcome, mine)
     }
 
@@ -279,8 +238,8 @@ class PlanSync(
             } catch (e: Exception) {
                 Problems.error("sync", "Pairing could not be stored", e)
                 manualWaiting = false
-                _state.value = _state.value.copy(problem = Problem.Storage)
-                report(Report(true, null, error = true))
+                _state.value = _state.value.copy(problem = SyncProblem.Storage)
+                report(SyncReport(true, null, error = true))
                 main.post { stored(false) }
                 return@exclusive
             }
@@ -357,7 +316,7 @@ class PlanSync(
     /** The mailbox of the stored pairing (same browser again?), or null. Reads a small file: background or rare taps. */
     fun pairedMailbox(): String? = files.pairing()?.secret?.let { SyncKeys(it).mailbox }
 
-    private fun refreshState(r: PlanSyncPass.Result? = null) {
+    private fun refreshState(r: SyncPassResult? = null) {
         val p = files.pairing()
         var peer = r?.peer
         // not read: as before (never a false "unpaired")
@@ -378,9 +337,9 @@ class PlanSync(
         } catch (e: Exception) { Problems.warn("sync", "Paired browser not read", e) }
         if (p != null && _state.value.paired && browser != _state.value.browser) Problems.info("sync", "Browser at the other end: $browser")
         if (p == null) afterTour = false else if (r != null) afterTour = r.skippedForRecording
-        val problem: Problem? = when (val o = r?.outcome) {
+        val problem: SyncProblem? = when (val o = r?.outcome) {
             null -> null
-            is SyncRound.Outcome.Offline -> Problem.Offline
+            is SyncRound.Outcome.Offline -> SyncProblem.Offline
             is SyncRound.Outcome.Refused -> shown(o)
             is SyncRound.Outcome.Ended -> null
             is SyncRound.Outcome.Done -> {
@@ -389,20 +348,20 @@ class PlanSync(
                 stuckPasses = StuckOutbox.next(stuckPasses, o.left, o.pushed)
                 if (stuckPasses == StuckOutbox.PASSES) Problems.warn("sync", "${o.left} item(s) not sent for $stuckPasses passes in a row")
                 when {
-                    r.failed > 0 -> Problem.NotSaved(r.failed)
-                    r.unreadable > 0 -> Problem.NewerApp(r.unreadable)
-                    StuckOutbox.stuck(stuckPasses) -> Problem.Stuck(o.left)
+                    r.failed > 0 -> SyncProblem.NotSaved(r.failed)
+                    r.unreadable > 0 -> SyncProblem.NewerApp(r.unreadable)
+                    StuckOutbox.stuck(stuckPasses) -> SyncProblem.Stuck(o.left)
                     else -> null
                 }
             }
         }
-        _state.value = State(paired = p != null, peer = if (p == null) null else peer, lastOkMs = if (p == null) 0 else files.lastOk(),
+        _state.value = SyncState(paired = p != null, peer = if (p == null) null else peer, lastOkMs = if (p == null) 0 else files.lastOk(),
             running = false, problem = if (p == null) null else problem, check = p?.secret?.let { SyncKeys(it).check },
             sinceMs = p?.since ?: 0, checkedMs = checkedMs, ended = p == null && files.ended() > 0, browser = browser,
             afterTour = afterTour)
     }
 
-    private fun report(r: Report) = main.post { try { onReport(r) } catch (e: Exception) { Problems.warn("sync", "Sync result not shown", e) } }
+    private fun report(r: SyncReport) = main.post { try { onReport(r) } catch (e: Exception) { Problems.warn("sync", "Sync result not shown", e) } }
 
     private inline fun safely(what: String, block: () -> Unit) {
         try { block() } catch (e: Exception) { Problems.warn("sync", "Sync $what failed", e) }
@@ -416,7 +375,7 @@ class PlanSync(
             val cm = app.getSystemService(ConnectivityManager::class.java) ?: return
             val cb = object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(network: Network) {
-                    if (_state.value.problem == Problem.Offline) request("network back", delayMs = 2_000)
+                    if (_state.value.problem == SyncProblem.Offline) request("network back", delayMs = 2_000)
                 }
             }
             cm.registerDefaultNetworkCallback(cb)
@@ -474,16 +433,16 @@ class PlanSync(
          * under load) is a quiet retry, not the red „nicht angenommen“ (field bug 2026-11-12); if it lasts, the
          * no-good-pass rule (SyncSettings STALE) says so. Other refusals are said.
          */
-        fun shown(o: SyncRound.Outcome.Refused): Problem? = if (SyncRound.busy(o.status)) null else Problem.Refused(o.status, o.error)
+        fun shown(o: SyncRound.Outcome.Refused): SyncProblem? = if (SyncRound.busy(o.status)) null else SyncProblem.Refused(o.status, o.error)
 
         /** A pass that reached the server and moved nothing. */
-        fun idle(r: PlanSyncPass.Result?): Boolean {
+        fun idle(r: SyncPassResult?): Boolean {
             val o = r?.outcome as? SyncRound.Outcome.Done ?: return false
             return o.pulled == 0 && o.pushed == 0 && o.unreadable == 0 && r.added == 0 && r.updated == 0 && r.binned == 0 &&
                 r.failed == 0 && !r.toursChanged && !r.skippedForRecording && !r.placesChanged
         }
 
-        fun describe(r: PlanSyncPass.Result?): String = when (val o = r?.outcome) {
+        fun describe(r: SyncPassResult?): String = when (val o = r?.outcome) {
             null -> "not paired"
             is SyncRound.Outcome.Done -> "read ${o.pulled}, sent ${o.pushed}, ${o.left} left, ${o.unreadable} unreadable; " +
                 "${r.added} new, ${r.updated} changed, ${r.binned} to the bin, ${r.failed} failed" +

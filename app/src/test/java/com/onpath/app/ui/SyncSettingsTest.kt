@@ -11,6 +11,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.onpath.app.plansync.SyncState
+import com.onpath.app.plansync.SyncProblem
 
 /** Settings → Browser sync: the list line and the status line of the last pass follow the Messages rules. */
 class SyncSettingsTest {
@@ -19,8 +21,8 @@ class SyncSettingsTest {
         assertEquals(Summary("Paired with Chrome on Linux"), SettingsSummary.sync(SyncUi(paired = true, peer = "Chrome on Linux")))
         assertEquals(Summary("Paired with a browser"), SettingsSummary.sync(SyncUi(paired = true)))
         // offline is no problem worth red; a refused / unreadable / not saved pass is
-        assertEquals(Summary.Attention.NONE, SettingsSummary.sync(SyncUi(paired = true, problem = PlanSync.Problem.Offline)).attention)
-        assertEquals(Summary.Attention.PROBLEM, SettingsSummary.sync(SyncUi(paired = true, problem = PlanSync.Problem.NewerApp(1))).attention)
+        assertEquals(Summary.Attention.NONE, SettingsSummary.sync(SyncUi(paired = true, problem = SyncProblem.Offline)).attention)
+        assertEquals(Summary.Attention.PROBLEM, SettingsSummary.sync(SyncUi(paired = true, problem = SyncProblem.NewerApp(1))).attention)
         // a scanned code waits for an answer
         assertEquals(Summary("Pair with this browser?", Summary.Attention.ACCENT), SettingsSummary.sync(SyncUi(askCheck = "395 514")))
     }
@@ -85,20 +87,20 @@ class SyncSettingsTest {
 
     /** The joining spinner shows only while a code waits (its Pair was tapped). */
     @Test fun joiningOnlyWithACode() {
-        val paired = PlanSync.State(paired = true, peer = "Chrome on Linux")
+        val paired = SyncState(paired = true, peer = "Chrome on Linux")
         assertEquals(SyncUi(paired = true, peer = "Chrome on Linux"), SyncUi.of(paired, askCheck = null, joining = true))
         assertTrue(SyncUi.of(paired, askCheck = "395 514", joining = true).joining)
     }
 
     @Test fun statusLines() {
         // INFO grey for offline, WARNING amber (null) for the server or a newer app, ERROR red for the phone's storage
-        assertEquals(NoticeKind.INFO, syncProblemText(PlanSync.Problem.Offline).second)
-        assertNull(syncProblemText(PlanSync.Problem.Refused(503, "sync is not set up on this server")).second)
-        assertTrue(syncProblemText(PlanSync.Problem.Refused(503, "x")).first.contains("HTTP 503"))
+        assertEquals(NoticeKind.INFO, syncProblemText(SyncProblem.Offline).second)
+        assertNull(syncProblemText(SyncProblem.Refused(503, "sync is not set up on this server")).second)
+        assertTrue(syncProblemText(SyncProblem.Refused(503, "x")).first.contains("HTTP 503"))
         assertEquals("The browser sync is full – delete some plans or tracks, then try again.",
-            syncProblemText(PlanSync.Problem.Refused(507, "too many saved plans")).first)
-        assertEquals("1 synced plan comes from a newer app – update OnPath to see it.", syncProblemText(PlanSync.Problem.NewerApp(1)).first)
-        assertEquals(NoticeKind.ERROR, syncProblemText(PlanSync.Problem.Storage).second)
+            syncProblemText(SyncProblem.Refused(507, "too many saved plans")).first)
+        assertEquals("1 synced plan comes from a newer app – update OnPath to see it.", syncProblemText(SyncProblem.NewerApp(1)).first)
+        assertEquals(NoticeKind.ERROR, syncProblemText(SyncProblem.Storage).second)
     }
 
     /** "Last synced: …" (owner 2026-10-30, no Sync now): relative while recent, then the time. */
@@ -125,14 +127,14 @@ class SyncSettingsTest {
     @Test fun menuDotRule() {
         val now = 1_761_150_000_000L
         val h = 3_600_000L
-        val ok = PlanSync.State(paired = true, peer = "Chrome on Linux", lastOkMs = now - 60_000, sinceMs = now - 48 * h, checkedMs = now - 59_990)
+        val ok = SyncState(paired = true, peer = "Chrome on Linux", lastOkMs = now - 60_000, sinceMs = now - 48 * h, checkedMs = now - 59_990)
         assertNull(SyncMenuUi.attention(ok))
-        assertNull("not paired", SyncMenuUi.attention(PlanSync.State()))
-        assertNull("offline is never a dot", SyncMenuUi.attention(ok.copy(problem = PlanSync.Problem.Offline, lastOkMs = now - 30 * h, checkedMs = now)))
-        assertEquals(SyncAttention.FULL, SyncMenuUi.attention(ok.copy(problem = PlanSync.Problem.Refused(507, "full"))))
-        assertEquals(SyncAttention.REFUSED, SyncMenuUi.attention(ok.copy(problem = PlanSync.Problem.Refused(503, null))))
-        assertEquals(SyncAttention.STORAGE, SyncMenuUi.attention(ok.copy(problem = PlanSync.Problem.Storage)))
-        assertEquals(SyncAttention.ENDED, SyncMenuUi.attention(PlanSync.State(ended = true)))
+        assertNull("not paired", SyncMenuUi.attention(SyncState()))
+        assertNull("offline is never a dot", SyncMenuUi.attention(ok.copy(problem = SyncProblem.Offline, lastOkMs = now - 30 * h, checkedMs = now)))
+        assertEquals(SyncAttention.FULL, SyncMenuUi.attention(ok.copy(problem = SyncProblem.Refused(507, "full"))))
+        assertEquals(SyncAttention.REFUSED, SyncMenuUi.attention(ok.copy(problem = SyncProblem.Refused(503, null))))
+        assertEquals(SyncAttention.STORAGE, SyncMenuUi.attention(ok.copy(problem = SyncProblem.Storage)))
+        assertEquals(SyncAttention.ENDED, SyncMenuUi.attention(SyncState(ended = true)))
         // the last pass (online) ended > 6 h after the last good one: a look
         val stale = ok.copy(lastOkMs = now - 7 * h, checkedMs = now)
         assertEquals(SyncAttention.STALE, SyncMenuUi.attention(stale))
@@ -143,18 +145,18 @@ class SyncSettingsTest {
         assertNull("paired 1 h ago, nothing good yet: wait", SyncMenuUi.attention(ok.copy(lastOkMs = 0, sinceMs = now - h, checkedMs = now)))
         assertEquals(SyncAttention.STALE, SyncMenuUi.attention(ok.copy(lastOkMs = 0, sinceMs = now - 7 * h, checkedMs = now)))
         // newer app / not saved: the Settings page says it, no dot (owner's list)
-        assertNull(SyncMenuUi.attention(ok.copy(problem = PlanSync.Problem.NewerApp(1))))
+        assertNull(SyncMenuUi.attention(ok.copy(problem = SyncProblem.NewerApp(1))))
     }
 
     @Test fun menuItemLines() {
         val now = 1_761_150_000_000L
-        val ok = PlanSync.State(paired = true, peer = "Chrome on Linux", lastOkMs = now - 60_000, sinceMs = now - 86_400_000, checkedMs = now - 60_000)
+        val ok = SyncState(paired = true, peer = "Chrome on Linux", lastOkMs = now - 60_000, sinceMs = now - 86_400_000, checkedMs = now - 60_000)
         assertEquals(SyncMenuUi(true, "Pixel 8 ↔ Chrome on Linux · synced 1 min ago", null), SyncMenuUi.of(ok, "Pixel 8", now))
         assertEquals("Pixel 8 ↔ browser", SyncMenuUi.of(ok.copy(peer = null, lastOkMs = 0, checkedMs = 0), "Pixel 8", now).line)
         assertEquals(SyncMenuUi(true, "Browser sync is full", SyncAttention.FULL),
-            SyncMenuUi.of(ok.copy(problem = PlanSync.Problem.Refused(507, null)), "Pixel 8", now))
-        assertEquals(SyncMenuUi(false, "Pairing ended in the browser", SyncAttention.ENDED), SyncMenuUi.of(PlanSync.State(ended = true), "Pixel 8", now))
-        assertEquals(SyncMenuUi(), SyncMenuUi.of(PlanSync.State(), "Pixel 8", now))
+            SyncMenuUi.of(ok.copy(problem = SyncProblem.Refused(507, null)), "Pixel 8", now))
+        assertEquals(SyncMenuUi(false, "Pairing ended in the browser", SyncAttention.ENDED), SyncMenuUi.of(SyncState(ended = true), "Pixel 8", now))
+        assertEquals(SyncMenuUi(), SyncMenuUi.of(SyncState(), "Pixel 8", now))
     }
 
     /**
@@ -164,19 +166,19 @@ class SyncSettingsTest {
      */
     @Test fun unpairedInTheBrowser() {
         val now = 1_761_150_000_000L
-        val ok = PlanSync.State(paired = true, peer = null, lastOkMs = now - 60_000, sinceMs = now - 86_400_000, checkedMs = now - 60_000)
+        val ok = SyncState(paired = true, peer = null, lastOkMs = now - 60_000, sinceMs = now - 86_400_000, checkedMs = now - 60_000)
         val gone = ok.copy(browser = BrowserLink.UNPAIRED)
         assertEquals(SyncMenuUi(false, "Unpaired in the browser", null), SyncMenuUi.of(gone, "Pixel 8", now))
         assertNull(SyncMenuUi.attention(gone))
         // a real problem still wins (amber, the page)
-        assertEquals(SyncAttention.FULL, SyncMenuUi.of(gone.copy(problem = PlanSync.Problem.Refused(507, null)), "Pixel 8", now).warning)
+        assertEquals(SyncAttention.FULL, SyncMenuUi.of(gone.copy(problem = SyncProblem.Refused(507, null)), "Pixel 8", now).warning)
         // Settings list line + the page's state
         val ui = SyncUi.of(gone, askCheck = null)
         assertTrue(ui.unpairedInBrowser)
         assertEquals(Summary("Unpaired in the browser"), SettingsSummary.sync(ui))
-        assertEquals(Summary("Unpaired in the browser"), SettingsSummary.sync(ui.copy(problem = PlanSync.Problem.Offline)))
+        assertEquals(Summary("Unpaired in the browser"), SettingsSummary.sync(ui.copy(problem = SyncProblem.Offline)))
         assertEquals(false, SyncUi.of(ok.copy(browser = BrowserLink.WAITING), null).unpairedInBrowser)
-        assertEquals(false, SyncUi.of(PlanSync.State(browser = BrowserLink.UNPAIRED), null).unpairedInBrowser)
+        assertEquals(false, SyncUi.of(SyncState(browser = BrowserLink.UNPAIRED), null).unpairedInBrowser)
         // German
         val before = java.util.Locale.getDefault()
         try {
@@ -193,23 +195,23 @@ class SyncSettingsTest {
      */
     @Test fun waitingForTheBrowser() {
         val now = 1_761_150_000_000L
-        val ok = PlanSync.State(paired = true, peer = "Chrome on Linux", lastOkMs = now - 60_000, sinceMs = now - 86_400_000, checkedMs = now - 60_000)
+        val ok = SyncState(paired = true, peer = "Chrome on Linux", lastOkMs = now - 60_000, sinceMs = now - 86_400_000, checkedMs = now - 60_000)
         val waiting = ok.copy(browser = BrowserLink.WAITING)
         assertEquals(SyncMenuUi(true, "Waiting for the browser …", null, waiting = true), SyncMenuUi.of(waiting, "Pixel 8", now))
         assertEquals(SyncMenuUi(true, "Waiting for the browser …", null, waiting = true),
             SyncMenuUi.of(waiting.copy(afterTour = true), "Pixel 8", now))
         assertNull(SyncMenuUi.attention(waiting))
         // a real problem still wins (amber)
-        assertEquals(SyncAttention.FULL, SyncMenuUi.of(waiting.copy(problem = PlanSync.Problem.Refused(507, null)), "Pixel 8", now).warning)
+        assertEquals(SyncAttention.FULL, SyncMenuUi.of(waiting.copy(problem = SyncProblem.Refused(507, null)), "Pixel 8", now).warning)
         // connected during a tour: the routes come after it
         assertEquals(SyncMenuUi(true, "Plans sync after the tour", null), SyncMenuUi.of(ok.copy(afterTour = true), "Pixel 8", now))
         // Settings: list line + the page's state
         val ui = SyncUi.of(waiting.copy(afterTour = true), askCheck = null)
         assertTrue(ui.waiting); assertTrue(ui.afterTour)
         assertEquals(Summary("Waiting for the browser …"), SettingsSummary.sync(ui))
-        assertEquals(Summary("Waiting for the browser …"), SettingsSummary.sync(ui.copy(problem = PlanSync.Problem.Offline)))
+        assertEquals(Summary("Waiting for the browser …"), SettingsSummary.sync(ui.copy(problem = SyncProblem.Offline)))
         assertEquals(false, SyncUi.of(ok, null).waiting)
-        assertEquals(false, SyncUi.of(PlanSync.State(afterTour = true), null).afterTour)
+        assertEquals(false, SyncUi.of(SyncState(afterTour = true), null).afterTour)
         val before = java.util.Locale.getDefault()
         try {
             java.util.Locale.setDefault(java.util.Locale.GERMAN)
@@ -224,14 +226,14 @@ class SyncSettingsTest {
      */
     @Test fun menuLabelIsOnePlainLine() {
         val now = 1_000_000_000_000L
-        val ok = PlanSync.State(paired = true, peer = "Chrome", lastOkMs = now - 60_000, checkedMs = now, sinceMs = now - 3_600_000)
+        val ok = SyncState(paired = true, peer = "Chrome", lastOkMs = now - 60_000, checkedMs = now, sinceMs = now - 3_600_000)
         assertTrue(SyncMenuUi.of(ok, "Pixel 8", now).labelPaired)
         assertTrue(SyncMenuUi.of(ok.copy(browser = BrowserLink.WAITING), "Pixel 8", now).labelPaired)
-        assertTrue(SyncMenuUi.of(ok.copy(problem = PlanSync.Problem.Storage), "Pixel 8", now).labelPaired)
-        assertEquals(false, SyncMenuUi.of(PlanSync.State(), "Pixel 8", now).labelPaired)
+        assertTrue(SyncMenuUi.of(ok.copy(problem = SyncProblem.Storage), "Pixel 8", now).labelPaired)
+        assertEquals(false, SyncMenuUi.of(SyncState(), "Pixel 8", now).labelPaired)
         assertEquals(false, SyncMenuUi.of(ok.copy(browser = BrowserLink.UNPAIRED), "Pixel 8", now).labelPaired)
         // the pairing ended in the browser: "pair" again, but amber (the reason is read out, not shown)
-        val ended = SyncMenuUi.of(PlanSync.State(ended = true), "Pixel 8", now)
+        val ended = SyncMenuUi.of(SyncState(ended = true), "Pixel 8", now)
         assertEquals(false, ended.labelPaired)
         assertEquals(SyncAttention.ENDED, ended.warning)
     }

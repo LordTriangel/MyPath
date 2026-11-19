@@ -219,11 +219,11 @@
         "web/app/src/main.ts",
         "web/app/src/longroute.ts"
       ],
-      "blob": "1718ca4db125fa305973cd69b3780f244e62060b"
+      "blob": "8e0fc3c99a4d94811e500a31596e823ece4e90f4"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/AppViewModel.kt",
-      "what": "recalc long-route ask / answerLongRoute; pinnedPoiKinds / refreshPinnedKinds; placeMenu while planning = PlaceAddMenu.planningMenu (WebApi.placeMenu); keepPlaces / placesChanged = the kept-places sync (keptplaces.ts / sync.ts); the done tours' Ø speed is not in the planner (no recorded tours)",
+      "what": "recalc long-route ask / answerLongRoute; addPlace; poiAsNewDestination (appends while planning – PlaceAddMenu.keepsOldGoal; the planner has no tour, main.ts placeAsNewDestination); suggestName; pinnedPoiKinds / refreshPinnedKinds; holdOnMap (F-PLAN-15: on the line / new goal / stop at once, else the hold menu – PlaceAddMenu.planningHold, the engine's WebApi.holdOnMap; a round trip by the zone) and placeMenu while planning = PlaceAddMenu.planningMenu (WebApi.placeMenu); holdAsStop / holdAsNewDestination (main.ts holdAddMenu); keepPlaces / placesChanged = the kept-places sync (keptplaces.ts / sync.ts); the done tours' Ø speed is not in the planner (no recorded tours)",
       "web": [
         "web/app/src/main.ts",
         "web/app/src/longroute.ts",
@@ -233,17 +233,7 @@
         "web/app/src/plans.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "c426be1b983ac71117c7d4be32e702397ac90da9"
-    },
-    {
-      "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddSlice.kt",
-      "what": "addPlace; poiAsNewDestination (appends while planning – PlaceAddMenu.keepsOldGoal; the planner has no tour, main.ts placeAsNewDestination); holdOnMap (F-PLAN-15: on the line / new goal / stop at once, else the hold menu – PlaceAddMenu.planningHold, the engine's WebApi.holdOnMap; a round trip by the zone); holdAsStop / holdAsNewDestination (main.ts holdAddMenu) – moved here from AppViewModel, rebuild phase 2 piece 11; the measuring of the hold on the paths (HoldPaths on the hold's router thread) and the tour hooks (a place added during a tour is a stop between, \"Go here\" from my location, the followed plan) are the phone's: the planner has no router thread and no tour",
-      "web": [
-        "web/app/src/main.ts",
-        "web/app/src/poipin.ts",
-        "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt"
-      ],
-      "blob": "ab0536e28f9ee6dbc3293057c968dae8bde6424c"
+      "blob": "1740ce66126380c308aea4cc5ac5416ae0ee53a6"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -685,7 +675,7 @@
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/cells/MapCells.kt": {
-      "blob": "752c34a753d86e1cb3c4a4d8d5927d65aff24462",
+      "blob": "fdea3329319e74cd36cb3d787835713de8399eb9",
       "perf": [
         "private val backgroundPollMs: Long = BACKGROUND_POLL_MS,",
         "private val batchMs: Long = BATCH_MS,",
@@ -695,6 +685,7 @@
         "* background) – at most every [BACKGROUND_POLL_MS].",
         "val answer = cells.chunked(MAX_PER_CALL).map { a.status(it.map { c -> c.id }) }",
         "// storage not ready: the request waits in memory and is asked again once the store is read ([start])",
+        "// wake the worker – it sleeps up to IDLE_MS when nothing was allowed (found 2026-11-19, flaky test)",
         "* [PACKAGE_CHECK_MS] is asked for again (the server answers \"ready\" with the same version when nothing is newer).",
         "val want = CellId.packagesFor(cells).filter { p -> have[p]?.let { t - it.installedAt > PACKAGE_CHECK_MS } ?: true }",
         "* server's pace like cells being built, not after [IDLE_MS].",
@@ -890,6 +881,10 @@
     },
     "core/src/main/kotlin/com/onpath/app/data/TourPlan.kt": {
       "blob": "408d4dce1542bc61ec0875dd6fb558a95db30bb2",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/data/TourSchema.kt": {
+      "blob": "d44fbc249e1545376802f11faea64f5f978438b4",
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/debug/EventLog.kt": {
@@ -1588,8 +1583,35 @@
         "* (storage full) is reported and the mark kept in memory for this run."
       ]
     },
+    "core/src/main/kotlin/com/onpath/app/plansync/SyncPassResult.kt": {
+      "blob": "89f4f53c1c6e9c55112389e50ffa3f0668ca543d",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/plansync/SyncPoll.kt": {
+      "blob": "8b105a11b39c4408818201ce5486d3b654335163",
+      "perf": [
+        "* - **How often:** every [BASE_MS] (15 s, owner 2026-11-13: \"a minute is blöd\" when a tour is saved in the browser",
+        "*   [MAX_MS]; a pass that reached it resets it to [BASE_MS] ([passEnded]).",
+        "*   within [OPEN_DEBOUNCE_MS]; never during a tour. The poll then counts from there.",
+        "class SyncPoll(private val baseMs: Long = BASE_MS, private val maxMs: Long = MAX_MS) {",
+        "* waiting ([busy]) and none asked for / ended within [OPEN_DEBOUNCE_MS].",
+        "paired && !recording && !busy && (lastMs == 0L || nowMs - lastMs >= OPEN_DEBOUNCE_MS)",
+        "const val BASE_MS = 15_000L",
+        "const val MAX_MS = 10 * 60_000L",
+        "const val BUSY_RECHECK_MS = 5_000L",
+        "const val OPEN_DEBOUNCE_MS = 10_000L"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/plansync/SyncReport.kt": {
+      "blob": "66e720dacf753426794bf46e9a7066cf7b01a06d",
+      "perf": []
+    },
     "core/src/main/kotlin/com/onpath/app/plansync/SyncRouting.kt": {
       "blob": "732d7bd3c8b02644772c09a255accb60ef6ed9f3",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/plansync/SyncState.kt": {
+      "blob": "b7b9922b0558acbaa33a9b995a546868e414de05",
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/plansync/SyncedRouting.kt": {
@@ -2693,7 +2715,7 @@
       "perf": []
     },
     "app/src/test/java/com/onpath/app/domain/RouteWarningsTest.kt": {
-      "blob": "af8aa9327ce8b66fd076dc5bc278b0f5dec0b6eb",
+      "blob": "6d32b7fcdba9f945e9b94ae2e758cf26f5e90a8d",
       "perf": []
     },
     "core/src/test/kotlin/com/onpath/app/domain/PlaceAddMenuTest.kt": {
@@ -2799,7 +2821,7 @@
       "perf": []
     },
     "core/src/test/kotlin/com/onpath/app/routing/BreakdownRulesTest.kt": {
-      "blob": "50090800c2848bdf0aa0012cc1ca9cc242bfba8d",
+      "blob": "10878ff5d550f7ba084246c58eedb7325788991e",
       "perf": []
     },
     "core/src/test/kotlin/com/onpath/app/routing/PlannerLegsTest.kt": {
@@ -3050,10 +3072,6 @@
     },
     "app/src/main/assets/style/f2/onpath.json": {
       "blob": "1c409cb28ff79aaf7c56578053c9e792a41f66c0",
-      "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/data/TourSchema.kt": {
-      "blob": "d44fbc249e1545376802f11faea64f5f978438b4",
       "perf": []
     }
   }

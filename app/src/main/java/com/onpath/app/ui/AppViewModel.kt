@@ -639,7 +639,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         arrivedNames += names
         arrivalGateJob = gated(routingArrivalGate, arrivalGateJob, busy = { mapData.routingLoading }) {
             val n = arrivedNames.size; arrivedNames.clear()
-            if (syncRoutingLater.isNotEmpty()) { val later = syncRoutingLater.toList(); syncRoutingLater.clear(); routeSyncedPlans(later) }
+            syncedRouting.routeWaiting()
             if (RoutingLoads.recalcOnArrival(mode, recState.value != null, waypoints.size)) {
                 Problems.trace("routing", "Plan computed again after $n routing part(s) arrived")
                 recalc()
@@ -1066,6 +1066,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         override fun tourTimes() =
             com.onpath.app.time.TourTimesStore(File(getApplication<Application>().filesDir, com.onpath.app.time.TourTimesStore.FILE)).all()
     }
+    /** Routes from the browser on the phone ([com.onpath.app.ui.sync.SyncedRoutingSlice], rebuild phase 2 piece 15); the names forward to it (declared here: `recalc()` of the init reaches it). */
+    private val syncedRouting = com.onpath.app.ui.sync.SyncedRoutingSlice(plan, planRoute, toursStore,
+        object : com.onpath.app.ui.sync.SyncedRoutingHost {
+            override fun opened(uuid: String, points: List<GeoPoint>) = sync.opened(uuid, points)
+            override fun refreshRoutingTiles(tiles: List<String>, why: String) = this@AppViewModel.refreshRoutingTiles(tiles, why)
+            override fun refreshTours() = this@AppViewModel.refreshTours()
+            override fun setSaved(name: String?, id: Long, points: List<GeoPoint>?) = this@AppViewModel.setSaved(name, id, points)
+            override fun tourChanged(id: Long) = Backups.tourChanged(getApplication(), id)
+        }, viewModelScope, Dispatchers.IO)
+
     private val saveHost = object : com.onpath.app.ui.routes.SaveHost {
         override val route: PlannedRoute? get() = this@AppViewModel.route
         override val activity: Activity get() = this@AppViewModel.activity
@@ -3716,98 +3726,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun receivePairing(secret: ByteArray, via: String) = pairing.receivePairing(secret, via)
 
     /** A sync pass ended (main thread): new / changed routes into My routes, plans from the browser routed ([syncDriver]). */
-    private fun syncReport(r: com.onpath.app.plansync.PlanSync.Report) { syncDriver.onReport(r) }
+    private fun syncReport(r: com.onpath.app.plansync.SyncReport) { syncDriver.onReport(r) }
 
-    /**
-     * A saved route opened as the plan: when it is a synced plan, the grey line if the browser routed it with another
-     * fingerprint, and its tiles checked for newer routing data (field 8 newer than the phone's, or without field 8
-     * older than 7 days – plansync/SyncRouting.opened).
-     */
-    private fun syncRoutingCheck(t: Tour, pts: List<GeoPoint>) {
-        syncRoutingNote = null
-        if (t.uuid.isEmpty()) return
-        viewModelScope.launchSafe("app", "syncRoutingCheck") {
-            val o = withContext(Dispatchers.IO) {
-                try { sync.opened(t.uuid, pts) } catch (e: Exception) {
-                    Problems.warn("sync", "Routing of the opened synced plan not compared", e); null
-                }
-            } ?: return@launchSafe
-            if (linkId != t.id || waypoints.toList() != pts) return@launchSafe // another plan or edited meanwhile
-            if (o.otherRouting) {
-                Problems.info("sync", "Opened plan was routed in the browser with another routing fingerprint – grey line shown")
-                syncRoutingNote = Txt.s(Res.string.sync_routing_other)
-            }
-            if (o.refresh.isNotEmpty()) refreshRoutingTiles(o.refresh, "opened a synced plan")
-        }
-    }
+    private fun syncRoutingCheck(t: Tour, pts: List<GeoPoint>) = syncedRouting.syncRoutingCheck(t, pts)
+    private fun followSyncedSavedPlan() = syncedRouting.followSyncedSavedPlan()
+    private fun routeSyncedPlans(ids: List<Long>) = syncedRouting.routeSyncedPlans(ids)
 
-    /** The open plan's saved route was renamed or deleted from the browser: "Saved as …" follows (like Rename / Delete). */
-    private fun followSyncedSavedPlan() {
-        val id = linkId.takeIf { it >= 0 } ?: return
-        viewModelScope.launchSafe("app", "followSyncedSavedPlan") {
-            // a database error is not "deleted": the plan stays linked (review Arch 9)
-            val read = withContext(Dispatchers.IO) { runCatching { db.getTour(id) } }
-            val t = read.getOrElse { Problems.warn("db", "Saved route not read after a browser change; the plan stays linked", it); return@launchSafe }
-            if (linkId != id) return@launchSafe
-            if (t == null || t.deletedMs != null) setSaved(null, -1, null) else if (t.name != linkName) setSaved(t.name, id, savedPoints)
-        }
-    }
-
-    /**
-     * Routes from the browser are saved with their points as the line; here they get the real route (the router, the
-     * pace) like a route saved on the phone. No routing data there yet: the points stay – opening the route routes it.
-     */
     /**
      * Like runCatching, but only for exceptions (review Arch 9): a cancellation goes on to the coroutine, an Error
      * (OutOfMemoryError) is not taken for a failed route.
      */
     private inline fun <T> exceptions(block: () -> T): Result<T> = try { Result.success(block()) }
         catch (e: kotlinx.coroutines.CancellationException) { throw e } catch (e: Exception) { Result.failure(e) }
-
-    /** Routes from the browser that waited for routing data (review routing M5): routed again when data arrives. */
-    private val syncRoutingLater = LinkedHashSet<Long>()
-
-    private fun routeSyncedPlans(ids: List<Long>) {
-        if (ids.isEmpty()) return
-        viewModelScope.launchSafe("app", "routeSyncedPlans") {
-            for (id in ids.distinct()) {
-                val t = withContext(Dispatchers.IO) {
-                    runCatching { db.getTour(id) }.onFailure { Problems.warn("db", "A route from the browser not read; routed when opened", it) }.getOrNull()
-                } ?: continue
-                if (t.kind != TourKind.PLANNED || t.waypoints.size < 2 || t.deletedMs != null) continue
-                val act = activityOrNull(t.activity) ?: Activity.HIKE
-                val pts = t.waypoints.map { GeoPoint(it.lat, it.lon) }
-                val f = planFactors(act)
-                val r = withContext(backgroundRouting) {
-                    try {
-                        val eng = routingEngine()
-                        if (eng is com.onpath.app.routing.StraightLineEngine) null
-                        else withModelTime(Planner(eng, com.onpath.app.routing.RouteCancel(), legs = legCache).plan(pts, act, t.sac, t.pinned), act, f)
-                    } catch (e: Exception) {
-                        Problems.warn("sync", "A route from the browser could not be routed; it keeps its points until opened", e); null
-                    }
-                } ?: continue
-                // no routing data there yet (straight legs): keep the points, route it when the data arrives (review M5)
-                if (!com.onpath.app.plansync.SyncedRouting.storable(r)) {
-                    Problems.trace("sync", "Route \"${t.name}\" from the browser: no routing data there yet – points kept, routed later")
-                    syncRoutingLater += id
-                    continue
-                }
-                val ok = withContext(Dispatchers.IO) {
-                    try {
-                        // changed again meanwhile (a newer sync): leave it to that one's routing
-                        val now = db.getTour(id)
-                        now != null && now.waypoints == t.waypoints && db.replacePlanned(id, act.name, t.sac, r.distanceM, r.ascentM, r.descentM,
-                            r.durationS, listOf(r.points.map { TrackPoint(it.lat, it.lon, it.ele) }), t.waypoints, t.pinned,
-                            difficultyOf(r, act))
-                            .also { if (it) { plannedTimes.remove(id); storePlanTimes(id, r, act) } }
-                    } catch (e: Exception) { Problems.error("db", "A routed route from the browser could not be saved", e); false }
-                }
-                if (ok) Backups.tourChanged(getApplication(), id)
-            }
-            refreshTours()
-        }
-    }
 
     // ---------------- plan links (A-005: routing/PlanLinks, docs/core-features/C15-plan-links.md) ----------------
 

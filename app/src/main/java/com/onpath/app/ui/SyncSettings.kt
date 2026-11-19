@@ -39,6 +39,8 @@ import com.onpath.app.plansync.BrowserLink
 import com.onpath.app.plansync.PlanSync
 import com.onpath.strings.*
 import kotlinx.coroutines.delay
+import com.onpath.app.plansync.SyncState
+import com.onpath.app.plansync.SyncProblem
 
 /** Settings → Browser sync (plan sync with the web planner, A-007): what the page shows. */
 data class SyncUi(
@@ -46,7 +48,7 @@ data class SyncUi(
     /** The browser's name ("Chrome on Linux"); null = it has not said it yet. */
     val peer: String? = null,
     val lastOkMs: Long = 0,
-    val problem: PlanSync.Problem? = null,
+    val problem: SyncProblem? = null,
     /** A scanned pairing code waits for Pair / Cancel: its six check digits ("395 514"). */
     val askCheck: String? = null,
     /** Pair was tapped for another browser while paired (A-017) and its one write runs: a spinner instead of the buttons. */
@@ -65,7 +67,7 @@ data class SyncUi(
     val waiting: Boolean get() = paired && browser == BrowserLink.WAITING
 
     companion object {
-        fun of(s: PlanSync.State, askCheck: String?, joining: Boolean = false) =
+        fun of(s: SyncState, askCheck: String?, joining: Boolean = false) =
             SyncUi(s.paired, s.peer, s.lastOkMs, s.problem, askCheck, joining = joining && askCheck != null, browser = s.browser,
                 afterTour = s.paired && s.afterTour, sinceMs = if (s.paired) s.sinceMs else 0)
     }
@@ -147,7 +149,7 @@ object PairEntry {
     const val CAMERA_ACTION = "android.media.action.STILL_IMAGE_CAMERA"
 
     /** Unpaired in the browser ([BrowserLink.UNPAIRED], no problem) = pairing again: the camera as when not paired. */
-    fun step(s: PlanSync.State, hintSeen: Boolean): Step = when {
+    fun step(s: SyncState, hintSeen: Boolean): Step = when {
         SyncMenuUi.attention(s) != null -> Step.SETTINGS
         s.paired && s.browser != BrowserLink.UNPAIRED -> Step.SETTINGS
         !hintSeen -> Step.HINT
@@ -213,12 +215,12 @@ data class SyncMenuUi(
          * (not offline) ended more than that after the last good one (or the pairing). No pass meanwhile – the app in
          * the background, a tour – is no reason. Never for offline, never when not paired (apart from "ended").
          */
-        fun attention(s: PlanSync.State): SyncAttention? {
+        fun attention(s: SyncState): SyncAttention? {
             if (!s.paired) return if (s.ended) SyncAttention.ENDED else null
             return when (val p = s.problem) {
-                PlanSync.Problem.Offline -> null
-                is PlanSync.Problem.Refused -> if (p.status == 507) SyncAttention.FULL else SyncAttention.REFUSED
-                PlanSync.Problem.Storage -> SyncAttention.STORAGE
+                SyncProblem.Offline -> null
+                is SyncProblem.Refused -> if (p.status == 507) SyncAttention.FULL else SyncAttention.REFUSED
+                SyncProblem.Storage -> SyncAttention.STORAGE
                 else -> if (s.checkedMs - maxOf(s.lastOkMs, s.sinceMs) > STALE_MS) SyncAttention.STALE else null
             }
         }
@@ -229,7 +231,7 @@ data class SyncMenuUi(
          * "synced 1 min ago" – never as if the browser was seen then. No browser hello yet (just paired / joined, field
          * bug 2026-10-31) → no ✓ and the grey "Waiting for the browser …"; a tour recording → "Routes sync after the tour".
          */
-        fun of(s: PlanSync.State, device: String, now: Long): SyncMenuUi {
+        fun of(s: SyncState, device: String, now: Long): SyncMenuUi {
             val warning = attention(s)
             if (warning == null && s.paired && s.browser == BrowserLink.UNPAIRED) {
                 return SyncMenuUi(paired = false, Txt.s(Res.string.sync_menu_unpaired_browser), null)
@@ -261,10 +263,10 @@ data class SyncMenuUi(
 fun SettingsSummary.sync(ui: SyncUi): Summary = when {
     ui.askCheck != null -> Summary(Txt.s(Res.string.sync_ask_title), Summary.Attention.ACCENT)
     !ui.paired -> Summary(Txt.s(Res.string.sync_sum_off))
-    ui.unpairedInBrowser && (ui.problem == null || ui.problem == PlanSync.Problem.Offline) ->
+    ui.unpairedInBrowser && (ui.problem == null || ui.problem == SyncProblem.Offline) ->
         Summary(Txt.s(Res.string.sync_menu_unpaired_browser))
-    ui.waiting && (ui.problem == null || ui.problem == PlanSync.Problem.Offline) -> Summary(Txt.s(Res.string.sync_waiting_browser))
-    ui.problem != null && ui.problem != PlanSync.Problem.Offline ->
+    ui.waiting && (ui.problem == null || ui.problem == SyncProblem.Offline) -> Summary(Txt.s(Res.string.sync_waiting_browser))
+    ui.problem != null && ui.problem != SyncProblem.Offline ->
         Summary(peerLine(ui), Summary.Attention.PROBLEM)
     else -> Summary(peerLine(ui))
 }
@@ -272,14 +274,14 @@ fun SettingsSummary.sync(ui: SyncUi): Summary = when {
 private fun peerLine(ui: SyncUi) = ui.peer?.let { Txt.s(Res.string.sync_paired_with, it) } ?: Txt.s(Res.string.sync_paired_browser)
 
 /** The status line of the last pass: grey (offline), amber ⚠ (server refused, newer app, not saved), red (storage). */
-fun syncProblemText(p: PlanSync.Problem): Pair<String, NoticeKind?> = when (p) {
-    PlanSync.Problem.Offline -> Txt.s(Res.string.sync_offline) to NoticeKind.INFO
-    is PlanSync.Problem.Refused -> (if (p.status == 507) Txt.s(Res.string.sync_full)
+fun syncProblemText(p: SyncProblem): Pair<String, NoticeKind?> = when (p) {
+    SyncProblem.Offline -> Txt.s(Res.string.sync_offline) to NoticeKind.INFO
+    is SyncProblem.Refused -> (if (p.status == 507) Txt.s(Res.string.sync_full)
         else Txt.s(Res.string.sync_refused, "HTTP ${p.status}" + (p.error?.let { " – $it" } ?: ""))) to null
-    is PlanSync.Problem.NewerApp -> Txt.p(Res.plurals.sync_newer_app, p.count, p.count) to null
-    is PlanSync.Problem.NotSaved -> Txt.p(Res.plurals.sync_not_saved, p.count, p.count) to null
-    PlanSync.Problem.Storage -> Txt.s(Res.string.sync_storage) to NoticeKind.ERROR
-    is PlanSync.Problem.Stuck -> Txt.p(Res.plurals.sync_stuck, p.count, p.count) to null
+    is SyncProblem.NewerApp -> Txt.p(Res.plurals.sync_newer_app, p.count, p.count) to null
+    is SyncProblem.NotSaved -> Txt.p(Res.plurals.sync_not_saved, p.count, p.count) to null
+    SyncProblem.Storage -> Txt.s(Res.string.sync_storage) to NoticeKind.ERROR
+    is SyncProblem.Stuck -> Txt.p(Res.plurals.sync_stuck, p.count, p.count) to null
 }
 
 /** When the last good pass was: "just now", "5 min ago", then "today 18:40" / "yesterday 09:12" / "21 Oct 18:40". */
@@ -378,7 +380,7 @@ fun SyncSection(ui: SyncUi, cb: SyncCallbacks, now: Long = System.currentTimeMil
                     SyncStatusLine(str(Res.string.sync_menu_unpaired_browser) to NoticeKind.INFO)
                     Text(str(Res.string.sync_steps), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     OutlinedButton(onClick = cb.onOpenCamera, Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(str(Res.string.sync_open_camera)) }
-                    ui.problem?.takeIf { it != PlanSync.Problem.Offline }?.let { p -> SyncStatusLine(syncProblemText(p)) }
+                    ui.problem?.takeIf { it != SyncProblem.Offline }?.let { p -> SyncStatusLine(syncProblemText(p)) }
                     UnpairButton { askUnpair = true }
                 }
                 else -> {

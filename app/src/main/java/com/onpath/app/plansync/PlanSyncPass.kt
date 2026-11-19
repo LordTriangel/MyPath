@@ -27,7 +27,7 @@ interface TourStore {
     /** Planned routes and imported tracks, recycle bin included (recordings are filtered out by the caller too). */
     fun tours(): List<Tour>
     fun segments(id: Long): List<List<TrackPoint>>
-    /** A new planned route from another device; returns the new tour (its line is routed later – [PlanSyncPass.Result.toRoute]). */
+    /** A new planned route from another device; returns the new tour (its line is routed later – [SyncPassResult.toRoute]). */
     fun addPlan(name: String, plan: PlanContent): Tour
     fun replacePlan(t: Tour, plan: PlanContent): Boolean
     fun addTrack(name: String, track: TrackContent): Tour
@@ -46,7 +46,7 @@ interface TourStore {
  *    the recycle bin or deleted for good → a tombstone, restored → back);
  * 2. **round** – hello, pull + merge, push ([SyncRound]);
  * 3. **import** – what came from the other side into the tours: a new plan / track is added (a plan is routed
- *    afterwards, [Result.toRoute]), a change updates it, a delete moves it to the recycle bin – never deletes it.
+ *    afterwards, [SyncPassResult.toRoute]), a change updates it, a delete moves it to the recycle bin – never deletes it.
  *    New and changed ones are marked until opened ([SyncFiles.marks], My routes: a "New" / "Changed" tag).
  * Kept places (Zuhause + favourites, [places], §5.4) go the same way: exported before the round ([PlaceSync.export]),
  * what the round changed is pending in the links until it is in the phone's places ([PlaceSync.import]).
@@ -85,37 +85,8 @@ class PlanSyncPass(
     /** The tour's name as the item keeps it (the local copy label back to [SyncMerge.COPY]). */
     private fun title(t: Tour): String? = RouteItems.title(t, copyLabel)
 
-    data class Result(
-        val outcome: SyncRound.Outcome?,
-        /** The other side's name ("Chrome on Linux"), newest hello first; null = none yet. */
-        val peer: String? = null,
-        val added: Int = 0,
-        val updated: Int = 0,
-        val binned: Int = 0,
-        val failed: Int = 0,
-        /** Items from a newer app the phone cannot show (unknown kind or plan format). */
-        val unreadable: Int = 0,
-        /** Planned routes added / changed from outside: route them (AppViewModel, routing dispatcher). */
-        val toRoute: List<Long> = emptyList(),
-        /** True when the tours changed (refresh My routes). */
-        val toursChanged: Boolean = false,
-        val skippedForRecording: Boolean = false,
-        /**
-         * Routing data tiles ("E10_N45") a plan from outside was routed with in a newer version than the phone's file
-         * (field 8): check them for newer data now (AppViewModel, Rd5PartStore.refreshIfNewer) – not after 35 days.
-         */
-        val newerData: List<String> = emptyList(),
-        /**
-         * Routes the other side sent under its own id that this phone already had unlinked or under a fresh id of its own
-         * (a reinstalled phone, field bug 2026-11-12): linked to the route instead of added again.
-         */
-        val relinked: Int = 0,
-        /** The phone's kept places (Zuhause, favourites) changed from the other side: show them again, back them up. */
-        val placesChanged: Boolean = false,
-    )
-
     /** Runs one pass; null when not paired. Throws only when the sync files cannot be written (reported by the caller). */
-    fun run(recording: () -> Boolean): Result? {
+    fun run(recording: () -> Boolean): SyncPassResult? {
         days = null
         placesChanged = false
         val pairing = files.pairing() ?: return null
@@ -136,10 +107,10 @@ class PlanSyncPass(
         files.saveLinks(links)
         files.saveLedger(ledger)
         val peer = ledger.devices(device).firstOrNull()?.name
-        if (outcome is SyncRound.Outcome.Ended) return Result(outcome, peer, placesChanged = placesChanged)
+        if (outcome is SyncRound.Outcome.Ended) return SyncPassResult(outcome, peer, placesChanged = placesChanged)
         if (recording()) {
             Problems.info("sync", "Sync: ${links.pending.size} changes from the browser wait until the tour has ended")
-            return Result(outcome, peer, skippedForRecording = true, placesChanged = placesChanged)
+            return SyncPassResult(outcome, peer, skippedForRecording = true, placesChanged = placesChanged)
         }
         val r = import(ledger, links, before, now, device)
         files.saveLinks(links)
@@ -169,7 +140,7 @@ class PlanSyncPass(
      * – the tours are not read or written; routes the pull brought stay [SyncLinks.pending] and come in after the tour,
      * the phone's own routes stay in the outbox. Not a good pass ([SyncFiles.lastOk] stays). Null when not paired.
      */
-    fun handshake(): Result? {
+    fun handshake(): SyncPassResult? {
         val pairing = files.pairing() ?: return null
         val keys = SyncKeys(pairing.secret ?: return null)
         val device = files.device(random)
@@ -184,8 +155,8 @@ class PlanSyncPass(
         files.saveLinks(links)
         files.saveLedger(ledger)
         val peer = ledger.devices(device).firstOrNull()?.name
-        if (outcome is SyncRound.Outcome.Ended) return Result(outcome, peer)
-        return Result(outcome, peer, skippedForRecording = true)
+        if (outcome is SyncRound.Outcome.Ended) return SyncPassResult(outcome, peer)
+        return SyncPassResult(outcome, peer, skippedForRecording = true)
     }
 
     /** The star a live item said before the round (what both sides had); null = no live item before. */
@@ -251,8 +222,8 @@ class PlanSyncPass(
     }
 
     /** Ledger → local tours for every pending item. */
-    private fun import(ledger: SyncLedger, links: SyncLinks, before: Map<String, SyncItem>, now: Long, device: String): Result {
-        if (links.pending.isEmpty()) return Result(null)
+    private fun import(ledger: SyncLedger, links: SyncLinks, before: Map<String, SyncItem>, now: Long, device: String): SyncPassResult {
+        if (links.pending.isEmpty()) return SyncPassResult(null)
         val tours = store.tours().filter(RouteItems::synced).associateBy { it.uuid }
         var added = 0; var updated = 0; var binned = 0; var failed = 0; var unreadable = 0; var relinked = 0
         val claimed = HashSet<String>()
@@ -321,7 +292,7 @@ class PlanSyncPass(
         if (relinked > 0) Problems.info("sync", "Sync: $relinked routes from the browser were already on the phone – linked, not added again")
         if (newer.isNotEmpty()) Problems.info("sync", "Sync: a plan from the browser was routed with newer routing data " +
             "(${newer.joinToString()}) – checking for it now")
-        return Result(null, added = added, updated = updated, binned = binned, failed = failed, unreadable = unreadable,
+        return SyncPassResult(null, added = added, updated = updated, binned = binned, failed = failed, unreadable = unreadable,
             toRoute = toRoute, toursChanged = added + updated + binned > 0, newerData = newer.toList(), relinked = relinked)
     }
 

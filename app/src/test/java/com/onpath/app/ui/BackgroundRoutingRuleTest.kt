@@ -13,8 +13,9 @@ class BackgroundRoutingRuleTest {
     private val vm = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
 
     @Test fun backgroundWorkHasItsOwnThread() {
-        val sync = vm.substringAfter("private fun routeSyncedPlans").substringBefore("\n    }\n")
-        assertTrue(sync.contains("withContext(backgroundRouting)"))
+        // browser plans after a pairing: routeSyncedPlans moved to SyncedRoutingSlice (piece 15); the flow
+        // `SyncedRoutingFlowTest.aPlanFromTheBrowserIsRoutedOnTheBackgroundThreadAndStoredWithItsRealLine` runs it on the held background
+        // thread (every router call is seen on "bg"), `SyncWiringTest.theBrowserPlansAreRoutedOnTheBackgroundRoutingThreadAndNeverTheUsersOwn` pins the slice
         // "Plan a route from it" / a track made a plan: planFromLine moved to RoutesSlice (piece 13); the flow
         // `RoutesFlowTest.aDoneTourWithNoPlanBecomesAPlanThroughTheRouterOnTheBackgroundThread` runs it on the held background thread
         val slice = com.onpath.app.testkit.sourceFile("ui/routes/RoutesSlice.kt").readText()

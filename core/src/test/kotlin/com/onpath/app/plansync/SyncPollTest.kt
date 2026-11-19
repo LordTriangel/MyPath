@@ -86,21 +86,13 @@ class SyncPollTest {
 
     @Test fun whatAReportMeans() {
         fun rep(o: SyncRound.Outcome?, error: Boolean = false) =
-            PlanSync.Report(manual = false, result = if (o == null && !error) null else PlanSyncPass.Result(o), error = error)
+            SyncReport(manual = false, result = if (o == null && !error) null else SyncPassResult(o), error = error)
         assertEquals(true, SyncPoll.ok(rep(SyncRound.Outcome.Done(0, 0, 0))))
         assertEquals(true, SyncPoll.ok(rep(SyncRound.Outcome.Ended)))
         assertEquals(false, SyncPoll.ok(rep(SyncRound.Outcome.Offline)))
         assertEquals(false, SyncPoll.ok(rep(SyncRound.Outcome.Refused(503, null))))
-        assertEquals(false, SyncPoll.ok(PlanSync.Report(manual = false, result = null, error = true)))
+        assertEquals(false, SyncPoll.ok(SyncReport(manual = false, result = null, error = true)))
         assertNull(SyncPoll.ok(rep(null)))
-    }
-
-    @Test fun anIdlePassStaysOutOfTheEventLog() {
-        assertTrue(PlanSync.idle(PlanSyncPass.Result(SyncRound.Outcome.Done(0, 0, 0))))
-        assertFalse(PlanSync.idle(PlanSyncPass.Result(SyncRound.Outcome.Done(1, 0, 0))))
-        assertFalse(PlanSync.idle(PlanSyncPass.Result(SyncRound.Outcome.Done(0, 0, 0), added = 1, toursChanged = true)))
-        assertFalse(PlanSync.idle(PlanSyncPass.Result(SyncRound.Outcome.Offline)))
-        assertFalse(PlanSync.idle(null))
     }
 
     @Test fun myRoutesOrBrowserSyncOpenedPullsRightAway() {
@@ -142,15 +134,5 @@ class SyncPollTest {
         p.passEnded(300_000, ok = true)
         p.requested(400_000)
         assertEquals(base, p.waitMs(400_000))
-    }
-
-    /**
-     * Field bug 2026-11-12 (re-pairing, 429 / 500 from one home IP): a busy server is no red „nicht angenommen“ in
-     * Settings – a quiet retry; a real refusal (401, 507 …) is still said.
-     */
-    @Test fun busyServerShowsNoRefusal() {
-        for (status in listOf(429, 500, 503)) assertNull("$status", PlanSync.shown(SyncRound.Outcome.Refused(status, "x")))
-        assertEquals(PlanSync.Problem.Refused(401, "x"), PlanSync.shown(SyncRound.Outcome.Refused(401, "x")))
-        assertEquals(PlanSync.Problem.Refused(507, null), PlanSync.shown(SyncRound.Outcome.Refused(507, null)))
     }
 }

@@ -6,7 +6,6 @@ import com.onpath.app.routing.PlannedRoute
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.io.File
 
 /** Review routing M5: a browser route is stored only as a real route – never as straight legs with ascent 0. */
 class SyncedRoutingTest {
@@ -21,9 +20,5 @@ class SyncedRoutingTest {
         assertFalse(SyncedRouting.storable(route(straight = false, error = "x")))
     }
 
-    @Test fun theAppRoutesThemAgainWhenTheDataArrives() {
-        val vm = File("../app/src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
-        assertTrue(vm.contains("SyncedRouting.storable(r)"))
-        assertTrue(vm.substringAfter("private fun routingDataArrived").substringBefore("\n    }\n").contains("routeSyncedPlans(later)"))
-    }
+    // "the app routes them again when the data arrives": SyncedRoutingFlowTest (:state) – stored only when storable, routed once when the data comes
 }

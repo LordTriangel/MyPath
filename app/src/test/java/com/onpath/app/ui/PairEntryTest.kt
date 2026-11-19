@@ -5,16 +5,18 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import com.onpath.app.plansync.SyncState
+import com.onpath.app.plansync.SyncProblem
 
 /** ☰ → "Pair with browser" (owner 2026-10-30): the camera at once, the step line only the first time, fallback without a camera. */
 class PairEntryTest {
-    private val notPaired = PlanSync.State()
+    private val notPaired = SyncState()
 
     @Test fun cameraFirstOnceTheStepWasSeen() {
         assertEquals(PairEntry.Step.HINT, PairEntry.step(notPaired, hintSeen = false))
         assertEquals(PairEntry.Step.CAMERA, PairEntry.step(notPaired, hintSeen = true))
         // offline is no reason to stop at the settings page
-        assertEquals(PairEntry.Step.CAMERA, PairEntry.step(notPaired.copy(problem = PlanSync.Problem.Offline), hintSeen = true))
+        assertEquals(PairEntry.Step.CAMERA, PairEntry.step(notPaired.copy(problem = SyncProblem.Offline), hintSeen = true))
     }
 
     @Test fun pairedOrAProblemGoesToBrowserSync() {
@@ -31,9 +33,9 @@ class PairEntryTest {
         val gone = notPaired.copy(paired = true, browser = com.onpath.app.plansync.BrowserLink.UNPAIRED)
         assertEquals(PairEntry.Step.CAMERA, PairEntry.step(gone, hintSeen = true))
         assertEquals(PairEntry.Step.HINT, PairEntry.step(gone, hintSeen = false))
-        assertEquals(PairEntry.Step.CAMERA, PairEntry.step(gone.copy(problem = PlanSync.Problem.Offline), hintSeen = true))
+        assertEquals(PairEntry.Step.CAMERA, PairEntry.step(gone.copy(problem = SyncProblem.Offline), hintSeen = true))
         // a problem worth a look still opens the page
-        assertEquals(PairEntry.Step.SETTINGS, PairEntry.step(gone.copy(problem = PlanSync.Problem.Storage), hintSeen = true))
+        assertEquals(PairEntry.Step.SETTINGS, PairEntry.step(gone.copy(problem = SyncProblem.Storage), hintSeen = true))
     }
 
     @Test fun cameraIntentFirst() {

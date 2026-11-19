@@ -100,7 +100,7 @@ class SyncPoll(private val baseMs: Long = BASE_MS, private val maxMs: Long = MAX
             if (settingsOpen) syncPage else routesOpen
 
         /** What a pass's report means for the back-off: reached the server (true), did not (false), nothing ran (null). */
-        fun ok(r: PlanSync.Report): Boolean? = when {
+        fun ok(r: SyncReport): Boolean? = when {
             r.error -> false
             r.result == null -> null
             else -> when (r.result.outcome) {

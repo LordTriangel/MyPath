@@ -177,12 +177,12 @@ class SettingsScreenshotTest {
     /** Paired, the last pass found items from a newer app (amber line). */
     @Test fun syncNewerApp() = paparazzi.snapshot {
         Screen(SettingsPage.SYNC, sync = SyncUi(paired = true, peer = "Firefox on Windows", lastOkMs = now - 86_400_000,
-            problem = com.onpath.app.plansync.PlanSync.Problem.NewerApp(2)))
+            problem = com.onpath.app.plansync.SyncProblem.NewerApp(2)))
     }
     /** Paired, offline (grey line), the last good pass 25 min ago. */
     fun syncOffline() = paparazzi.snapshot {
         Screen(SettingsPage.SYNC, sync = SyncUi(paired = true, peer = null, lastOkMs = now - 25 * 60_000,
-            problem = com.onpath.app.plansync.PlanSync.Problem.Offline))
+            problem = com.onpath.app.plansync.SyncProblem.Offline))
     }
 
     /** Unpaired in the browser (field bug 2026-10-31): the grey line, the steps + Open camera to pair again, Unpair. */

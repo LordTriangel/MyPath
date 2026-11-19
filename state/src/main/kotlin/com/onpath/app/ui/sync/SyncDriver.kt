@@ -4,7 +4,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.onpath.app.debug.launchSafe
-import com.onpath.app.plansync.PlanSync
 import com.onpath.app.plansync.SyncMark
 import com.onpath.app.plansync.SyncPoll
 import kotlinx.coroutines.CoroutineDispatcher
@@ -17,10 +16,12 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.isActive
+import com.onpath.app.plansync.SyncState
+import com.onpath.app.plansync.SyncReport
 
 /** The browser sync as its driver sees it ([PlanSync] in the app, a fake in tests). */
 interface SyncEngine {
-    val state: StateFlow<PlanSync.State>
+    val state: StateFlow<SyncState>
     /** Routes from the browser not opened yet, by uuid. */
     val marks: StateFlow<Map<String, SyncMark>>
     /** Reads the stored marks into [marks] (blocking, never throws). */
@@ -144,7 +145,7 @@ class SyncDriver(
     }
 
     /** A sync pass ended (main thread): the poll counts from here, the spinner stops, what came is handed to the view model. */
-    fun onReport(r: PlanSync.Report) {
+    fun onReport(r: SyncReport) {
         val res = r.result
         poll.passEnded(clock(), SyncPoll.ok(r))
         if (r.manual) { pulling = false; pullTimeout?.cancel() } // pull to refresh: its pass ended (or was skipped)
