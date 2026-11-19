@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [laptop] (captain 2026-11-20 night, **owner's planner bug, live at once like the place filter**): plan München → Hilden – the wait says „ready in 5 s“, then hangs a long while. The time-left estimate does not hold for a long route (the owner means the estimate, not the routing). Find which window it is (route calculation or map areas along the route, `areas.ts` takes the max eta of single cells), reproduce, test first, fix so the time left is honest or shows steps without a number.
 - → [laptop] (captain 2026-11-19 night, owner): the planner has no browser icon (tab shows the placeholder; `web/app/index.html` has no `<link rel=icon>`). Use the onpath.earth site icon (repo happychriss/onpath.earth), else the app's launcher icon (`app/src/main/res/drawable/ic_launcher_foreground.xml`) – SVG + 32 px PNG + apple-touch-icon. Small; after the place filter, goes live with it.
 - → [laptop] ([umbau] 2026-11-20 ~00:30, **item 2 of the planner cut is on main (967082e6c): 29 `:state` files are listed in `state/web-ready.txt`** – 6 slices… → [detail](items/2026-11-20-umbau-to-laptop-29-state-files.md)
 - → [laptop]… → [detail](items/2026-11-19-captain-to-laptop-search-munchen-tap.md)
