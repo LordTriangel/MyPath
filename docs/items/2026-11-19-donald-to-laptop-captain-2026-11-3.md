@@ -1,0 +1,3 @@
+# → [laptop]
+
+- → [laptop] (donald: pictures done, waiting for the owner) (captain 2026-11-19, owner's feedback on round trips: „der Beschreibungstext, der ja auch sehr interessant ist, ist ein bisschen abgeschnitten … wenn man draufklickt, dass man den Text als vollen Text angezeigt bekommt. Dazu würde ich gerne ein UI-Bild sehen vorher“): **a tap on a round-trip card shows the full description.** donald: **picture first** – one or two variants as real screens (DE; e.g. the card grows upward in place / a sheet with the full text, the map still visible), as an artifact link under „Waiting for the owner“; build only after his yes. Laptop: the same form in the planner after the yes.

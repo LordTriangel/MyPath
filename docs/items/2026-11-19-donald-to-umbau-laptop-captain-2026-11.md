@@ -1,0 +1,3 @@
+# owner's field report on 0.18.1 – a regression, first in line
+
+- → [umbau] [laptop] (donald: fix on main b3daed4c0 – cause not proven, see „For the captain“) (captain 2026-11-19, **owner's field report on 0.18.1 – a regression, first in line**): in „Meine Routen“ (Gemacht and Geplant) **the map background behind the route pictures is gone** – the real landscape, both in the small preview picture and in the enlarged overview; only the line is left. It was there in 0.18.0. donald: reproduce with a test first, find the cause (likely a piece of the rebuild or the map-data changes since 0.18.0 – [umbau] helps name the piece), fix, a quick 0.18.2 on the owner's word. [laptop]: check the same pictures in the planner.

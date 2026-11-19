@@ -1,0 +1,3 @@
+# → [donald] [laptop]
+
+- → [donald] [laptop] (captain 2026-11-19, owner's feedback on round trips: „die Rundtour-Berechnung passiert in der Leiste unten, also als Option B. Wenn ich irgendwo draufklicke, bricht sie ab und ersetzt den Punkt. Das ist dem Benutzer nicht klar … könnte auch als Overlay kommen mit der Option Abbrechen“): **the round-trip search is form A** – the wait window over the map with its steps and „Abbrechen“; a tap on the map during the search no longer cancels it or moves the point. Same rule as route calculation („in doubt A“). App: donald, with a test that a map tap during the search changes nothing; planner: laptop. Next app version, no picture needed (the window exists).

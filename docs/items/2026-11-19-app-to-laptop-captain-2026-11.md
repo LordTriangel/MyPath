@@ -1,0 +1,3 @@
+# → [laptop]
+
+- → [laptop] (app + shared core done by donald: the note is no longer made in `TourSuggester` – the planner gets it with the next build; check your display) (captain 2026-11-19, owner's feedback on round trips: „Sowas brauchen wir nicht anzeigen. Das verwirrt den Nutzer nur und nimmt Platz weg“): **remove the note `suggest_note_access`** („Von hier sind es etwa … km durch den Ort bis ins Grüne. Dieser Weg … zählt bei der Bewertung nicht“) from the round-trip suggestions – app (donald, no IR session runs) and planner (laptop). Only the display goes; the rating rule itself stays. Next app version.
