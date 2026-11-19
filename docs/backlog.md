@@ -191,6 +191,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- [donald] 2026-11-19: **Fortschritt gebaut – Bilder zum Ansehen** (built on your word, no yes needed): onpath.private `ideen/2026-11-19-fortschritt/` (README, „Gebaut“; DE, EN, große Schrift). Comes with 0.18.1. Say if anything should change.
 - [donald] 2026-11-18 late: **delete the GitHub secret…** → [detail](items/2026-11-18-delete-the-github-secret-cf-start-token.md)
 - **[donald] Only our signed apps on the map server?…** → [detail](items/2026-11-07-only-our-signed-apps-on-the-map-server-o.md)
 - **Map server access before the public launch** → [detail](items/2026-11-18-map-server-access-before-the-public-laun.md)
