@@ -58,17 +58,17 @@ data/RoutingDataAutoTest.kt	data	286	24	rule-risk	KEEP		"CORE FEATURE ""routing 
 data/RoutingDataNoticeTest.kt	data	60	2	unit-small	CONVERT	G09	`sameAsBefore` compares with a frozen copy of the old code (finished refactor: drop); the 6 asserts of `kindAndKeys` fold into RoutingDataAutoTest (plain notice)	RoutingDataAutoTest (fold)		no	0.0	15	body	done G09 2026-11-19: RoutingDataNotice explicit table (full input set); FoundPlacePin / UxReviewFixes slice pins -> flows; pure rules + UI pins kept in place
 data/TourSchemaTest.kt	data	260	13	format-fixture	KEEP		"stored format: DB upgrade steps 2->4 (keep); 2 of 13 tests read TourDb / DbTourStore / RecordingService source - ""replacing a planned route never wipes its days"" becomes a JdbcTours test, ""the service rescues a vanished row"" goes to G08 (drops its 2 source-text test(s))"	JdbcTours test + G08		yes 2/13: data/TourDb,plansync/DbTourStore,recording/RecordingService	0.1	220	body	
 debug/BrokenProblemsFileTest.kt	debug	63	3	rule-risk	CONVERT	G01	same pattern (problems.json, event log)	BrokenFilesTest		no	0.2	28	kdoc+test names	
-debug/DiagnosticsTest.kt	debug	22	2	unit-small	CONVERT	G17	pmtiles header reader (no KDoc)	DiagnosticsLinesTest		no	0.0	12	body	
-debug/FrameStatsTest.kt	debug	31	3	wording	CONVERT	G17	Sheet drag numbers line	DiagnosticsLinesTest	owner	no	0.0	17	kdoc+test names	
-debug/HealthLineTest.kt	debug	30	2	wording	CONVERT	G17	health line wording	DiagnosticsLinesTest		no	0.0	16	kdoc+test names	
-debug/MainStallTest.kt	debug	95	12	rule-risk	CONVERT	G17	stall classification + wording	DiagnosticsLinesTest	2026-11-07	no	0.0	52	kdoc+test names	
-debug/MapFpsTrialTest.kt	debug	21	2	unit-small	CONVERT	G17	parse of the fps-limit trial value	DiagnosticsLinesTest		no	0.0	12	body	
-debug/MapJankTallyTest.kt	debug	38	3	wording	CONVERT	G17	jank tally in the problem report	DiagnosticsLinesTest		no	0.0	21	kdoc+test names	
-debug/MapLibreLogLevelTest.kt	debug	58	5	rule-risk	CONVERT	G17	old ERROR entry now INFO not announced again	DiagnosticsLinesTest		no	0.0	32	kdoc+test names	
+debug/DiagnosticsTest.kt	debug	22	2	unit-small	CONVERT	G17	pmtiles header reader (no KDoc)	DiagnosticsLinesTest		no	0.0	12	body	done 2026-11-19 (→ DiagnosticsSmallTest (app))
+debug/FrameStatsTest.kt	debug	31	3	wording	CONVERT	G17	Sheet drag numbers line	DiagnosticsLinesTest	owner	no	0.0	17	kdoc+test names	done 2026-11-19 (→ DiagnosticsSmallTest (app))
+debug/HealthLineTest.kt	debug	30	2	wording	CONVERT	G17	health line wording	DiagnosticsLinesTest		no	0.0	16	kdoc+test names	done 2026-11-19 (→ DiagnosticsSmallTest (app))
+debug/MainStallTest.kt	debug	95	12	rule-risk	CONVERT	G17	stall classification + wording	DiagnosticsLinesTest	2026-11-07	no	0.0	52	kdoc+test names	done 2026-11-19 (→ DiagnosticsRulesTest (core))
+debug/MapFpsTrialTest.kt	debug	21	2	unit-small	CONVERT	G17	parse of the fps-limit trial value	DiagnosticsLinesTest		no	0.0	12	body	done 2026-11-19 (→ DiagnosticsSmallTest (app))
+debug/MapJankTallyTest.kt	debug	38	3	wording	CONVERT	G17	jank tally in the problem report	DiagnosticsLinesTest		no	0.0	21	kdoc+test names	done 2026-11-19 (→ DiagnosticsRulesTest (core))
+debug/MapLibreLogLevelTest.kt	debug	58	5	rule-risk	CONVERT	G17	old ERROR entry now INFO not announced again	DiagnosticsLinesTest		no	0.0	32	kdoc+test names	done 2026-11-19 (→ DiagnosticsRulesTest (core))
 debug/ProblemsTest.kt	debug	144	12	field-bug	KEEP		Field A-019: a merged entry (numbers ignored) shows its LAST time – so it must show the last text too.		A-019; field	no	0.3	144	kdoc+test names	
 debug/SafeLaunchRuleTest.kt	debug	24	1	source-text	KEEP	S-STAY	stay list: no bare viewModelScope.launch (a failure there ended the app, audit 2026-11-07)		2026-11-07	yes 1/1	0.0	24	kdoc+test names	
 debug/SafeLaunchTest.kt	debug	71	5	rule-risk	KEEP		Background work reports its failures instead of crashing or vanishing (owner 2026-11-07, audit package 1).		2026-11-07; owner	no	0.1	71	kdoc+test names	
-debug/ScreenLifecycleTest.kt	debug	48	4	wording	CONVERT	G17	event log names each screen	DiagnosticsLinesTest		no	0.0	26	kdoc+test names	
+debug/ScreenLifecycleTest.kt	debug	48	4	wording	CONVERT	G17	event log names each screen	DiagnosticsLinesTest		no	0.0	26	kdoc+test names	done 2026-11-19 (→ DiagnosticsRulesTest (core))
 debug/UserTextRuleTest.kt	debug	67	3	source-text	KEEP	S-STAY	stay list: no raw exception message / class name reaches the user (1 of 3 tests reads source)		owner	yes 1/3	0.1	67	kdoc+test names	
 debug/UserTextTest.kt	debug	41	3	unit-small	KEEP					no	0.0	41	kdoc+test names	
 domain/AppModeTest.kt	domain	37	8	rule-risk	KEEP					no	0.0	37	kdoc+test names	
