@@ -914,11 +914,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var route by mutableStateOf<PlannedRoute?>(null)
         private set
     /**
-     * The plan's route run ([RouteRun]): calculating, its two questions, "not routed" and the orders for the next result –
-     * one state, changed only by [routeEvent]. Declared before init {} (recalc() runs there, ViewModelInitOrderTest).
+     * The plan's route run ([PlanRunSlice], rebuild phase 2 piece 9): the [RouteRun] state (changed only by [routeEvent]), its
+     * effects, the run's job / cancel signal / wait card progress, Cancel and the two answers. Declared before init {}
+     * (recalc() runs there, ViewModelInitOrderTest); the run's coroutine itself is [recalc]. The names below forward to it.
      */
-    private var routeRun by mutableStateOf(RouteRun())
-    val routing: Boolean get() = routeRun.routing
+    private val planRun = com.onpath.app.ui.plan.PlanRunSlice(
+        runCauses = planRoute.runCauses,
+        host = object : com.onpath.app.ui.plan.PlanRunHost {
+            override fun points(): List<GeoPoint> = waypoints.toList()
+            override fun clearRoute() { route = null; routeError = null }
+            override fun noCorridor() = mapData.corridorFollowsPlan(null)
+            override fun loadDeferredMaps(before: List<GeoPoint>) = cellsForNewPoints(before, waypoints)
+            override fun recalc() = this@AppViewModel.recalc()
+            override fun cancelRun(why: NotRouted) = this@AppViewModel.cancelRun(why)
+        },
+    )
+    private val routeRun get() = planRun.routeRun
+    val routing: Boolean get() = planRun.routing
     /** The point the last edit added or moved: the map's spinner turns there while its route is computed ([RoutingSpot]). */
     var routingSpot by mutableStateOf<GeoPoint?>(null)
         private set
@@ -993,37 +1005,43 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // declared before init {}: init restores the saved plan and routes it at once (declared below, they are still null then)
     /** Cancel signal of the route being calculated (Cancel button; a newer request stops the older one). */
-    private var routeCancel: com.onpath.app.routing.RouteCancel? = null
+    private var routeCancel: com.onpath.app.routing.RouteCancel?
+        get() = planRun.routeCancel
+        set(v) { planRun.routeCancel = v }
     /**
      * The plan run reached its time limit (owner 2026-11-03, onpath.private#21 B, [com.onpath.app.routing.SlowPlan]):
      * the box "Die Route ist lang, die Berechnung dauert. Weiter warten?" – the periods of the run that asked; null = none.
      */
-    val slowPlanAsk: Int? get() = routeRun.slowAsk
+    val slowPlanAsk: Int? get() = planRun.slowPlanAsk
 
     private val ROUTING_SLOW_MS = 2_500L
     /** The route has been calculating for a while: the plan sheet offers Cancel. */
-    val routingSlow: Boolean get() = routeRun.routingSlow
+    val routingSlow: Boolean get() = planRun.routingSlow
     /**
      * The wait card's progress (owner 2026-11-05): legs done / legs to route in the running plan run – only legs the
      * router works on count (legs from the cache are there at once); null = none known yet (the bar runs).
      */
-    var routeProgress by mutableStateOf<Pair<Int, Int>?>(null)
-        private set
+    var routeProgress: Pair<Int, Int>?
+        get() = planRun.routeProgress
+        private set(v) { planRun.routeProgress = v }
     /**
      * The wait bar's share 0..1 (owner 2026-11-05: it moves within one long leg too): legs done + the running leg's
      * search ([com.onpath.app.routing.BRouterEngine.searchProgress]) over the legs to route, never back ([WaitBar]);
      * null = not known yet (the bar runs).
      */
-    var routeShare by mutableStateOf<Float?>(null)
-        private set
+    var routeShare: Float?
+        get() = planRun.routeShare
+        private set(v) { planRun.routeShare = v }
     /** How often the wait bar asks the router how far it is (ms). */
     private val WAIT_POLL_MS = 250L
     /** Estimated duration (s) of a plan longer than a day: "Plan it anyway?" (null = no question). */
-    val longRouteAsk: Double? get() = routeRun.longAsk
+    val longRouteAsk: Double? get() = planRun.longRouteAsk
     /** The points before the edit that made the plan very long: its maps load only after "Plan anyway". */
-    private var longRouteDeferred: List<GeoPoint>? = null
+    private var longRouteDeferred: List<GeoPoint>?
+        get() = planRun.longRouteDeferred
+        set(v) { planRun.longRouteDeferred = v }
     /** The plan is left without a route on purpose (Cancel with nothing to take back); the sheet offers to calculate. */
-    val notRouted: NotRouted? get() = routeRun.notRouted
+    val notRouted: NotRouted? get() = planRun.notRouted
     /** What started the routing run: Cancel takes back only that ([PlanRouteSlice.runCauses]). */
     private val runCauses get() = planRoute.runCauses
     internal val multiDay = com.onpath.app.ui.plan.MultiDaySlice(this, plan, ::change, ::setSaved, ::rememberPlaceName, { mapData }) { nearbyNames }
@@ -1233,7 +1251,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** The tour's follow line being routed ([followAhead]): a newer edit stops it, so the plan never waits behind it. */
     @Volatile private var followCancel: com.onpath.app.routing.RouteCancel? = null
 
-    private var routeJob: Job? = null
+    private var routeJob: Job?
+        get() = planRun.routeJob
+        set(v) { planRun.routeJob = v }
     /** The followed line was taken from this plan ("Start navigation"), so Clear removes it too. */
     private var followFromPlan = false
     /** All plan points were deleted during the tour, which ended the guidance; points back → followed again (PlanGuidance). */
@@ -2642,61 +2662,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         recalc()
     }
 
+    // The route run's state, its effects and its entry points: [PlanRunSlice] (rebuild phase 2 piece 9); the run's coroutine is [recalc].
     /** The answer to [slowPlanAsk]: wait one more period (the run again, longer) or stop like Cancel. */
-    fun answerSlowPlan(answer: com.onpath.app.routing.SlowPlan.Answer) {
-        val rounds = slowPlanAsk ?: return
-        val effects = routeEvent(RouteRun.Event.SlowAnswer(answer))
-        Problems.info("routing", "Slow plan: ${answer.name.lowercase()} after $rounds period(s)")
-        // wait on: the run again with one more period (Cancel later still takes back the change that started it);
-        // else the usual Cancel
-        perform(effects)
-    }
-
+    fun answerSlowPlan(answer: com.onpath.app.routing.SlowPlan.Answer) = planRun.answerSlowPlan(answer)
     /** "Plan anyway" / "Calculate" of the not-routed notice. */
-    fun planAnyway() = perform(routeEvent(RouteRun.Event.PlanAnyway(waypoints.toList())))
-
-    /** The one place the route run's state changes: what [e] makes of it ([RouteRun.on]); the effects are the caller's to do. */
-    private fun routeEvent(e: RouteRun.Event): List<RouteRun.Effect> {
-        val step = routeRun.on(e)
-        routeRun = step.state
-        return step.effects
-    }
-
-    /** Does what the route run asks for, in its order; a run's start and its result are done in [recalc]. */
-    private fun perform(effects: List<RouteRun.Effect>) {
-        for (fx in effects) when (fx) {
-            RouteRun.Effect.ClearRoute -> { route = null; routeError = null }
-            RouteRun.Effect.NoCorridor -> mapData.corridorFollowsPlan(null) // nothing loads for a plan that is not routed
-            is RouteRun.Effect.LongAsked ->
-                Problems.trace("routing", "Very long plan (${com.onpath.app.routing.LongRoute.describe(fx.estimateS)}) – asking first")
-            RouteRun.Effect.StopRun -> {
-                routeCancel?.cancel(); routeCancel = null
-                routeJob?.cancel(); routeJob = null
-                routeProgress = null; routeShare = null
-            }
-            RouteRun.Effect.LoadDeferredMaps -> longRouteDeferred?.let { longRouteDeferred = null; cellsForNewPoints(it, waypoints) }
-            is RouteRun.Effect.Rerun -> { if (fx.sameCause) runCauses.again(); recalc() }
-            is RouteRun.Effect.Cancel -> cancelRun(fx.why)
-            is RouteRun.Effect.StartRouting, RouteRun.Effect.ClearProgress, RouteRun.Effect.Superseded, is RouteRun.Effect.TakeRoute,
-            RouteRun.Effect.ShowFailure, RouteRun.Effect.FollowNewRoute, RouteRun.Effect.FollowEditedPlan -> Unit // in recalc
-        }
-    }
-
-    private fun leaveUnrouted(why: NotRouted) {
-        perform(routeEvent(RouteRun.Event.Unrouted(why))) // the run stops, the route and its corridor go
-        Problems.info("routing", "Plan left without a route (${why.name.lowercase()}): ${waypoints.size} points")
-    }
-
-    /**
-     * Cancel while a route is calculated (owner): the router stops at once and the change that
-     * started this calculation is taken back ([cancelRun]). Nothing to take back: the points stay, without a route.
-     */
-    fun cancelRouting() {
-        val effects = routeEvent(RouteRun.Event.CancelTapped)
-        if (effects.isEmpty()) return // nothing is calculated
-        Problems.info("routing", "Route calculation cancelled by the user")
-        perform(effects) // [cancelRun]
-    }
+    fun planAnyway() = planRun.planAnyway()
+    private fun routeEvent(e: RouteRun.Event): List<RouteRun.Effect> = planRun.routeEvent(e)
+    private fun perform(effects: List<RouteRun.Effect>) = planRun.perform(effects)
+    private fun leaveUnrouted(why: NotRouted) = planRun.leaveUnrouted(why)
+    /** Cancel while a route is calculated (owner): [PlanRunSlice.cancelRouting]. */
+    fun cancelRouting() = planRun.cancelRouting()
 
     /**
      * From the planning thread ([Planner]'s progress): the wait card's legs done / to route ([routeProgress]) – only while

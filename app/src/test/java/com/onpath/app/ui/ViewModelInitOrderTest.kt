@@ -32,7 +32,9 @@ class ViewModelInitOrderTest {
         assertEquals("declared after the init block at line ${initAt + 1}", emptyList<String>(), declaredLate)
         // the route run's state is written through routeEvent() (no plain assignment in recalc for the check above)
         assertTrue("recalc() sends the route run its event", (start..end).any { lines[it].contains("routeEvent(RouteRun.Event.Recalc(") })
-        assertTrue("routeRun declared above the init block", declLine("routeRun") in 0 until initAt)
+        // the route run's state is the slice's (PlanRunSlice, piece 9): a plain property declared above the init that calls recalc()
+        val runAt = lines.indexOfFirst { Regex("""^    private val planRun = com\.onpath\.app\.ui\.plan\.PlanRunSlice\(""").containsMatchIn(it) }
+        assertTrue("planRun declared above the init block", runAt in 0 until initAt)
     }
 
     /** Index of the line closing the block opened on line [open] (string literals and // comments ignored). */
@@ -82,6 +84,7 @@ class ViewModelInitOrderTest {
             if ("object :" in text || Regex("""= [\w.]*(Slice|Flow|NoticeBoard|RecentPlans)\(""").containsMatchIn(lines[i])) m.groupValues[1] to i else null
         }.toMap()
         assertTrue("planRoute is a plain property (the slice of piece 8)", "planRoute" in plains)
+        assertTrue("planRun is a plain property (the slice of piece 9)", "planRun" in plains)
         val props = lazies + plains
         val propRange = HashMap<String, IntRange>()
         props.forEach { (n, at) -> propRange[n] = at..(if (n in lazies) blockEnd(at) else initialiserEnd(at)) }
