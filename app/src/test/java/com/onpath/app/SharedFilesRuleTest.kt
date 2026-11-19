@@ -21,8 +21,9 @@ class SharedFilesRuleTest {
     private val tests = list.dropWhile { it != "[tests]" }.drop(1)
 
     /** Outside the app: what the web build stubs or brings (tools/routing/jvm-test/stubs, the web's stand-ins). */
+    // "kotlin.", not "kotlin": the web has no kotlinx.* beyond coroutines (serialization, datetime … would slip through)
     private val external = listOf(
-        "kotlin", "java.", "javax.", "kotlinx.coroutines.", "org.xml.sax.", "org.json.", "com.google.gson.",
+        "kotlin.", "java.", "javax.", "kotlinx.coroutines.", "org.xml.sax.", "org.json.", "com.google.gson.",
         "btools.", "org.jetbrains.compose.resources.StringResource", "org.jetbrains.compose.resources.PluralStringResource",
         "com.onpath.strings.",
         "android.content.Context", "android.content.Intent", "android.content.ActivityNotFoundException", "android.net.Uri",
