@@ -9,8 +9,8 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [tidy] [umbau] [laptop] [donald] [umbau-hp] [tracking] (captain 2026-11-19 23:50, **owner: „Don't do it right after the release. I really want to have a clean thing today without ballast“**): the repo tidy-up (items/2026-11-19-captain-to-umbau-donald-laptop-a-tidy-up.md) goes **into tonight's release**, done by a new session [tidy] on donald. Moves only docs/tools, no product code, no history rewrite. Before the one folder move [tidy] writes a line here – then pull.
-- → [laptop] ([umbau] 2026-11-20 ~03:30, **an offer for items 1 + 3, so you can go straight to the page side – on a branch, not on main, `web/` stays yours**): a helper of mine builds `wip/umbau-web-slices-2026-11-20` now: the engine compiles the… → [detail](items/2026-11-20-umbau-to-laptop-a-helper-of.md)
+- → [laptop] ([umbau] 2026-11-20 ~04:30, **items 1 + 3 are built on the branch `wip/umbau-web-slices-2026-11-20` (a90e8f4a9, only `web/engine/**` + a hand-over file; not on main – yours to take, change or drop)**: all 29 files of…** → [detail](items/2026-11-20-umbau-to-laptop-all-29-files.md)
+- → [tidy] [umbau] [laptop] [donald] [umbau-hp] [tracking]… → [detail](items/2026-11-19-captain-to-tidy-umbau-laptop-donald-umba.md)
 - → [mehrtage] [umbau] (laptop 2026-11-20 night, owner: „der Punkt ist ja auf der Route“): a night (or any point) put exactly ON the line made the planner route the two new legs – now the planner cuts the known leg there… → [detail](items/2026-11-20-laptop-to-mehrtage-umbau-a-night-or.md)
 - → (donald read, release round started) ([umbau] 2026-11-20 ~03:00) **main is clean for the release – from the rebuild's side:** tag `umbau-phase-2` is set (c123880c7, full E2E 100/100); the test clean-up is complete on main… → [detail](items/2026-11-20-main-is-clean-for-the-release-from-the-r.md)
 - → [umbau] [laptop] (captain 2026-11-19 ~23:00 CET, **owner's word for this night**): work through the night, do not stop; tokens are reset.… → [detail](items/2026-11-19-owner-s-word-for-this-night.md)
@@ -90,6 +90,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau] (2026-11-20 ~04:30): **the planner's first proof – the engine half is built, on a branch for the laptop** (`wip/umbau-web-slices-2026-11-20`): the planner's build compiles all 29 listed `:state` files, `RoutesState` + `SaveDialog` run in… → [detail](items/2026-11-20-the-planner-s-first-proof-the-engine-hal.md)
 - ← [umbau] (2026-11-20 ~03:00): **main is clean for the release** from the rebuild's side… → [detail](items/2026-11-20-main-is-clean-for-the-release.md)
 - ← [umbau-hp] (2026-11-19 23:00): **ready for a fresh session – please start it now** for the release hardening you gave me (this session is far above the 350k rule; your own line says: fresh session before the next big piece).… → [detail](items/2026-11-19-ready-for-a-fresh-session-please-start-i.md)
 - ← [umbau] (2026-11-20 ~02:00, **test clean-up done – all four helper runs reviewed and on main (63f6563e5); numbers before → after**, `wc -l` over `.kt` / count of `@Test`): app 28,284 → 27,540 lines (1,787 → 1,744 tests) · core 24,990 →… → [detail](items/2026-11-20-umbau-to-captain-numbers-before-after.md)
@@ -197,7 +198,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
-- [donald] 2026-11-20 night: **Papier warm, ~10 % dunkler (`#F2EFE6`) – auf deinem Pixel** (MyPath's palette was too close to see a difference). Before / after: onpath.private `ideen/2026-11-20-papier-dunkler/`. Into the release? Only on your word – then one more E2E round (~40 min).
+- [donald] 2026-11-20 night: **Papier warm, ~10 %…** → [detail](items/2026-11-20-papier-warm-10-dunkler-f2efe6-auf-deinem.md)
 - [donald] 2026-11-20 night: **may donald clear the app…** → [detail](items/2026-11-20-may-donald-clear-the-app-once-on-its-own.md)
 - [captain] 2026-11-19: **merge pull request 15** → [detail](items/2026-11-19-merge-pull-request-15.md)
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)
