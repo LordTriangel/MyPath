@@ -4,8 +4,8 @@ Owner 2026-11-19: „Ich schicke meiner Frau eine Signal- oder WhatsApp-Message 
 eine Webseite, wo sie meinen Weg tracken kann: ob ich noch unterwegs bin, richtig auf der Spur, wie es mir geht – oder
 zumindest meinen letzten Ort, falls mir etwas passiert.“ He calls it the last feature that matters to him.
 
-Status: **design, nothing built.** No product code on `main` before the weekend release (2026-11-20) is out. Open owner
-decisions: §12. Numbers marked *estimate* are not measured yet (§10 says how they get measured).
+Status: **design with a build plan (§14), nothing built.** No product code on `main` before the weekend release
+(2026-11-20) is out. Decisions: §12. Numbers marked *estimate* are not measured yet (§10 says how they get measured).
 
 ## 1. In one picture
 
@@ -47,8 +47,8 @@ The tour notification gets „· Live“ in its line. A tap on the sign: **„Li
 person) and **„Teilen beenden“**.
 
 **End.** „Teilen beenden“ deletes everything on the server at once; the link then says „Diese Tour wird nicht mehr
-geteilt“. Ending the tour ends the sharing too: the viewer sees „Tour beendet 16:42“ with the whole way for a while
-(§12 question 2), then the server deletes it. A new tour = a new link (§12 question 1).
+geteilt“. Ending the tour ends the sharing too: the viewer sees „Tour beendet 16:42“ with the whole way for 12 h,
+then the server deletes it. A new tour = a new link (§12).
 
 **Never in the way.** Sharing never asks anything during the tour, never shows an error box. Upload trouble is the grey
 dot and a line in the Problems log – nothing else.
@@ -90,8 +90,7 @@ The status line, in this order of priority (calm words – a dead zone in the mo
 | link broken / key wrong | „Dieser Link funktioniert nicht.“ |
 
 - **„Wie es mir geht“** in version 1 = what the phone knows by itself: moving or pausing, on the route or not, how far,
-  phone battery, when last heard. A deliberate sign from him („Alles gut 👍“, a short text) is a later step (§11, §12
-  question 4).
+  phone battery, when last heard. A deliberate sign from him („Alles gut 👍“, a short text) is a later step (§11).
 - **The last place** is always on the page with its time and coordinates as text – what one reads to the mountain rescue.
   A tap copies it; „In Karten-App öffnen“ is a `geo:` link.
 - **After a gap the whole way appears**, not a straight jump: the phone uploads everything it recorded meanwhile.
@@ -114,7 +113,7 @@ AES-256-GCM, proven by test vectors and byte-equal to `javax.crypto`).
 
 - The part after „#“ never reaches any server (browser rule). The page takes it out of the address bar after reading.
 - **Stop = gone:** „Teilen beenden“ deletes the box; the link in the chat history stays but is dead.
-- **Nothing lives long:** a box is deleted by the server some hours after the tour ended (§12 question 2) and in any
+- **Nothing lives long:** a box is deleted by the server 12 h after the tour ended and in any
   case 48 h after the last upload (a phone that died – the last place stays visible for two days, then goes).
 - No account, no name on the server. The name on the page („Christians Tour“) is inside the locked data; it is the
   phone's owner name field for sharing (asked once at the first share, changeable; default empty → „Live-Tour“).
@@ -266,16 +265,19 @@ sharing switched on by itself at every Start · „zuletzt angesehen“ for the 
 arrives or contact is lost for long · height profile on the page · multi-day tours as one link · the viewer inside the
 OnPath app.
 
-## 12. Open for the owner (asked one by one in the chat; recommendation first)
+## 12. Decisions
 
-1. **One link per tour, or one permanent link for the family?** Recommended: per tour (simplest, nothing lives on);
-   the permanent link later.
-2. **How long stays the finished tour visible?** Recommended: 12 h after the end, then deleted.
-3. **Where does „Live teilen“ sit – only in the running tour's menu, or also offered at Start?** Recommended: menu
-   only in version 1.
-4. **„Wie es mir geht“ – automatic signs only in version 1?** Recommended: yes; „Alles gut 👍“ as the first later step.
-5. **Show the phone's battery level to the viewer?** Recommended: yes – it explains a silent phone.
-6. **The name on the page** – asked once at the first share, or none? Recommended: asked once.
+| Question | Decision | Who |
+| --- | --- | --- |
+| One link per tour, or a permanent family link? | **Per tour**; the permanent link later | owner, chat 2026-11-20 |
+| How long stays the finished tour visible? | **12 h** after the end, then deleted | owner, chat 2026-11-20 |
+| Where does „Live teilen“ sit? | **In the running tour's menu** only | owner, chat 2026-11-20 |
+| „Wie es mir geht“ in version 1? | **Automatic signs only**; „Alles gut 👍“ is the first later step | owner, chat 2026-11-20 |
+| Show the phone's battery level to the viewer? | **Yes** – it explains a silent phone | [tracking]'s recommendation, night 19→20 Nov (`docs/items/2026-11-20-night-answers.md`) – the owner may overrule |
+| The name on the page? | **Asked once at the first share** (may stay empty → „Live-Tour“), changeable in Settings | [tracking]'s recommendation, same night – the owner may overrule |
+
+Still the owner's before anything is built on screen: the real pictures of the app's share sign / menu and of the viewer
+page (sketch before build).
 
 ## 13. Privacy text (proposal)
 
@@ -285,3 +287,151 @@ OnPath app.
 > Nummer, die verschlossenen Daten und wann sie kamen. Wer den Link hat, sieht deine Tour, bis du das Teilen beendest.
 > „Teilen beenden“ löscht alles sofort; sonst löscht der Server die Daten 12 Stunden nach Tourende, spätestens 48 Stunden
 > nach dem letzten Lebenszeichen.
+
+## 14. Build plan – pieces, ports, tests
+
+Names are proposals; each piece is one small green commit series. Pieces 1–3 need no phone; nothing is visible in the
+app until piece 6. Start: after the release of 2026-11-20 is out.
+
+### 14.1 `:core` `com.onpath.app.live` (pure Kotlin; compiled by the web engine)
+
+```kotlin
+/** The link code and what is derived from it (§6). */
+class LiveKeys(val boxId: String, val readToken: String, val contentKey: ByteArray)
+object LiveCode {
+    const val PREFIX = "t="                                   // https://plan.onpath.earth/live/#t=<code>
+    fun make(secret: ByteArray): String                        // 32 random bytes from the platform → 44 chars
+    fun parse(text: String): ByteArray?                        // a whole link or the bare code; null = not ours
+    fun keys(secret: ByteArray): LiveKeys                      // HKDF, salt "OnPath live v1"
+    fun link(code: String): String
+}
+
+enum class LiveState { RECORDING, PAUSED, ENDED, ARRIVED }
+data class LiveHead(
+    val state: LiveState, val fix: LiveFix?,                   // lat, lon, ele, timeMs, accuracyM
+    val gpsLost: Boolean, val offRouteM: Int?,                 // null = on the route / nothing followed
+    val distanceM: Int, val ascentM: Int, val movingS: Int, val startedMs: Long,
+    val toGoM: Int?, val arrivalMs: Long?,                     // only when following a plan
+    val batteryPct: Int?, val activity: String, val name: String, val counter: Int,
+)
+data class LivePoint(val seg: Int, val lat: Double, val lon: Double, val eleM: Int?, val timeMs: Long)
+
+object LiveItem {                                              // plain bytes: version | kind | fields (tag, length, bytes) –
+    fun head(h: LiveHead): ByteArray;  fun readHead(b: ByteArray): LiveHead?      // unknown tags skipped, like SyncItem
+    fun route(line: List<GeoPoint>): ByteArray;  fun readRoute(b: ByteArray): List<GeoPoint>?
+    fun chunk(points: List<LivePoint>): ByteArray;  fun readChunk(b: ByteArray): List<LivePoint>?
+    fun seal(keys: LiveKeys, name: String, plain: ByteArray, nonce: ByteArray, aead: Aead): ByteArray
+    fun open(keys: LiveKeys, name: String, blob: ByteArray, aead: Aead): ByteArray?   // AAD = version | box id | name
+}
+```
+
+- Item names: `h`, `r`, `t0000`, `t0001`, … (the chunk number is part of the sealed name – a server cannot reorder).
+- `LiveChunker.next(points, max = 16 KiB)`: whole points only; a chunk never mixes two uploads, so a re-sent chunk is
+  the same points under the same name.
+- `LivePolicy.next(now, lastUploadMs, moving, paused, lowBattery, event, failures, retryAfterMs): Long` – when the next
+  upload is due (§5's table as one pure function; the numbers are its constants).
+
+**The uploader and its ports** (no thread, no clock, no Android inside – `step()` is called by the lane):
+
+```kotlin
+interface LiveBox {                                            // the calls of §6; never throws – every failure is a Reply
+    fun claim(readHash: String, writeHash: String): LiveReply
+    fun push(items: List<Pair<String, ByteArray>>, ended: Boolean): LiveReply
+    fun delete(): LiveReply
+}
+data class LiveReply(val code: Int, val retryAfterS: Int? = null)      // 0 = no network / timeout
+
+interface LiveTrack {                                          // read-only view of the recording
+    fun pointsAfter(tourId: Long, seq: Int, max: Int): List<Pair<Int, LivePoint>>   // (seq, point), in order
+    fun head(tourId: Long): LiveHead?                          // from RecState + battery; null = no such tour running
+    fun route(tourId: Long): Pair<Int, List<GeoPoint>>?        // (version, line) – version changes on re-route / new plan
+}
+interface LiveStore { fun read(): LiveShare?; fun write(s: LiveShare?) }   // files/live/share.json, atomic
+data class LiveShare(val secret: ByteArray, val writeToken: String, val tourId: Long, val claimed: Boolean,
+                     val cursorSeq: Int, val nextChunk: Int, val routeVersion: Int, val ending: Boolean)
+
+class LiveUploader(box: (LiveShare) -> LiveBox, track: LiveTrack, store: LiveStore, random: (Int) -> ByteArray, aead: Aead) {
+    fun start(tourId: Long, name: String): String              // makes the share, stores it, returns the link – no network
+    fun step(nowMs: Long, event: Boolean): LiveStatus          // at most one claim / push; moves the cursor only after a 200
+    fun end()                                                  // marks ending; the next good step sends the final head with ended
+    fun stop(): LiveStatus                                     // DELETE (best effort, retried by step), then forgets the share
+    val status: LiveStatus                                     // OFF, LIVE(lastOkMs), WAITING(sinceMs), STOPPED_BY_SERVER
+}
+```
+
+Order inside one `step`: claim if not claimed → route if its version changed → up to 3 chunks from the cursor → head.
+The cursor and chunk number are stored **after** the 200; a death in between re-sends the same names (harmless). 410 /
+403 = the box is gone → the share is forgotten, status `STOPPED_BY_SERVER`, one `Problems.warn`.
+
+### 14.2 `:state` `ui/live/LiveShareSlice.kt`
+
+State for Navigate: `sign: LiveSign` (None / Live / Waiting), `menu: List<LiveAction>` (Share / ShareAgain / Stop),
+`askName: Boolean` (first share only). Port `LiveShareHost` (4 members: `start(name): String` = the link, `stop()`,
+`status: LiveStatus`, `shareText(text)`) + `LivePrefs` (the name). Tests on the slice harness: the first share asks the
+name once; a share while sharing gives the same link; stop clears the sign; `STOPPED_BY_SERVER` clears it with one quiet
+line (`Say`, place = Navigate); nothing is offered when no tour records.
+
+### 14.3 `:app` (Android edge)
+
+| File | What |
+| --- | --- |
+| `live/HttpLiveBox.kt` | `HttpURLConnection` like `HttpMailbox`; 10 s / 15 s timeouts; every exception → `LiveReply(0)` + `Problems.warn("live", …)` |
+| `live/LiveLane.kt` | one single-thread executor owned by the recording service's lifetime: calls `step` when `LivePolicy` says, on the service's events, and on `ConnectivityManager.NetworkCallback.onAvailable`; cancelled in `onDestroy` |
+| `live/DbLiveTrack.kt` | `LiveTrack` over a **read-only** `TourDb` query and the service's `RecState`; battery from the sticky `ACTION_BATTERY_CHANGED` |
+| `live/LiveFiles.kt` | `LiveStore`; `files/live/` added to the backup exclusions |
+| wiring | `RecordingService` gets three lines (create the lane, forward start / pause / end events, destroy); `RecordingClient` gets `liveStart / liveStop / liveStatus` – the app's only way to it, as for everything else of the service. Phase 4's service split moves the lane with the recording engine unchanged. |
+
+### 14.4 Server (`web/host`)
+
+`migrations/0004_live.sql`:
+
+```sql
+CREATE TABLE live_box (id TEXT PRIMARY KEY, read_hash TEXT NOT NULL, write_hash TEXT NOT NULL, rev INTEGER NOT NULL DEFAULT 0,
+  created INTEGER NOT NULL, last_write INTEGER NOT NULL, ended INTEGER, deleted INTEGER, bytes INTEGER NOT NULL DEFAULT 0,
+  pushes_hour INTEGER NOT NULL DEFAULT 0, pushes_from INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE live_item (box TEXT NOT NULL, name TEXT NOT NULL, rev INTEGER NOT NULL, blob TEXT NOT NULL, PRIMARY KEY (box, name));
+CREATE INDEX live_item_rev ON live_item (box, rev);
+```
+
+`src/live.js` (`handleLive(request, env)`, routed from `index.js` at `/live/v1/`; `/live/` itself is a static page):
+the calls of §6. A push is one D1 batch: `UPDATE live_box SET rev = rev + 1, last_write = ?…` then one upsert per item
+with the new rev. Token check = compare of SHA-256 hex, as in `sync.js`. `GET` answers `now`, `lastWrite`, `ended` from
+the box row. Cron: an hourly entry for
+`DELETE … WHERE (ended IS NOT NULL AND ended < now − 12 h) OR last_write < now − 48 h OR deleted < now − 48 h`
+(a deleted box keeps its row that long so the link answers 410, not 404). `wrangler.toml`: `run_worker_first` +
+`/live/v1/*`, rate-limit binding `LIVE_RATE` (120 / min / IP), the hourly cron – a config change, sent to the owner as
+a pull request together with the privacy text.
+
+### 14.5 Viewer page (`web/app`)
+
+- `live/index.html` – a second Vite entry; `src/live/main.ts` (boot: read `#t=`, strip it from the address, keep the
+  code in memory only – a reload needs the link again; to be shown to the owner with the pictures, the alternative is
+  keeping it in the tab's session storage), `src/live/box.ts` (the `GET` loop: 30 s while visible, at once on
+  `visibilitychange` / `online`, back-off on errors, stops for good on 410), `src/live/view.ts` (status line, numbers,
+  last place with copy / `geo:`), `src/live/map.ts` (MapLibre with the planner's map-area loader and style; the way, the
+  route, the dot; follows the dot until the user moves the map, then a „Zur Position“ button).
+- Engine: `WebLive.kt` in `web/engine` – `liveKeys(code)`, `liveOpen(code, name, blob)` → JSON of head / route / chunk
+  (the shared `LiveItem`), `liveStatus(head, now, lastWrite, ended)` → the status line's key + numbers, so the rule
+  „which line wins“ is one tested Kotlin function (`LiveStatusLine` in `:core`), not TypeScript.
+- Texts: the web strings module (DE / EN), keys `live_*`.
+- Not indexed (`noindex`), neutral title, no analytics, no third-party requests (fonts and map from our host).
+
+### 14.6 Tests (each names what it guards)
+
+| Test | Guards |
+| --- | --- |
+| `LiveFormatTest` (`:core`) | frozen bytes of code, keys, head, route, chunk (a format change cannot slip in); any flipped byte refused; a blob opened under another name or box refused; an older reader skips unknown tags |
+| `LivePolicyTest` | §5's table; never more often than the floor; back-off and `retry-after` |
+| `LiveStatusLineTest` | §3's table and its priority (no contact beats moving; ended beats all) |
+| `LiveUploaderTest` (fake box, fake track, fake clock) | no network for hours → everything arrives in order afterwards; every 2nd call fails → no point twice, none missing (random seeded sequences); death between push and cursor write → same names again; 410 → stops, share forgotten; end → final head with `ended`; stop → delete retried until it lands |
+| `LiveNeverBlocksRecordingTest` | the box hangs forever → the track is still only read, the lane holds no lock the point writer takes (the writer finishes while `step` hangs) |
+| `LiveShareSliceTest` (`:state`) | §14.2's rules |
+| `web/host/test/live.test.js` | claim / push / get / delete, limits (413, 507, 429), the link's read token cannot push or delete, expiry query, 410 after delete, D1 holds nothing readable |
+| `web/app/test/live-smoke.mjs` | a fake phone (the shared code in Node) walks a track through the real `live.js`: way and route drawn, each status line, a gap filled later without a straight jump, end, stop → „wird nicht mehr geteilt“, a broken link, phone width |
+| Pixel (by hand, once) | screen-off network for 3 h, battery beside a walk without sharing, airplane-mode gap, „Continue tour“ after a kill keeps the link |
+
+### 14.7 Order
+
+1 formats (`:core`) → 2 server → 3 viewer page + smoke (pictures to the owner) → 4 uploader + policy → 5 Android edge →
+6 slice + screens (pictures to the owner first) → 7 Pixel walk → 8 privacy text + `wrangler.toml` by pull request,
+requirements IDs, help line → release. Pieces 2–3 touch `web/`: agreed with [laptop] in the backlog first (one writer).
