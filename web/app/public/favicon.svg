@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="18 18 72 72"><!-- the app's launcher icon (app/src/main/res/drawable/ic_launcher_foreground.xml on #1F6E43): the adaptive icon's visible 72 of 108, as a circle -->
+<circle cx="54" cy="54" r="36" fill="#1F6E43"/>
+<path fill="#FFFFFF" d="M28,74 L46,44 L56,58 L64,48 L80,74 Z"/>
+<path fill="none" stroke="#FFC94D" stroke-width="4" stroke-linecap="round" d="M34,80 C46,72 52,82 62,74 S76,70 78,66"/>
+</svg>

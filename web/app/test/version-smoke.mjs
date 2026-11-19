@@ -32,6 +32,10 @@ check(/^[0-9a-z]+-[0-9a-z]+$/.test(deployed), `version.json names the build (${d
 check(log.some((u) => u.includes('engine/onpath-web-engine.wasm?v=' + deployed)), 'the engine is loaded with ?v=<build> (never an old one from a cache)');
 const diag = await page.evaluate(() => window.__diag());
 check(diag.includes('build: ' + deployed), 'the diagnostics name the page\'s build');
+// the tab icon (the app's launcher icon): every icon link of the built page answers 200 with an image
+const icons = await page.evaluate(() => [...document.querySelectorAll('link[rel=icon], link[rel=apple-touch-icon]')].map((l) => l.href));
+for (const h of icons) { const r = await fetch(h); check(r.status === 200 && /^image\//.test(r.headers.get('content-type')), `tab icon ${h.slice(url.length)}: ${r.status} ${r.headers.get('content-type')}`); }
+check(icons.length === 3 && icons[0].endsWith('favicon.svg'), `three icon links, the SVG first (${icons.length})`);
 
 await page.evaluate(() => window.dispatchEvent(new Event('focus')));
 await page.waitForTimeout(800);

@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.wasm': 'application/wasm',
-  '.json': 'application/json', '.css': 'text/css', '.pmtiles': 'application/octet-stream' };
+  '.json': 'application/json', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.pmtiles': 'application/octet-stream' };
 
 /**
  * [dataDir] = a map store root (cells/f2/10/<x>/<y>/…, like the R2 bucket), served at /data/.
