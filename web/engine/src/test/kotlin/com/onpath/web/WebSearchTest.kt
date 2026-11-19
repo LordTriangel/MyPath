@@ -58,4 +58,48 @@ class WebSearchTest {
         val chips = WebSearch.categories()
         assertTrue(chips, chips.startsWith("[[\"PLACES\",\"Places\"],[\"FOOD\",\"Food\"]") && chips.contains("[\"PARKING\",\"Parking\"]"))
     }
+
+    /**
+     * Owner's bug (planner 2026-11-19): „München“, then the chip „Orte“ – the list still showed everything. Photon's
+     * answer for the text WITHOUT the chip (asked before the click, back after it) came into the engine after the
+     * chip's search and mixed its rows – the station, the restaurant – into the chip's list. The app cancels that
+     * request (SearchSession.run: onlineJob.cancel()); here a late answer for another text or chip changes nothing.
+     */
+    /** Photon's real answer for „München“ near Munich (2026-11-19: the city, stations, pubs, hospitals, streets). */
+    @Test fun muenchenWithPlacesShowsOnlyPlacesStreetsAddresses() {
+        area()
+        val muc = File("../app/test/fixtures/photon-muenchen.json").readText()
+        fun kinds(json: String) = Regex("\"kind\":\"([^\"]*)\"").findAll(json).map { it.groupValues[1] }.toList()
+        WebSearch.search("München", 48.14, 11.57, "", "PLACES")
+        val places = kinds(WebSearch.online("München", muc, "PLACES"))
+        assertTrue("the chip's list has rows ($places)", places.isNotEmpty())
+        assertTrue("„Orte“: only places, streets, addresses ($places)", places.all { it in setOf("place", "street", "address") })
+        WebSearch.reset()
+        WebSearch.search("München", 48.14, 11.57, "", "")
+        val all = kinds(WebSearch.online("München", muc, ""))
+        WebSearch.search("München", 48.14, 11.57, "", "PLACES") // the chip clicked after the list was there
+        val after = kinds(WebSearch.online("München", muc, "PLACES"))
+        assertTrue("„Orte“ after the full list: only places, streets, addresses ($after; before $all)", after.all { it in setOf("place", "street", "address") })
+    }
+
+    @Test fun aLateOnlineAnswerWithoutTheChipDoesNotFillTheChipsList() {
+        area()
+        val muc = """{"type":"FeatureCollection","features":[
+          {"type":"Feature","properties":{"osm_type":"R","osm_id":62428,"osm_key":"place","osm_value":"city","type":"city","name":"München","state":"Bayern","country":"Deutschland","countrycode":"DE"},"geometry":{"type":"Point","coordinates":[11.5753822,48.1371079]}},
+          {"type":"Feature","properties":{"osm_type":"N","osm_id":21608575,"osm_key":"railway","osm_value":"station","type":"house","name":"München Hauptbahnhof","city":"München","country":"Deutschland","countrycode":"DE"},"geometry":{"type":"Point","coordinates":[11.5596,48.1402]}},
+          {"type":"Feature","properties":{"osm_type":"N","osm_id":1,"osm_key":"amenity","osm_value":"restaurant","type":"house","name":"München Stubn","city":"München","country":"Deutschland","countrycode":"DE"},"geometry":{"type":"Point","coordinates":[11.57,48.14]}}]}"""
+        fun kinds(json: String) = Regex("\"kind\":\"([^\"]*)\"").findAll(json).map { it.groupValues[1] }.toList()
+        WebSearch.search("München", 48.14, 11.57, "", "")
+        val all = kinds(WebSearch.online("München", muc, ""))
+        assertTrue("without a chip: the station and the restaurant too ($all)", "train" in all && "restaurant" in all)
+        WebSearch.reset()
+        WebSearch.search("München", 48.14, 11.57, "", "")         // typed; Photon asked …
+        WebSearch.search("München", 48.14, 11.57, "", "PLACES")   // … the chip „Orte“ clicked …
+        WebSearch.online("München", muc, "")                       // … the answer for the text without the chip arrives
+        val places = kinds(WebSearch.online("München", muc, "PLACES"))
+        assertTrue("the chip's list has rows ($places)", places.isNotEmpty())
+        assertTrue("„Orte“: only places, streets, addresses ($places)", places.all { it in setOf("place", "street", "address") })
+        val again = kinds(WebSearch.search("München", 48.14, 11.57, "", ""))
+        assertTrue("the chip unpicked: no online row is lost for good ($again)", again.isNotEmpty())
+    }
 }

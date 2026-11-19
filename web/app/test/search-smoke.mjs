@@ -3,6 +3,7 @@
 // adding a found place as a named, pinned stop.
 // Online (Photon) only when ONLINE=1 (CI has network; the result is checked loosely).
 // Usage: node test/search-smoke.mjs [segmentsDir] [mapStoreDir] [screenshot.png]
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
@@ -16,7 +17,14 @@ const { server, url } = await serve({ dist: path.resolve(here, '../dist'), segme
 const proxy = process.env.ONLINE === '1' && process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY, bypass: '127.0.0.1,localhost' } : undefined;
 const browser = await chromium.launch({ proxy, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, ignoreHTTPSErrors: true });
-if (process.env.ONLINE !== '1') await ctx.route('https://photon.komoot.io/**', (r) => r.abort());
+// offline: Photon answers only „München“ – its real answer of 2026-11-19 (the city, stations, pubs, hospitals,
+// streets: fixtures/photon-muenchen.json), a little late, so the chip „Orte“ is clicked while it is on its way
+const MUC = fs.readFileSync(path.join(here, 'fixtures/photon-muenchen.json'), 'utf8');
+if (process.env.ONLINE !== '1') await ctx.route('https://photon.komoot.io/**', async (r) => {
+  if (!/q=M%C3%BCnchen&/.test(r.request().url())) return r.abort();
+  await new Promise((ok) => setTimeout(ok, 800));
+  await r.fulfill({ status: 200, contentType: 'application/json', headers: { 'access-control-allow-origin': '*', 'cache-control': 'no-store' }, body: MUC }).catch(() => {});
+});
 const page = await ctx.newPage();
 const fails = [];
 const check = (ok, what) => { console.log((ok ? 'ok   ' : 'FAIL ') + what); if (!ok) fails.push(what); };
@@ -55,6 +63,35 @@ check(hits.some((h) => /Hütte/.test(h)), 'accents stripped like the app (hutte 
 hits = await searchFor('Waalweg');
 console.log('Waalweg →', hits.slice(0, 5));
 check(hits.length > 0, 'trail names (Waalweg)');
+
+// the chips filter like the app's (SearchKinds.Category): „Orte“ = places, streets, addresses only – clicked while the
+// online answer for the text without the chip is on its way, and with the full list on screen (owner's bug 2026-11-19:
+// „München“ + „Orte“ still showed everything); unpicked → every kind again
+if (process.env.ONLINE !== '1') {
+  const kinds = () => page.$$eval('#results .hit', (b) => b.map((x) => x.dataset.kind));
+  await page.fill('#q', '');
+  const asked = page.waitForRequest((r) => r.url().startsWith('https://photon.komoot.io/'), { timeout: 30_000 });
+  await page.fill('#q', 'München');
+  await asked; // Photon asked for the text without the chip, its answer still on the way
+  await page.waitForTimeout(100);
+  const places = async (when) => {
+    await page.click('#results .searchchips .chip[data-cat="PLACES"]');
+    await page.waitForTimeout(2500); // every answer in
+    const k = await kinds();
+    console.log(`München + Orte (${when}) →`, await titles(), k);
+    check(await page.locator('#results .searchchips .chip.on[data-cat="PLACES"]').count() === 1, `„Places“ chip is on (${when})`);
+    check(k.length > 0 && k.every((x) => ['place', 'street', 'address'].includes(x)), `München + „Places“ ${when}: only places / streets / addresses (${k.join(', ')})`);
+  };
+  await places('while the answer without the chip is on its way');
+  await page.click('#results .searchchips .chip[data-cat="PLACES"]');
+  await page.waitForTimeout(2500);
+  const k = await kinds();
+  console.log('München, chip off →', await titles(), k);
+  check(k.includes('train') && k.includes('place') && k.length >= 8, `the chip unpicked: every kind again (${k.join(', ')})`);
+  await places('with the full list on screen');
+  await page.click('#results .searchchips .chip[data-cat="PLACES"]');
+  await page.fill('#q', '');
+}
 
 // pick → the pin and, once the map is there, the pin's own hold menu opens by itself (app 6714ad6f, owner 2026-11-13
 // "A mit Ausweich B"): the very rows a hold gives, in the same order (PinMenuItems), "Remove pin" last;
