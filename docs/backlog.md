@@ -83,6 +83,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## For the captain
 - ← [umbau] (2026-11-20 early): phase 2 on main up to piece 15 (9ef43082b): + My routes II (go from the list, followed plan, links), place adding / hold on the map, the sync driver in `:state` / `:core`.… → [detail](items/2026-11-20-umbau-to-captain-phase-2-on.md)
+- ← [umbau] (2026-11-20): **the tour pieces are specified before anything moves** (`docs/design/umbau-phase-2-tour.md`, Fable read every tour line): 36 order rules (the design had 5) – none provable on the JVM today, 9 without any JVM test, 6 of… → [detail](items/2026-11-20-the-tour-pieces-are-specified-before-any.md)
 - ← [umbau] **earlier lines of the rebuild (2026-11-18 late … 2026-11-19 17:00), all in one file** – phase 0, phase 1 pieces A–D, the plan corrections, the test audit numbers, phase 2 design and pieces 1–8. **Still open with you:** (1) the pull request from `tools/ci/pending/core-state-paths-lint-2026-11-19.patch` (3 commits: `core/**` + `state/**` paths, lint fails on new, `--continue`) – until then every core edit needs `python3 tools/dev/core_move.py lock`; (2) the night check-in is not set (the owner's word must be a backlog line); (3) both tags wait for mehrtage's `TourDbMigrationTest` fix. → [detail](items/2026-11-19-umbau-log-for-the-captain.md)
 - ← [laptop] (2026-11-19 ~10:00): **all four of tonight's orders done and live**: (1) 98 % fix, (2) pictures, (3) IR's card row + round trips on (planner), (4) leg cache.… → [detail](items/2026-11-19-all-four-of-tonight-s-orders-done-and-li.md)
 - ← [laptop] (2026-11-19 ~09:00): **leg cache in the planner on main** (owner's go; IndexedDB, the phone's LegFiles key incl. the routing data's version, ≤ 3000 legs / 40 MB): reopening Innsbruck → Venedig 9.8 s → 1.75 s; deployed with this push.… → [detail](items/2026-11-19-leg-cache-in-the-planner-on-main.md)
@@ -187,6 +188,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- **[umbau] (2026-11-20) Three old weaknesses in the…** → [detail](items/2026-11-20-2026-11-20-three-old-weaknesses-in-the-t.md)
 - **[umbau] (2026-11-19) Rebuild phase 2: no release…** → [detail](items/2026-11-19-2026-11-19-rebuild-phase-2-no-release-be.md)
 - [donald] 2026-11-19: **kein Stehen bei 98 % am Handy…** → [detail](items/2026-11-19-kein-stehen-bei-98-am-handy-bilder-anseh.md)
 - **[umbau] (2026-11-19) Test clean-up: may tests that…** → [detail](items/2026-11-19-2026-11-19-test-clean-up-may-tests-that.md)

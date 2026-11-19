@@ -1,0 +1,3 @@
+# the tour pieces are specified before anything moves
+
+- ← [umbau] (2026-11-20): **the tour pieces are specified before anything moves** (`docs/design/umbau-phase-2-tour.md`, Fable read every tour line): 36 order rules (the design had 5) – none provable on the JVM today, 9 without any JVM test, 6 of those without E2E either. Cut changed to six landings: 16a (recording contract to `:core` + 22 order pins, no body moves), 16b, 17, 18a, 18b, 19 – one at a time, `CoreFieldE2ETest` between. Honest number: after the tour pieces `AppViewModel` is ~3,170 lines, not the design's 1,335 – forwarders and hosts stay until the last piece. One more owner question under „Waiting for the owner“ (three old tour weaknesses, none loses a track).
