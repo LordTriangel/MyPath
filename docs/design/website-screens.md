@@ -206,6 +206,20 @@ sync stores them (`onpath.private` `liste.md`, Note M).
 | M02 | `M02-handy-tag-2-von-3-unterwegs` | Navigate on day 2 (flight mode): status card "Tag 2 von 3", next turn, arrival at the day's end | mehrtage-unterwegs · – (new) | `MultiDayGermanTest_dayFollowed` `MultiDayEnglishTest_dayFollowed` | `ui/NavigateScreen.kt`, `ui/MultiDayFlow.kt` |
 | M03 | `M03-handy-mehrtagestour-naechte-karte` | the plan on the map, day 2 picked: green bed at the hotel, blue moon at the Übernachtung | mehrtage-karte · – (new) | `MultiDayGermanTest_signs` `MultiDayEnglishTest_signs` | `ui/MapScreen.kt` (day ends on the map), `ui/plan/MultiDaySlice.kt` |
 
+## N – Round trip from here (planner + app)
+
+Real suggestions at Alken (Mosel), Wandern T2, 3,5–4,5 h, ↑ bis 800 m: the first card is the signposted Traumpfad
+Bleidenberger Ausblicke (`onpath.private` `liste.md`, Note N). Planner pictures need the map store's suggest files and
+rd5 (a local build against the live store, as `web/app/test/suggest-smoke.mjs` does); app pictures need the area's map
+downloaded by the app (real suggest file).
+
+| Step | File | What you see | Key · used on | Snapshot (Paparazzi) | Change here → new picture |
+| --- | --- | --- | --- | --- | --- |
+| N01 | `N01-web-rundtour-wunsch` | planner: „Rundtour von hier“ – activity, two range sliders (time, ascent), Ziel chips, Abbrechen · OK | web-rundtour-wunsch · – (new) | – | `suggest.ts`, `suggest.css` |
+| N02 | `N02-web-rundtour-kartenreihe` | planner: the card row along the map's bottom, the chosen card's loop alone on the map | web-rundtour · – (new) | – | `suggest.ts`, `suggest.css` |
+| N03 | `N03-handy-rundtour-von-hier` | phone: a place's menu, „Rundtour von hier“ right under „Hier starten“ (empty plan only) | rundtour-menue · – (new) | – | `domain/PinMenuPlace.kt`, `ui/MapOverlays.kt` |
+| N04 | `N04-handy-rundtour-kartenreihe` | phone: „5 Rundtouren“, one card in front, the next looking in, the chosen loop on the map | rundtour-karten · – (new) | `cards` | `ui/suggest/SuggestSheet.kt`, `ui/suggest/SuggestSlice.kt` |
+
 ## Store (Google Play) – made from the flows, no extra shots
 
 S1 "Plane in Ruhe – auch ohne Netz" → D05 · S2 "Unterwegs umplanen – ganz einfach" → F04 · S3 "Klare Ansagen an jeder

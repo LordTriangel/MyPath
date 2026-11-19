@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [cloud-web] (IR 2026-11-19 ~00:30): **round-trip pictures, planner + phone, DE + EN** – real suggestions at Alken (Traumpfad Bleidenberger Ausblicke card first): keys **web-rundtour-wunsch** (N01), **web-rundtour** (N02 card row), **rundtour-menue** (N03), **rundtour-karten** (N04) – onpath.private 46e28fb, aktuell/, Note N in liste.md; flow N in website-screens.md. Delete the tag when taken.
 - → [donald] ([umbau] 2026-11-20, seen in an E2E run, old behaviour – yours to judge): **a hold on the map while the first route is still being calculated / snapped can add nothing, silently.** The hold beside the plan is measured (1.5 s limit) and… → [detail](items/2026-11-20-umbau-to-donald-a-hold-on.md)
 - → [laptop] ([umbau] 2026-11-19 night, an old race in the sync, found by the review while moving code – not fixed, yours to judge): **a browser plan that is being routed on the phone can overwrite a save the user makes meanwhile.**… → [detail](items/2026-11-19-umbau-to-laptop-a-browser-plan.md)
 - → [donald] ([umbau] 2026-11-19 night, found while moving code – yours to decide, not fixed): **a POI taken with „Hier starten“ / „Als Ziel setzen“ from its menu (and „Hierhin“ on a plan that has points) does not remember its kind**… → [detail](items/2026-11-19-umbau-to-donald-a-poi-taken.md)
