@@ -63,8 +63,12 @@ class SuggestSliceTest {
         override suspend fun fetchCells(cells: List<IntArray>): Boolean { fetched += cells; return true }
         override fun fit(points: List<GeoPoint>) { fits += points }
         override fun take(points: List<GeoPoint>, activity: Activity, sac: Int, done: (Boolean) -> Unit) {
-            taken = Triple(points, activity, sac); done(takeOk)
+            taken = Triple(points, activity, sac)
+            if (holdTake) heldTake = done else done(takeOk)
         }
+        /** Set: „Übernehmen“ does not answer by itself – the test calls [heldTake] (the plan is routed meanwhile). */
+        var holdTake = false
+        var heldTake: ((Boolean) -> Unit)? = null
     }
 
     private fun slice(fake: Fake, block: SuggestSlice.() -> Unit): SuggestSlice {
@@ -102,6 +106,32 @@ class SuggestSliceTest {
         assertNull("the suggestions close with the plan", s.phase)
         assertNull(s.loop)
         assertTrue(s.cards.isEmpty())
+    }
+
+    /**
+     * „Übernehmen“, then ✕ while the plan is still being made, then a new round trip with its cards: the old take's late
+     * "done" must not close the new cards (release hardening 0.18.2).
+     */
+    @Test fun aLateAnswerOfATakeClosedMeanwhileDoesNotCloseTheNextSearchsCards() {
+        val fake = Fake(ArrayDeque(listOf({ result(card(1, 8.4, 6.95)) }, { result(card(1, 9.0, 6.95), card(2, 10.1, 6.96)) }))).apply { holdTake = true }
+        runBlocking {
+            val s = SuggestSlice(this, fake, on = true)
+            suspend fun cards(n: Int) { while (s.phase != SuggestPhase.CARDS) kotlinx.coroutines.yield(); assertEquals(n, s.cards.size) }
+            s.open(hilden, Activity.HIKE, 2); s.ok(); cards(1)
+            s.take(0)
+            assertTrue(s.taking)
+            val late = fake.heldTake!!
+            s.close()
+            assertFalse(s.taking)
+            s.open(hilden, Activity.HIKE, 2); s.ok(); cards(2)
+            late(true)
+            assertEquals("the new cards stay", SuggestPhase.CARDS, s.phase)
+            assertEquals(2, s.cards.size)
+            assertFalse(s.taking)
+            // and a take of the new cards still works
+            s.take(1); fake.heldTake!!(true)
+            assertNull(s.phase)
+        }
     }
 
     @Test fun aFailedTakeKeepsTheCards() {

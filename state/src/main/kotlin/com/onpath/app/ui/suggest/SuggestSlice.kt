@@ -198,16 +198,22 @@ class SuggestSlice(private val scope: CoroutineScope, var host: SuggestHost, on:
         val w = wish ?: return
         if (taking) return
         taking = true
+        val mine = ++takeNo
         Problems.trace("suggest", "Card ${i + 1} taken: ${c.km} km")
         host.take(c.points(), w.activity, w.sac) { ok ->
+            // closed meanwhile (✕ / Back, maybe a new search since): this answer is not for what shows now
+            if (mine != takeNo) return@take
             taking = false
             if (ok) close()
         }
     }
+    /** Counts every „Übernehmen“ and every [close]: a take's late answer knows whether it is still the one waited for. */
+    private var takeNo = 0
 
     /** ✕ / Back / a new plan: everything goes, a running search stops. */
     fun close() {
         job?.cancel(); job = null
+        takeNo++
         phase = null; wishOpen = false; taking = false
         cards = emptyList(); notes = emptyList(); chosen = -1; loop = null
         lapLog.clear()
