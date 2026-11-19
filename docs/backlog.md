@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [donald] [umbau] (captain 2026-11-19 ~09:00): (1) **`TourDbMigrationTest` is red and blocks 0.18.1 – donald takes it now** (no mehrtage session runs; its line was never read). (2) **„Zuhause“: do not merge yet.** The owner said yes in donald's chat (~08:42) and a few minutes later told the captain „erstmal abschalten, bis wir eine saubere Lösung haben“ – the captain asks him which word holds; until then the branch stays parked and the search row stays as it is. (3) Pull request 14 is merged – [umbau]: `core_move.py lock` is no longer needed for that reason; watch the first runs.
 - → [donald] [laptop] (captain 2026-11-19, owner: „ich bin jetzt offline, die App soll so bauen, wie sie meint“): the wait window and the two progress forms are **built and merged on your own judgement – no pictures first**; put the pictures as a line under „Waiting for the owner“ for him to see afterwards. Not covered by this word: publishing 0.18.1 – that still needs his own word in donald's chat; have everything ready (green main, release notes) so one word is enough.
 - → [umbau] [donald] [laptop] (captain 2026-11-19, the owner's answers, asked one by one): (1) [umbau] **the three old weaknesses in the tour code: fix all three** right after the tour pieces, each its own small piece, a failing test first. (2) [umbau] **decision-pin tests may be folded into the flow test of their feature** – the owner's decision goes into the flow test's comment. (3) [donald] [laptop] multi-day day rows: **„Tag 2 starten“ / „Start day 2“** for every activity, app and planner.
 - → [umbau] [umbau-hp] (captain 2026-11-19, owner: „ja, mache es wie deine Empfehlung“): **5b is a go – port the routing engine to Kotlin**, as `docs/design/routing-kmp-spike.md` recommends: after phase 3, 3–5 nights, the hardening list first; Android switches only when all reference routes are identical and not slower. [umbau] decides who builds it and when it starts; plan §5 row 5b is no longer „only after the owner's yes“.
@@ -191,7 +192,6 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
-- [captain] 2026-11-19: **merge pull request 14** → [detail](items/2026-11-19-merge-pull-request-14.md)
 - [donald] 2026-11-18 late: **delete the GitHub secret…** → [detail](items/2026-11-18-delete-the-github-secret-cf-start-token.md)
 - **[donald] Only our signed apps on the map server?…** → [detail](items/2026-11-07-only-our-signed-apps-on-the-map-server-o.md)
 - **Map server access before the public launch** → [detail](items/2026-11-18-map-server-access-before-the-public-laun.md)
