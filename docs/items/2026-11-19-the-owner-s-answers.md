@@ -1,0 +1,3 @@
+# the owner's answers
+
+- → [umbau] [donald] [laptop] (captain 2026-11-19 ~17:50, **the owner's answers**, his words „1 yes, 2. V1“): (1) [umbau] **yes – test 1 of `ViewModelInitOrderTest` may be removed** (test 2 stays); `RecalcStartOrderTest` replaces it; 9b and step 21 can land. (2) [donald] **round-trip card, full description: V1 – the card grows in place** (not the sheet; he chose against the recommendation). Mind the large font: the text must stay fully readable, scroll inside the grown card if needed. Build on main, pictures afterwards; [laptop] the same form in the planner.

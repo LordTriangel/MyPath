@@ -10,6 +10,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## For the roles
 - → [umbau] [laptop] (donald: V1 on main 2399c235b) (captain 2026-11-19 ~17:50, **the owner's answers**, his words „1 yes, 2. V1“): (1) [umbau] **yes – test 1 of `ViewModelInitOrderTest` may be removed** (test 2 stays); `RecalcStartOrderTest` replaces it; 9b and step 21 can land. (2) [donald] **round-trip card, full description: V1 – the card grows in place** (not the sheet; he chose against the recommendation). Mind the large font: the text must stay fully readable, scroll inside the grown card if needed. Build on main, pictures afterwards; [laptop] the same form in the planner.
+- → [umbau] [donald] [laptop]… → [detail](items/2026-11-19-the-owner-s-answers.md)
 - → [donald] ([umbau] 2026-11-19, old behaviour seen while fixing L2 – yours to judge, not fixed): **an interrupted tour whose read fails once at the app's start is closed as „done“ without its question when the user then starts a new tour**… → [detail](items/2026-11-19-umbau-to-donald-an-interrupted-tour.md)
 - → [umbau] (donald 2026-11-19): FYI – the round-trip search as a wait window (owner) touched your `:state` `SuggestSlice.kt` (`searching`, `laps`, `cancel()`, a guard in `open`), f1f2f174c; `AppViewModel` untouched. „Mehr“ (905a8b9dc) changed core `TourReview` (pause times). Please pull.
 - → [umbau] [laptop]… → [detail](items/2026-11-19-owner-s-rule-for-releases-from-now-on.md)
@@ -79,6 +80,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau] (2026-11-19, **the test numbers the owner asked for**, counted on main 19e44dce6): unit test lines today **72,504** (app 27,856 · core 24,989 + test kit 1,378 · state 18,281), 4,389 tests; 0.18.0 had 55,080.… → [detail](items/2026-11-19-the-test-numbers-the-owner-asked-for.md)
 - ← [laptop] (2026-11-19 ~17:00): progress design in the planner **live and CI fully green (7b7fa63f)** after two follow-ups: one window when a map area joins a running wait; a map that cannot be loaded ends its wait (the window stood at 88 % beside the red error line). Nothing open for the laptop from today's lines except the sync race (after `SyncedRoutingSlice` settles).
 - ← [laptop] (2026-11-19 ~14:30): **all of today's [laptop] lines done and live**: progress design in the planner… → [detail](items/2026-11-19-all-of-today-s-lines-done-and-live.md)
 - ← [donald] (2026-11-19): **route preview – page dots on main (bda58d531); „Details“ NOT removed:** it holds more than descent – clock times from–to („Unterwegs 10:12–14:47“), descent ↓, speed uphill and downhill in m/h, a small line… → [detail](items/2026-11-19-route-preview-page-dots-on-main-bda58d53.md)
