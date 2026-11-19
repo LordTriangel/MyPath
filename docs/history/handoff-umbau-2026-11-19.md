@@ -64,6 +64,13 @@ a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines fo
 - Order from here: 12 (after 11), 15 (sync driver), 16 → 17 → 18 → 19 (tour: ONE at a time, `CoreFieldE2ETest` between, Fable-written order rules first – design §4.3), 20 (`MultiDaySlice`), 9b (`recalc` coroutine: `snapToRoute` + `aliasSnappedLegs`, routing-data members, then the coroutine), 21 (forwarders out). Then „phase 2 done“ line, tag after a green full E2E (still blocked by `TourDbMigrationTest`, mehrtage).
 - Row T follow-up noted: an E2E (or JVM harness) for GPX import / export – no behaviour test exists.
 
+## State 2026-11-20 (after piece 12 – the plan and routes lanes are done)
+- On main: phase 2 pieces 1–15 except 9b (f0b90dc13), `MAX_LINES` 3,901, 497 flow tests in `:state`. Slices: notices, routes (list / go), save, settings, map view, plan route / run / edit, place add / menus, kept places, sync driver / synced routing; `:app` helpers pictures, demo, import-export.
+- **Tour pieces: `docs/design/umbau-phase-2-tour.md`** (36 order rules, six landings 16a → 16b → 17 → 18a → 18b → 19; the standing brief has a section for them). Running: **16a** (recording contract to `:core`, `FakeRecordingClient` to the kit in the service's order, `TourOrderPinsTest` with 22 pins each proven by a swap; no body moves). Its review: wire strings byte-identical, JVM names, the pins' strength, existing tests that only passed with the fake's old order. E2E before the push: `CoreFieldE2ETest` (35 tests) + `StartSmokeE2ETest`.
+- After each tour piece: `CoreFieldE2ETest` on a `ci/` ref (19 also `CoreIndoorStartE2ETest`, 17 `UnfinishedTourSetupE2ETest`). One at a time, no other helper on `AppViewModel.kt`.
+- Helpers that keep re-sending their finished report can be stopped with TaskStop once their commits are cherry-picked.
+- Reported to others, not fixed: POI kind not remembered by `addPoiPoint` (donald); synced-routing write race (laptop); tour weaknesses L1 / L2 / L5 (owner question).
+
 ## Open, in this order
 1. **Tag `umbau-phase-0`:** needs one green full E2E run of main: push main's head to `ci/umbau-p0`, then
    `tools/ci/e2e_github.sh --ref ci/umbau-p0 --wait` (no `--tests`; a comma list of tests runs only the first). Red today
