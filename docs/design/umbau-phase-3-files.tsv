@@ -1,0 +1,584 @@
+file	set	package	lines	io	kio	nio	time	text	locale	zip	conc	thread	jvmanno	jutil	regexjvm	security	net	orgjson	gson	xml	btools	format	system	jlang	jdbc	junit	srcread	coroutine	total_jvm	texts	native_errors	native_state
+core/src/main/kotlin/com/onpath/app/backup/BackupCodec.kt	core/main	backup	244	0	0	0	6	0	0	0	0	0	0	0	0	0	0	10	0	0	0	0	1	0	0	0	0	0	17	0	117	own-errors
+core/src/main/kotlin/com/onpath/app/backup/BackupQueue.kt	core/main	backup	213	0	0	0	0	0	0	0	0	8	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	1	8	own-errors
+core/src/main/kotlin/com/onpath/app/backup/BackupVolumes.kt	core/main	backup	35	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/backup/TourBackup.kt	core/main	backup	145	1	2	0	2	0	0	0	0	5	0	0	0	0	0	3	0	0	0	0	0	1	0	0	0	0	14	0	19	own-errors
+core/src/main/kotlin/com/onpath/app/cells/CellApi.kt	core/main	cells	186	6	6	0	0	0	0	0	0	0	0	0	0	0	8	6	0	0	0	0	0	1	0	0	0	0	27	1	90	own-errors
+core/src/main/kotlin/com/onpath/app/cells/CellManifest.kt	core/main	cells	57	3	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	0	0	0	5	0	18	own-errors
+core/src/main/kotlin/com/onpath/app/cells/CellMath.kt	core/main	cells	185	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	2	0	2	own-errors
+core/src/main/kotlin/com/onpath/app/cells/CellStore.kt	core/main	cells	806	104	60	2	0	0	0	0	5	7	1	0	0	3	0	17	0	0	0	3	3	1	0	0	0	0	206	1	483	own-errors
+core/src/main/kotlin/com/onpath/app/cells/CellTriggers.kt	core/main	cells	227	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/cells/GeoJsonMerge.kt	core/main	cells	75	6	4	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0	2	0	0	0	0	18	0	64	own-errors
+core/src/main/kotlin/com/onpath/app/cells/MapCells.kt	core/main	cells	1296	19	17	0	0	0	1	0	2	55	0	2	0	0	0	7	0	0	0	1	0	0	0	0	0	0	104	1	205	own-errors
+core/src/main/kotlin/com/onpath/app/cells/MapCleanup.kt	core/main	cells	69	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/cells/PmTiles.kt	core/main	cells	409	36	4	5	0	0	0	2	0	0	0	2	0	0	0	0	0	0	0	0	0	12	0	0	0	0	61	0	152	own-errors
+core/src/main/kotlin/com/onpath/app/cells/PoiDensity.kt	core/main	cells	61	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/cells/PoiTiles.kt	core/main	cells	240	11	8	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0	19	0	0	0	0	41	0	94	own-errors
+core/src/main/kotlin/com/onpath/app/cells/RouterClassCheck.kt	core/main	cells	46	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/cells/TourCorridor.kt	core/main	cells	51	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/data/AppSettings.kt	core/main	data	100	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/data/AtomicFiles.kt	core/main	data	107	23	9	6	0	0	0	0	1	1	4	0	0	0	0	0	0	0	0	0	1	1	0	0	0	0	46	0	82	own-errors
+core/src/main/kotlin/com/onpath/app/data/DataImporter.kt	core/main	data	122	8	8	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	17	1	36	own-errors
+core/src/main/kotlin/com/onpath/app/data/DataNames.kt	core/main	data	10	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/data/Dem.kt	core/main	data	94	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0	6	0	9	own-errors
+core/src/main/kotlin/com/onpath/app/data/FollowFile.kt	core/main	data	39	2	2	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0	0	0	0	0	0	0	9	0	27	own-errors
+core/src/main/kotlin/com/onpath/app/data/FollowProgress.kt	core/main	data	56	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	7	own-errors
+core/src/main/kotlin/com/onpath/app/data/Format.kt	core/main	data	43	0	0	0	0	0	3	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0	0	0	6	1	6	own-errors
+core/src/main/kotlin/com/onpath/app/data/Geo.kt	core/main	data	216	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	11	0	0	0	0	11	0	12	own-errors
+core/src/main/kotlin/com/onpath/app/data/HoldSetting.kt	core/main	data	45	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/data/LastActivity.kt	core/main	data	38	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/data/LegFiles.kt	core/main	data	232	2	11	0	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	17	0	30	own-errors
+core/src/main/kotlin/com/onpath/app/data/MultiDay.kt	core/main	data	75	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0	0	0	0	0	0	0	5	0	71	own-errors
+core/src/main/kotlin/com/onpath/app/data/RoutingDataNotice.kt	core/main	data	49	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	compiles
+core/src/main/kotlin/com/onpath/app/data/StorageGate.kt	core/main	data	16	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/data/Tour.kt	core/main	data	79	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/data/TourJson.kt	core/main	data	44	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0	0	0	0	0	0	0	5	0	30	own-errors
+core/src/main/kotlin/com/onpath/app/data/TourPlan.kt	core/main	data	97	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	0	0	0	0	2	0	0	0	0	9	0	49	own-errors
+core/src/main/kotlin/com/onpath/app/data/TourSchema.kt	core/main	data	91	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/debug/EventLog.kt	core/main	debug	214	17	5	0	0	1	2	0	8	3	0	0	0	0	0	0	0	0	0	0	5	3	0	0	0	0	44	0	87	own-errors
+core/src/main/kotlin/com/onpath/app/debug/MainStall.kt	core/main	debug	99	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	9	0	0	0	0	9	0	20	own-errors
+core/src/main/kotlin/com/onpath/app/debug/MapJank.kt	core/main	debug	47	0	0	0	0	0	0	0	0	3	0	0	0	0	0	3	0	0	0	0	0	0	0	0	0	0	6	0	12	own-errors
+core/src/main/kotlin/com/onpath/app/debug/MapLibreLogLevel.kt	core/main	debug	49	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/debug/Problems.kt	core/main	debug	231	4	4	0	0	1	2	0	2	9	0	0	0	0	0	11	0	0	0	0	2	3	0	0	0	0	38	0	61	own-errors
+core/src/main/kotlin/com/onpath/app/debug/SafeLaunch.kt	core/main	debug	79	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	2	0	4	own-errors
+core/src/main/kotlin/com/onpath/app/debug/ScreenLifecycle.kt	core/main	debug	69	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	3	0	3	own-errors
+core/src/main/kotlin/com/onpath/app/debug/UserText.kt	core/main	debug	27	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/AppMode.kt	core/main	domain	42	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/HoldPaths.kt	core/main	domain	120	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	1	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/domain/LocateDistance.kt	core/main	domain	70	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/LockScreenNav.kt	core/main	domain	9	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/domain/MapGestures.kt	core/main	domain	220	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	compiles
+core/src/main/kotlin/com/onpath/app/domain/MapReload.kt	core/main	domain	62	5	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	7	own-errors
+core/src/main/kotlin/com/onpath/app/domain/OfflineReady.kt	core/main	domain	92	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/PinMenuPlace.kt	core/main	domain	120	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/PlaceAddMenu.kt	core/main	domain	232	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/PlaceMenuMeasure.kt	core/main	domain	37	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/PlanCamera.kt	core/main	domain	34	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/domain/PlanGaps.kt	core/main	domain	107	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	1	1	own-errors
+core/src/main/kotlin/com/onpath/app/domain/PlanGuidance.kt	core/main	domain	83	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/PlanHaptics.kt	core/main	domain	40	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/domain/PlanState.kt	core/main	domain	100	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/PlanStatus.kt	core/main	domain	108	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/PointsDeleteGuard.kt	core/main	domain	53	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/RouteRules.kt	core/main	domain	214	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/RouteShape.kt	core/main	domain	135	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/domain/RouteWarnings.kt	core/main	domain	345	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	2	1	2	own-errors
+core/src/main/kotlin/com/onpath/app/domain/RoutesTab.kt	core/main	domain	37	0	0	0	0	2	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	4	own-errors
+core/src/main/kotlin/com/onpath/app/domain/SharedPlaceMenu.kt	core/main	domain	68	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	2	0	3	own-errors
+core/src/main/kotlin/com/onpath/app/domain/SheetDrag.kt	core/main	domain	41	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/domain/StartCamera.kt	core/main	domain	35	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/domain/TakenPin.kt	core/main	domain	24	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/WaitProgress.kt	core/main	domain	424	0	0	0	0	0	2	0	0	5	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	9	1	9	own-errors
+core/src/main/kotlin/com/onpath/app/domain/map/MapOrientation.kt	core/main	domain	64	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/domain/plan/ClearRule.kt	core/main	domain	13	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/domain/plan/DayFollow.kt	core/main	domain	149	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/plan/FollowHistory.kt	core/main	domain	31	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/plan/LivePlan.kt	core/main	domain	71	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/plan/PlanSession.kt	core/main	domain	103	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/plan/RouteBack.kt	core/main	domain	34	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/plan/RouteRun.kt	core/main	domain	239	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/plan/RoutingSpot.kt	core/main	domain	19	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/plan/RunCause.kt	core/main	domain	38	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/routes/ListTop.kt	core/main	domain	19	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/domain/routes/OverviewPages.kt	core/main	domain	23	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/routes/RouteSort.kt	core/main	domain	51	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/routes/RoutesGo.kt	core/main	domain	27	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/routes/SaveFlow.kt	core/main	domain	40	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/tour/NextStop.kt	core/main	domain	105	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	1	1	own-errors
+core/src/main/kotlin/com/onpath/app/domain/tour/PocketLogic.kt	core/main	domain	62	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/domain/tour/QuietGate.kt	core/main	domain	41	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/domain/tour/ShortRecording.kt	core/main	domain	35	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/tour/SmartScreen.kt	core/main	domain	200	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/domain/tour/TourEndRules.kt	core/main	domain	60	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/domain/tour/TourPlanCopy.kt	core/main	domain	55	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/domain/tour/UnlockWindow.kt	core/main	domain	57	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/gpx/GpxModel.kt	core/main	gpx	50	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/gpx/GpxParser.kt	core/main	gpx	290	4	0	0	4	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	4	0	0	0	0	16	1	36	own-errors
+core/src/main/kotlin/com/onpath/app/gpx/GpxWriter.kt	core/main	gpx	81	0	0	0	2	0	2	0	0	0	0	0	0	0	0	0	0	0	0	2	1	0	0	0	0	0	7	0	10	own-errors
+core/src/main/kotlin/com/onpath/app/gpx/PlanGpx.kt	core/main	gpx	68	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	2	0	2	own-errors
+core/src/main/kotlin/com/onpath/app/gpx/SportType.kt	core/main	gpx	137	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/map/ReliefAuto.kt	core/main	map	74	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/navigation/ActivityCheck.kt	core/main	navigation	203	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	1	1	own-errors
+core/src/main/kotlin/com/onpath/app/navigation/CueRule.kt	core/main	navigation	86	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/FollowStore.kt	core/main	navigation	73	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	6	own-errors
+core/src/main/kotlin/com/onpath/app/navigation/GoalSide.kt	core/main	navigation	60	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/JogRule.kt	core/main	navigation	164	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	4	0	0	0	0	5	0	10	own-errors
+core/src/main/kotlin/com/onpath/app/navigation/JunctionCues.kt	core/main	navigation	233	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	2	1	2	own-errors
+core/src/main/kotlin/com/onpath/app/navigation/NavLine.kt	core/main	navigation	206	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/NavSession.kt	core/main	navigation	341	2	4	0	0	0	0	0	1	3	0	0	0	0	0	29	0	0	0	0	0	0	0	0	0	0	39	0	141	own-errors
+core/src/main/kotlin/com/onpath/app/navigation/NavText.kt	core/main	navigation	210	0	0	0	0	0	2	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	4	1	5	own-errors
+core/src/main/kotlin/com/onpath/app/navigation/Navigator.kt	core/main	navigation	779	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/NotificationsOff.kt	core/main	navigation	17	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/navigation/OffRouteDetector.kt	core/main	navigation	460	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/OffRouteSteps.kt	core/main	navigation	23	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/Onward.kt	core/main	navigation	85	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/navigation/Provisional.kt	core/main	navigation	53	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/navigation/RerouteTargets.kt	core/main	navigation	152	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/Rerouter.kt	core/main	navigation	370	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/navigation/ScreenTurns.kt	core/main	navigation	111	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/SnapToRoute.kt	core/main	navigation	24	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/SpeedWindow.kt	core/main	navigation	28	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/navigation/StopSkip.kt	core/main	navigation	85	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/TourSplit.kt	core/main	navigation	120	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/TurnRound.kt	core/main	navigation	38	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/VisitRadius.kt	core/main	navigation	13	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/navigation/VoiceGuide.kt	core/main	navigation	694	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	7	own-errors
+core/src/main/kotlin/com/onpath/app/navigation/VoiceText.kt	core/main	navigation	168	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/net/HttpDownload.kt	core/main	net	118	11	5	0	0	0	0	0	0	0	0	0	0	1	6	0	0	0	0	1	0	0	0	0	0	0	24	0	71	own-errors
+core/src/main/kotlin/com/onpath/app/plansync/BrowserLink.kt	core/main	plansync	90	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/plansync/HttpMailbox.kt	core/main	plansync	90	1	2	0	0	0	0	0	0	0	0	0	0	0	3	1	0	0	0	0	0	1	0	0	0	0	8	0	53	own-errors
+core/src/main/kotlin/com/onpath/app/plansync/PassGate.kt	core/main	plansync	27	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	2	own-errors
+core/src/main/kotlin/com/onpath/app/plansync/RouteItems.kt	core/main	plansync	104	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/plansync/StuckOutbox.kt	core/main	plansync	18	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/plansync/SyncFiles.kt	core/main	plansync	194	17	7	0	0	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	26	0	34	own-errors
+core/src/main/kotlin/com/onpath/app/plansync/SyncMarks.kt	core/main	plansync	90	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	3	own-errors
+core/src/main/kotlin/com/onpath/app/plansync/SyncPassResult.kt	core/main	plansync	33	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/plansync/SyncPoll.kt	core/main	plansync	113	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/plansync/SyncReport.kt	core/main	plansync	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/plansync/SyncRouting.kt	core/main	plansync	89	2	1	0	0	0	1	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	11	own-errors
+core/src/main/kotlin/com/onpath/app/plansync/SyncState.kt	core/main	plansync	40	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/plansync/SyncedRouting.kt	core/main	plansync	12	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/poi/PinnedPoiKinds.kt	core/main	poi	42	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/poi/Poi.kt	core/main	poi	63	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	1	1	own-errors
+core/src/main/kotlin/com/onpath/app/poi/PoiFilter.kt	core/main	poi	22	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/poi/PoiKinds.kt	core/main	poi	97	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	compiles
+core/src/main/kotlin/com/onpath/app/recording/AscentCounter.kt	core/main	recording	79	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/recording/DemoPath.kt	core/main	recording	166	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/recording/FixRules.kt	core/main	recording	29	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/recording/GpsStatus.kt	core/main	recording	14	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	compiles
+core/src/main/kotlin/com/onpath/app/recording/GpsWatchdog.kt	core/main	recording	31	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/recording/GrowingTrack.kt	core/main	recording	79	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/recording/GuidanceGate.kt	core/main	recording	63	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/recording/InterruptedLog.kt	core/main	recording	30	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/recording/LatestFileWriter.kt	core/main	recording	72	2	1	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	18	own-errors
+core/src/main/kotlin/com/onpath/app/recording/ModeQuiet.kt	core/main	recording	41	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/recording/MoveWatch.kt	core/main	recording	24	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/recording/PauseWatch.kt	core/main	recording	35	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/recording/PointFilter.kt	core/main	recording	80	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/recording/PointQueue.kt	core/main	recording	44	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/recording/RecNotifText.kt	core/main	recording	20	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/recording/RecState.kt	core/main	recording	54	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/recording/RecordedActivity.kt	core/main	recording	26	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/recording/RecordingClient.kt	core/main	recording	125	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/recording/RestWatch.kt	core/main	recording	74	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/recording/SeaLevel.kt	core/main	recording	32	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/recording/StopQuiet.kt	core/main	recording	21	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/recording/TourChannels.kt	core/main	recording	53	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/recording/TourRun.kt	core/main	recording	126	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/rides/RideApply.kt	core/main	rides	85	0	0	0	0	1	2	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	4	1	7	own-errors
+core/src/main/kotlin/com/onpath/app/rides/RideDetector.kt	core/main	rides	244	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/rides/RideView.kt	core/main	rides	315	0	0	0	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	1	8	own-errors
+core/src/main/kotlin/com/onpath/app/rides/Rides.kt	core/main	rides	80	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	0	0	0	0	0	0	0	0	0	7	0	24	own-errors
+core/src/main/kotlin/com/onpath/app/routing/ArrivalGate.kt	core/main	routing	58	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/BRouterWayStats.kt	core/main	routing	213	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	own-errors
+core/src/main/kotlin/com/onpath/app/routing/BreakdownRules.kt	core/main	routing	78	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	1	1	own-errors
+core/src/main/kotlin/com/onpath/app/routing/Junctions.kt	core/main	routing	114	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	2	1	2	own-errors
+core/src/main/kotlin/com/onpath/app/routing/LegCache.kt	core/main	routing	128	0	0	0	0	0	0	0	0	7	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0	11	0	14	own-errors
+core/src/main/kotlin/com/onpath/app/routing/LongRoute.kt	core/main	routing	33	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/OfflineCorridor.kt	core/main	routing	21	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/PlanCode.kt	core/main	routing	357	5	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	12	own-errors
+core/src/main/kotlin/com/onpath/app/routing/PlanDays.kt	core/main	routing	409	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/PlanEdits.kt	core/main	routing	159	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/PlanLinks.kt	core/main	routing	95	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/PlanNames.kt	core/main	routing	41	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/PlanPoints.kt	core/main	routing	222	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	1	2	own-errors
+core/src/main/kotlin/com/onpath/app/routing/PlanReach.kt	core/main	routing	81	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/PlanResult.kt	core/main	routing	115	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/Planner.kt	core/main	routing	419	0	0	0	0	0	2	0	0	0	0	0	0	0	0	0	0	0	0	2	1	0	0	0	0	0	5	1	9	own-errors
+core/src/main/kotlin/com/onpath/app/routing/ProfileData.kt	core/main	routing	29	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/Rd5Parts.kt	core/main	routing	297	23	6	5	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	37	0	89	own-errors
+core/src/main/kotlin/com/onpath/app/routing/RouteProgress.kt	core/main	routing	22	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/RouteSummary.kt	core/main	routing	206	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/RouteTimeLimit.kt	core/main	routing	45	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/RouterClassHash.kt	core/main	routing	68	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	1	0	5	0	0	0	0	7	0	14	own-errors
+core/src/main/kotlin/com/onpath/app/routing/RouterRules.kt	core/main	routing	39	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	4	own-errors
+core/src/main/kotlin/com/onpath/app/routing/RoutingContract.kt	core/main	routing	249	0	0	0	0	0	0	0	0	3	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	1	5	own-errors
+core/src/main/kotlin/com/onpath/app/routing/RoutingFingerprint.kt	core/main	routing	76	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0	5	0	3	own-errors
+core/src/main/kotlin/com/onpath/app/routing/SlowPlan.kt	core/main	routing	30	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/routing/StoredLine.kt	core/main	routing	97	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/StraightLineEngine.kt	core/main	routing	19	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/TrackToPlan.kt	core/main	routing	191	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	25	own-errors
+core/src/main/kotlin/com/onpath/app/routing/TurnDetector.kt	core/main	routing	133	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/WaypointInsertion.kt	core/main	routing	147	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/routing/WaypointSnap.kt	core/main	routing	106	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/search/AddPreview.kt	core/main	search	76	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/search/AddressQuery.kt	core/main	search	72	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/search/BaseMapPlaces.kt	core/main	search	368	7	2	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0	15	0	32	own-errors
+core/src/main/kotlin/com/onpath/app/search/Place.kt	core/main	search	151	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/search/PlaceGeocoder.kt	core/main	search	49	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	2	0	2	own-errors
+core/src/main/kotlin/com/onpath/app/search/SavedPlaces.kt	core/main	search	61	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/search/SearchMerge.kt	core/main	search	26	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/search/SearchText.kt	core/main	search	123	0	0	0	0	2	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	4	0	6	own-errors
+core/src/main/kotlin/com/onpath/app/search/SharedPlace.kt	core/main	search	100	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	0	0	4	1	14	own-errors
+core/src/main/kotlin/com/onpath/app/search/SharedPlaceLookup.kt	core/main	search	160	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/search/SharedPlaceResolve.kt	core/main	search	65	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	1	2	0	3	own-errors
+core/src/main/kotlin/com/onpath/app/search/SharedPlaceText.kt	core/main	search	274	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	0	0	4	0	6	own-errors
+core/src/main/kotlin/com/onpath/app/setup/PhoneCheck.kt	core/main	setup	230	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/setup/SetupGuide.kt	core/main	setup	70	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/setup/VoiceSetup.kt	core/main	setup	229	0	0	0	0	0	1	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	3	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/Aims.kt	core/main	suggest	230	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/Candidate.kt	core/main	suggest	86	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/suggest/Character.kt	core/main	suggest	135	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/suggest/Facts.kt	core/main	suggest	386	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	2	0	0	0	0	3	0	4	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/Generate.kt	core/main	suggest	452	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0	5	0	5	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/Land.kt	core/main	suggest	194	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0	5	0	5	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/LongIntMap.kt	core/main	suggest	133	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/suggest/Named.kt	core/main	suggest	179	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/suggest/NetReader.kt	core/main	suggest	585	3	2	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	22	0	3	1	0	0	0	0	32	0	103	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/NetSearch.kt	core/main	suggest	359	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/Official.kt	core/main	suggest	225	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/Place.kt	core/main	suggest	330	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	2	0	2	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/PyIntSet.kt	core/main	suggest	132	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/suggest/RouterProfile.kt	core/main	suggest	60	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	3	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/Score.kt	core/main	suggest	324	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	2	0	2	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/SuggestCards.kt	core/main	suggest	186	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0	3	1	3	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/SuggestFile.kt	core/main	suggest	271	0	0	0	0	0	0	2	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	3	0	7	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/SuggestGeo.kt	core/main	suggest	55	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0	6	0	12	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/SuggestSettings.kt	core/main	suggest	114	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/suggest/SuggestText.kt	core/main	suggest	192	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	2	1	2	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/TourSuggester.kt	core/main	suggest	126	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	2	0	3	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/WayKinds.kt	core/main	suggest	123	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/suggest/WayNet.kt	core/main	suggest	182	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	1	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/app/SuggestFetch.kt	core/main	suggest	69	3	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	6	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/app/SuggestRunner.kt	core/main	suggest	51	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	2	own-errors
+core/src/main/kotlin/com/onpath/app/suggest/app/SuggestService.kt	core/main	suggest	111	3	2	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	8	0	10	own-errors
+core/src/main/kotlin/com/onpath/app/sync/PairCode.kt	core/main	sync	101	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/sync/SaveRule.kt	core/main	sync	16	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	2	0	2	own-errors
+core/src/main/kotlin/com/onpath/app/sync/SyncCrypto.kt	core/main	sync	261	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/sync/SyncItem.kt	core/main	sync	419	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0	2	own-errors
+core/src/main/kotlin/com/onpath/app/sync/SyncLedger.kt	core/main	sync	272	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/sync/SyncLimits.kt	core/main	sync	22	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/main/kotlin/com/onpath/app/sync/SyncMerge.kt	core/main	sync	165	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/sync/SyncRound.kt	core/main	sync	186	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/sync/TrackCode.kt	core/main	sync	214	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/time/BreakDetector.kt	core/main	time	189	0	0	0	0	1	3	0	0	0	0	0	0	0	0	14	0	0	0	0	0	0	0	0	0	0	18	1	41	own-errors
+core/src/main/kotlin/com/onpath/app/time/PaceModel.kt	core/main	time	327	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0	3	1	3	own-errors
+core/src/main/kotlin/com/onpath/app/time/PlanTimesStore.kt	core/main	time	55	1	3	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0	0	0	0	0	0	0	10	0	31	own-errors
+core/src/main/kotlin/com/onpath/app/time/RouteTimes.kt	core/main	time	147	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/time/TimeBreakdown.kt	core/main	time	92	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/time/TimeEstimate.kt	core/main	time	108	0	0	0	0	0	3	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	5	0	9	own-errors
+core/src/main/kotlin/com/onpath/app/time/TourReview.kt	core/main	time	258	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/time/TourTimesStore.kt	core/main	time	60	1	3	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	0	8	0	26	own-errors
+core/src/main/kotlin/com/onpath/app/time/TripPace.kt	core/main	time	386	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0	0	0	0	0	0	0	6	0	32	own-errors
+core/src/main/kotlin/com/onpath/app/time/TripTime.kt	core/main	time	44	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	blocked-by-others
+core/src/main/kotlin/com/onpath/app/ui/StopTokens.kt	core/main	ui	49	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	compiles
+core/src/main/kotlin/com/onpath/app/update/AppVersions.kt	core/main	update	13	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	compiles
+core/src/test/kotlin/com/onpath/app/BrokenFilesTest.kt	core/test	(root)	281	28	15	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0	0	0	0	2	0	1	49	0		
+core/src/test/kotlin/com/onpath/app/backup/RideBackupTest.kt	core/test	backup	61	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	4	0	0	1	0		
+core/src/test/kotlin/com/onpath/app/cells/CellDownloadTest.kt	core/test	cells	559	22	10	0	0	0	0	0	1	10	0	0	0	0	1	0	0	0	0	0	3	0	0	34	0	1	47	0		
+core/src/test/kotlin/com/onpath/app/cells/CellIdTest.kt	core/test	cells	86	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/cells/CellReuseTest.kt	core/test	cells	278	28	12	0	0	0	0	0	2	3	0	0	0	0	0	4	0	0	0	0	2	0	0	12	0	1	51	0		
+core/src/test/kotlin/com/onpath/app/cells/CellStoreReuseTest.kt	core/test	cells	194	21	5	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	9	0	0	26	0		
+core/src/test/kotlin/com/onpath/app/cells/CellTriggersTest.kt	core/test	cells	351	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	24	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/cells/JoinProgressTest.kt	core/test	cells	53	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/cells/MapCleanupTest.kt	core/test	cells	111	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	9	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/cells/MapsNeverTouchToursTest.kt	core/test	cells	44	8	5	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	13	0		
+core/src/test/kotlin/com/onpath/app/cells/NoStaleDownloadsTest.kt	core/test	cells	275	4	3	0	0	0	0	0	0	12	0	0	0	0	0	4	0	0	0	0	3	0	0	15	0	1	26	0		
+core/src/test/kotlin/com/onpath/app/cells/PmTilesTest.kt	core/test	cells	119	18	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	9	0	0	20	0		
+core/src/test/kotlin/com/onpath/app/cells/PoiDensityTest.kt	core/test	cells	71	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/cells/PoiTilesStyleTest.kt	core/test	cells	65	1	1	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	3	0	0	4	0		
+core/src/test/kotlin/com/onpath/app/cells/RouterClassCheckTest.kt	core/test	cells	165	6	2	0	0	0	0	0	0	3	0	0	0	0	0	2	0	0	0	0	2	0	0	11	0	1	15	0		
+core/src/test/kotlin/com/onpath/app/cells/StorageNotReadyTest.kt	core/test	cells	122	9	5	0	0	0	0	0	0	4	0	0	0	0	0	1	0	0	0	0	1	0	0	4	0	1	20	0		
+core/src/test/kotlin/com/onpath/app/cells/StoreWriteCostTest.kt	core/test	cells	107	11	4	0	0	0	0	0	0	0	0	0	0	0	0	10	0	0	0	4	12	0	0	2	0	0	41	0		
+core/src/test/kotlin/com/onpath/app/cells/TileHashTest.kt	core/test	cells	58	2	0	1	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	1	0	0	0	3	0	0	6	0		
+core/src/test/kotlin/com/onpath/app/cells/TourCorridorTest.kt	core/test	cells	57	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/data/AtomicFilesConcurrencyTest.kt	core/test	data	116	9	4	0	0	0	0	0	3	1	0	1	0	0	0	0	0	0	0	0	2	0	0	6	0	0	20	0		
+core/src/test/kotlin/com/onpath/app/data/AtomicFilesTest.kt	core/test	data	91	13	17	0	0	0	0	0	2	1	0	0	0	0	0	0	0	0	0	0	2	1	0	6	0	0	36	0		
+core/src/test/kotlin/com/onpath/app/data/DemTest.kt	core/test	data	90	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	6	0	0	1	0		
+core/src/test/kotlin/com/onpath/app/data/FollowProgressTest.kt	core/test	data	68	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/data/FormatTest.kt	core/test	data	10	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/data/HoldSettingTest.kt	core/test	data	58	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/data/JunctionVibrationTest.kt	core/test	data	20	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/data/LegFilesTest.kt	core/test	data	197	0	5	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	11	0	0	5	0		
+core/src/test/kotlin/com/onpath/app/debug/MainStallTest.kt	core/test	debug	94	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	12	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/debug/MapJankTallyTest.kt	core/test	debug	37	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/debug/MapLibreLogLevelTest.kt	core/test	debug	57	1	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	3	0		
+core/src/test/kotlin/com/onpath/app/debug/ProblemsTest.kt	core/test	debug	143	3	2	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	13	0	0	9	0		
+core/src/test/kotlin/com/onpath/app/debug/SafeLaunchTest.kt	core/test	debug	70	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	3	0	0		
+core/src/test/kotlin/com/onpath/app/debug/ScreenLifecycleTest.kt	core/test	debug	47	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/debug/UserTextTest.kt	core/test	debug	40	3	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	0	3	0	0	5	0		
+core/src/test/kotlin/com/onpath/app/domain/AppModeTest.kt	core/test	domain	36	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/HoldPathsTest.kt	core/test	domain	137	0	0	0	0	0	0	0	11	0	0	0	0	0	0	0	0	0	0	0	5	0	0	7	0	8	16	0		
+core/src/test/kotlin/com/onpath/app/domain/LocateDistanceTest.kt	core/test	domain	64	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/LockScreenNavTest.kt	core/test	domain	11	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/MapGesturesTest.kt	core/test	domain	173	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	31	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/OfflineReadyTest.kt	core/test	domain	79	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/PinMenuPlaceTest.kt	core/test	domain	161	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	20	1	0	1	0		
+core/src/test/kotlin/com/onpath/app/domain/PlaceAddMenuTest.kt	core/test	domain	371	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	40	0	0	4	1		
+core/src/test/kotlin/com/onpath/app/domain/PlaceMenuMeasureTest.kt	core/test	domain	88	0	0	0	0	0	0	0	1	1	0	0	0	0	0	0	0	0	0	0	2	0	0	5	0	5	4	0		
+core/src/test/kotlin/com/onpath/app/domain/PlanCameraTest.kt	core/test	domain	20	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/PlanGapsTest.kt	core/test	domain	108	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	9	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/PlanGuidanceTest.kt	core/test	domain	149	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/PlanHapticsTest.kt	core/test	domain	56	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/PlanStateTest.kt	core/test	domain	95	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/PointsDeleteGuardTest.kt	core/test	domain	55	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/RouteRulesTest.kt	core/test	domain	132	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	15	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/RouteShapeTest.kt	core/test	domain	123	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	2	0	11	0	0	3	0		
+core/src/test/kotlin/com/onpath/app/domain/SharedPlaceMenuTest.kt	core/test	domain	101	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/domain/SheetDragTest.kt	core/test	domain	50	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/StartCameraTest.kt	core/test	domain	32	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/WaitProgressTest.kt	core/test	domain	154	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	12	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/map/MapOrientationTest.kt	core/test	domain	67	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/plan/DayFollowTest.kt	core/test	domain	114	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/plan/PlanFlowPropertyTest.kt	core/test	domain	284	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	3	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/domain/plan/RouteRunTest.kt	core/test	domain	363	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	28	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/routes/ListTopTest.kt	core/test	domain	36	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/routes/OverviewPagesTest.kt	core/test	domain	26	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/routes/RouteSortTest.kt	core/test	domain	86	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/routes/RoutesGoTest.kt	core/test	domain	30	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/domain/tour/TourPlanCopyTest.kt	core/test	domain	119	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	12	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/domain/tour/UnlockWindowTest.kt	core/test	domain	77	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/gpx/GpxParserTest.kt	core/test	gpx	163	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	13	0	0	1	0		
+core/src/test/kotlin/com/onpath/app/gpx/GpxWriterNameTest.kt	core/test	gpx	19	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/gpx/PlanGpxTest.kt	core/test	gpx	100	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/gpx/SportTypeTest.kt	core/test	gpx	236	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	19	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/map/PoiSymbolStyleTest.kt	core/test	map	259	3	5	0	0	0	0	0	0	0	0	0	0	0	0	17	0	0	0	0	0	0	0	7	0	0	25	0		
+core/src/test/kotlin/com/onpath/app/navigation/ActivityCheckTest.kt	core/test	navigation	256	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	22	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/CueRuleTest.kt	core/test	navigation	230	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	22	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/FarStartTest.kt	core/test	navigation	287	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0	0	0	0	14	0	0	5	0		
+core/src/test/kotlin/com/onpath/app/navigation/FollowStoreTest.kt	core/test	navigation	188	4	5	0	0	0	0	0	14	6	0	1	0	0	0	0	0	0	0	0	0	0	0	8	0	0	30	0		
+core/src/test/kotlin/com/onpath/app/navigation/GoalSideTest.kt	core/test	navigation	42	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	3	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/navigation/JogRuleTest.kt	core/test	navigation	200	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	15	0	0	3	0		
+core/src/test/kotlin/com/onpath/app/navigation/JunctionCuesTest.kt	core/test	navigation	314	0	0	0	0	0	6	0	0	0	0	0	0	0	0	0	0	0	0	1	0	1	0	26	0	0	8	0		
+core/src/test/kotlin/com/onpath/app/navigation/MidRouteOnceTest.kt	core/test	navigation	112	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/NavEdgeCasesTest.kt	core/test	navigation	167	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	10	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/NavLineTest.kt	core/test	navigation	50	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/NavSessionStoreTest.kt	core/test	navigation	301	2	7	0	0	0	0	0	7	1	0	2	0	0	0	0	0	0	0	0	0	0	0	14	0	0	19	0		
+core/src/test/kotlin/com/onpath/app/navigation/NavTextTest.kt	core/test	navigation	146	0	0	0	0	0	12	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	9	0	0	12	0		
+core/src/test/kotlin/com/onpath/app/navigation/NavigatorTest.kt	core/test	navigation	437	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0	0	0	0	24	0	0	4	0		
+core/src/test/kotlin/com/onpath/app/navigation/NotificationsOffTest.kt	core/test	navigation	21	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/OffRouteDetectorTest.kt	core/test	navigation	370	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	29	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/OffRouteStepsTest.kt	core/test	navigation	63	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/ProvisionalTest.kt	core/test	navigation	67	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	10	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/RerouteFitTest.kt	core/test	navigation	237	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	9	0	0	1	0		
+core/src/test/kotlin/com/onpath/app/navigation/RerouteKeepsStopTest.kt	core/test	navigation	73	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/RoundTripLeadTest.kt	core/test	navigation	90	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/ScreenTurnsTest.kt	core/test	navigation	71	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	5	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/navigation/SnapToRouteTest.kt	core/test	navigation	23	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/StartAtPointOneTest.kt	core/test	navigation	190	3	3	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	12	0	0	6	0		
+core/src/test/kotlin/com/onpath/app/navigation/StopSkipTest.kt	core/test	navigation	250	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	14	0	0	1	0		
+core/src/test/kotlin/com/onpath/app/navigation/TourSplitTest.kt	core/test	navigation	189	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	20	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/navigation/TurnRoundTest.kt	core/test	navigation	30	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/navigation/VoiceGuideTest.kt	core/test	navigation	737	0	0	0	0	0	8	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	50	0	0	10	0		
+core/src/test/kotlin/com/onpath/app/navigation/VoiceNowTest.kt	core/test	navigation	219	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	2	0	10	0	0	3	0		
+core/src/test/kotlin/com/onpath/app/navigation/VoiceTextTest.kt	core/test	navigation	71	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	4	1		
+core/src/test/kotlin/com/onpath/app/net/HttpDownloadTest.kt	core/test	net	133	14	7	1	0	0	0	0	0	3	0	0	0	1	4	0	0	0	0	1	0	2	0	10	0	0	33	0		
+core/src/test/kotlin/com/onpath/app/plansync/BrowserLinkTest.kt	core/test	plansync	100	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/plansync/CorePairingLinkTest.kt	core/test	plansync	38	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/plansync/StuckOutboxTest.kt	core/test	plansync	27	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/plansync/SyncPollTest.kt	core/test	plansync	138	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	10	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/plansync/SyncedRoutingTest.kt	core/test	plansync	24	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/poi/PinnedPoiKindsTest.kt	core/test	poi	53	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/poi/PoiFilterTest.kt	core/test	poi	37	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/recording/ArrivalInServiceTest.kt	core/test	recording	44	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/recording/DemoPathTest.kt	core/test	recording	122	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	14	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/recording/GpsWatchdogTest.kt	core/test	recording	37	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/recording/GrowingTrackTest.kt	core/test	recording	78	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	6	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/recording/InterruptedLogTest.kt	core/test	recording	61	2	2	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	5	0		
+core/src/test/kotlin/com/onpath/app/recording/LatestFileWriterTest.kt	core/test	recording	93	0	9	0	0	0	0	0	2	2	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	0	13	0		
+core/src/test/kotlin/com/onpath/app/recording/ModeQuietTest.kt	core/test	recording	70	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/recording/MoveWatchTest.kt	core/test	recording	29	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/recording/NetworkFixTest.kt	core/test	recording	24	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	14	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/recording/OffRouteCueTest.kt	core/test	recording	45	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/recording/PauseWatchTest.kt	core/test	recording	32	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/recording/PointFilterTest.kt	core/test	recording	81	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	11	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/recording/PointQueueTest.kt	core/test	recording	39	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/recording/RecNotifTextTest.kt	core/test	recording	24	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/recording/RecordedActivityTest.kt	core/test	recording	72	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	1	0		
+core/src/test/kotlin/com/onpath/app/recording/RestWatchTest.kt	core/test	recording	123	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	12	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/recording/SeaLevelTest.kt	core/test	recording	24	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/recording/StopQuietTest.kt	core/test	recording	22	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/recording/TourRunTest.kt	core/test	recording	147	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/rides/RideApplyTest.kt	core/test	rides	112	0	3	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	3	0		
+core/src/test/kotlin/com/onpath/app/rides/RideDetectorTest.kt	core/test	rides	160	0	18	0	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	13	0	0	23	0		
+core/src/test/kotlin/com/onpath/app/rides/RideViewTest.kt	core/test	rides	135	1	1	0	2	0	6	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	9	0	0	10	0		
+core/src/test/kotlin/com/onpath/app/routing/ArrivalGateTest.kt	core/test	routing	108	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	11	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/BRouterWayStatsTest.kt	core/test	routing	169	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	10	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/BreakdownRulesTest.kt	core/test	routing	86	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	0	4	0		
+core/src/test/kotlin/com/onpath/app/routing/HoldDuringTourTest.kt	core/test	routing	52	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/LegCacheTest.kt	core/test	routing	211	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	16	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/LongRouteTest.kt	core/test	routing	27	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/OfflineCorridorTest.kt	core/test	routing	21	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/PlanCodeDaysTest.kt	core/test	routing	122	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	1	0	9	0	0	5	0		
+core/src/test/kotlin/com/onpath/app/routing/PlanCodeTest.kt	core/test	routing	148	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0	0	0	0	0	0	0	0	16	0	0	6	0		
+core/src/test/kotlin/com/onpath/app/routing/PlanDaysTest.kt	core/test	routing	353	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	24	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/PlanEditsTest.kt	core/test	routing	113	2	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	14	0	0	4	0		
+core/src/test/kotlin/com/onpath/app/routing/PlanLinksTest.kt	core/test	routing	139	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	9	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/routing/PlanMarksFollowTest.kt	core/test	routing	132	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	11	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/PlanNamesTest.kt	core/test	routing	24	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/PlanPointsTest.kt	core/test	routing	222	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	24	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/PlanResultTest.kt	core/test	routing	139	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/PlannerLegsTest.kt	core/test	routing	121	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	6	0	0	1	0		
+core/src/test/kotlin/com/onpath/app/routing/PlannerShortDetourTest.kt	core/test	routing	171	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	10	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/PlannerTest.kt	core/test	routing	188	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	10	0	0	3	0		
+core/src/test/kotlin/com/onpath/app/routing/PlannerTimeoutTest.kt	core/test	routing	45	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/RoundTripOnTheWayTest.kt	core/test	routing	150	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	11	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/RouteProgressTest.kt	core/test	routing	24	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/RouteSummaryTest.kt	core/test	routing	283	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	31	0	0	1	0		
+core/src/test/kotlin/com/onpath/app/routing/RouteTimeLimitTest.kt	core/test	routing	37	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/RoutingFingerprintTest.kt	core/test	routing	63	4	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	6	0	0	11	0		
+core/src/test/kotlin/com/onpath/app/routing/SlowPlanTest.kt	core/test	routing	89	3	3	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	6	0		
+core/src/test/kotlin/com/onpath/app/routing/StoredLineTest.kt	core/test	routing	168	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	9	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/TrackToPlanTest.kt	core/test	routing	130	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	9	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/TurnDetectorTest.kt	core/test	routing	130	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	11	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/routing/WaypointInsertionTest.kt	core/test	routing	133	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	16	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/routing/WaypointSnapTest.kt	core/test	routing	106	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	10	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/search/SearchTextTest.kt	core/test	search	52	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/search/SharedPlaceLookupTest.kt	core/test	search	218	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	17	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/search/SharedPlaceResolveTest.kt	core/test	search	72	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	5	0	1	1	0		
+core/src/test/kotlin/com/onpath/app/search/SharedPlaceTest.kt	core/test	search	226	2	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	35	0	0	3	0		
+core/src/test/kotlin/com/onpath/app/setup/BrandOnceTest.kt	core/test	setup	49	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/setup/PhoneCheckTest.kt	core/test	setup	164	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	16	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/setup/VoiceSetupTest.kt	core/test	setup	192	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	15	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/suggest/NetReaderTest.kt	core/test	suggest	287	4	3	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	13	2	2	0	0	4	0	0	26	0		
+core/src/test/kotlin/com/onpath/app/suggest/NetSearchParityTest.kt	core/test	suggest	117	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/suggest/SuggestCoreTest.kt	core/test	suggest	162	4	5	0	0	0	6	2	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	8	0	0	22	0		
+core/src/test/kotlin/com/onpath/app/sync/PlanSyncTest.kt	core/test	sync	704	0	0	0	0	0	0	0	0	0	0	0	0	9	0	0	0	0	0	0	0	2	0	37	0	0	11	0		
+core/src/test/kotlin/com/onpath/app/sync/SyncCryptoTest.kt	core/test	sync	102	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0	0	1	0	8	0	7	0	0	15	0		
+core/src/test/kotlin/com/onpath/app/sync/SyncLimitsTest.kt	core/test	sync	22	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/sync/SyncPaceTest.kt	core/test	sync	111	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/sync/SyncRulesRandomTest.kt	core/test	sync	150	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/time/BreakDetectorTest.kt	core/test	time	115	1	1	0	1	0	1	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	7	0	0	6	0		
+core/src/test/kotlin/com/onpath/app/time/PaceModelTest.kt	core/test	time	128	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/time/TimeBreakdownTest.kt	core/test	time	33	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/time/TourReviewTest.kt	core/test	time	161	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	12	0	0	1	0		
+core/src/test/kotlin/com/onpath/app/time/TripPaceTest.kt	core/test	time	488	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	25	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/time/TripPaceTickCostTest.kt	core/test	time	66	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	3	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/time/WayTimesTest.kt	core/test	time	139	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/ui/ClearPlanDuringTourTest.kt	core/test	ui	40	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/ui/CoreDeletePointTest.kt	core/test	ui	127	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/ui/CorePlanLinkTest.kt	core/test	ui	70	2	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	4	0		
+core/src/test/kotlin/com/onpath/app/ui/FarDestinationTest.kt	core/test	ui	84	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	1	0	1	0		
+core/src/test/kotlin/com/onpath/app/ui/FollowHistoryTest.kt	core/test	ui	53	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/ui/LivePlanRowsTest.kt	core/test	ui	113	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	12	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/ui/MapReloadTwoHostsTest.kt	core/test	ui	81	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	4	0		
+core/src/test/kotlin/com/onpath/app/ui/PlanAutoSaveTest.kt	core/test	ui	32	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	2	0		
+core/src/test/kotlin/com/onpath/app/ui/PlanLinkTest.kt	core/test	ui	76	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/ui/PocketLogicTest.kt	core/test	ui	96	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	13	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/ui/QuietGateTest.kt	core/test	ui	55	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/ui/RouteBackTest.kt	core/test	ui	140	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/ui/SaveDialogTest.kt	core/test	ui	28	4	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	8	0		
+core/src/test/kotlin/com/onpath/app/ui/SmartScreenTest.kt	core/test	ui	264	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	23	0	0	3	0		
+core/src/test/kotlin/com/onpath/app/ui/TourEditTest.kt	core/test	ui	50	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	1	0	1	0		
+core/src/test/kotlin/com/onpath/app/ui/TourEndPathsTest.kt	core/test	ui	53	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/ui/TourEndRulesTest.kt	core/test	ui	41	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+core/src/testkit/kotlin/com/onpath/app/cells/CellFixtures.kt	core/testkit	cells	109	15	7	0	0	0	0	0	0	0	0	0	0	0	0	11	0	0	0	0	0	1	0	0	0	0	34	0		
+core/src/testkit/kotlin/com/onpath/app/cells/FakeDoorman.kt	core/testkit	cells	146	8	4	0	0	0	0	0	6	5	0	0	0	0	1	10	0	0	0	0	0	2	0	0	0	0	36	0		
+core/src/testkit/kotlin/com/onpath/app/navigation/Trace.kt	core/testkit	navigation	48	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0		
+core/src/testkit/kotlin/com/onpath/app/rides/RideTraces.kt	core/testkit	rides	122	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0	7	0		
+core/src/testkit/kotlin/com/onpath/app/sync/MemoryMailbox.kt	core/testkit	sync	103	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0		
+core/src/testkit/kotlin/com/onpath/app/testkit/BrokenRows.kt	core/testkit	testkit	34	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	1	0		
+core/src/testkit/kotlin/com/onpath/app/testkit/FakeNavService.kt	core/testkit	testkit	77	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0		
+core/src/testkit/kotlin/com/onpath/app/testkit/FakeRecordingClient.kt	core/testkit	testkit	47	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0		
+core/src/testkit/kotlin/com/onpath/app/testkit/FakeRoutingEngine.kt	core/testkit	testkit	80	0	0	0	0	0	0	0	6	4	0	1	0	0	0	0	0	0	0	0	0	1	0	0	0	0	12	0		
+core/src/testkit/kotlin/com/onpath/app/testkit/JdbcTours.kt	core/testkit	testkit	205	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	1	0	2	0	0	0	4	0		
+core/src/testkit/kotlin/com/onpath/app/testkit/ManualExecutor.kt	core/testkit	testkit	36	0	0	0	0	0	0	0	1	6	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	7	0		
+core/src/testkit/kotlin/com/onpath/app/testkit/OwnComposeSnapshot.kt	core/testkit	testkit	26	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0		
+core/src/testkit/kotlin/com/onpath/app/testkit/ProblemsRule.kt	core/testkit	testkit	23	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0		
+core/src/testkit/kotlin/com/onpath/app/testkit/Sources.kt	core/testkit	testkit	44	12	9	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	21	0		
+core/src/testkit/kotlin/com/onpath/app/testkit/VirtualDelayDispatcher.kt	core/testkit	testkit	58	0	0	0	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0		
+core/src/testkit/kotlin/com/onpath/app/time/NavReplay.kt	core/testkit	time	220	0	0	0	0	0	2	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	4	0		
+state/src/main/kotlin/com/onpath/app/debug/FrameStats.kt	state/main	debug	27	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	2	0	2	own-errors
+state/src/main/kotlin/com/onpath/app/ui/ActivityCheckUi.kt	state/main	ui	75	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/DemoRules.kt	state/main	ui	28	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	2	0	3	own-errors
+state/src/main/kotlin/com/onpath/app/ui/DevToolsUnlock.kt	state/main	ui	17	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/EndAsk.kt	state/main	ui	7	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/ExpandGesture.kt	state/main	ui	26	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/ImportRules.kt	state/main	ui	21	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/LoadNames.kt	state/main	ui	133	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/LongRouteCancelCamera.kt	state/main	ui	36	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/MapControlsEnabled.kt	state/main	ui	43	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/MapDimens.kt	state/main	ui	10	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/MapSizes.kt	state/main	ui	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/MapViewSlice.kt	state/main	ui	344	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/MessagePlacement.kt	state/main	ui	31	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/MultiDayFlow.kt	state/main	ui	294	0	0	0	0	0	0	0	0	0	0	0	0	0	0	22	0	0	0	0	0	0	0	0	0	0	22	1	83	own-errors
+state/src/main/kotlin/com/onpath/app/ui/MultiDayPorts.kt	state/main	ui	24	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/MultiDayUi.kt	state/main	ui	23	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/NoticeBoard.kt	state/main	ui	51	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/NoticeTypes.kt	state/main	ui	77	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/OverviewPillPlace.kt	state/main	ui	20	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/PlanGps.kt	state/main	ui	76	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/PlanSize.kt	state/main	ui	32	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/Ports.kt	state/main	ui	37	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/SettingsPage.kt	state/main	ui	28	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/SettingsSlice.kt	state/main	ui	191	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	1	7	own-errors
+state/src/main/kotlin/com/onpath/app/ui/ShownTrack.kt	state/main	ui	27	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/SyncNote.kt	state/main	ui	11	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/TimeDetailsUi.kt	state/main	ui	12	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/TrackThen.kt	state/main	ui	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/WholeRoute.kt	state/main	ui	145	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/plan/KeptPlacesSlice.kt	state/main	ui	85	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/plan/MultiDaySlice.kt	state/main	ui	421	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddSlice.kt	state/main	ui	449	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/plan/PlaceMenusSlice.kt	state/main	ui	296	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/plan/PlanDocument.kt	state/main	ui	146	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/plan/PlanEditSlice.kt	state/main	ui	340	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/plan/PlanRouteSlice.kt	state/main	ui	389	1	0	0	0	0	0	0	5	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	8	0	30	own-errors
+state/src/main/kotlin/com/onpath/app/ui/plan/PlanRunSlice.kt	state/main	ui	121	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/routes/RecentPlans.kt	state/main	ui	236	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/routes/RoutesGoSlice.kt	state/main	ui	296	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/routes/RoutesSlice.kt	state/main	ui	358	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/routes/RoutesState.kt	state/main	ui	260	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	4	own-errors
+state/src/main/kotlin/com/onpath/app/ui/routes/SaveDialog.kt	state/main	ui	50	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/routes/SaveSlice.kt	state/main	ui	383	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/routes/SaveStore.kt	state/main	ui	35	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/routes/ToursStore.kt	state/main	ui	23	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/search/PlaceCardUi.kt	state/main	ui	18	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/suggest/SuggestSlice.kt	state/main	ui	281	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	1	own-errors
+state/src/main/kotlin/com/onpath/app/ui/sync/PlanLinkFlow.kt	state/main	ui	122	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/sync/SyncDriver.kt	state/main	ui	165	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/sync/SyncedRoutingSlice.kt	state/main	ui	141	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/tour/ActivityCheckSlice.kt	state/main	ui	304	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/tour/TourController.kt	state/main	ui	172	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/tour/TourEdits.kt	state/main	ui	364	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	1	1	own-errors
+state/src/main/kotlin/com/onpath/app/ui/tour/TourEndSlice.kt	state/main	ui	411	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0	0	3	1	3	own-errors
+state/src/main/kotlin/com/onpath/app/ui/tour/TourFollow.kt	state/main	ui	286	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	0	0	0	2	1	2	own-errors
+state/src/main/kotlin/com/onpath/app/ui/tour/TourRecorderAdapter.kt	state/main	ui	11	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/tour/TourRows.kt	state/main	ui	29	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	not-probed-alone
+state/src/main/kotlin/com/onpath/app/ui/tour/TourSession.kt	state/main	ui	391	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	not-probed-alone
+state/src/test/kotlin/com/onpath/app/testkit/FakeRecording.kt	state/test	testkit	110	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0		
+state/src/test/kotlin/com/onpath/app/testkit/JdbcTourRows.kt	state/test	testkit	64	0	0	0	0	0	0	0	2	2	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	1	5	0		
+state/src/test/kotlin/com/onpath/app/testkit/MemoryMultiDayPrefs.kt	state/test	testkit	12	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0		
+state/src/test/kotlin/com/onpath/app/testkit/TestKitTest.kt	state/test	testkit	254	2	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	11	0	0	3	0		
+state/src/test/kotlin/com/onpath/app/ui/ActivityCheckRulesTest.kt	state/test	ui	64	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+state/src/test/kotlin/com/onpath/app/ui/DemoRulesTest.kt	state/test	ui	52	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	4	0		
+state/src/test/kotlin/com/onpath/app/ui/ExpandGestureTest.kt	state/test	ui	45	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	0	0	0	0		
+state/src/test/kotlin/com/onpath/app/ui/ImportRulesTest.kt	state/test	ui	44	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
+state/src/test/kotlin/com/onpath/app/ui/LongRouteCancelCameraTest.kt	state/test	ui	50	0	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	2	0	2	0		
+state/src/test/kotlin/com/onpath/app/ui/MapControlsEnabledTest.kt	state/test	ui	71	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
+state/src/test/kotlin/com/onpath/app/ui/MapViewFlowTest.kt	state/test	ui	579	0	0	0	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	0	0	0	0	34	0	0	4	1		
+state/src/test/kotlin/com/onpath/app/ui/MultiDayFlowTest.kt	state/test	ui	178	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	11	0	0	1	0		
+state/src/test/kotlin/com/onpath/app/ui/NoticeBoardTest.kt	state/test	ui	76	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+state/src/test/kotlin/com/onpath/app/ui/PlanGpsTest.kt	state/test	ui	84	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	9	1	0	1	0		
+state/src/test/kotlin/com/onpath/app/ui/SettingsFlowTest.kt	state/test	ui	339	5	5	1	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	21	0	1	12	1		
+state/src/test/kotlin/com/onpath/app/ui/WebReadyRuleTest.kt	state/test	ui	42	3	3	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	6	1		
+state/src/test/kotlin/com/onpath/app/ui/WholeRouteTest.kt	state/test	ui	237	0	6	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	12	6	0	6	0		
+state/src/test/kotlin/com/onpath/app/ui/plan/MultiDaySliceTest.kt	state/test	ui	1254	1	0	0	0	0	0	0	2	3	0	0	0	0	0	0	0	0	0	0	0	0	1	55	0	1	7	1		
+state/src/test/kotlin/com/onpath/app/ui/plan/MultiDayWiringTest.kt	state/test	ui	133	0	7	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	8	7	1	7	0		
+state/src/test/kotlin/com/onpath/app/ui/plan/PlaceAddFlowTest.kt	state/test	ui	795	0	0	0	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	0	0	2	0	23	0	1	6	0		
+state/src/test/kotlin/com/onpath/app/ui/plan/PlaceMenusFlowTest.kt	state/test	ui	826	1	0	0	0	0	0	0	0	4	0	0	0	0	0	0	0	0	0	4	0	2	0	28	0	2	11	1		
+state/src/test/kotlin/com/onpath/app/ui/plan/PlanEditFlowTest.kt	state/test	ui	733	0	0	0	0	0	0	0	0	2	0	0	0	0	0	0	0	0	0	0	0	0	0	43	0	0	2	0		
+state/src/test/kotlin/com/onpath/app/ui/plan/PlanRouteFlowTest.kt	state/test	ui	520	5	2	0	0	0	0	0	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	26	0	0	9	0		
+state/src/test/kotlin/com/onpath/app/ui/plan/PlanRunFlowTest.kt	state/test	ui	270	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	16	0	0	0	0		
+state/src/test/kotlin/com/onpath/app/ui/routes/RecentPlansTest.kt	state/test	ui	326	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	17	0	3	0	0		
+state/src/test/kotlin/com/onpath/app/ui/routes/RoutesFlowBase.kt	state/test	ui	397	3	0	0	0	0	0	0	1	2	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	1	6	1		
+state/src/test/kotlin/com/onpath/app/ui/routes/RoutesFlowPropertyTest.kt	state/test	ui	571	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	18	0	1	2	0		
+state/src/test/kotlin/com/onpath/app/ui/routes/RoutesFlowTest.kt	state/test	ui	1130	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	83	0	0	1	1		
+state/src/test/kotlin/com/onpath/app/ui/routes/RoutesGoWaitTest.kt	state/test	ui	97	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	0	0	0	0		
+state/src/test/kotlin/com/onpath/app/ui/routes/RoutesWiringTest.kt	state/test	ui	139	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	1	3	2	0		
+state/src/test/kotlin/com/onpath/app/ui/routes/SaveFlowTest.kt	state/test	ui	823	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	44	0	4	0	0		
+state/src/test/kotlin/com/onpath/app/ui/suggest/SuggestSliceTest.kt	state/test	ui	242	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	12	0	5	0	0		
+state/src/test/kotlin/com/onpath/app/ui/sync/PlanLinkFlowTest.kt	state/test	ui	166	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	11	0	0	0	0		
+state/src/test/kotlin/com/onpath/app/ui/sync/SyncDriverTest.kt	state/test	ui	263	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	17	0	0	0	0		
+state/src/test/kotlin/com/onpath/app/ui/sync/SyncWiringTest.kt	state/test	ui	103	0	2	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	6	2	3	2	0		
+state/src/test/kotlin/com/onpath/app/ui/sync/SyncedRoutingFlowTest.kt	state/test	ui	677	2	0	0	0	0	0	0	1	2	0	0	0	0	0	0	0	0	0	0	0	0	0	35	0	1	5	1		
+state/src/test/kotlin/com/onpath/app/ui/tour/ActivityCheckFlowTest.kt	state/test	ui	891	3	0	0	0	0	0	0	2	2	0	0	0	0	0	0	0	0	0	0	0	0	0	47	0	3	7	0		
+state/src/test/kotlin/com/onpath/app/ui/tour/TourContractFlowTest.kt	state/test	ui	284	2	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	13	0	0	3	0		
+state/src/test/kotlin/com/onpath/app/ui/tour/TourEditsFlowTest.kt	state/test	ui	925	2	0	0	0	0	0	0	2	2	0	0	0	0	0	0	0	0	0	0	0	0	0	34	0	1	6	1		
+state/src/test/kotlin/com/onpath/app/ui/tour/TourEndFlowTest.kt	state/test	ui	1059	0	3	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	55	0	0	6	1		
+state/src/test/kotlin/com/onpath/app/ui/tour/TourFlowPropertyTest.kt	state/test	ui	369	0	4	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	0	8	0	0	6	0		
+state/src/test/kotlin/com/onpath/app/ui/tour/TourFollowFlowTest.kt	state/test	ui	952	2	1	0	0	0	0	0	2	3	0	0	0	0	0	0	0	0	0	0	0	0	1	39	0	1	9	1		
+state/src/test/kotlin/com/onpath/app/ui/tour/TourSessionFlowTest.kt	state/test	ui	1282	2	0	0	0	0	0	0	4	2	0	0	0	0	0	0	0	0	0	0	0	0	1	51	0	1	9	1		
+state/src/test/kotlin/com/onpath/app/ui/tour/TourWiringTest.kt	state/test	ui	684	0	7	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	1	0	0	32	7	8	9	0		
+state/src/test/kotlin/com/onpath/app/ui/tour/UnfinishedStartGuardTest.kt	state/test	ui	69	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	4	0	0	0	0		
