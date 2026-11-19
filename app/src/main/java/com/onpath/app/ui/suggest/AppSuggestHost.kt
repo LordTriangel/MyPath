@@ -27,7 +27,8 @@ class AppSuggestHost(
     private val fit: (List<GeoPoint>) -> Unit,
     private val take: (List<GeoPoint>, Activity, Int, (Boolean) -> Unit) -> Unit,
 ) : SuggestHost {
-    override suspend fun suggest(ask: SuggestAsk): SuggestCards = AppSuggest.runner(app).suggest(ask)
+    override suspend fun suggest(ask: SuggestAsk, lapped: (String, Double) -> Unit): SuggestCards =
+        AppSuggest.runner(app).suggest(ask, lapped)
 
     override fun ensureRouting(parts: List<String>): List<String> = routing().ensure(parts)
 

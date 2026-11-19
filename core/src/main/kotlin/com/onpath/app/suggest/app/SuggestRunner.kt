@@ -22,17 +22,18 @@ import kotlinx.coroutines.withContext
  *    never from a long-lived coroutine that must survive a newer wish.
  */
 class SuggestRunner(
-    /** one blocking run: the wish and the check point to call between phases ([SuggestService.suggest]) */
-    private val run: (SuggestAsk, () -> Unit) -> SuggestCards,
+    /** one blocking run: the wish, the check point to call between phases and the phases' ends ([SuggestService.suggest]) */
+    private val run: (SuggestAsk, () -> Unit, (String, Double) -> Unit) -> SuggestCards,
     private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) {
     constructor(service: SuggestService, dispatcher: CoroutineDispatcher = Dispatchers.Default) :
-        this({ ask, check -> service.suggest(ask, check) }, dispatcher)
+        this({ ask, check, lapped -> service.suggest(ask, check, lapped) }, dispatcher)
 
     private val one = Mutex()
     private var latest: Job? = null
 
-    suspend fun suggest(ask: SuggestAsk): SuggestCards {
+    /** [lapped]: each phase of the method as it ends (key, seconds), on the runner's thread. */
+    suspend fun suggest(ask: SuggestAsk, lapped: (String, Double) -> Unit = { _, _ -> }): SuggestCards {
         val me = currentCoroutineContext()[Job]
         val before = synchronized(this) { latest.also { latest = me } }
         if (before !== me) before?.cancel()
@@ -40,7 +41,7 @@ class SuggestRunner(
             return one.withLock {
                 withContext(dispatcher) {
                     val ctx = coroutineContext
-                    run(ask) { ctx.ensureActive() }
+                    run(ask, { ctx.ensureActive() }, lapped)
                 }
             }
         } finally {

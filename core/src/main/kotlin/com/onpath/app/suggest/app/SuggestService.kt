@@ -60,10 +60,11 @@ class SuggestService(
 
     /**
      * Runs the method for [ask]. [check] is called between the phases (and before the work starts); throwing there
-     * (the runner: a newer wish came) stops the run. Missing routing data → no run, [SuggestCards.routingToLoad] names
+     * (the runner: a newer wish came) stops the run; [lapped] hears each of the method's phases as it ends (key,
+     * seconds – TourSuggester). Missing routing data → no run, [SuggestCards.routingToLoad] names
      * the parts; no way near the start → [SuggestCards.none].
      */
-    fun suggest(ask: SuggestAsk, check: () -> Unit = {}): SuggestCards {
+    fun suggest(ask: SuggestAsk, check: () -> Unit = {}, lapped: (String, Double) -> Unit = { _, _ -> }): SuggestCards {
         val S = settings()
         val wish = ask.wish(S)
         val need = need(ask)
@@ -80,7 +81,7 @@ class SuggestService(
         val source = ReaderNetSource(reader) { _ -> RouterProfile.of(profileDir, ask.activity, ask.sac) }
         val t0 = System.currentTimeMillis()
         val r = try {
-            TourSuggester.suggest(wish, source, files, S, check)
+            TourSuggester.suggest(wish, source, files, S, check, lapped)
         } catch (e: NetReader.ReadException) {
             Problems.warn("suggest", "no network around the start: ${e.message}", e)
             return SuggestCards.none()

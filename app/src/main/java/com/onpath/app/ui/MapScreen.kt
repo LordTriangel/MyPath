@@ -442,7 +442,8 @@ private fun PlanMode(
                 // Beenden over them any more – those are in Navigate).
                 // The place card (tapped POI / search result, ui/search) takes the sheet's place while open; so do the
                 // round-trip suggestions (ui/suggest, behind the developer switch).
-                if (vm.suggest.phase != null) com.onpath.app.ui.suggest.SuggestHostPanel(vm)
+                // while the search runs it waits in its window over the map (form A): the sheet stays as it was under it
+                if (vm.suggest.phase != null && !vm.suggest.searching) com.onpath.app.ui.suggest.SuggestHostPanel(vm)
                 else if (vm.cardPlace != null) {
                     com.onpath.app.ui.search.PlaceCardHost(vm)
                     rec?.let { r ->
@@ -454,6 +455,10 @@ private fun PlanMode(
             }
         })
         com.onpath.app.ui.suggest.SuggestWishHost(vm) // the wish sheet of the round-trip suggestions while open
+        // the round-trip search: the same wait window as a map load or a route (owner 2026-11-19) – its steps, Abbrechen;
+        // the map takes no press under it
+        com.onpath.app.ui.progress.SuggestWaitWindow(com.onpath.app.data.ProgressMemory.of(androidx.compose.ui.platform.LocalContext.current),
+            vm.suggest)
         com.onpath.app.ui.search.SearchHost(vm) // full-screen search view while open
     }
 }

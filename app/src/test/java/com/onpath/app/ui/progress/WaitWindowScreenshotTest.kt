@@ -82,6 +82,13 @@ abstract class WaitWindowShots(private val locale: Locale, fontScale: Float) {
     /** A route of 4 legs: the 3rd runs – the last done, the running one, the next; „prüfen“ comes as the last window. */
     @Test fun route() = shot(points = 5) { Window(routeUi.window, listOf(WaitButton(str(Res.string.common_cancel)) {})) }
 
+    /** The round-trip search (owner 2026-11-19, form A): its three steps – reading done, loops being found –, Cancel. */
+    @Test fun roundTrips() = shot(points = 0) {
+        val ui = SuggestWaitUi(48, WaitSteps.of(listOf(Res.string.wait_step_suggest_read, Res.string.wait_step_suggest_search,
+            Res.string.wait_step_suggest_judge).map { Txt.s(it) to null }, 1), 5)
+        Window(ui.window, listOf(WaitButton(str(Res.string.common_cancel)) {}))
+    }
+
     /** Offline: the bar stands grey with its number, the line says why; Cancel. */
     @Test fun offline() = map(MapLoadUi(MapLoadUi.Kind.OFFLINE, 47, null, regions = 2, bytes = 18 * mb))
 

@@ -128,6 +128,10 @@
     <string name="suggest_ui_test_off">Tourvorschläge: aus</string>
     <string name="suggest_ui_loading_routing">Wegedaten werden geladen …</string>
     <string name="suggest_ui_test">Tourvorschläge</string>
+    <string name="wait_title_suggest">Rundtouren werden gesucht</string>
+    <string name="wait_step_suggest_read">Wege lesen</string>
+    <string name="wait_step_suggest_search">Runden suchen</string>
+    <string name="wait_step_suggest_judge">bewerten</string>
     <plurals name="suggest_ui_count">
         <item quantity="one">eine Rundtour</item>
         <item quantity="other">%1$s Rundtouren</item>

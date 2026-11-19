@@ -46,12 +46,14 @@ class SuggestResult(
  *
  * [check] runs between the phases (network, facts, place, loops, judging): the app passes its coroutine's
  * `ensureActive`, so a newer wish stops this one at the next phase instead of letting two runs hold memory at once.
+ * [lapped] hears each phase as it ends (its key and seconds) – the app's wait window shows its steps by them.
  */
 object TourSuggester {
-    fun suggest(wish: Wish, netSource: NetSource, files: SuggestFiles, S: SuggestSettings, check: () -> Unit = {}): SuggestResult {
+    fun suggest(wish: Wish, netSource: NetSource, files: SuggestFiles, S: SuggestSettings, check: () -> Unit = {},
+                lapped: (String, Double) -> Unit = { _, _ -> }): SuggestResult {
         val times = LinkedHashMap<String, Double>()
         var t = System.nanoTime()
-        fun lap(key: String) { val now = System.nanoTime(); times[key] = (now - t) / 1e9; t = now; check() }
+        fun lap(key: String) { val now = System.nanoTime(); times[key] = (now - t) / 1e9; t = now; check(); lapped(key, times[key]!!) }
         val notes = ArrayList<String>()
         val ch = Character(wish, S)
         val radius = ch.radius(S)

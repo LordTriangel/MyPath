@@ -84,8 +84,10 @@ class SuggestServiceTest {
     @Test fun aRealRunGivesLightCards() {
         needData()
         Locale.setDefault(Locale.GERMAN)
-        val r = service().suggest(hilden)
+        val laps = ArrayList<String>()
+        val r = service().suggest(hilden, lapped = { key, s -> assertTrue(s >= 0.0); laps += key })
         assertTrue("${r.cards.size} cards, notes ${r.notes}", r.cards.size in 1..5)
+        assertEquals("the wait window's steps hear every phase, in order", listOf("network", "facts", "place", "loops", "judging"), laps)
         assertFalse(r.mapUpdating)
         assertTrue(r.cellsToFetch.isEmpty())
         assertTrue(r.loops >= r.cards.size)
@@ -112,7 +114,7 @@ class SuggestServiceTest {
         needData()
         val phases = AtomicInteger()
         try {
-            service().suggest(hilden) { if (phases.incrementAndGet() == 3) throw CancellationException("newer wish") }
+            service().suggest(hilden, check = { if (phases.incrementAndGet() == 3) throw CancellationException("newer wish") })
             fail("not stopped")
         } catch (e: CancellationException) {
             assertEquals(3, phases.get())
@@ -123,7 +125,7 @@ class SuggestServiceTest {
         val started = CompletableDeferred<Unit>()
         val running = AtomicInteger()
         val most = AtomicInteger()
-        val runner = SuggestRunner({ ask, check ->
+        val runner = SuggestRunner({ ask, check, _ ->
             most.accumulateAndGet(running.incrementAndGet(), ::maxOf)
             try {
                 if (ask.lat == 1.0) { started.complete(Unit); while (true) { check(); Thread.sleep(5) } }

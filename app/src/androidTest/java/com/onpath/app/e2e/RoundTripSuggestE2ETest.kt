@@ -10,7 +10,10 @@ import com.onpath.app.ui.suggest.SuggestHost
 import com.onpath.app.ui.suggest.SuggestPhase
 import com.onpath.strings.Res
 import com.onpath.strings.Txt
+import com.onpath.strings.common_cancel
 import com.onpath.strings.common_ok
+import com.onpath.strings.wait_step_suggest_read
+import com.onpath.strings.wait_title_suggest
 import com.onpath.strings.suggest_ui_from_here
 import com.onpath.strings.suggest_ui_take
 import org.junit.Assert.assertEquals
@@ -42,7 +45,9 @@ class RoundTripSuggestE2ETest : E2EBase() {
             assertTrue("on for everyone since 2026-11-18 (owner), no switch needed", s.on)
             val real = s.host
             s.host = object : SuggestHost by real {
-                override suspend fun suggest(ask: SuggestAsk): SuggestCards { asks += ask; return answer(ask.lat, ask.lon) }
+                override suspend fun suggest(ask: SuggestAsk, lapped: (String, Double) -> Unit): SuggestCards {
+                    asks += ask; return answer(ask.lat, ask.lon)
+                }
             }
         }
         val (w, h) = mapSize()
@@ -87,6 +92,56 @@ class RoundTripSuggestE2ETest : E2EBase() {
             assertTrue(read { it.suggest.phase == SuggestPhase.CARDS || it.waypoints.size >= 2 })
         }
         shot("suggest-taken")
+    }
+
+    /**
+     * Owner 2026-11-19: the search is form A – the wait window over the map with its steps and „Abbrechen“; a tap or a
+     * hold on the map meanwhile changes nothing (before, it ended the search and set a point instead). „Abbrechen“ ends
+     * the search and leaves the map as it was.
+     */
+    @Test fun theSearchWaitsInTheWindowTheMapIgnoresPressesCancelEndsIt() {
+        launch()
+        val asks = ArrayList<SuggestAsk>()
+        val release = kotlinx.coroutines.CompletableDeferred<Unit>()
+        scenario.onActivity { a ->
+            val s = vm(a).suggest
+            val real = s.host
+            s.host = object : SuggestHost by real {
+                override suspend fun suggest(ask: SuggestAsk, lapped: (String, Double) -> Unit): SuggestCards {
+                    asks += ask
+                    lapped("network", 1.0) // the first step's half is behind; then the search waits
+                    release.await()
+                    return answer(ask.lat, ask.lon)
+                }
+            }
+        }
+        val (w, h) = mapSize()
+        hold(w * 0.45f, h * 0.35f, takeAddMenu = false)
+        waitUntil("the first-point menu", 5_000) { read { it.firstPointMenu } != null }
+        clickText(Txt.s(Res.string.suggest_ui_from_here))
+        waitUntil("the wish sheet", 5_000) { read { it.suggest.wishOpen } }
+        val start = read { it.suggest.wish!!.at }
+        clickText(Txt.s(Res.string.common_ok))
+        assertNotNull("the wait window", findFresh(By.text(Txt.s(Res.string.wait_title_suggest)), 5_000))
+        assertNotNull("its steps", findFresh(By.text(Txt.s(Res.string.wait_step_suggest_read)), 2_000))
+        shot("suggest-wait")
+
+        // a tap and a hold on the map: nothing happens – no menu, no point, the same search for the same start
+        device.click((w * 0.3f).toInt(), (h * 0.6f).toInt())
+        hold(w * 0.6f, h * 0.55f, takeAddMenu = false)
+        Thread.sleep(800)
+        assertTrue("still searching", read { it.suggest.searching })
+        assertEquals("the start stays", start, read { it.suggest.wish!!.at })
+        assertEquals("no point set", 0, waypointCount())
+        assertEquals("no menu opened", null, read { it.firstPointMenu })
+        assertEquals("one run", 1, asks.size)
+
+        clickText(Txt.s(Res.string.common_cancel))
+        waitUntil("the search ended", 5_000) { read { it.suggest.phase } == null }
+        assertTrue("the window is gone", findFresh(By.text(Txt.s(Res.string.wait_title_suggest)), 1_000) == null)
+        assertEquals("the map as before: no point", 0, waypointCount())
+        assertEquals("no loop on the map", null, read { it.suggest.loop })
+        release.complete(Unit)
     }
 
     /** Two loops of ~1.5 km around the held spot (closed: first = last). */

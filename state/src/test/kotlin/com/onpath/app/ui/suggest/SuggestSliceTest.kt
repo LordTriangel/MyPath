@@ -8,7 +8,10 @@ import com.onpath.app.suggest.SuggestCards
 import com.onpath.app.suggest.SuggestPill
 import com.onpath.app.testkit.OwnComposeSnapshot
 import com.onpath.app.testkit.ProblemsRule
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -44,7 +47,17 @@ class SuggestSliceTest {
         var taken: Triple<List<GeoPoint>, Activity, Int>? = null
         var missing = 0
         var takeOk = true
-        override suspend fun suggest(ask: SuggestAsk): SuggestCards { asks += ask; return answers.removeFirst()() }
+        /** Set: a run waits for it (the search is on while the test presses the map). */
+        var gate: CompletableDeferred<Unit>? = null
+        var cancelled = 0
+        /** The method's phases each run reports as they end. */
+        var phases = emptyList<String>()
+        override suspend fun suggest(ask: SuggestAsk, lapped: (String, Double) -> Unit): SuggestCards {
+            asks += ask
+            phases.forEach { lapped(it, 0.5) }
+            try { gate?.await() } catch (e: CancellationException) { cancelled++; throw e }
+            return answers.removeFirst()()
+        }
         override fun ensureRouting(parts: List<String>): List<String> { ensured += parts; return parts }
         override fun missingRouting(parts: List<String>): List<String> = if (missing-- > 0) parts else emptyList()
         override suspend fun fetchCells(cells: List<IntArray>): Boolean { fetched += cells; return true }
@@ -138,6 +151,66 @@ class SuggestSliceTest {
         assertEquals("the same spot keeps the last wish", 1f..1.5f, s.wish!!.hours)
         s.close()
         assertNull(s.phase); assertFalse(s.wishOpen)
+    }
+
+    /**
+     * Owner 2026-11-19: „Wenn ich irgendwo draufklicke, bricht sie ab und ersetzt den Punkt.“ While the search runs, a
+     * hold on the map („Rundtour von hier“ at another spot) changes nothing: the search keeps running for the same start,
+     * no wish sheet opens; its cards come as usual.
+     */
+    @Test fun aMapPressDuringTheSearchChangesNothing() {
+        val other = GeoPoint(51.20, 6.99)
+        val fake = Fake(ArrayDeque(listOf({ result(card(1, 8.4, 6.95)) }))).apply { gate = CompletableDeferred() }
+        lateinit var s: SuggestSlice
+        runBlocking {
+            s = SuggestSlice(this, fake, on = true)
+            s.open(hilden, Activity.HIKE, 2); s.ok()
+            yield() // the run starts and waits
+            assertEquals(SuggestPhase.WAIT, s.phase)
+            s.open(other, Activity.MTB, 2) // the map's hold menu → „Rundtour von hier“ elsewhere
+            assertFalse("no wish sheet over the search", s.wishOpen)
+            assertEquals("the start point stays", hilden, s.wish!!.at)
+            assertEquals(SuggestPhase.WAIT, s.phase)
+            assertEquals("the search runs on", 0, fake.cancelled)
+            fake.gate!!.complete(Unit)
+        }
+        assertEquals("one run, for the first spot", 1, fake.asks.size)
+        assertEquals(hilden.lat, fake.asks.single().lat, 0.0)
+        assertEquals(SuggestPhase.CARDS, s.phase)
+        assertEquals(1, s.cards.size)
+    }
+
+    /** „Abbrechen“ in the wait window: the run's coroutine is cancelled, nothing of it is left, the map as before. */
+    @Test fun cancelStopsTheSearchCleanly() {
+        val fake = Fake(ArrayDeque(listOf({ result(card(1, 8.4, 6.95)) }))).apply { gate = CompletableDeferred(); phases = listOf("network") }
+        lateinit var s: SuggestSlice
+        runBlocking {
+            s = SuggestSlice(this, fake, on = true)
+            s.open(hilden, Activity.HIKE, 2); s.ok()
+            yield()
+            assertTrue(s.searching)
+            assertEquals("the window's steps hear the phases", listOf("network"), s.laps.map { it.first })
+            s.cancel()
+            assertFalse(s.searching)
+        }
+        assertEquals("the run was cancelled, not finished", 1, fake.cancelled)
+        assertNull(s.phase); assertNull(s.loop); assertTrue(s.cards.isEmpty()); assertTrue(s.laps.isEmpty())
+        assertTrue("the camera did not move", fake.fits.isEmpty())
+        assertFalse(s.wishOpen)
+        assertEquals("the wish stays for the same spot", hilden, s.wish!!.at)
+        assertTrue(problems.traced("suggest").any { it.startsWith("Search cancelled") })
+        assertTrue("a cancel is no problem", problems.none("suggest"))
+        s.cancel() // nothing runs: nothing happens
+        assertNull(s.phase)
+    }
+
+    /** A rerun (routing data, fetched cells) adds its phases after the first run's: the window's steps never go back. */
+    @Test fun lapsAddUpOverTheRuns() {
+        val fake = Fake(ArrayDeque(listOf({ SuggestCards.loadRouting(listOf("E5_N50/3")) }, { result(card(1, 8.4, 6.95)) })))
+            .apply { missing = 1; phases = listOf("network", "facts") }
+        val s = slice(fake) { open(hilden, Activity.HIKE, 2); ok() }
+        assertEquals(4, s.laps.size)
+        assertFalse(s.searching)
     }
 
     /** On for everyone since 2026-11-18 (owner): a slice without a stored choice offers „Rundtour von hier“. */

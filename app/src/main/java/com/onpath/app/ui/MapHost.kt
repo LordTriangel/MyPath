@@ -225,6 +225,8 @@ fun MapHost(
                     com.onpath.app.debug.Problems.warn("map", "Map press ignored: screen position unknown", e); return false
                 }
                 if (vm.routePeek) return true // peeking at the map: no edits
+                // the round-trip search waits in its window (owner 2026-11-19): a press neither ends it nor sets a point
+                if (vm.suggest.searching) { com.onpath.app.debug.Problems.trace("map", "Press ignored: round-trip search runs"); return true }
                 // A hold works on this spot: the start camera must not jump to a late first GPS fix any more – that
                 // would close the menu just opened ("held spot left the visible map").
                 if (press == MapGestures.Press.HOLD) { vm.userMovedMap = true; vm.tapHoldHint = false }

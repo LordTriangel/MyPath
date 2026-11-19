@@ -14,6 +14,7 @@ import com.onpath.app.suggest.SuggestCards
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -72,8 +73,11 @@ enum class SuggestPhase {
  * What the slice needs from the app (Android, the view model). [AppSuggestHost] is the app's; the tests give a fake.
  */
 interface SuggestHost {
-    /** One run of the method ([com.onpath.app.suggest.app.SuggestRunner.suggest]); a newer call cancels this one. */
-    suspend fun suggest(ask: SuggestAsk): SuggestCards
+    /**
+     * One run of the method ([com.onpath.app.suggest.app.SuggestRunner.suggest]); a newer call cancels this one.
+     * [lapped] hears each of its phases as it ends (key, seconds; any thread) – the wait window's steps.
+     */
+    suspend fun suggest(ask: SuggestAsk, lapped: (String, Double) -> Unit): SuggestCards
     /** Starts loading these rd5 parts (RoutingDataLoader.ensure); returns the ones still missing. */
     fun ensureRouting(parts: List<String>): List<String>
     /** Of these rd5 parts the ones not on the phone yet. */
@@ -129,6 +133,16 @@ class SuggestSlice(private val scope: CoroutineScope, var host: SuggestHost, on:
     /** The panel or the sheet shows: the plan sheet makes room for it. */
     val active: Boolean get() = phase != null || wishOpen
 
+    /**
+     * The search runs (owner 2026-11-19: form A, the wait window over the map with „Abbrechen“): the map takes no tap or
+     * hold meanwhile – nothing cancels the search or moves its start but „Abbrechen“.
+     */
+    val searching: Boolean get() = phase == SuggestPhase.WAIT || phase == SuggestPhase.LOADING
+
+    /** The method's phases that ended in this wish's runs so far (key, seconds), in order – the wait window's steps. */
+    val laps: List<Pair<String, Double>> get() = lapLog.toList()
+    private val lapLog = java.util.concurrent.CopyOnWriteArrayList<Pair<String, Double>>()
+
     private var job: Job? = null
 
     fun switch(value: Boolean) {
@@ -138,8 +152,12 @@ class SuggestSlice(private val scope: CoroutineScope, var host: SuggestHost, on:
         Problems.info("suggest", "Tour suggestions (test) ${if (value) "on" else "off"}")
     }
 
-    /** „Rundtour von hier“ at [at]: the wish sheet, pre-set from the plan's activity – or the last wish at the same spot. */
+    /**
+     * „Rundtour von hier“ at [at]: the wish sheet, pre-set from the plan's activity – or the last wish at the same spot.
+     * Not while a search runs: its start stays (only „Abbrechen“ ends it).
+     */
     fun open(at: GeoPoint, activity: Activity, sac: Int) {
+        if (searching) { Problems.trace("suggest", "Round trip from here ignored: a search runs"); return }
         val last = wish
         wish = if (last != null && last.at == at) last else SuggestWish.of(at, activity, sac)
         wishOpen = true
@@ -192,12 +210,24 @@ class SuggestSlice(private val scope: CoroutineScope, var host: SuggestHost, on:
         job?.cancel(); job = null
         phase = null; wishOpen = false; taking = false
         cards = emptyList(); notes = emptyList(); chosen = -1; loop = null
+        lapLog.clear()
+    }
+
+    /**
+     * „Abbrechen“ in the wait window: the search stops (its coroutine is cancelled – the method ends at its next phase,
+     * the result is dropped) and the map is as before; the wish stays for the next „Rundtour von hier“ at the same spot.
+     */
+    fun cancel() {
+        if (!searching) return
+        Problems.trace("suggest", "Search cancelled (${phase?.name?.lowercase()}, ${lapLog.size} phases done)")
+        close()
     }
 
     private fun run(w: SuggestWish) {
         job?.cancel()
         phase = SuggestPhase.WAIT
         cards = emptyList(); notes = emptyList(); chosen = -1; loop = null
+        lapLog.clear()
         val ask = w.ask()
         job = scope.launchSafe("suggest", "Tour suggestions run") {
             val r = try {
@@ -220,7 +250,10 @@ class SuggestSlice(private val scope: CoroutineScope, var host: SuggestHost, on:
 
     /** One wish: routing data first (wait for it), then the run; missing suggest files fetched and the run once again. */
     private suspend fun answer(ask: SuggestAsk): SuggestCards {
-        var r = host.suggest(ask)
+        val me = currentCoroutineContext()[Job]
+        // a cancelled run may still end a phase on the runner's thread: only this search's laps count
+        val lapped: (String, Double) -> Unit = { k, sec -> if (me?.isActive != false) lapLog.add(k to sec) }
+        var r = host.suggest(ask, lapped)
         if (r.routingToLoad.isNotEmpty()) {
             phase = SuggestPhase.LOADING
             host.ensureRouting(r.routingToLoad)
@@ -233,9 +266,9 @@ class SuggestSlice(private val scope: CoroutineScope, var host: SuggestHost, on:
                 delay(POLL_MS); waited += POLL_MS
             }
             phase = SuggestPhase.WAIT
-            r = host.suggest(ask)
+            r = host.suggest(ask, lapped)
         }
-        if (r.cellsToFetch.isNotEmpty() && host.fetchCells(r.cellsToFetch)) r = host.suggest(ask)
+        if (r.cellsToFetch.isNotEmpty() && host.fetchCells(r.cellsToFetch)) r = host.suggest(ask, lapped)
         return r
     }
 

@@ -17,3 +17,8 @@ his look at the sketches: „A, aber nie mehr als 3 Häkchen; B: einfach nur Pro
   planner's wait window should get the same bar, ≤3 steps and texts.
 - Review (independent, 2026-11-19): map writes unchanged and atomic; 7 promise findings fixed with tests (`WaitPromiseTest`).
 - Not done: the app update has no wait today (non-blocking card) – unchanged.
+- **Round-trip search is form A too** (owner 2026-11-19 „könnte auch als Overlay kommen mit der Option Abbrechen“):
+  `ui/progress/SuggestWait.kt` – the method's real phases (`TourSuggester` `lapped`) as 3 steps „Wege lesen · Runden
+  suchen · bewerten“ (network+facts · place+loops · judging), shares learned per phone (`ProgressMemory.suggestShares`,
+  key `suggest_steps`), „Abbrechen“ = `SuggestSlice.cancel()`; while it runs the map takes no tap / hold
+  (`SuggestSlice.searching`: MapHost ignores presses, `open` ignored). [laptop] the planner's wait card could follow.

@@ -97,5 +97,9 @@
   "suggest_form_time": {"area": "Tour suggestions · card (not shown yet, stage 3c)", "context": "what pulls the Form axis down, in the verdict", "priority": 3, "confidence": "sicher"},
   "suggest_form_ascent": {"area": "Tour suggestions · card (not shown yet, stage 3c)", "context": "what pulls the Form axis down, in the verdict", "priority": 3, "confidence": "sicher"},
   "suggest_form_doubled": {"area": "Tour suggestions · card (not shown yet, stage 3c)", "context": "what pulls the Form axis down, in the verdict", "priority": 3, "confidence": "sicher"},
-  "suggest_form_crosses": {"area": "Tour suggestions · card (not shown yet, stage 3c)", "context": "what pulls the Form axis down, in the verdict", "priority": 3, "confidence": "sicher"}
+  "suggest_form_crosses": {"area": "Tour suggestions · card (not shown yet, stage 3c)", "context": "what pulls the Form axis down, in the verdict", "priority": 3, "confidence": "sicher"},
+  "wait_title_suggest": {"area": "Tour suggestions · wait window", "context": "Wait window (form A) title while the round-trip suggestions are searched", "priority": 2, "confidence": "sicher"},
+  "wait_step_suggest_read": {"area": "Tour suggestions · wait window", "context": "Wait window step row 1 of the round-trip search: the paths around the start are read", "priority": 2, "confidence": "sicher"},
+  "wait_step_suggest_search": {"area": "Tour suggestions · wait window", "context": "Wait window step row 2 of the round-trip search: loops are built", "priority": 2, "confidence": "sicher"},
+  "wait_step_suggest_judge": {"area": "Tour suggestions · wait window", "context": "Wait window step row 3 of the round-trip search: the loops are rated, the best chosen", "priority": 2, "confidence": "sicher"}
 }
