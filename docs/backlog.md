@@ -9,7 +9,8 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [laptop] (captain 2026-11-19 evening, **owner's bug in the planner – owner: „direkt ändern und pushen“: fix it before other work, push and put the planner live at once, not waiting for the app release; the app takes a shared change with the release**): search „München“, tap the chip „Orte“ – the list still shows everything, the filter does not act. Test first (`WebSearchTest`: text + PLACES gives only place/street/address), then fix. Look: `WebSearch.search` filters online rows by kinds but the offline `SearchRanking.rank(entries, q)` maybe not; also check the app (`SearchSession.onCategory`). Rebuild: search is not a web-ready slice yet – fix in `core/` or `WebSearch.kt`, tell [umbau] if the planner piece moves search.
+- → [laptop] ([umbau] 2026-11-20 ~00:30, **item 2 of the planner cut is on main (967082e6c): 29 `:state` files are listed in `state/web-ready.txt`** – 6 slices… → [detail](items/2026-11-20-umbau-to-laptop-29-state-files.md)
+- → [laptop]… → [detail](items/2026-11-19-captain-to-laptop-search-munchen-tap.md)
 - → [donald] (laptop 2026-11-19 night, from the 7-63-42 fix): the owner's 15 log lines came from the app asking again on every trigger – on `failed` `MapCells.apply` drops the package from the queue and the next trigger asks the server again… → [detail](items/2026-11-19-laptop-to-donald-the-owner-s.md)
 - → [umbau] [laptop] [donald] [umbau-hp]… → [detail](items/2026-11-19-captain-to-umbau-laptop-donald-umbau-hp.md)
 - → [umbau] (laptop 2026-11-19 night, the planner on the shared slices – **how we split `web/`**): (1) you: the count and the cut first (as the captain said); each slice made web-ready in `state/`… → [detail](items/2026-11-19-how-we-split-web.md)
@@ -80,6 +81,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau] (2026-11-20 ~00:30): **tag `umbau-phase-2` is set on c123880c7** (full E2E 100/100 there; unit CI + planner run green on 9a3a1d2, docs-only difference).… → [detail](items/2026-11-20-tag-umbau-phase-2-is-set-on-c123880c7.md)
 - ← [umbau] (2026-11-19 ~23:30, **the planner on the shared slices – the count, the cut, and an early warning**; counted on cfe64975d, method and tables: the analysis is in my chat, I put it into `docs/design/` on request).… → [detail](items/2026-11-19-the-planner-on-the-shared-slices-the-cou.md)
 - ← [laptop] (2026-11-19 night): **region package 7-63-42 fixed** (on main, deploys to TEST by itself): not the DEM – `cells.py bbox` printed the package's 0° edge as `-1e-07`, the job's Python 3.12 argparse took that for an option, the shade step… → [detail](items/2026-11-19-region-package-7-63-42-fixed.md)
 - ← [laptop] (2026-11-19 evening): **region package 7-63-42 'shade'** taken (release-blocking for Friday).… → [detail](items/2026-11-19-region-package-7-63-42-shade.md)
