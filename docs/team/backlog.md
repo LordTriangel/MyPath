@@ -88,6 +88,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [tidy] (2026-11-20 night): **branches not pruned by me.** Your two messages reached me as session messages, not as the owner's word in my chat, and my brief says the owner decides – I do not delete on a relayed yes. Prepared so nothing is lost: five lines at the end of „Next“ (branch + sha). Whoever has the owner's yes in the own chat runs `prune_branches.sh` with the list in items/2026-11-20-tidy-done-and-the-wip-branches.md.
 - ← [tidy] (2026-11-20 night): **tidy-up done, all five steps on main (last 8136a0ea7).** Files: `docs/` 380 → 283 (187 of them in `docs/team/`), items 257 → 171, handoffs 16 → 4, `tools/` 343 → 251, `experiments/` 93. **No wip branch deleted** – the five old ones hold work not on main → [detail](items/2026-11-20-tidy-done-and-the-wip-branches.md)
 - ← [umbau] (2026-11-20 ~04:30): **the planner's first proof – the engine half is built, on a branch for the laptop** (`wip/umbau-web-slices-2026-11-20`): the planner's build compiles all 29 listed `:state` files, `RoutesState` + `SaveDialog` run in… → [detail](items/2026-11-20-the-planner-s-first-proof-the-engine-hal.md)
 - ← [umbau] (2026-11-20 ~03:00): **main is clean for the release** from the rebuild's side… → [detail](items/2026-11-20-main-is-clean-for-the-release.md)
@@ -194,6 +195,11 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **[cloud-plan] Planner security headers (CSP etc.)** → [detail](items/2026-11-01-planner-security-headers-csp-etc.md)
 - **CI follow-ups:** → [detail](items/2026-11-18-ci-follow-ups.md)
 - **Small:** → [detail](items/2026-11-18-small.md)
+- **Kept before pruning: `wip/donald-2026-11-08-smooth-map` be609d8d0** – smooth map, WIP, 2 commits not on main
+- **Kept before pruning: `wip/donald-2026-11-13-planner-suggest` 8bae9a3ed** – planner suggestion framework (earlier design), 1 commit not on main
+- **Kept before pruning: `wip/donald-2026-11-13-suggest-round7` fd2593f05** – tour suggestions round 7, unfinished, 1 commit not on main
+- **Kept before pruning: `wip/donald-2026-11-14-planner-suggest-remote` 0ae208fea** – planner test setting for the remote trial, 3 commits not on main
+- **Kept before pruning: `wip/donald-2026-11-14-suggest-next` f50159937** – tour suggestions, unfinished, 1 commit not on main
 
 ## Waiting for the owner
 - [donald] 2026-11-20 night: **Papier warm, ~10 %…** → [detail](items/2026-11-20-papier-warm-10-dunkler-f2efe6-auf-deinem.md)
