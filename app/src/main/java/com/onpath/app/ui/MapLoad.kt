@@ -53,6 +53,8 @@ data class MapLoadUi(
     val routing: Boolean = false,
     /** Of [regions]: already on the phone. */
     val regionsDone: Int = 0,
+    /** The step the wait is in when it pauses (offline, Wi-Fi) – its rows stay where they were; null = by [kind]. */
+    val at: LoadStep? = null,
 ) {
     /** FINISHING: everything is downloaded and is joined into the map / written into the routing file. */
     enum class Kind { PREPARING, LOADING, FINISHING, OFFLINE, WIFI, FAILED }
@@ -63,7 +65,7 @@ data class MapLoadUi(
     val paused: Boolean get() = kind == Kind.OFFLINE || kind == Kind.WIFI
 
     /** The running step (the step rows' ● and where the bar's part ends). */
-    val step: LoadStep get() = when (kind) {
+    val step: LoadStep get() = at ?: when (kind) {
         Kind.PREPARING -> LoadStep.PREPARE
         Kind.FINISHING -> LoadStep.JOIN
         else -> LoadStep.DOWNLOAD
@@ -229,7 +231,8 @@ class MapWait(private val shares: StepShares = StepShares.DEFAULT, private val d
             reason = if (kind != MapLoadUi.Kind.FAILED) null else if (!map) RoutingLoads.FAILED_TEXT
                 else if (failed.any { it.retryable }) Txt.s(Res.string.maps_load_failed_retry) else failed.firstOrNull()?.message,
             retryable = kind == MapLoadUi.Kind.FAILED && (!map || failed.any { it.retryable }),
-            regions = focus.size, bytes = mapBytes + rTotal, routing = routingSeen, regionsDone = focus.size - open.size)
+            regions = focus.size, bytes = mapBytes + rTotal, routing = routingSeen, regionsDone = focus.size - open.size,
+            at = step.takeIf { !running })
     }
 
     /** How long each step of this wait really took until [endMs] – what [StepShares.learn] learns from. */
