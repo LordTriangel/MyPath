@@ -3104,6 +3104,16 @@
     "core/src/main/kotlin/com/onpath/app/search/SearchMerge.kt": {
       "blob": "8c60babb0f6a5ba23e691eb1c79378dc848d0320",
       "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/RecState.kt": {
+      "blob": "7e391f2df8ce1f3052a266aea0591f50ef6ae86a",
+      "perf": [
+        "* for less than [com.onpath.app.navigation.VoiceGuide.GPS_LOST_MS] – the warning comes with the spoken one."
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/RecordingClient.kt": {
+      "blob": "c589c060b8dbd754b50cc33826a94da31c35a1c1",
+      "perf": []
     }
   }
 }
