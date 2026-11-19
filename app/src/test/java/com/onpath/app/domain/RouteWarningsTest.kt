@@ -327,6 +327,16 @@ class RouteWarningsTest {
             .findAll(vm).count())
     }
 
+    /** The slice asks the host whether a tour runs (PlanRouteFlowTest asserts what it does with it): the view model's answer is the recording's state. */
+    @Test fun theViewModelTellsTheRouteSliceWhetherATourRuns() {
+        val vmFile = java.io.File("src/main/java/com/onpath/app/ui/AppViewModel.kt")
+        // expected: the web planner's build runs this shared test in web/engine, without the app's view model
+        if (!vmFile.exists()) return
+        val vm = vmFile.readText()
+        assertEquals(1, Regex("""override val touring: Boolean get\(\) = recState\.value != null""").findAll(vm).count())
+        assertTrue(vm.contains("override val mode: AppMode get() = this@AppViewModel.mode"))
+    }
+
     // ---------------- "route changed" ----------------
 
     private val east = 10.0 / (111_195.0 * Math.cos(Math.toRadians(46.6)))

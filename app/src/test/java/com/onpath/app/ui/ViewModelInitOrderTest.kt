@@ -48,17 +48,43 @@ class ViewModelInitOrderTest {
         return lines.size - 1
     }
 
-    @Test fun lazyPropertiesReachableFromAnInitBlockAreDeclaredAboveIt() {
+    /** Like [blockEnd], but a block opens with `(` or `{` – a slice's constructor call with its port / host `object :` literals. */
+    private fun initialiserEnd(open: Int): Int {
+        var depth = 0; var seen = false
+        for (i in open until lines.size) {
+            val code = lines[i].replace(Regex("\"(\\\\.|[^\"\\\\])*\""), "\"\"").substringBefore("//")
+            for (c in code) {
+                if (c == '{' || c == '(') { depth++; seen = true } else if (c == '}' || c == ')') depth--
+            }
+            if (seen && depth <= 0) return i
+        }
+        return lines.size - 1
+    }
+
+    /**
+     * Everything the construction can reach must exist when an init block runs: a `by lazy` and a plain `val x = …` (a slice,
+     * its store / host port, `notices` …) reachable from an init block – directly, through the class's own functions, through
+     * the bodies of other such properties (the port and host `object :` literals read the lazies and properties they use
+     * when called) – is declared above that init block. `recalc()` at construction reaches `planRoute` through the
+     * forwarders (`runCauses`, `activity`, `planFactors` …) and so its ports' lazies (`planTimes`, `mapData` …).
+     */
+    @Test fun lazyPropertiesAndSlicesReachableFromAnInitBlockAreDeclaredAboveIt() {
         val lazies = lines.indices.mapNotNull { i ->
             Regex("""^    (?:private |internal )?val (\w+)\b.* by lazy""").find(lines[i])?.let { it.groupValues[1] to i }
         }.toMap()
         assertTrue("planTimes is a lazy (the 0.9.0 crash)", "planTimes" in lazies)
-        // the time estimate and the routing engine live in PlanRouteSlice (piece 8); their ports read these lazies of the view
-        // model when called, which the walk below no longer sees through the slice – so they are pinned above the first init
-        val firstInit = lines.indices.first { lines[it].trim() == "init {" && lines.getOrNull(it + 1)?.trim() == "recalc()" }
-        for (n in listOf("planTimes", "routingFingerprint", "mapData")) {
-            assertTrue("$n is a lazy above the init that calls recalc (read by PlanRouteSlice's ports)", lazies[n]?.let { it < firstInit } == true)
-        }
+        // plain initialised properties (not delegated, not a getter forwarder): the slices and their port / host objects
+        val plains = lines.indices.mapNotNull { i ->
+            val m = Regex("""^    (?:private |internal |public )?(?:val|var) (\w+)(?::[^=]+)? = """).find(lines[i]) ?: return@mapNotNull null
+            if (" by " in lines[i] || "get()" in lines[i]) return@mapNotNull null
+            // only the slices and their ports / hosts: built by a call with `object :` literals or named `…Slice(` / `…Flow(`
+            val text = lines.subList(i, minOf(initialiserEnd(i), i + 80) + 1).joinToString("\n")
+            if ("object :" in text || Regex("""= [\w.]*(Slice|Flow|NoticeBoard|RecentPlans)\(""").containsMatchIn(lines[i])) m.groupValues[1] to i else null
+        }.toMap()
+        assertTrue("planRoute is a plain property (the slice of piece 8)", "planRoute" in plains)
+        val props = lazies + plains
+        val propRange = HashMap<String, IntRange>()
+        props.forEach { (n, at) -> propRange[n] = at..(if (n in lazies) blockEnd(at) else initialiserEnd(at)) }
         // the class's own functions (4-space indent) with their bodies; overloads share one name (all bodies)
         val funs = HashMap<String, MutableList<IntRange>>()
         lines.indices.forEach { i ->
@@ -69,6 +95,10 @@ class ViewModelInitOrderTest {
             }
         }
         val ident = Regex("""(?<![.\w])([a-z]\w*)\b""")
+        // The walk over-approximates (a whole port object, not the one method that is called; a coroutine's Main part). Named
+        // exceptions, each with why it is safe: `notices` – the start-up check says its note only inside withContext(Main), which
+        // runs after the constructor; `pairing` – read by a host object's method that no construction-time code calls.
+        val notReachedAtConstruction = setOf("notices", "pairing")
         val late = mutableListOf<String>()
         lines.indices.filter { lines[it] == "    init {" }.forEach { initAt ->
             val seen = HashSet<String>()
@@ -79,12 +109,13 @@ class ViewModelInitOrderTest {
                 for (i in r) for (m in ident.findAll(lines[i].substringBefore("//"))) {
                     val n = m.groupValues[1]
                     used += n
-                    if (n in funs && seen.add(n)) funs[n]!!.forEach { queue += it }
+                    if (n in funs && seen.add("f$n")) funs[n]!!.forEach { queue += it }
+                    if (n in propRange && seen.add("p$n")) queue += propRange[n]!!
                 }
             }
-            lazies.filter { (n, at) -> at > initAt && n in used }
+            props.filter { (n, at) -> at > initAt && n in used && n !in notReachedAtConstruction }
                 .forEach { (n, at) -> late += "$n (line ${at + 1}) reachable from init at line ${initAt + 1}" }
         }
-        assertEquals("lazy declared below an init block that can reach it", emptyList<String>(), late)
+        assertEquals("lazy / slice declared below an init block that can reach it", emptyList<String>(), late)
     }
 }

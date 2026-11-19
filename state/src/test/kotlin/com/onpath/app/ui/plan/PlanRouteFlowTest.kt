@@ -178,6 +178,26 @@ class PlanRouteFlowTest {
         assertSame(before, app.slice.activityBefore)
     }
 
+    @Test fun anOwnActivityChangeOutsidePlanStillKeepsTheComparisonAndSaysChanged() {
+        val app = App().also { it.route = plainRoute(); it.mode = AppMode.NAVIGATE }
+        val before = app.route
+        app.slice.selectActivity(Activity.BIKE_TREKKING)
+        assertSame(before, app.slice.activityBefore)
+        assertEquals("event compare true", app.log.first())
+    }
+
+    @Test fun aTLevelChangeIsTheUsersOwnAndWithARouteInPlanKeepsNoComparison() {
+        val app = App().also { it.route = plainRoute() }
+        app.slice.selectSac(4)
+        assertNull(app.slice.activityBefore)
+        assertEquals("event compare false", app.log.first())
+        // during a tour the same change keeps the route for the comparison
+        val tour = App().also { it.route = plainRoute(); it.touring = true }
+        tour.slice.selectSac(4)
+        assertSame(tour.route, tour.slice.activityBefore)
+        assertEquals("event compare true", tour.log.first())
+    }
+
     @Test fun aChangeWhileTheRouteIsStillCalculatedHasNothingToCompareWith() {
         val app = App().also { it.route = plainRoute(); it.touring = true; it.routing = true }
         app.slice.selectActivity(Activity.BIKE_TREKKING)
@@ -332,6 +352,8 @@ class PlanRouteFlowTest {
         app.slice.storePlanTimes(7, null, Activity.HIKE)
         app.slice.storePlanTimes(7, PlannedRoute(emptyList(), 0.0, 0.0, 0.0, 0.0, null), Activity.HIKE)
         assertEquals(0, app.times.puts)
+        app.slice.storePlanTimes(7, PlannedRoute(listOf(PlannedLeg(listOf(a), false)), 0.0, 0.0, 0.0, 0.0, null), Activity.HIKE) // one point
+        assertEquals("a one-point plan stores nothing", 0, app.times.puts)
         app.slice.storePlanTimes(7, plainRoute(), Activity.HIKE)
         assertEquals(1, app.times.puts)
         assertNotNull(app.times.groups[7L])

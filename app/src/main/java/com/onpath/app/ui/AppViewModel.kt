@@ -332,7 +332,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /**
      * The plan's route, first half ([PlanRouteSlice], rebuild phase 2 piece 8): activity / T level (every app start begins
      * with the last chosen ones, owner; fresh install Hike T2), the routing engine with its leg cache and threads, the time
-     * estimate, the route warnings. Declared here – above every init block and every property that reads it – because
+     * estimate, the route warnings. Declared here – above the init that calls `recalc()` and every property that reads it – because
      * `recalc()` runs in the init; the ports read the lazies and the later properties only when called (ViewModelInitOrderTest).
      * The names below forward to it.
      */
@@ -354,8 +354,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         },
         times = object : com.onpath.app.ui.plan.TimesStore {
             override fun loadSegments(id: Long) = db.loadSegments(id)
-            override fun planGroups(id: Long, distanceM: Double) = planTimes.get(id, distanceM)
-            override fun putPlanGroups(id: Long, distanceM: Double, groups: DoubleArray) = planTimes.put(id, distanceM, groups)
+            override fun planGroups(id: Long, distanceM: Double) = planTimes.get(tourId = id, distanceM = distanceM)
+            override fun putPlanGroups(id: Long, distanceM: Double, groups: DoubleArray) = planTimes.put(tourId = id, distanceM = distanceM, groups = groups)
             override fun tourTimes(id: Long) =
                 com.onpath.app.time.TourTimesStore(File(getApplication<Application>().filesDir, com.onpath.app.time.TourTimesStore.FILE)).get(id)
         },
@@ -1003,7 +1003,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private var planResult: com.onpath.app.routing.PlanResult? = null
 
     // route warnings (RouteWarnings): declared before init {} – recalc() touches them (ViewModelInitOrderTest)
-    // The state of the route warnings lives in [PlanRouteSlice] (declared above `activity`, so above every init block)
+    // The state of the route warnings lives in [PlanRouteSlice] (declared above `activity`, so above the init that calls `recalc()`)
     var routeChangedNotice: String?
         get() = planRoute.routeChangedNotice
         private set(v) { planRoute.routeChangedNotice = v }
@@ -3010,7 +3010,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---------------- route warnings: [PlanRouteSlice] (rebuild phase 2 piece 8) ----------------
 
-    private fun noteActivityChange(own: Boolean) = planRoute.noteActivityChange(own)
     private fun planChanged() = planRoute.planChanged()
     /** Spots worth knowing on the current route ([RouteWarnings.detect]); none while it is being calculated. */
     val routeSpots: List<RouteSpot> get() = planRoute.routeSpots
