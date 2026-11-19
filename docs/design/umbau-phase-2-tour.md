@@ -401,8 +401,7 @@ the style of `RoutesWiringTest`. Old adapter pins that name tour members break w
 5. **Tests**: `TourOrderPinsTest` (§4.2, all 22), the pure flows of §4.1. `RecordingClientTest` stays in `:app`: its
    action-count regex reads the literals in the `:core` file and additionally asserts the service has an alias for
    each; `outsideRecordingNobody…` and `theFollowedRouteFilesHaveOneStore` must stay green unchanged.
-6. The planner compiles the whole `core/` folder: `-p web/engine test generateWasmGC -Pkotlin.incremental=false`,
-   then `python3 tools/dev/core_move.py lock`.
+6. The planner compiles the whole `core/` folder: `-p web/engine test generateWasmGC -Pkotlin.incremental=false`.
 
 *STOP:* a wire string would change; the engine build fails on the two new files (do not edit `core-excludes.txt` –
 report); `RecState` turns out to be referenced by reflection / a manifest (not found by me).

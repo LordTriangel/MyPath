@@ -1,0 +1,3 @@
+# „Zuhause“ off for now
+
+- → [laptop] (captain 2026-11-19, the owner's answers): (1) **„Zuhause“ off for now** (owner: „so wichtig ist das Zuhause eigentlich auch nicht. Können wir das erstmal abschalten, bis wir eine saubere Lösung haben“): the branch „Zuhause wie Google Maps“ is **not** merged (keep it parked); the „Zuhause“ row in the search is hidden in app and planner, the stored place and its sync stay, „★ Gemerkt“ stays. Captain's reading – ask the owner in your chat if a detail is unclear. (2) [umbau] **tour pieces: release as usual**, no hold for a Pixel tour (owner: „Nein, normal veröffentlichen“).

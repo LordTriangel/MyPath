@@ -4,7 +4,6 @@
   core_move.py plan  [--only pkg,pkg] [--files a/B.kt,c/D.kt] [--all-pure] [--no-tests]   print the closed set that can move, the blocked
                                                                                 candidates with their first reason, the tests
   core_move.py move  [same options] [--dry-run]                              do it: git mv + path rewrites (below)
-  core_move.py lock                                                          rewrite web/engine/core-shared.lock (move does it)
 
 The set (`plan`): app files of the candidate packages (CAND) and the hub files named in the paper (HUBS) that
   (a) have no android. / androidx. / org.maplibre. / com.google.android. import or fully-qualified use, no BuildConfig / R.
@@ -489,9 +488,6 @@ def rewrite_test(text, loc, moved_rel, res_moved):
     return t
 
 
-LOCK = "web/engine/core-shared.lock"
-
-
 def shared_list(section):
     out, cur = [], ""
     for line in read("app/web-shared-files.txt").split("\n"):
@@ -521,18 +517,6 @@ def core_compiled():
     return sorted(f"{CORE_MAIN}/{f}" for f in walk(CORE_MAIN) if f not in stand_ins and f not in excludes)
 
 
-def lock_hash():
-    """sha256 over the sorted (path NUL content NUL) of the core/ files the planner compiles (core_compiled() + the [tests]
-    entries that resolve into core/src/test|testkit). SharedFilesRuleTest recomputes the same."""
-    import hashlib
-    paths = core_compiled() + [f"{b}/{f}" for f in shared_list("tests") for b in (CORE_TEST, CORE_KIT)]
-    paths = sorted(p for p in paths if os.path.isfile(os.path.join(ROOT, p)))
-    h = hashlib.sha256()
-    for p in paths:
-        h.update(p.encode() + b"\0" + open(os.path.join(ROOT, p), "rb").read() + b"\0")
-    return h.hexdigest(), len(paths)
-
-
 def prune_list(moved_rel, dry):
     """A [files] entry of app/web-shared-files.txt that moved to :core goes: the planner compiles the whole core folder."""
     path = os.path.join(ROOT, "app/web-shared-files.txt")
@@ -548,21 +532,6 @@ def prune_list(moved_rel, dry):
     if n and not dry:
         open(path, "w", encoding="utf-8").write("\n".join(out))
     return n
-
-
-def write_lock(dry=False):
-    digest, n = lock_hash()
-    text = f"""# web/engine/core-shared.lock – a fingerprint of the core/ files the planner compiles (core/src/main/kotlin minus the
-# stand-ins in web/engine/src/main/kotlin and web/engine/core-excludes.txt, + the [tests] of app/web-shared-files.txt
-# that live in core/src/test|testkit/kotlin), written by: python3 tools/dev/core_move.py lock
-# Why: web.yml's path filters and the engine cache key do not know core/** yet, so an edit of a shared file in core/ would
-# neither start the planner run nor change the cache key. This file is under web/engine/** (both know that), and
-# SharedFilesRuleTest fails when it is out of date.  It goes when web.yml knows core/**.
-sha256 {digest}
-"""
-    if not dry:
-        open(os.path.join(ROOT, LOCK), "w", encoding="utf-8").write(text)
-    print(f"-- {LOCK}: {n} core file(s) the planner compiles, sha256 {digest[:12]}")
 
 
 def git(*a, check=True):
@@ -795,7 +764,6 @@ def cmd_move(args):
     n = lint_drop(moved_rel, dry)
     print(f"-- app/lint-baseline.xml: {n} issue(s) of moved files dropped")
     print(f"-- app/web-shared-files.txt: {prune_list(moved_rel, dry)} [files] entr(ies) dropped (moved to core: the planner compiles the folder)")
-    write_lock(dry)
     n = parity_rewrite(moved_rel, moved_test_rel, dry)
     print(f"-- web/parity.json: {n} key(s) renamed")
     # leftovers that need a human
@@ -834,7 +802,7 @@ def cmd_move(args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["plan", "move", "lock"])
+    ap.add_argument("cmd", choices=["plan", "move"])
     ap.add_argument("--only", help="comma separated packages")
     ap.add_argument("--files", help="comma separated files relative to the package root, e.g. suggest/X.kt,sync/Y.kt")
     ap.add_argument("--all-pure", action="store_true", help="every app file is a candidate (the closure decides what can move)")
@@ -844,7 +812,7 @@ def main():
     a = ap.parse_args()
     global ALL_PURE
     ALL_PURE = a.all_pure
-    {"plan": cmd_plan, "move": cmd_move, "lock": lambda a: write_lock()}[a.cmd](a)
+    {"plan": cmd_plan, "move": cmd_move}[a.cmd](a)
 
 
 if __name__ == "__main__":

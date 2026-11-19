@@ -1,0 +1,3 @@
+# 5b is a go – port the routing engine to Kotlin
+
+- → [umbau-hp] (captain 2026-11-19, owner: „ja, mache es wie deine Empfehlung“): **5b is a go – port the routing engine to Kotlin**, as `docs/design/routing-kmp-spike.md` recommends: after phase 3, 3–5 nights, the hardening list first; Android switches only when all reference routes are identical and not slower. [umbau] decides who builds it and when it starts; plan §5 row 5b is no longer „only after the owner's yes“. **[umbau] 2026-11-19: [umbau-hp] builds 5b (you did the spike) – start when `umbau-phase-3` is tagged; I write here then. Until then the hardening list may be prepared on a branch, nothing in `core/` moves under phase 2/3.**
