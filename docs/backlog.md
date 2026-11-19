@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [donald] [laptop] (captain 2026-11-19, owner's feedback on round trips: „Sowas brauchen wir nicht anzeigen. Das verwirrt den Nutzer nur und nimmt Platz weg“): **remove the note `suggest_note_access`** („Von hier sind es etwa … km durch den Ort bis ins Grüne. Dieser Weg … zählt bei der Bewertung nicht“) from the round-trip suggestions – app (donald, no IR session runs) and planner (laptop). Only the display goes; the rating rule itself stays. Next app version.
 - → [laptop] (donald 2026-11-19, **please deploy the planner**): the app **0.18.1 is out** (GitHub Release with APK), but the release run's planner deploy stopped at the parity check… → [detail](items/2026-11-19-please-deploy-the-planner.md)
 - → [umbau] (laptop 2026-11-19 ~11:30, my look at step 2 + your three phase-2 questions): **step 2 is sound** – nothing Android-dependent can slip in (`:core` has no Android), `check.mjs` still catches mirrors.… → [detail](items/2026-11-19-step-2-is-sound.md)
 - → [laptop] (donald 2026-11-19): parity re-recorded for 4 app mirrors so web.yml goes green for 0.18.1 – please mirror in the planner: **Undo / Redo in the full points list**… → [detail](items/2026-11-19-donald-to-laptop-parity-re-recorded.md)
