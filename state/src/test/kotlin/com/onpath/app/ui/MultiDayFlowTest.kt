@@ -1,8 +1,6 @@
 package com.onpath.app.ui
 
-import com.onpath.app.data.MapPrefs
 import com.onpath.app.data.MultiDay
-import com.onpath.app.data.Prefs
 import com.onpath.app.data.Tour
 import com.onpath.app.data.TourKind
 import com.onpath.app.debug.Problems
@@ -28,7 +26,8 @@ import java.nio.file.Files
  */
 class MultiDayFlowTest {
     private val dir = Files.createTempDirectory("multiday").toFile()
-    private val sp = MapPrefs()
+    /** The preferences the flow keeps its state in: one memory object, so a "restart" ([flow] again) reads what the first one wrote. */
+    private val sp = com.onpath.app.testkit.MemoryMultiDayPrefs()
     private var linked = 7L
 
     @Before fun setUp() { Problems.init(dir); Problems.clear() }
@@ -39,7 +38,7 @@ class MultiDayFlowTest {
     /** MultiDayFlow holds Compose state: each test writes it in a snapshot of its own (OwnComposeSnapshot says why). */
     @get:org.junit.Rule val composeState = com.onpath.app.testkit.OwnComposeSnapshot()
 
-    private fun flow() = MultiDayFlow(Prefs(sp, dir)) { linked }
+    private fun flow() = MultiDayFlow(sp) { linked }
 
     /** 90 km north, 1 km per line point. */
     private val line = (0..90).map { GeoPoint(46.0 + it * 0.009, 11.0, 500.0) }
@@ -149,7 +148,7 @@ class MultiDayFlowTest {
         f.tapDay(2)
         val part = f.pickDay(f.plan(pts, Activity.BIKE_TOURING, 2, emptySet(), mapOf(3 to "Gasthof Post"))!!, pts)!!
         // the app dies; the day's state is damaged on the disk
-        sp.edit().putString("planDayFollow", "{\"tour\": broken").apply()
+        sp.planDayFollow = "{\"tour\": broken"
         val g = flow()
         assertTrue("the loss is known", g.dayLost)
         assertFalse(g.following)
@@ -171,7 +170,7 @@ class MultiDayFlowTest {
     }
 
     @Test fun unreadableStateNeverCrashes() {
-        sp.edit().putString("planMultiDay", "{broken").putString("planDayFollow", "[]").apply()
+        sp.planMultiDay = "{broken"; sp.planDayFollow = "[]"
         val f = flow()
         assertNull(f.tour); assertNull(f.day)
         assertTrue(Problems.snapshot().any { it.area == "plan" && it.message.contains("Multi-day") })

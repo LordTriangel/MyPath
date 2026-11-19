@@ -31,7 +31,7 @@ import com.onpath.strings.*
  *   whole tour, Save stores the whole tour.
  * Kept in the prefs like the plan, so a restart keeps them. Never throws to the caller (reported).
  */
-class MultiDayFlow(private val prefs: com.onpath.app.data.Prefs, private val linkedId: () -> Long) {
+class MultiDayFlow(private val prefs: MultiDayPrefs, private val linkedId: () -> Long) {
     /** The saved multi-day route the plan was opened from: its id, uuid, name and days (the marks are in [marks]). */
     data class TourRef(val id: Long, val uuid: String, val name: String, val days: MultiDay)
 

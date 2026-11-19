@@ -1043,14 +1043,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val notRouted: NotRouted? get() = planRun.notRouted
     /** What started the routing run: Cancel takes back only that ([PlanRouteSlice.runCauses]). */
     private val runCauses get() = planRoute.runCauses
-    internal val multiDay = com.onpath.app.ui.plan.MultiDaySlice(this, plan, ::change, ::setSaved, ::rememberPlaceName, { mapData }) { nearbyNames }
     // --- saved state of the plan (menus / Manage routes) ---
     /** Name, tour id and points the plan was last saved or loaded as ([com.onpath.app.ui.plan.PlanDocument]: stored, linked, unsaved). */
     private val linkName: String? get() = plan.linkName
     private val linkId: Long get() = plan.linkId
     private val savedPoints: List<GeoPoint>? get() = plan.savedPoints
-    /** The plan still belongs to that saved route (after Clear or with every point replaced it is a new plan). */
-    private val planLinked: Boolean get() = plan.linked
     /** Name the plan was saved / loaded as, while it still belongs to that route. */
     val savedName: String? get() = plan.savedName
     private val savedId: Long get() = plan.savedId
@@ -1078,6 +1075,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         override fun planPoints(id: Long) = db.planPoints(id)
         override fun listTours() = db.listTours()
         override fun getTourPlan(id: Long) = db.getTourPlan(id)
+        override fun insertDraftPlanned(name: String, row: com.onpath.app.ui.routes.PlannedRow) = db.insertTour(kind = TourKind.PLANNED, name = name,
+            activity = row.activity, sac = row.sac, distance = row.distanceM, ascent = row.ascentM, descent = row.descentM, duration = row.durationS,
+            segments = row.segments, waypoints = row.stops, pinned = row.pins, difficulty = row.difficulty, draft = true, days = row.days)
         override fun tourTimes() =
             com.onpath.app.time.TourTimesStore(File(getApplication<Application>().filesDir, com.onpath.app.time.TourTimesStore.FILE)).all()
     }
@@ -1091,6 +1091,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             override fun tourChanged(id: Long) = Backups.tourChanged(getApplication(), id)
         }, viewModelScope, Dispatchers.IO)
 
+    internal val multiDay = com.onpath.app.ui.plan.MultiDaySlice(plan, planRoute, toursStore, com.onpath.app.ui.plan.PrefsMultiDay(prefs), mapCamera,
+        com.onpath.app.ui.plan.AppMultiDayHost(this) { mapData }, ::change, ::setSaved, ::rememberPlaceName, { nearbyNames }, viewModelScope, Dispatchers.IO, Dispatchers.Default) // :state, piece 20; after toursStore
     private val saveHost = object : com.onpath.app.ui.routes.SaveHost {
         override val route: PlannedRoute? get() = this@AppViewModel.route
         override val activity: Activity get() = this@AppViewModel.activity
@@ -1274,7 +1276,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // The four routing threads, the engine and the leg cache: [PlanRouteSlice] (rebuild phase 2 piece 8). Created with the
     // slice (declared at `activity` above), closed in [onCleared] where they always were.
     private val routingDispatcher get() = planRoute.threads.routing
-    private val backgroundRouting get() = planRoute.threads.background
     private var engine: RoutingEngine?
         get() = planRoute.engine
         set(v) { planRoute.engine = v }
@@ -1996,7 +1997,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun planAnyway() = planRun.planAnyway()
     private fun routeEvent(e: RouteRun.Event): List<RouteRun.Effect> = planRun.routeEvent(e)
     private fun perform(effects: List<RouteRun.Effect>) = planRun.perform(effects)
-    private fun leaveUnrouted(why: NotRouted) = planRun.leaveUnrouted(why)
     /** Cancel while a route is calculated (owner): [PlanRunSlice.cancelRouting]. */
     fun cancelRouting() = planRun.cancelRouting()
 
