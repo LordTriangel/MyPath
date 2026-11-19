@@ -6,7 +6,7 @@ import org.json.JSONObject
 /**
  * Frame times of the map gestures since the app started, per gesture kind (pan / zoom) and relief on / off – for the
  * problem report ("mapJank" in diagnostics.json) – and the recent gestures the relief rule ([ReliefAuto]) decides on.
- * Pure apart from the lock; unit tested (MapJankTallyTest).
+ * Pure apart from the lock; unit tested (DiagnosticsRulesTest).
  */
 class MapJankTally {
     private data class Sum(var gestures: Int = 0, var frames: Int = 0, var janky: Int = 0)

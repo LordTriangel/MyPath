@@ -27,7 +27,7 @@ object Health {
     const val STALL_MS = 500L
     private const val PING_MS = 1_000L
 
-    /** What one health line says (pure: [line], HealthLineTest). Null = unknown. */
+    /** What one health line says (pure: [line], DiagnosticsSmallTest). Null = unknown. */
     data class Sample(
         val pssKb: Long?, val nativePssKb: Long?, val javaPssKb: Long?, val graphicsKb: Long?,
         val nativeHeapBytes: Long, val cpuMs: Long, val wallMs: Long,

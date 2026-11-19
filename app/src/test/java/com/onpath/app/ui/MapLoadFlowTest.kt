@@ -8,7 +8,6 @@ import com.onpath.app.cells.CellState
 import com.onpath.app.cells.CellWhy
 import com.onpath.app.cells.MapCells
 import com.onpath.app.data.Geo
-import com.onpath.app.data.RoutingDataCheck
 import com.onpath.app.data.RoutingDataLoader
 import com.onpath.app.domain.ActionPercent
 import com.onpath.app.domain.StepShares

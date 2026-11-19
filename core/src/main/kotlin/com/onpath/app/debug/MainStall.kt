@@ -1,7 +1,7 @@
 package com.onpath.app.debug
 
 /**
- * What a main-thread stall seen by the watchdog ([Health]) means, and how it is written down. Pure – MainStallTest.
+ * What a main-thread stall seen by the watchdog ([Health]) means, and how it is written down. Pure – DiagnosticsRulesTest.
  *
  * Pixel 2026-11-07: 11 of 13 "Main thread blocked" warnings were the first frame right after a screen was created, on
  * a debuggable, uncompiled build – start-up noise, not field bugs – and the one sampled frame (`Matrix.translate`)

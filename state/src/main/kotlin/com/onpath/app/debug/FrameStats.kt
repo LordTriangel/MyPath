@@ -1,6 +1,6 @@
 package com.onpath.app.debug
 
-/** Summary of frame times in ms (pure, unit tested: FrameStatsTest). */
+/** Summary of frame times in ms (pure, unit tested: DiagnosticsSmallTest). */
 data class FrameStats(
     val frames: Int, val over16: Int, val over33: Int, val overBudget: Int, val budgetMs: Double,
     val p95Ms: Double, val maxMs: Double, val hz: Int,

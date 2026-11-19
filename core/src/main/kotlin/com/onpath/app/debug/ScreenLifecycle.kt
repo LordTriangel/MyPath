@@ -6,7 +6,7 @@ package com.onpath.app.debug
  * Two activities (each its own AppViewModel + map) have lived at once at a cold start right after an install, although
  * the manifest says singleTask and the code never finishes or restarts the activity at start. This trace names each
  * instance (intent, flags, task, restored state, finishing vs. config change) so an occurrence shows where it came
- * from. Pure (no Android types) – unit-tested in ScreenLifecycleTest.
+ * from. Pure (no Android types) – unit-tested in DiagnosticsRulesTest.
  */
 object ScreenLifecycle {
     private val alive = LinkedHashSet<Int>()
