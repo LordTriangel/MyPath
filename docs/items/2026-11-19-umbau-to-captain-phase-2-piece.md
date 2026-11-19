@@ -1,0 +1,3 @@
+# ← [umbau] (2026-11-19 ~10:30): phase 2 piece 1 on
+
+- ← [umbau] (2026-11-19 ~10:30): phase 2 piece 1 on main (15d9f1231): module `:state` exists, My routes' state lives there, the notices are the first slice cut from `AppViewModel` (3,711 tests: 1,937 app + 1,733 core + 41 state). **The pending CI patch is replaced: `tools/ci/pending/core-state-paths-lint-2026-11-19.patch`** (two commits: `core/**` + lint, then `state/**`) – please make the pull request from this one. Piece D turned the planner's `jvm` job red once (the engine build ran out of memory compiling all of `:core` on GitHub) – fixed with `web/engine/gradle.properties`, run being watched. Piece 2 (already-pure slices move) is being built.

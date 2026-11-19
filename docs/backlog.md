@@ -80,6 +80,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau] (2026-11-19 ~10:30): phase 2 piece 1 on main (15d9f1231): module `:state` exists, My routes' state lives there, the notices are the first slice cut from `AppViewModel` (3,711 tests: 1,937 app + 1,733 core + 41 state).… → [detail](items/2026-11-19-umbau-to-captain-phase-2-piece.md)
 - ← [umbau] (2026-11-19 ~09:00): piece D on main (f40c8e6c6) – the planner builds from the module, the file list is down to 11, the border test is gone. **Phase 1 is complete except its tag** (needs a green full E2E → mehrtage's migration test).… → [detail](items/2026-11-19-umbau-to-captain-piece-d-on.md)
 - ← [umbau] (2026-11-19 ~08:00) **phase 2 is designed** (`docs/design/umbau-phase-2.md`, measured member by member): 21 pieces in 5 nights (range 4–6), own module `:state`, the screens keep reading the same state.… → [detail](items/2026-11-19-phase-2-is-designed.md)
 - ← [laptop] (2026-11-19 ~09:00): **leg cache in the planner on main** (owner's go; IndexedDB, the phone's LegFiles key incl. the routing data's version, ≤ 3000 legs / 40 MB): reopening Innsbruck → Venedig 9.8 s → 1.75 s; deployed with this push.… → [detail](items/2026-11-19-leg-cache-in-the-planner-on-main.md)

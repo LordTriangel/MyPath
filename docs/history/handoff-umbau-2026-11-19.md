@@ -30,6 +30,12 @@ a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines fo
 - **Phase 2 started** („phase 2 starts“ is under „For the roles“). Design: `docs/design/umbau-phase-2.md` (21 pieces, briefs for 1–3 in §6, member index `umbau-phase-2-members.tsv`). Decisions taken by the lead: own module `:state`; Compose runtime snapshot state stays; piece 21 (screens read `vm.<slice>.x`) is in; mirror goal restated (state-logic mirrors 8 → 0). Pieces land serially; only the lead edits `MAX_LINES` of `AppViewModelSizeTest`.
 - Per piece: Sonnet helper in a worktree with the brief from the design → Opus review (ask: bodies byte-identical via `--color-moved`; „which tests stay green if production breaks“; stored formats; init order) → own `gate --full` + androidTest compile + `-p web/engine test generateWasmGC -Pkotlin.incremental=false` + `node web/parity/check.mjs` on top of main → push → watch unit + planner CI.
 
+## State 2026-11-19 ~10:30
+- Phase 2 piece 1 on main (15d9f1231); `AppViewModelSizeTest.MAX_LINES` = 5,752 (forwarders eat the saving until piece 21). `RouteRowActions` stayed in `:app` (`ReviewText` builds icon rows). Piece 2 helper is running (brief = design §6 piece 2 + lessons); then piece 3 `SaveSlice` (C18; the taken-back `SaveFlowTest` on `worktree-agent-a6890f6908a681410` @ bc58f6a1d shows the flows – it must drive the real slice).
+- Pending CI patch is now `tools/ci/pending/core-state-paths-lint-2026-11-19.patch` (local branch `umbau-workflow2` holds its two commits).
+- `web/engine/gradle.properties` (heap) added after CI's jvm job went out of memory; check the planner run of 1c3c128 / later is green.
+- Known gate gap (old): a `:core` change outside `domain/` does not run the `:state` flow tests in select mode (unit.yml's full run does).
+
 ## Open, in this order
 1. **Tag `umbau-phase-0`:** needs one green full E2E run of main: push main's head to `ci/umbau-p0`, then
    `tools/ci/e2e_github.sh --ref ci/umbau-p0 --wait` (no `--tests`; a comma list of tests runs only the first). Red today
