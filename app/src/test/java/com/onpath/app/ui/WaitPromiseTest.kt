@@ -46,6 +46,25 @@ class WaitPromiseTest {
         assertEquals("taking a bit longer…", uis[200].window.line)
     }
 
+    /**
+     * Owner 2026-11-19 (in the planner, München → Hilden): „noch etwa 5 Sekunden“, then minutes. The same rule on the
+     * phone: a leg the router reports nothing of promises no time – the bar creeps, the time left is not read off the creep.
+     */
+    @Test fun routeWindow_aLegWithoutAnyProgressPromisesNoTime() {
+        val rw = RouteWait(ProgressMemory.InMemory())
+        val lines = (0 until 600).map { t -> rw.update(true, 0 to 1, null, null, t * 1000L, gen = 1)!!.window.line }.toSet()
+        assertTrue("no time is promised: $lines", lines.all { it == null || it == "taking a bit longer…" })
+    }
+
+    /** The router reported 30 % in 10 s and then nothing for minutes: the time left never counts down while nothing happens. */
+    @Test fun routeWindow_aLegThatStopsReportingNeverCountsDownByItself() {
+        val rw = RouteWait(ProgressMemory.InMemory())
+        val uis = (0 until 300).map { t -> rw.update(true, 0 to 1, minOf(t, 10) * 0.03f, null, t * 1000L, gen = 1)!! }
+        val left = uis.drop(11).filter { !it.late }.mapNotNull { it.secondsLeft }
+        assertTrue("some time was said", left.isNotEmpty())
+        assertTrue("never less while nothing is reported: $left", left.zipWithNext().all { (a, b) -> b >= a })
+    }
+
     /** A join estimated at 20 s that takes 300 s without reporting: no 99 % for minutes, no frozen "5 seconds". */
     @Test fun waitWindow_aLongLastStepKeepsMovingAndSaysSo() {
         MapWait.joinBytesPerS = 20.0 * mb

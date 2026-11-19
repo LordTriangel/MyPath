@@ -173,7 +173,7 @@ class OneBar {
      */
     fun next(raw: Double, stepEnd: Double, stepLeftMs: Long?, nowMs: Long, finished: Boolean = false, paused: Boolean = false,
              stepStart: Double = stepEnd - 0.1): Int {
-        if (finished) { shown = 1.0; lastMs = nowMs; late = false; return 100 }
+        if (finished) { shown = 1.0; measured = 1.0; lastMs = nowMs; late = false; return 100 }
         val gap = if (lastMs < 0) 0L else (nowMs - lastMs).coerceAtLeast(0L)
         val dt = if (paused || gap > MAX_GAP_MS) 0L else gap
         if (lastMs < 0 || dt == 0L && gap > 0) pctAt = nowMs // a pause or a gap: the stand is counted afresh
@@ -184,7 +184,8 @@ class OneBar {
         // the last step creeps by time only half its part: the other half is left in whole percents for an overrun
         val creepCap = (if (end >= 1.0 - 1e-9) minOf(end - FINAL_MARGIN, stepStart + (end - stepStart) / 2) else end - MARGIN).coerceIn(0.0, END)
         // the measurement, inside the running step's part
-        var next = maxOf(shown, raw.coerceIn(0.0, 1.0).coerceAtMost(cap))
+        measured = maxOf(measured, raw.coerceIn(0.0, 1.0).coerceAtMost(cap))
+        var next = maxOf(shown, measured)
         if ((next * 100).toInt() > lastPct) late = false
         // the number stood for a while: it creeps on towards the step's end; the step overran its share (no room left
         // there): one whole percent from the rest of the bar now and then – the longer the wait, the slower
@@ -204,6 +205,14 @@ class OneBar {
 
     /** The bar's share now, 0..1. */
     val share: Double get() = shown
+
+    /**
+     * What of [share] was measured (the creep by time and the borrowed percents not counted) – the share a time left is
+     * estimated from ([TimeLeft.seconds]): a bar that only creeps promises no time (owner 2026-11-19, „noch etwa 5
+     * Sekunden“ and then minutes).
+     */
+    var measured = 0.0
+        private set
 
     companion object {
         /** The bar stops this far before the running step's end until the step is really done. */
@@ -232,7 +241,8 @@ object TimeLeft {
     const val MIN_ELAPSED_MS = 3_000L
 
     /**
-     * Seconds left for a wait at [share] 0..1 after [elapsedMs]: the pace so far for the rest; never less than the
+     * Seconds left for a wait at [share] 0..1 (the measured share, [OneBar.measured] – not the bar with its creep) after
+     * [elapsedMs]: the pace so far for the rest; never less than the
      * running step's own measured time left [stepLeftS] (the server's estimate, the bytes at the measured rate). Null =
      * not estimable yet.
      */

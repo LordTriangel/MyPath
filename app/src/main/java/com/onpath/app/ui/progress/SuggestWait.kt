@@ -66,7 +66,7 @@ class SuggestWait(private val memory: ProgressMemory) {
         val pct = bar.next(raw, before + mine, stepLeftMs, now, stepStart = before)
         val rows = listOf(Res.string.wait_step_suggest_read, Res.string.wait_step_suggest_search, Res.string.wait_step_suggest_judge)
             .map { Txt.s(it) to null }
-        return SuggestWaitUi(pct, WaitSteps.of(rows, step), TimeLeft.seconds(bar.share, gone, null), bar.late, loading)
+        return SuggestWaitUi(pct, WaitSteps.of(rows, step), TimeLeft.seconds(bar.measured, gone, null), bar.late, loading)
     }
 
     /** The search ended: a run that came to its cards teaches the steps' shares by its phases' times; then afresh. */

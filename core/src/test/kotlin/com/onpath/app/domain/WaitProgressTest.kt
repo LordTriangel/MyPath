@@ -99,6 +99,25 @@ class WaitProgressTest {
         assertEquals(a, b)
     }
 
+    /**
+     * Owner 2026-11-19 (München → Hilden in the planner): „noch etwa 5 Sekunden“, then it hangs. The bar creeps by time
+     * while nothing is measured – the time left must come from what was measured ([OneBar.measured]), never from the creep.
+     */
+    @Test fun aBarThatOnlyCreepsGivesNoTimeLeft() {
+        val bar = OneBar()
+        var t = 0L
+        while (t <= 120_000) { bar.next(0.0, 1.0, null, t); t += 500 }
+        assertTrue("the bar crept on (${bar.share})", bar.share > 0.3)
+        assertEquals("nothing was measured", 0.0, bar.measured, 0.0)
+        assertNull(TimeLeft.seconds(bar.measured, 120_000))
+        // a measurement moves it; the creep after it does not
+        bar.next(0.5, 1.0, null, t)
+        assertEquals(0.5, bar.measured, 1e-9)
+        repeat(120) { t += 500; bar.next(0.5, 1.0, null, t) }
+        assertTrue(bar.share > 0.5)
+        assertEquals(0.5, bar.measured, 1e-9)
+    }
+
     // ---------------------------------------------------------------- time left
 
     @Test fun timeLeftOnceEstimable() {
