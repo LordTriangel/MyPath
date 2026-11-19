@@ -35,6 +35,17 @@ class TourDbMirrorTest {
         assertTrue(jdbc.contains("\" WHERE id=? AND kind=? AND deleted_at IS NULL\""))
     }
 
+    /** The view model's adapter hands each PlannedRow field to the column of its name – named arguments, so no swap can hide. */
+    @Test fun theViewModelsStoreAdapterPassesEveryFieldToItsOwnColumn() {
+        val vm = sourceFile("ui/AppViewModel.kt").readText().replace(Regex("\\s+"), " ")
+        assertTrue(vm.contains("db.insertTour(kind = TourKind.PLANNED, name = name, activity = row.activity, sac = row.sac, " +
+            "distance = row.distanceM, ascent = row.ascentM, descent = row.descentM, duration = row.durationS, " +
+            "segments = row.segments, waypoints = row.stops, pinned = row.pins, difficulty = row.difficulty, days = row.days)"))
+        assertTrue(vm.contains("db.replacePlanned(id = id, activity = row.activity, sac = row.sac, " +
+            "distance = row.distanceM, ascent = row.ascentM, descent = row.descentM, duration = row.durationS, " +
+            "segments = row.segments, waypoints = row.stops, pinned = row.pins, difficulty = row.difficulty, days = row.days)"))
+    }
+
     @Test fun theStarIsTheOneColumnOfTheTourRow() {
         assertEquals(setOf("favourite"), columns(body("    fun setFavourite(", "    /** Moves a tour to the recycle bin")))
         assertTrue(jdbc.contains("UPDATE tours SET favourite=? WHERE id=?"))

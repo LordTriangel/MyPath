@@ -1092,11 +1092,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         override fun getTour(id: Long) = db.getTour(id)
         override fun loadSegments(id: Long) = db.loadSegments(id)
         override fun insertPlanned(name: String, row: com.onpath.app.ui.routes.PlannedRow) =
-            db.insertTour(TourKind.PLANNED, name, row.activity, row.sac, row.distanceM, row.ascentM, row.descentM, row.durationS,
-                row.segments, row.stops, pinned = row.pins, difficulty = row.difficulty, days = row.days)
+            db.insertTour(kind = TourKind.PLANNED, name = name, activity = row.activity, sac = row.sac,
+                distance = row.distanceM, ascent = row.ascentM, descent = row.descentM, duration = row.durationS,
+                segments = row.segments, waypoints = row.stops, pinned = row.pins, difficulty = row.difficulty, days = row.days)
         override fun replacePlanned(id: Long, row: com.onpath.app.ui.routes.PlannedRow) =
-            db.replacePlanned(id, row.activity, row.sac, row.distanceM, row.ascentM, row.descentM, row.durationS,
-                row.segments, row.stops, row.pins, difficulty = row.difficulty, days = row.days)
+            db.replacePlanned(id = id, activity = row.activity, sac = row.sac,
+                distance = row.distanceM, ascent = row.ascentM, descent = row.descentM, duration = row.durationS,
+                segments = row.segments, waypoints = row.stops, pinned = row.pins, difficulty = row.difficulty, days = row.days)
         override fun rename(id: Long, name: String) = db.rename(id, name)
         override fun setFavourite(id: Long, favourite: Boolean) = db.setFavourite(id, favourite)
     }

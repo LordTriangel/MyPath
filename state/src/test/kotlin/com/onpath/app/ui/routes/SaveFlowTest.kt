@@ -105,6 +105,8 @@ class SaveFlowTest {
         val routes = RoutesState(routesStore, clock = { 5_000L })
         val board = NoticeBoard(routesOpen = { false }, settingsOpen = { false }, mapShown = { true })
         val log = ArrayList<String>()
+        /** The saved routes' names as stored when the backup / the sync were told (the told file must carry the new name). */
+        val namesAtCall = ArrayList<String>()
         val scope = CoroutineScope(Job() + Dispatchers.Unconfined)
 
         // the edges
@@ -151,8 +153,8 @@ class SaveFlowTest {
             override fun storeTimes(id: Long, route: PlannedRoute?, activity: Activity) { log += "times $id" }
             override fun forgetTimes(id: Long) { log += "forget times $id" }
             override fun copyTimes(from: Long, to: Long, distanceM: Double) { log += "copy times $from→$to" }
-            override fun tourChanged(id: Long) { log += "backup $id" }
-            override fun syncChanged(why: String) { log += "sync: $why" }
+            override fun tourChanged(id: Long) { log += "backup $id"; namesAtCall += "backup:" + planned().joinToString("|") { it.name } }
+            override fun syncChanged(why: String) { log += "sync: $why"; namesAtCall += "sync:" + planned().joinToString("|") { it.name } }
             override fun refreshTours() { refresh() }
             override fun saved(name: String?, id: Long, points: List<GeoPoint>?) { log += "saved $name"; plan.setSaved(name, id, points) }
             override fun shownRenamed(id: Long, name: String) { log += "shown $id → $name" }
@@ -382,6 +384,65 @@ class SaveFlowTest {
         assertEquals(listOf(a, b, c), stored.points())
         assertEquals("\"Saved as\" follows", "Leiteralm loop", app.plan.savedName)
         assertEquals("the list follows", listOf("Leiteralm loop"), app.routes.tours.map { it.name })
+    }
+
+    @Test fun theBackupAndTheSyncAreToldAfterTheRenameIsStored() {
+        val app = App()
+        app.draw(a, b); app.saveAs(proposalName)
+        app.plan.edit { add(c) }
+        app.namesAtCall.clear()
+        app.saveAs("Leiteralm loop")
+        assertEquals("overwrite: both see the new name", listOf("backup:Leiteralm loop", "sync:Leiteralm loop"), app.namesAtCall)
+        app.namesAtCall.clear()
+        app.save.rename(planned().single(), "Third")
+        assertEquals("rename: both see the new name", listOf("backup:Third", "sync:Third"), app.namesAtCall)
+    }
+
+    /** `overwriteSaved`'s own guard: "Los geht's" reads the old version on io (saving still false) while Save's overwrite starts. */
+    @Test fun anOverwriteWhileLosGehtsStillReadsTheOldVersionWritesOnce() {
+        val maker = App()
+        maker.draw(a, b); maker.saveAs(proposalName)
+        val io = ManualExecutor("io")
+        val app = App(io.asCoroutineDispatcher())
+        app.open(planned().single())
+        app.plan.edit { add(c) }
+        app.log.clear()
+        app.save.atTourStart()
+        assertEquals("the read of the version before waits on io", 1, io.size)
+        app.save.request(); app.save.confirm(proposalName)
+        io.runAll()
+        val id = planned().single().id
+        assertEquals(listOf(a, b, c), planned().single().points())
+        assertEquals("one overwrite, one backup entry", 1, app.log.count { it == "backup $id" })
+        assertEquals(1, app.log.count { it == "sync: route overwritten" })
+    }
+
+    /** `copyRoute`'s own guard: a copy dialog is open, a save starts, then the dialog's Save. */
+    @Test fun aCopyWhileASaveRunsIsNotMade() {
+        val maker = App()
+        maker.draw(a, b); maker.saveAs(proposalName)
+        val io = ManualExecutor("io")
+        val app = App(io.asCoroutineDispatcher())
+        app.save.requestCopy(planned().single())
+        app.save.saveRoute("Neu") // the write waits on io
+        app.save.confirm("")
+        io.runAll()
+        assertEquals("no copy", listOf(proposalName, "Neu"), planned().map { it.name })
+    }
+
+    @Test fun aLateProposalOfACancelledDialogNeverChangesTheCopyDialog() {
+        val maker = App()
+        maker.draw(a, b); maker.saveAs(proposalName)
+        val app = App()
+        app.plan.replace(listOf(c, d)); app.plan.setSaved(null, -1L, null)
+        app.proposalGate = CompletableDeferred()
+        app.save.request() // a new-route dialog, its proposal is on the way
+        app.save.cancel()
+        app.save.requestCopy(planned().single())
+        assertEquals(SaveAsk.Kind.COPY, app.save.ask?.kind)
+        app.proposalGate!!.complete(Unit)
+        assertEquals(SaveAsk.Kind.COPY, app.save.ask?.kind)
+        assertEquals("$proposalName (2)", app.save.ask?.name)
     }
 
     @Test fun overwriteWithAnEmptyNameKeepsTheOldOne() {
