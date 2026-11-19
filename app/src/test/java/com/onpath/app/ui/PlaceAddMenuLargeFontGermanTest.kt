@@ -9,9 +9,11 @@ import org.junit.Test
 import java.util.Locale
 
 /**
- * The held place's add menu („Einfügen“ · „Neues Ziel“ in doubt, else only the one – owner 2026-11-15 / 2026-11-17) in German at a larger (1.3) and the phone's
- * largest font (2.0): one line each, a label wraps rather than being cut. Same pictures as the
- * [ScreenshotTest] tests of the same name, drawn with this class's Paparazzi.
+ * The held place's and the held spot's add menus in German at the phone's largest font (2.0). These two stay whole-screen
+ * pictures for the PLACEMENT at the largest font: holdAddMenu = the menu beside the ring ([HoldAddOverlay]); poiMenu = the
+ * tall menu that fits neither above nor below the held spot and is clamped to the top bound ([AnchoredOverlay]). Same
+ * pictures as the [ScreenshotTest] scenes of the same name, drawn with this class's Paparazzi. The rows' text fit per
+ * language and font (1.0 / 1.3 / 2.0) is in [PlaceMenusGalleryTest].
  */
 class PlaceAddMenuLargeFontGermanTest {
     @get:Rule
@@ -26,26 +28,5 @@ class PlaceAddMenuLargeFontGermanTest {
     }
 
     @Test fun poiMenu() = shots.poiMenu()
-    @Test fun poiMenuClearGoal() = shots.poiMenuClearGoal()
-    @Test fun poiMenuClearStop() = shots.poiMenuClearStop()
-    @Test fun holdAddMenu() = shots.holdAddMenu()
-}
-
-/** The same at font size 1.3 (a common "larger" setting). */
-class PlaceAddMenuMidFontGermanTest {
-    @get:Rule
-    val paparazzi = Paparazzi(deviceConfig = DeviceConfig.PIXEL_5.copy(fontScale = 1.3f), showSystemUi = false)
-
-    private val before = Locale.getDefault()
-    @Before fun german() = Locale.setDefault(Locale.GERMANY)
-    @After fun back() = Locale.setDefault(before)
-
-    private val shots get() = ScreenshotTest().also {
-        it.javaClass.getDeclaredField("paparazzi").apply { isAccessible = true }.set(it, paparazzi)
-    }
-
-    @Test fun poiMenu() = shots.poiMenu()
-    @Test fun poiMenuClearGoal() = shots.poiMenuClearGoal()
-    @Test fun poiMenuClearStop() = shots.poiMenuClearStop()
     @Test fun holdAddMenu() = shots.holdAddMenu()
 }

@@ -990,27 +990,11 @@ class ScreenshotTest {
         }
     }
 
-    /** First hold on an empty plan: Start here · Go here (from my location) (position known). */
-    @Test fun firstPointMenu() = paparazzi.snapshot {
-        OnPathTheme {
-            OverlayFrame(null, androidx.compose.ui.unit.DpOffset(200.dp, 430.dp), empty = true) {
-                FirstPointMenu(null, onStartHere = {}, onFromMe = {})
-            }
-        }
-    }
-
-    /** Same without a position: "Go here" disabled with the reason. */
-    @Test fun firstPointMenuNoGps() = paparazzi.snapshot {
-        OnPathTheme {
-            OverlayFrame(null, androidx.compose.ui.unit.DpOffset(200.dp, 430.dp), empty = true) {
-                FirstPointMenu("Searching GPS…", onStartHere = {}, onFromMe = {})
-            }
-        }
-    }
-
     /**
      * Hold on a POI in Plan (owner 2026-11-15, variant A; 2026-11-17): in doubt „Insert“ and „New destination“, one line
      * each, the cheaper first and tinted; in a clear case only the matching row ([PlaceAddMenu.planningRows]).
+     * Not a test of its own any more (the rows are cells of [PlaceMenusGalleryTest]); drawn by
+     * [PlaceAddMenuLargeFontGermanTest] for the placement at the largest font.
      */
     fun placeAddMenu(vararg items: PlaceAddMenu.Item) = paparazzi.snapshot {
         OnPathTheme {
@@ -1022,13 +1006,7 @@ class ScreenshotTest {
     }
 
     /** In doubt (both about equal), inserting the cheaper: „Insert“ first and tinted, „New destination“ plain under it. */
-    @Test fun poiMenu() = placeAddMenu(PlaceAddMenu.Item.ADD_STOP, PlaceAddMenu.Item.NEW_DESTINATION)
-
-    /** Past the goal, appending clearly shorter (owner 2026-11-17): only „New destination“. */
-    @Test fun poiMenuClearGoal() = placeAddMenu(PlaceAddMenu.Item.NEW_DESTINATION)
-
-    /** Beside the route or on it, inserting clearly shorter (owner 2026-11-17): only „Insert“. */
-    @Test fun poiMenuClearStop() = placeAddMenu(PlaceAddMenu.Item.ADD_STOP)
+    fun poiMenu() = placeAddMenu(PlaceAddMenu.Item.ADD_STOP, PlaceAddMenu.Item.NEW_DESTINATION)
 
     /** A hold on the empty map in doubt (owner 2026-11-15): only the two rows, the likelier first and tinted, no title. */
     fun holdAddMenuShot(stopFirst: Boolean = true) = paparazzi.snapshot {
@@ -1044,16 +1022,6 @@ class ScreenshotTest {
 
     @Test fun holdAddMenu() = holdAddMenuShot()
     @Test fun holdAddMenuGoalFirst() = holdAddMenuShot(stopFirst = false)
-
-    /** Hold on a POI with an empty plan: same choice as the first-point menu. */
-    @Test fun poiMenuEmptyPlan() = paparazzi.snapshot {
-        OnPathTheme {
-            OverlayFrame(OnPathColors.Rec, androidx.compose.ui.unit.DpOffset(110.dp, 400.dp)) {
-                PoiMenu(com.onpath.app.poi.Poi("n1", "hut", "Meraner Hütte", 46.68, 11.25, ele = 1960), onAdd = {}, onGoogle = {},
-                    emptyPlan = true)
-            }
-        }
-    }
 
     /** A POI kind's map symbol cut from the bundled sprite, as PoiSprite.badge does on the phone. */
     private fun mapSymbol(kind: String): androidx.compose.ui.graphics.ImageBitmap {
@@ -1148,15 +1116,6 @@ class ScreenshotTest {
         }
     }
 
-    /** Hold on the start (unnamed): only Delete – it already is the start, it can't be the end of the route. */
-    @Test fun pointMenuStart() = paparazzi.snapshot {
-        OnPathTheme {
-            OverlayFrame(OnPathColors.Good, androidx.compose.ui.unit.DpOffset(120.dp, 420.dp)) {
-                PointMenu(0, 4, null) {}
-            }
-        }
-    }
-
     /** Hold on a middle point that is a POI (near the right edge): every option. */
     @Test fun pointMenuMiddlePoi() = paparazzi.snapshot {
         OnPathTheme {
@@ -1228,14 +1187,8 @@ class ScreenshotTest {
         }
     }
 
-    private val viaPts = listOf(com.onpath.app.gpx.GpxWaypoint(46.67, 11.16, null), com.onpath.app.gpx.GpxWaypoint(46.70, 11.20, null))
-    private val tourList = listOf(
-        Tour(1, TourKind.PLANNED, "Route Meran – Hirzer", 1_760_000_000_000, "HIKE", 3, 14_200.0, 1210.0, 300.0, 6.1 * 3600, "done", viaPts),
-        Tour(2, TourKind.RECORDED, "Tour 12 Oct 2026, 09:14", 1_760_200_000_000, "MTB", 3, 32_800.0, 940.0, 940.0, 3.2 * 3600, "done", emptyList(),
-            avgKmh = 10.3), // the overview's Ø Tempo (owner 2026-11-16): the row reads km · ↑ m · km/h
-        Tour(3, TourKind.IMPORTED, "Komoot – Waalweg Algund", 1_760_400_000_000, "HIKE", 3, 8_100.0, 210.0, 190.0, 2.1 * 3600, "done", emptyList()),
-        Tour(4, TourKind.RECORDED, "Demo · Algund", 1_760_500_000_000, "HIKE", 2, 5_300.0, 120.0, 120.0, 1.4 * 3600, "done", emptyList(), avgKmh = 3.8),
-    )
+    private val viaPts = routesFixtureVia
+    private val tourList = routesFixtureTours
 
     /**
      * Lines for My routes' small previews (owner 2026-11-07), put into the cache the rows read: a loop per tour, shaped by
@@ -1354,11 +1307,10 @@ class ScreenshotTest {
 
     /**
      * The activity filter (owner 2026-11-13): the L1 list with mixed activities (+ a gravel route; Gemacht: recorded tours
-     * of three activities); [act] = the chip's choice (null = "Alle"); [menuTop] / [menuStart] = where its menu opens
-     * (drawn in place – popups are not drawn), null = closed.
+     * of three activities); [act] = the chip's choice (null = "Alle"). The chip's menu itself is a cell of
+     * [RoutesMenusGalleryTest].
      */
-    fun activityFilter(act: Activity?, menuTop: androidx.compose.ui.unit.Dp? = null, menuStart: androidx.compose.ui.unit.Dp = 0.dp,
-                       tab: RoutesTab = RoutesTab.PLANNED) = paparazzi.snapshot {
+    fun activityFilter(act: Activity?, tab: RoutesTab = RoutesTab.PLANNED) = paparazzi.snapshot {
         val gravel = Tour(16, TourKind.PLANNED, "Marlinger Waalweg", 1_791_000_000_000, "BIKE_TREKKING", 2, 18_200.0, 260.0, 260.0,
             1.3 * 3600, "done", viaPts, uuid = "u-16")
         val done = listOf(tourList[1].copy(uuid = "u-2"), tourList[3].copy(uuid = "u-4"),
@@ -1369,9 +1321,6 @@ class ScreenshotTest {
         Box(Modifier.fillMaxSize()) {
             OnPathTheme { RoutesScreen(listOf(oneDraft.copy(uuid = "u-100")) + list, {}, {}, {}, {}, {}, recentId = 100L, thumbs = picSource,
                 initialTab = tab, initialActivity = act) }
-            if (menuTop != null) OnPathTheme {
-                MenuCard(Modifier.padding(top = menuTop, start = menuStart)) { com.onpath.app.ui.routes.ActivityFilterItems(act) {} }
-            }
         }
     }
 
@@ -1379,8 +1328,6 @@ class ScreenshotTest {
     @Test fun routesActivityHike() = activityFilter(Activity.HIKE)
     /** "Fahrrad" shows only Fahrrad (owner 2026-11-13: exactly the chosen activity). */
     @Test fun routesActivityBike() = activityFilter(Activity.BIKE_TOURING)
-    /** The chip's menu: the six (single choice), a line, "Alle". */
-    @Test fun routesActivityMenu() = activityFilter(Activity.HIKE, menuTop = 248.dp, menuStart = 140.dp)
     /** "Alle": every tour, Zuletzt back. */
     fun routesActivityAll() = activityFilter(null)
     /** Gemacht filtered the same way. */
