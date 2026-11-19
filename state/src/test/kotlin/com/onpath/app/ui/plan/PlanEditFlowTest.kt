@@ -14,6 +14,7 @@ import com.onpath.app.search.Place
 import com.onpath.app.testkit.OwnComposeSnapshot
 import com.onpath.app.testkit.ProblemsRule
 import com.onpath.app.ui.PlanSize
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -23,6 +24,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import kotlin.coroutines.CoroutineContext
 
 /**
  * Editing the plan's points (rebuild phase 2 piece 10) as flows of the REAL [PlanEditSlice] with the real [PlanDocument]
@@ -57,7 +59,7 @@ class PlanEditFlowTest {
         override var savedPoints: List<GeoPoint>? = null
     }
 
-    private inner class App(initial: List<GeoPoint> = emptyList()) {
+    private inner class App(initial: List<GeoPoint> = emptyList(), io: CoroutineDispatcher = Dispatchers.Unconfined) {
         val store = MemoryPlanStore().also { it.points = initial }
         val plan = PlanDocument(store)
         val causes = RunCause()
@@ -99,7 +101,8 @@ class PlanEditFlowTest {
             override fun setRoutingSpot(spot: GeoPoint?) { this@App.spot = spot; log += "spot=${letters[spot] ?: "-"} ${st()}" }
             override fun loadMapsForNewPoints(before: List<GeoPoint>) { log += "maps(before=${ids(before)}) ${st()}" }
             override fun keepAsDraft(why: String) { log += "draft($why) ${st()}" }
-            override fun routeLine(): List<GeoPoint>? = route
+            // the route line goes with the plan: a read after the points went finds none
+            override fun routeLine(): List<GeoPoint>? = route?.takeIf { store.points.isNotEmpty() }
             override fun recalc() { log += "recalc ${st()}" }
             override fun restoreActivity(c: PlanStatus.Cause.ActivityChange) { restoredActivity = c; log += "restoreActivity ${st()}" }
             override fun planChanged() { log += "planChanged ${st()}" }
@@ -137,7 +140,7 @@ class PlanEditFlowTest {
                 override fun recalc() { log += "run.recalc" }
                 override fun cancelRun(why: NotRouted) { log += "run.cancelRun($why)"; slice.cancelRun(why) }
             })
-            slice = PlanEditSlice(plan, run, causes, host, CoroutineScope(Job() + Dispatchers.Unconfined), Dispatchers.Unconfined)
+            slice = PlanEditSlice(plan, run, causes, host, CoroutineScope(Job() + Dispatchers.Unconfined), io)
         }
 
         /** A fresh start of the app on what the store holds. */
@@ -366,6 +369,50 @@ class PlanEditFlowTest {
         assertFalse(app.plan.canRedo)
     }
 
+    @Test fun undoOfADeleteShowsTheSpinnerAtThePointThatComesBack() {
+        val app = App(listOf(a, b, c))
+        app.slice.deletePointFromList(1)
+        assertNull(app.spot) // a delete adds no point
+        app.slice.undoStep()
+        assertEquals(b, app.spot) // RoutingSpot.of(before, prev): the point the step brings back
+        app.slice.redoStep()
+        assertNull(app.spot)
+    }
+
+    @Test fun anEditForgetsPinnedMarksOfPointsNeitherPlannedNorReachableByUndo() {
+        val app = App(listOf(a, b))
+        app.plan.pin(d) // a mark of a point that is nowhere
+        app.plan.pin(a)
+        app.add(c)
+        assertEquals(setOf(a), app.plan.pinned) // d went, the planned a stays
+        assertEquals(setOf(a), app.store.pinned) // and it is stored
+    }
+
+    @Test fun aFollowedTrackThatIsThePlansOwnLineGoesWithTheClearedPlanEvenWhenNotFromThePlan() {
+        val line = listOf(a, c)
+        val app = App(listOf(a, b, c))
+        app.route = line; app.followLine = line; app.followIsTrack = true; app.followFromPlan = false
+        app.slice.clearPlan() // the line read BEFORE the plan went is the plan's own line
+        assertNull(app.followLine)
+        assertEquals(1, app.log.count { it.startsWith("clearFollow") })
+    }
+
+    @Test fun aSecondLookupWhileTheFirstIsStillRunningStartsNothing() {
+        val held = ArrayList<Runnable>()
+        val io = object : CoroutineDispatcher() {
+            override fun dispatch(context: CoroutineContext, block: Runnable) { held += block }
+        }
+        val app = App(listOf(a, b), io)
+        app.named = mapOf(a to "Algund", b to "Meran")
+        app.slice.refreshPointNames()
+        assertEquals(1, app.nameCalls)
+        app.slice.refreshPointNames() // nothing is named yet, but the first job is on its way
+        assertEquals(1, app.nameCalls)
+        assertEquals(emptyMap<GeoPoint, String>(), app.slice.nearbyNames)
+        while (held.isNotEmpty()) held.removeAt(0).run()
+        assertEquals(mapOf(a to "Algund", b to "Meran"), app.slice.nearbyNames)
+    }
+
     @Test fun nothingToUndoOrRedoTouchesNothing() {
         val app = App(listOf(a, b))
         app.slice.undoStep()
@@ -398,6 +445,8 @@ class PlanEditFlowTest {
         assertTrue(order.indexOf("draft") < order.indexOf("hold"))
         assertTrue(order.indexOf("recalc") < order.indexOf("closePointMenu"))
         assertTrue(order.indexOf("closePointMenu") < order.indexOf("removePin"))
+        assertTrue(app.log.any { it.startsWith("removePin(plan cleared) [stored= ") }) // the pin goes after the plan went, with this reason
+        assertTrue(app.log.any { it.startsWith("closePointMenu(plan cleared) ") })
         assertEquals(listOf("firstMenuOff", "holdAddOff", "highlightOff"), app.log.filter { it in setOf("firstMenuOff", "holdAddOff", "highlightOff") })
         assertEquals(PlanSize.MINI, app.slice.planSize) // the empty sheet says how to start: not rolled up
         assertTrue(app.plan.canUndo)
@@ -569,7 +618,9 @@ class PlanEditFlowTest {
         val other = App(listOf(a, b)) // a plan restored at the start
         other.startRun()
         other.log.clear()
+        other.slice.pinTaken = TakenPin(far, b)
         other.run.cancelRouting()
+        assertNull(other.slice.pinTaken) // taken once by this Cancel, whatever it did
         assertEquals("ab", other.stored())
         assertFalse(other.plan.canRedo)
         assertEquals(0, other.log.count { it.startsWith("splitOf") })
@@ -581,9 +632,11 @@ class PlanEditFlowTest {
         val change = PlanStatus.Cause.ActivityChange(Activity.EBIKE, 2)
         app.causes.activity(change)
         app.startRun()
+        app.slice.pinTaken = TakenPin(far, b)
         app.run.cancelRouting()
         assertEquals(change, app.restoredActivity)
         assertEquals("ab", app.stored())
+        assertNull(app.slice.pinTaken) // taken once by this Cancel, whatever it did
     }
 
     @Test fun cancelBringsTheFoundPlacesPinBackWhenTheAddIsTakenBackAndNewerThingsWin() {

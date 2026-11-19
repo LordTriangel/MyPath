@@ -74,7 +74,10 @@ class PlanSheetLayoutTest {
         assertFalse(Regex("onSave\\w*").containsMatchIn(panel))
         val vm = src("ui/AppViewModel.kt")
         assertTrue(vm.contains("fun requestClear() = planEdit.clearPlan()"))
+        val editSlice = src("ui/plan/PlanEditSlice.kt") // clearPlan lives here since piece 10
+        assertTrue(editSlice.contains("fun clearPlan() {"))
         assertFalse(vm.contains("discardSaveFirst") || vm.contains("canSaveBeforeClear") || vm.contains("discardAsk"))
+        assertFalse(editSlice.contains("discardSaveFirst") || editSlice.contains("canSaveBeforeClear") || editSlice.contains("discardAsk"))
         assertTrue(DecisionLayout.oneRow(300f, 312f)); assertFalse(DecisionLayout.oneRow(330f, 312f))
     }
 
