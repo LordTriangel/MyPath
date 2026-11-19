@@ -12,7 +12,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -244,7 +243,6 @@ class NoStaleDownloadsTest {
      * cell. A tour cell waiting for Wi-Fi that the position now needs stays waiting until the worker's next wake-up
      * (IDLE_MS = 15 min, or any network / foreground change). Fix: wake() when an existing entry changed.
      */
-    @Ignore("known bug in MapCells.request (no wake for an upgraded queue entry); remove when fixed")
     @Test fun positionNeedingAWaitingTourCellWakesTheWorker() {
         server.publish(a, "v1"); server.buildPolls = 0
         val mc = cells(Net(unmetered = false))

@@ -318,14 +318,19 @@ class MapCells(
         synchronized(held) { if (closed) { held += Held(cells, reason, ownPoint); return emptyList() } }
         val inst = _installed.value.map { it.id }.toSet()
         val added = ArrayList<CellId>()
+        var upgraded = false
         synchronized(queue) {
             for (c in cells.distinct()) {
                 if (c in queue) {
                     val p = queue[c]!!
                     // asked again (a point there, the corridor of the current plan): it belongs to what asked now – a
                     // corridor request asked for by a point is no longer dropped with the corridor
-                    queue[c] = p.copy(ownPoint = p.ownPoint || ownPoint, confirmed = true,
+                    val q = p.copy(ownPoint = p.ownPoint || ownPoint, confirmed = true,
                         reason = if (p.reason == CellReason.CORRIDOR && (reason == CellReason.POINT || reason == CellReason.NEAR)) reason else p.reason)
+                    // a waiting entry that may load now (the position reached a tour area that waited for Wi-Fi) must
+                    // wake the worker – it sleeps up to IDLE_MS when nothing was allowed (found 2026-11-19, flaky test)
+                    if (q != p) upgraded = true
+                    queue[c] = q
                     continue
                 }
                 if (c in inst && reason != CellReason.REFRESH && reason != CellReason.UPDATE) continue
@@ -347,7 +352,7 @@ class MapCells(
             Problems.trace("cells", "Requested ${added.size} region(s) (${reason.name.lowercase()}): ${added.joinToString { it.id }}")
             sent.removeAll(added.toSet())
             wake()
-        }
+        } else if (upgraded) wake()
         return added
     }
 
