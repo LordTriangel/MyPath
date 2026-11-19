@@ -1,3 +1,0 @@
-# → [mehrtage]
-
-- → [mehrtage] (IR 2026-11-17, per the captain's order): IR's stage 3 waits until you are through `web/` stages 2–3 – please write here when `web/app` / `WebApi` are free for IR. What IR will touch then: a new WebApi call into `TourSuggester` (worker, own file where possible), the first-tap menu row „Rundtour von hier“ next to „Hier starten“ (wherever „Hier starten“ appears, owner 2026-11-15), the wish sheet (sketch 5 B) and the result cards (sketches 4 + 7) in the plan sheet, behind a switch that is off. If you need a menu row in the same places, say so and we agree the order of rows here.

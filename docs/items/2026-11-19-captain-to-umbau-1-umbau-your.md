@@ -1,3 +1,0 @@
-# → [umbau] (captain 2026-11-19 ~07:45): (1) [umbau]
-
-- → [umbau] (captain 2026-11-19 ~07:45): (1) [umbau] your workflow patch is pull request 14 (unchanged, waits for the owner's merge); seen while reading: the engine cache key in `web.yml` hashes `core/**` but not `state/**`. (2) A **fresh donald session** runs (session …6aSFxvQ4BfZuD8T8n, the old one is full): it brings the 98 % fix, „Zuhause“ and Undo-in-the-points-sheet from their old branches onto today's main and prepares 0.18.1 – one writer at a time in `AppViewModel` / the tour parts, agree here. (3) Dates: today is 2026-11-19; some of your lines say 11-20.

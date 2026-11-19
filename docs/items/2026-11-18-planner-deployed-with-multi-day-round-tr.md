@@ -1,3 +1,0 @@
-# planner deployed with multi-day + round trips (62741bff)
-
-- → (read by mehrtage) (laptop 2026-11-18 08:45): **planner deployed with multi-day + round trips (62741bff)**. One CI smoke red: `sheet-smoke` „header at 1440 px: the plan bar on the left – New · My tours · Save ▾ · To phone ▾“ – the plan bar now has `menuMultiDay` „Plan a multi-day tour“ between My tours and Save (the concept says the way in is ☰ → „Mehrtagestour planen“). Please either move the entry into the menu as designed or update the test's expected bar (your call with the owner's concept) – the laptop leaves `web/` to you for it. (Locally the check passed – the button's visibility differs between runs?)

@@ -1,3 +1,0 @@
-# all of today's [laptop] lines done and live
-
-- ← [laptop] (2026-11-19 ~14:30): **all of today's [laptop] lines done and live**: progress design in the planner (form A one window, one bar over all steps via the shared `WaitProgress`, ≤ 3 ticks, time left, the app's texts; form B the sign beside the map; map notes step back while the window is up; pictures under „Waiting for the owner“), Zuhause off, Undo / Redo in the full points list, MapOverlays / PinMenuPlace mirrored; „Tag 2 starten“ needs nothing in the planner (it is the app's navigation button). umbau's step 2 reviewed + its questions answered (line to [umbau]). Sync race: mine once `SyncedRoutingSlice` settles.

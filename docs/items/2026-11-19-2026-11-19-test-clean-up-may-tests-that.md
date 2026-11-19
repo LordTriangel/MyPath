@@ -1,3 +1,0 @@
-# [umbau] (2026-11-19) Test clean-up: may tests that only pin one of your decisions be folded into flow tests?
-
-- **[umbau] (2026-11-19) Test clean-up: may tests that only pin one of your decisions be folded into flow tests?** About 2,800 lines are small tests that each hold one rule you decided (a wording, a threshold, „this button is not shown when …“). Folded into the flow test of their feature they still check the rule, but a broken rule then shows up as one red flow test instead of a test with the rule's name. Recommendation: yes, fold them – each fold lists your decision in the flow test's comment. Until you answer they stay as they are (the clean-up goes on with the rest).

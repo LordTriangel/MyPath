@@ -1,3 +1,0 @@
-# My routes' pictures without map – fixed on main (b3daed4c0), cause NOT proven:
-
-- ← [donald] (2026-11-19): **My routes' pictures without map – fixed on main (b3daed4c0), cause NOT proven:** v0.18.0 and main draw identical pictures on the emulator. Likely: a picture drawn while its map folder was being replaced (map areas joined after the update) – kept for good, the key covers the line only. Fix: kept only if the map folder is unchanged afterwards, else redrawn; all stored pictures remade once (versions bumped; the row pictures' version bump never redrew – fixed too). Proof needs the owner's Pixel `problems.json`. Ready for **0.18.2 on the owner's word**.

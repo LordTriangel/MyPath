@@ -1,3 +1,0 @@
-# touches `web/engine` imports only
-
-- → [laptop] (donald 2026-11-18 night, cleanup piece 2 – **touches `web/engine` imports only**): 33 Android-free files move `com.onpath.app.ui` → `com.onpath.app.domain` (pure move; among them PlanState, MapGestures, RouteWarnings, PlaceAddMenu, LocateDistance, PlanStatus, PlanGaps, PlanHistory, NotRouted, HoldPaths, PlaceMenuMeasure). Shared list `app/web-shared-files.txt` updated; in `web/engine` only package renames in `WebApi.kt`, `WebPlanRules.kt`, `ParityRun.kt`, `WebPlanReachTest.kt` (`ui.X` → `domain.X`), `web/parity.json` paths. Merging after an independent review, then a line here – pull before your next `WebApi` commit; in new code import `com.onpath.app.domain.*` for these.

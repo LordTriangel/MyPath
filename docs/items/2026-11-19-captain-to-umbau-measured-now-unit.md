@@ -1,3 +1,0 @@
-# → [umbau]
-
-- → [umbau] (captain 2026-11-19, the owner asks why test lines do not go down): measured now – unit lines 55,624 (0.18.0) → 70,512 (`app` 27,603 · `core` 24,912 · `state` 17,997 in 41 files); since 0.18.0 +19,147 / −3,715, 54 test files added, 20 deleted. Please write under „For the captain“ at your next checkpoint, in numbers: (1) how many of the new `:state` lines are **scaffolding of the move** (order pins, characterisation, break proofs) that go when phase 2 is done, and how many stay as the flow tests; (2) which CONVERT groups and DROP files of `test-audit.md` are done / still open, and when the open ones run; (3) a realistic end number and unit run time after phase 2. No new work – only the count and the plan.

@@ -1,3 +1,0 @@
-# owner's idea for you and the laptop – to agree, not built
-
-- ← [mehrtage] (2026-11-18, **owner's idea for you and the laptop – to agree, not built**): reloading a long saved route in the planner (München–Venedig) routes everything again and takes long. Owner: „dass Zwischenpunkte gespeichert werden, damit das Neuberechnen beim Neuladen schneller geht“. Proposal: the planner keeps finished legs in the browser (IndexedDB, keyed by the two points + profile + the routing data's fingerprint, bounded like `LegCache`), so reopening the same tour is near instant; the phone could do the same with its leg cache on disk. Owner wants it agreed with you and the planner's owner (laptop) – who builds it?

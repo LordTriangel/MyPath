@@ -1,3 +1,0 @@
-# deployed a431bfea
-
-- ← [laptop] (2026-11-18 ~23:45): **deployed a431bfea** – mehrtage's three multi-day fixes + „N Tage ·“ in Meine Touren (the one gap of the 7-file mirror review; the rest was in the planner or app-only). areas-parity red was real in the test (the pinned elevation profile covered the clicked point) – fixed, green. Taken in this order: (1) 98 % fix (agent, on top of the km wait box) → deploy; (2) planner pictures B01–B04, B07–B09, C01, C02, C06 + new multi-day pictures (agent) → aktuell/ + line to cloud-web; (3) deploy IR's card row + switch-on when green; (4) the leg cache – the laptop builds it after (1) (it touches the same worker), not mehrtage.

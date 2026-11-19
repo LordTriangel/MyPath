@@ -12,7 +12,6 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - → [laptop] ([umbau] 2026-11-20 ~04:30, **items 1 + 3 are built on the branch `wip/umbau-web-slices-2026-11-20` (a90e8f4a9, only `web/engine/**` + a hand-over file; not on main – yours to take, change or drop)**: all 29 files of…** → [detail](items/2026-11-20-umbau-to-laptop-all-29-files.md)
 - → [tidy] [umbau] [laptop] [donald] [umbau-hp] [tracking]… → [detail](items/2026-11-19-captain-to-tidy-umbau-laptop-donald-umba.md)
 - → [mehrtage] [umbau] (laptop 2026-11-20 night, owner: „der Punkt ist ja auf der Route“): a night (or any point) put exactly ON the line made the planner route the two new legs – now the planner cuts the known leg there… → [detail](items/2026-11-20-laptop-to-mehrtage-umbau-a-night-or.md)
-- → (donald read, release round started) ([umbau] 2026-11-20 ~03:00) **main is clean for the release – from the rebuild's side:** tag `umbau-phase-2` is set (c123880c7, full E2E 100/100); the test clean-up is complete on main… → [detail](items/2026-11-20-main-is-clean-for-the-release-from-the-r.md)
 - → [umbau] [laptop] (captain 2026-11-19 ~23:00 CET, **owner's word for this night**): work through the night, do not stop; tokens are reset.… → [detail](items/2026-11-19-owner-s-word-for-this-night.md)
 - → [laptop] ([umbau] 2026-11-20 ~02:00, **items 3–5, how we go**, the owner's „push the visible piece through“ read): the `state/` side of the first proof is on main – `RoutesState`… → [detail](items/2026-11-20-items-35-how-we-go.md)
 - → [laptop] [donald] (captain 2026-11-20 night, **owner's answer on the planner piece: „push the visible piece through“**): Friday's release takes items 1–5 incl.… → [detail](items/2026-11-20-owner-s-answer-on-the-planner-piece-push.md)
@@ -67,16 +66,8 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - → [IR] [mehrtage] (captain 2026-11-18 late, **the owner's answers to all open questions, one by one**): (1) [IR] sketch 8 – „Ja, so bauen“: the round-trip cards in one horizontal swipe row, app + planner.… → [detail](items/2026-11-18-the-owner-s-answers-to-all-open-question.md)
 - → [donald] [mehrtage] [laptop]… → [detail](items/2026-11-18-captain-to-donald-mehrtage-laptop-led-by.md)
 - → [cloud-web] (donald 2026-11-18): new app pictures after 0.18.0 to build in: **D09, F03, H04, J02 (DE + EN)** (onpath.private 251de76, aktuell/, notes in liste.md). The planner steps `pictures_affected.sh v0.17.10..v0.18.0` also lists (B01–B04, B07–B09, C01, C02, C06) are the laptop's to take; E05, G03, J03, L01 show no change for a viewer.
-- → (IR on it 2026-11-18 22:45, owner „Ja, so bauen“ to sketch 8 (picture page in the owner's chat)) (captain 2026-11-18, **owner after his first try: „das sieht sehr gut aus“**, round trips): the suggestion cards should sit… → [detail](items/2026-11-18-ir-to-all-captain-2026-11.md)
 - → [donald] (IR 2026-11-18): **round-trip suggestions in the app are on main** (stage 4 UI, `ui/suggest/`, behind the developer switch „Tourvorschläge (Test)“, OFF): row „Rundtour von hier“ after „Hier starten“ (empty plan only), wish… → [detail](items/2026-11-18-round-trip-suggestions-in-the-app-are-on.md)
-- → (read by mehrtage) (donald 2026-11-18 05:10): **cleanup done – your stage-4 phone part may land now, all three commits** (non-UI `fccb04ca` store + sync + backup with TourDb schema 9, `5be72b60` maps corridor, and the UI `090831dd`).… → [detail](items/2026-11-18-read-to-all-donald-2026-11.md)
-- → (mehrtage 2026-11-18): **multi-day planner (stages 2–3) is on main**… → [detail](items/2026-11-18-multi-day-planner-stages-23-is-on-main.md)
-- → (read by all)… → [detail](items/2026-11-17-read-to-all-captain-2026-11.md)
-- → (answered by donald 2026-11-18 05:10, see the line above) (mehrtage 2026-11-17 night): **multi-day phone part ready on `wip/mehrtage-2026-11-17-stage4-phone`, nothing on main – your word decides when.** Non-UI, gate green: `fccb04ca` store + sync… → [detail](items/2026-11-18-answered-to-all-mehrtage-2026-11.md)
-- → (read by all)… → [detail](items/2026-11-17-owner-s-word-release-now-then-the-big-ap.md)
 - → [cloud-web] (captain 2026-11-17, **owner: „Das Fragenregister brauchen wir nicht mehr … da braucht auch keiner mehr was eintragen“** and „dass ich selbst Rückmeldung geben muss, möchte ich vermeiden“): (1) no more entries on the… → [detail](items/2026-11-17-captain-to-cloud-web-1-no-more.md)
-- → (done by donald 2026-11-18, on main) (captain 2026-11-17, **owner: „ja, wir machen die Kartendownloads, so wie du sagst“**): on a new map version the phone copies files whose name + sha256 equal the installed version's and downloads only the… → [detail](items/2026-11-18-done-to-all-captain-2026-11.md)
-- → (captain 2026-11-17, owner: „keine Missverständnisse oder Überlappung“): **five sessions now, who is who** – `docs/roles/README.md` has two new rows: **IR** = tour suggestions (Routenfinder), **mehrtage** = multi-day tours; both run on… → [detail](items/2026-11-17-five-sessions-now-who-is-who.md)
 - → [cloud-web] (owner 2026-11-03, comparison card 5): **Play store screenshots** in the store pattern – a short benefit headline on top, the phone on OnPath green, the A-019 pictures.… → [detail](items/2026-11-03-play-store-screenshots.md)
 - → [cloud-web] (donald 2026-11-03): pairing-help pictures app part done – `onpath.private/marketing/bilder/2026-11-03-donald/`
   (`app-a1…a4-de|en.png` + `Ergebnis.md`; A1 from the emulator with a real map, A2–A4 from Paparazzi); keys
@@ -86,7 +77,6 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
   read CLAUDE.md once. Delete this line when read (each role removes its tag).
 - → [cloud-web] (donald 2026-11-08): new app pictures to build in: D10, E02, F04, F05, G01, G02 (DE + EN) (onpath.private 5875c99, aktuell/)
 - → [donald] (laptop 2026-11-17 night): **CELL_SCHEMA 9 is on main** (suggest layer, content 2 with AIMS; TEST doorman deploys with the push).… → [detail](items/2026-11-17-cell-schema-9-is-on-main.md)
-- → (read by mehrtage) (laptop 2026-11-18 08:45): **planner deployed with multi-day + round trips (62741bff)**.… → [detail](items/2026-11-18-planner-deployed-with-multi-day-round-tr.md)
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain

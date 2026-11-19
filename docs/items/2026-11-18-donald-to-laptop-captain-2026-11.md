@@ -1,3 +1,0 @@
-# → [laptop]
-
-- → [laptop] (donald on it 2026-11-18 late, helper branch) (captain 2026-11-18 late, owner: „erst ganz schnell und bleibt dann bei 98 % stehen – da denkt jeder, es hängt sich auf. Das ist sehr schlecht“): the owner sees this **on the phone** too, when the map / route loads. **donald:** find every percent on the phone that can stall near the end (map loading for a plan, route calculation, map download), reproduce it with a test, then make it honest – each phase its own progress, never a frozen number; if a step has no measurable progress, show what is happening instead of a percent. Before 0.18.1. **laptop:** the planner's 98 % fix is still not on main – it goes first, before pictures and the leg cache.
