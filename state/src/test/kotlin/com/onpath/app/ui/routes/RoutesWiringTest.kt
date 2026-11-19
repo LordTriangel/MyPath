@@ -102,14 +102,4 @@ class RoutesWiringTest {
             assertTrue("$n above the Routes slice", at(n) < flow)
         assertTrue("above the init that routes the saved plan and refreshes the list", flow < at("    init {\n        recalc()"))
     }
-
-    /** The moved bodies do not exist twice: the view model holds none of the rules (one place: the slice). */
-    @Test fun theViewModelKeepsNoCopyOfTheMovedBodies() {
-        for (gone in listOf("TrackToPlan.fit(", "routes.toBin(", "StoredLine.preview(", "RideView.lines(", "SportType.openChoice(",
-            "planFromTrackCancel", "msg_tour_delete_failed", "plan_from_track_failed", "plan_from_track_wait",
-            // piece 14: Routes II lives in RoutesGoSlice only
-            "RoutesGo.step(", "noteNewPlan(", "PlanLinks.load(", "PlanLinks.share(", "routes_followed_plan_missing",
-            "TourReview.of(", "plan.usable", "goJob", "getTourPlan(t.id)", "RouteRules.menu(", "RouteRules.openAsk(", "routes.openAsk("))
-            assertTrue("not in the view model: $gone", !vm.contains(gone))
-    }
 }

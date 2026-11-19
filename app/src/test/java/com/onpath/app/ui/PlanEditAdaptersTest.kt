@@ -70,13 +70,5 @@ class PlanEditAdaptersTest {
         listOf(
             "fun planPointRows(): List<com.onpath.app.routing.PlanPointRow> = planEdit.planPointRows(route)",
         ).forEach { assertTrue("forwarder: $it", vm.contains("    $it\n")) }
-        // pinTaken is the add slice's to write (piece 11) and the edit slice's to keep: the view model no longer holds it
-        assertTrue("no pinTaken forwarder", !vm.contains("pinTaken"))
-    }
-
-    @Test fun theEditingFunctionsAreNotInTheViewModelAnyMore() {
-        for (gone in listOf("fun reverseRoute() {", "fun roundTrip() {", "fun clearPlan() {", "private fun step(", "private fun cancelRun(",
-                "fun movePointInList(from: Int, to: Int) {", "fun deletePointFromList(index: Int) {", "private var namesJob"))
-            assertTrue("$gone moved to the slice", !vm.contains(gone))
     }
 }

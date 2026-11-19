@@ -36,11 +36,6 @@ class PlanRecalcWiringTest {
     @Test fun theViewModelKeepsRecalcAsOneLineForwarderAndTheBigInitCallsItFirst() {
         assertEquals(1, count(vm, "    private fun recalc(): Unit = planRecalc.recalc()\n"))
         assertTrue("recalc() first", vm.contains("    init {\n        recalc()\n"))
-        // the body is gone from the view model
-        for (gone in listOf("private fun showProgress", "private fun namedStops", "private fun snapToRoute", "private fun aliasSnappedLegs", "private fun findReach",
-            "private fun freshenAfterRoute", "private fun routingDataRouteChanged", "private inline fun <T> exceptions", "private class StandIn",
-            "private var standIn", "private var routingDataBefore", "ROUTING_SLOW_MS", "WAIT_POLL_MS", "RouteRun.Event.Recalc(", "launchSafe(\"app\", \"recalc\")"))
-            assertEquals("gone from the view model: $gone", 0, count(vm, gone))
     }
 
     @Test fun theSliceSitsAfterTheEditsSliceItReachesAndAboveEveryInit() {

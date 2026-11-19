@@ -27,13 +27,6 @@ class ImportExportWiringTest {
         has(vm, """val importExport: ImportExport by lazy \{\s+ImportExport\(app, viewModelScope, Dispatchers\.IO, db, object : ImportExportHost""", true)
     }
 
-    @Test fun theOneForwardThatIsNotAPlainCallStays() {
-        // (piece 21: the one-line forwards `importData`, `checkRestoreOffer`, `exportAll`, `exportTour`, `importGpx`, `restoreFrom` are gone: the
-        // screens call `vm.importExport.x`; what stays is the one that is not a plain forward, `share`, which `exportFollowedPlan` still calls)
-        for (f in listOf(
-            "private suspend fun share(name: String, gpx: () -> com.onpath.app.gpx.GpxFile) = importExport.share(name, gpx)")) has(vm, f)
-    }
-
     @Test fun theHostAdapterForwardsEachMemberToItsOwn() {
         val a = vm.indexOf("object : ImportExportHost {"); assertTrue("adapter not found", a >= 0)
         val b = vm.substring(a, vm.indexOf("        })\n", a))

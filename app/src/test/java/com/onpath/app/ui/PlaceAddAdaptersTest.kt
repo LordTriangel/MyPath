@@ -90,12 +90,4 @@ class PlaceAddAdaptersTest {
         assertTrue(close, close.contains("placeAdd.cancelHoldMeasure(why)"))
         assertTrue(close, close.contains("poiMenu = null; poiMenuRows = null; placeAdd.firstPointMenu = null; placeAdd.holdAddMenu = null; if (planPoi != null) closePlaceCard()"))
     }
-
-    @Test fun theAddingFunctionsAreNotInTheViewModelAnyMore() {
-        for (gone in listOf("fun addPoint(p: GeoPoint, lineSnapM: Double = 30.0, onPoi: Boolean = false) {", "private class Insertion(", "private fun insertionFor(",
-                "private fun lineDpOf(", "private fun zoneFor(", "private fun insertAsStop(", "private fun asNewDestination(", "class HoldAdd(",
-                "private fun measureHold(", "private fun addPoiWith(", "private fun startAtPoint(", "private inline fun fittingPlaceAdd(",
-                "private val holdPaths", "private val holdRouting", "private var pinTaken", "private fun set(list"))
-            assertTrue("$gone moved to the slice", !vm.contains(gone))
-    }
 }

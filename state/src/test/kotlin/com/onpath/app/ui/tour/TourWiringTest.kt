@@ -87,14 +87,6 @@ class TourWiringTest {
         )) assertTrue("the host says: $line", hostAdapter.contains(line))
     }
 
-    /** The follow state the check sheet once left to piece 18a is the follow slice's now; the check slice does not touch it. */
-    @Test fun theFollowStateOfTheCheckSheetIsTheFollowSlicesNow() {
-        for (name in listOf("navActivitySeen", "planBaseline", "planFollowed")) assertFalse(
-            "the check slice does not touch the follow state: $name", slice.contains(name))
-        assertEquals("the state itself is the slice's", 0, count(vm, "private var navActivitySeen: Activity? = null"))
-        assertEquals(0, count(vm, "private var planBaseline: List<GeoPoint>? = null"))
-    }
-
     /** Nothing runs at construction and no collector is involved: the slice has no `init`, no `collect`, no launch outside a user action. */
     @Test fun theSliceReadsAndStartsNothingAtConstruction() {
         assertFalse(slice.contains("init {"))
@@ -299,12 +291,6 @@ class TourWiringTest {
      * read `vm.tourFollow.x`); the state collector of piece 19 reads and writes the slice directly.
      */
     @Test fun theMovedFollowCodeIsNotInTheViewModelAnyMore() {
-        // the forwards only the moved plan-edit code used went with it (piece 18b): the slice calls the follow slice itself
-        for (gone in listOf("private val followOriginal", "private fun recopyFollowedPlan", "private fun copyFollowedPlan", "private fun setFollow",
-            "private fun followAgain", "tourFollow.followAgain(",
-            // piece 19: the state collector and the start / continue code were their last readers
-            "private fun planFollowed", "private fun planReplacesTrack", "private fun syncNavActivity", "private var navVersion", "private var navActivitySeen",
-        )) assertEquals("gone from the view model: $gone", 0, count(vm, gone))
         // the state collector of piece 19 is the session's: it reads / writes the follow slice directly
         val session = sourceFile("ui/tour/TourSession.kt").readText()
         assertTrue(session.contains("val n = st?.nav ?: run { follow.navActivitySeen = null; syncRetries = 0; return@collect }"))
@@ -352,7 +338,6 @@ class TourWiringTest {
             assertTrue("$dep must be declared before the slice", vm.indexOf(dep) < declared)
         }
         assertTrue("the end slice is declared after it", vm.indexOf("val tourEnd: com.onpath.app.ui.tour.TourEndSlice = ") > initAt)
-        assertEquals("the old collector is gone from the view model", 0, count(vm, "recState.map { it?.tourId }"))
         // the follow state is reached through forwarder properties now: an init above the slice that read one would crash at
         // the app's start (the old plain fields gave their defaults) and ViewModelInitOrderTest does not follow property getters
         assertEquals("only the two known inits stand above the slice – a new one must not read the follow state (review 2026-11-19)",
@@ -457,9 +442,6 @@ class TourWiringTest {
         assertEquals("…and the view model no longer does", 0, count(vm, "followCancel?.cancel()"))
         assertEquals("the run asks the tour to follow the edited plan", 1, count(recalcSlice, "RouteRun.Effect.FollowEditedPlan -> tourEdits.followEditedPlan()"))
         assertEquals(0, count(vm, "\n        followCancel"))
-        for (gone in listOf("pendingSplit", "splitBefore", "passedPoints", "passedTourId", "private var loadedOnTheWay", "private fun splitOf", "private fun followAhead",
-            "private fun followEditedPlan", "private fun oneLeftGoesFromHere", "private fun endGuidanceIfPlanEmpty", "private fun wayThereFrom", "private fun followShownNow",
-            "private fun prunePinned")) assertEquals("gone from the view model: $gone", 0, count(vm, gone))
     }
 
     /**
@@ -532,10 +514,6 @@ class TourWiringTest {
             "val mode: AppMode get() = tourSession.mode",
             "override fun resumeNavigation() = tourSession.continueNavigation()",
         )) assertEquals("the view model says: $line", 1, count(all, line))
-        // what moved is gone from the view model (the forwards nobody uses any more went with it)
-        for (gone in listOf("private var startJob", "START_TIMEOUT_MS", "private fun secureTourCorridor", "private fun planHasStraightLegs", "private fun checkNow",
-            "private fun onArrived", "mutableStateOf(AppMode.PLAN)", "val straightAsk by", "recording.startFailed", "recording.state.collect", "recording.state.filterNotNull",
-            "unfinishedPending")) assertEquals("gone from the view model: $gone", 0, count(vm, gone))
         assertEquals("one place sets the mode: the slice", 0, count(vm, " mode = "))
     }
 

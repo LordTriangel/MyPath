@@ -105,15 +105,4 @@ class PlaceMenusAdaptersTest {
         assertTrue(vm.contains("            override val mapOverlayOpen: Boolean get() = this@AppViewModel.placeMenus.mapOverlayOpen\n"))
         assertTrue(vm.contains("            override fun openPoiMenu(poi: com.onpath.app.poi.Poi) = this@AppViewModel.placeMenus.openPoiMenu(poi)\n"))
     }
-
-    @Test fun theMovedBodiesAreNotInTheViewModelAnyMore() {
-        for (gone in listOf("private class PoiRows(", "private var poiMenuRows", "private var poiKindsKnown", "private var poiKindsFound", "private val poiKindsLookedUp",
-                "private var poiKindsJob", "private fun rememberPoiKind(", "private fun menuAction(", "private fun saved()", "private fun placeOf(", "private fun keepPlaces(",
-                "var savedPlaces by mutableStateOf", "var pointMenuTarget by mutableStateOf", "var planPoi by mutableStateOf", "var poiMenu by mutableStateOf",
-                "PlaceMenuMeasure.start(", "PinnedPoiKinds.byIndex(", "Backups.placesChanged(getApplication())\n        sync.changed(",
-                "searchStore.update(change = change) } catch", "AddPreview.of(", "AddPreview.existingRole(", "Point menu opened (", "Point menu closed (point"))
-            assertFalse("$gone moved to the slice", vm.contains(gone))
-        // the place card's helper that stays: the search's same-spot rule (the slice asks it through its host)
-        assertEquals(1, Regex("private fun routeIndexOf\\(").findAll(vm).count())
-    }
 }

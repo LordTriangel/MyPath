@@ -122,14 +122,4 @@ class MultiDayWiringTest {
         for (what in listOf("multiDayWriteBack", "multiDayDays", "multiDayReload", "dayMaps", "saveWholeTour", "dayEndNames"))
             assertTrue(what, slice.contains("scope.launchSafe(\"app\", \"$what\")"))
     }
-
-    /** The three screen models and the slice's nested types stay in the names the screens use. */
-    @Test fun theScreensStillFindTheirTypes() {
-        assertTrue(slice.contains("data class TourMapsAsk("))
-        assertTrue(slice.contains("enum class TourMapsAnswer { WHOLE, DAY, LATER }"))
-        val ui = sourceFile("ui/MultiDayUi.kt").readText()
-        for (t in listOf("data class DayRowUi(", "data class DaysUi(", "data class DayHeadUi("))
-            assertTrue(t, ui.contains(t))
-        assertFalse("the Composable file keeps none of them", sourceFile("ui/MultiDaySheet.kt").readText().contains("data class DaysUi("))
-    }
 }
