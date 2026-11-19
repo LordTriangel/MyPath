@@ -220,4 +220,19 @@ class WholeRouteTest {
         assertTrue(vm.contains("if (take.fit) fitFirstRoute(it.points, pts, if (take.rises) SheetRise.FIT_WAIT_MS else 0L)"))
     }
 
+    /** The view model's adapters of [MapViewSlice] (no unit test drives them): what the camera port turns into, the clocks, the position. */
+    @Test fun theViewModelHandsTheSliceItsCameraItsClocksAndThePosition() {
+        val vm = sourceFile("ui/AppViewModel.kt").readText()
+        val cam = vm.substringAfter("private val mapCamera = object : com.onpath.app.ui.Camera {", "").substringBefore("\n    }\n")
+        assertTrue("mapCamera not found", cam.isNotEmpty())
+        assertTrue(cam.contains("override fun fit(points: List<GeoPoint>) { events += UiEvent.Fit(points) }"))
+        assertTrue(cam.contains("override fun centerOn(point: GeoPoint, zoom: Double) { events += UiEvent.CenterOn(point, zoom) }"))
+        assertTrue(cam.contains("override fun panTo(point: GeoPoint) { events += UiEvent.PanTo(point) }"))
+        val make = vm.substringAfter("private val map = com.onpath.app.ui.MapViewSlice(", "").substringBefore("\n    /**")
+        assertTrue("the MapViewSlice construction not found", make.isNotEmpty())
+        assertTrue(make.contains("notices, mapCamera,"))
+        assertTrue(make.contains("{ tracker.location.value?.let { GeoPoint(it.latitude, it.longitude) } }, mapHost, viewModelScope,"))
+        assertTrue(make.contains("uptimeMs = { android.os.SystemClock.uptimeMillis() }, elapsedMs = { android.os.SystemClock.elapsedRealtime() }"))
+    }
+
 }

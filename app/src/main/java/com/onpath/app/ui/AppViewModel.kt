@@ -497,7 +497,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
         override fun appLeft() { mapData.onLeave() }
     }
-    val map = com.onpath.app.ui.MapViewSlice(notices, mapCamera,
+    private val map = com.onpath.app.ui.MapViewSlice(notices, mapCamera,
         { tracker.location.value?.let { GeoPoint(it.latitude, it.longitude) } }, mapHost, viewModelScope,
         uptimeMs = { android.os.SystemClock.uptimeMillis() }, elapsedMs = { android.os.SystemClock.elapsedRealtime() })
     /** Bumped to turn the map north (MapScreen → MapController.northUp). */
@@ -2948,12 +2948,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** What the map column's greyed buttons need to know ([MapControlsEnabled]). */
     internal fun controlsIn(layer: AppMode, pointsOpen: Boolean) = MapControlsEnabled.In(layer, pointsOpen,
-        planLine = hasPlanLine(), shownLine = hasShownLine(), shownOpen = shown != null, followLine = hasFollowLine(),
+        planLine = map.hasPlanLine(), shownLine = map.hasShownLine(), shownOpen = shown != null, followLine = map.hasFollowLine(),
         canUndo = canUndo, canRedo = canRedo)
-
-    private fun hasPlanLine() = (route?.points?.size ?: 0) >= 2
-    private fun hasShownLine() = (shown?.segments?.sumOf { it.size } ?: 0) >= 2
-    private fun hasFollowLine() = (followLine?.size ?: 0) >= 2
 
     /** "Show whole route" (map button, owner 2026-10-31) – [MapViewSlice.showWholeRoute]. */
     fun showWholeRoute() = map.showWholeRoute()

@@ -106,7 +106,7 @@ class MapViewFlowTest {
             override val mode: AppMode get() = modeNow
             override val activity: Activity get() = activityNow
             override val headingUp: Boolean get() = headingUpNow
-            override fun setHeadingUp(on: Boolean) { onSliceThread("setHeadingUp"); log += "headingUp $on"; headingUpNow = on }
+            override fun setHeadingUp(on: Boolean) { onSliceThread("setHeadingUp"); log += "headingUp $on [follow=${map.followMe} recentre=${map.recentreTick} north=${map.northTick}]"; headingUpNow = on }
             override var navStartZoom: Double?
                 get() = navStartZoomNow
                 set(v) { onSliceThread("navStartZoom"); log += "navStartZoom $v"; navStartZoomNow = v }
@@ -136,12 +136,15 @@ class MapViewFlowTest {
     @Test fun theFirstRouteIsFittedOnceTheSheetHasSettledWithFollowingStoppedFirst() {
         val app = App()
         app.route = listOf(a, b, c); app.points = listOf(a, c)
-        app.map.followMe = true
+        app.map.followMe = true; app.map.freeLookAt = a
         app.map.fitFirstRoute(listOf(a, b, c), listOf(a, c))
         app.advance(WholeRoute.SETTLE_MS - 1)
         assertTrue("not before the sheet has settled", app.cameraCalls().isEmpty())
+        assertEquals("free look is still there until then", a, app.map.freeLookAt)
         app.advance(1)
-        assertEquals(listOf("fit 5 [follow=false free=false]"), app.cameraCalls())
+        assertEquals("free look gone when the fit is asked (it would follow again by itself)",
+            listOf("fit 5 [follow=false free=false]"), app.cameraCalls())
+        assertNull(app.map.freeLookAt)
         assertEquals("the line and the points", listOf(a, b, c, a, c), app.fitted)
         assertFalse(app.map.followMe)
     }
@@ -227,13 +230,15 @@ class MapViewFlowTest {
     @Test fun planAndMeTogetherOrLocateWhenThereIsNoPosition() {
         val app = App()
         app.route = listOf(a, b); app.points = listOf(a, b)
-        app.map.followMe = true
+        app.map.followMe = false
         app.map.showPlanAndMe()
-        assertEquals("no position: locate follows, no fit", emptyList<String>(), app.cameraCalls())
-        assertTrue(app.map.followMe)
+        assertEquals("no position: no fit", emptyList<String>(), app.cameraCalls())
+        assertTrue("locate() follows the position", app.map.followMe)
+        app.map.followMe = true; app.map.freeLookAt = a
         app.fix = here
         app.map.showPlanAndMe()
         assertEquals(listOf("fit 5 [follow=false free=false]"), app.cameraCalls())
+        assertNull("free look is gone", app.map.freeLookAt)
         assertEquals(listOf(a, b, a, b, here), app.fitted)
         assertTrue(problems.traced("map").any { "plan and position shown together (5 points)" in it })
     }
@@ -380,7 +385,17 @@ class MapViewFlowTest {
         app.map.onCompass(mapTurned = false)
         assertEquals("not following: the map is turned north", 1, app.map.northTick); assertEquals(1, app.map.recentreTick)
         assertFalse(app.map.followMe)
-        assertEquals("the order: orientation first", "headingUp false", app.log.filter { it.startsWith("headingUp") }.last())
+        assertEquals("the order: the orientation is stored first, then the map turns / follows",
+            listOf("headingUp false [follow=true recentre=0 north=0]", "headingUp false [follow=false recentre=1 north=0]"),
+            app.log.filter { it.startsWith("headingUp") })
+    }
+
+    @Test fun compassStoresTheOrientationBeforeItFollows() {
+        val app = App()
+        app.fix = here
+        app.map.onCompass(mapTurned = false)
+        assertEquals(listOf("headingUp true [follow=false recentre=0 north=0]"), app.log.filter { it.startsWith("headingUp") })
+        assertTrue(app.map.followMe)
     }
 
     @Test fun compassOnANorthMapWhenTheMapWasTurnedTurnsItBack() {
@@ -532,5 +547,33 @@ class MapViewFlowTest {
         app.advance(WholeRoute.SETTLE_MS)
         assertEquals(1, app.cameraCalls().size)
         assertTrue(problems.traced("map").any { "Plan shown whole (back_in_app, 2 points)" in it })
+    }
+
+    @Test fun aRealFirstStartWithAPlanTakesTheStartCameraNotThePlanShownWhole() {
+        val app = App()
+        app.points = listOf(a, c); app.route = listOf(a, b, c)
+        app.map.startCameraDone = true
+        app.map.onAppStart() // never stopped: nothing to be "back" from
+        assertEquals("the start camera runs", 1, app.map.startCameraGen); assertFalse(app.map.startCameraDone)
+        app.advance(WholeRoute.SETTLE_MS)
+        assertTrue("the plan is not shown whole", app.cameraCalls().isEmpty())
+    }
+
+    @Test fun wholeRouteInPlanLeavesMyPositionOutOfTheFit() {
+        val app = App()
+        app.followed = listOf(b, c); app.fix = here // Plan, a tour's line only
+        app.map.showWholeRoute()
+        assertEquals(listOf(b, c), app.fitted)
+    }
+
+    @Test fun theScrubFollowsAgainOnlyForTheScrubThatPausedFollowing() {
+        val app = App()
+        app.modeNow = AppMode.NAVIGATE
+        app.map.followMe = true
+        app.map.navScrub(a); app.map.navScrubEnd(); app.advance(4_000)
+        assertTrue(app.map.followMe)
+        app.map.followMe = false // the user took the map meanwhile
+        app.map.navScrub(b); app.map.navScrubEnd(); app.advance(4_000)
+        assertFalse("this scrub did not pause following: no jump back", app.map.followMe)
     }
 }
