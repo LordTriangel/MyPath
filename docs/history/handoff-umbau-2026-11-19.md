@@ -57,6 +57,13 @@ a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines fo
 - Running: piece 13 (`RoutesSlice`, branch `worktree-agent-aa365053dc6604e85`, in Opus review), piece 10 (`PlanEdit`, lane A).
 - Merge recipe that works: `git checkout -B umbau-tmp2 origin/main`; cherry-pick the helper's commits (on a `web/parity.json` conflict: `git checkout --ours web/parity.json`, continue, then `node web/parity/check.mjs --update app/src/main/java/com/onpath/app/ui/AppViewModel.kt` – and re-add a NEW mirror entry by hand if the helper's commit added one and it got dropped; check `grep -c <Slice> web/parity.json`); set `MAX_LINES` to `wc -l`; `gate --full`, assembleDebug + androidTest compile, `-p web/engine test generateWasmGC -Pkotlin.incremental=false`; push to `ci/umbau-p2-N`, run the piece's E2E class with `e2e_github.sh --ref … --tests <one class> --wait`; push to main. A source pin that counted one occurrence may match twice after two pieces meet (seen: `RouteWarningsTest`) – scope it to its object.
 
+## State 2026-11-19 night (after piece 10)
+- On main: phase 2 pieces 1–8, 9a, 10, 13 (85e409ce6), `MAX_LINES` 4,548. Fix commit inside piece 10: `movePointInList` with a stale / same row emptied the plan.
+- Running: piece 14 (`RoutesGoSlice`, branch `worktree-agent-a615037780b740993`, reviewed MERGE; helper adds `RoutesGoWaitTest` + a virtual-time dispatcher with `invokeOnTimeout` in the test kit; at merge run `CorePlanE2ETest`, `CorePlanLinkE2ETest`, `DoneTourReviewE2ETest` – one class per dispatch, each on its own `ci/` ref in parallel) and piece 11 (`PlaceMenus` I, lane A).
+- A helper prompt that told the helper to `git reset --hard` onto an unmerged `ci/` ref was refused by the permission classifier – start helpers from `origin/main` only (wait for the push).
+- Order from here: 12 (after 11), 15 (sync driver), 16 → 17 → 18 → 19 (tour: ONE at a time, `CoreFieldE2ETest` between, Fable-written order rules first – design §4.3), 20 (`MultiDaySlice`), 9b (`recalc` coroutine: `snapToRoute` + `aliasSnappedLegs`, routing-data members, then the coroutine), 21 (forwarders out). Then „phase 2 done“ line, tag after a green full E2E (still blocked by `TourDbMigrationTest`, mehrtage).
+- Row T follow-up noted: an E2E (or JVM harness) for GPX import / export – no behaviour test exists.
+
 ## Open, in this order
 1. **Tag `umbau-phase-0`:** needs one green full E2E run of main: push main's head to `ci/umbau-p0`, then
    `tools/ci/e2e_github.sh --ref ci/umbau-p0 --wait` (no `--tests`; a comma list of tests runs only the first). Red today

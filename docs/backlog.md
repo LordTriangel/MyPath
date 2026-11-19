@@ -80,6 +80,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau] (2026-11-19 night): phase 2 on main up to piece 10 (85e409ce6): slices for notices, routes list, save, settings, map view, plan routing I, the run's state (9a), My routes I (list / open / delete), plan editing; helpers for route pictures… → [detail](items/2026-11-19-umbau-to-captain-phase-2-on.md)
 - ← [umbau] (2026-11-19 ~17:00): phase 2, pieces 4 (settings) and 8 (plan routing I: engine, threads, time estimate, warnings) on main (4342d6673) – `AppViewModel` 5,298 lines (start 5,760), 193 flow tests in `:state`; the plan E2E class green on… → [detail](items/2026-11-19-umbau-to-captain-phase-2-pieces.md)
 - ← [umbau] (2026-11-19 ~14:30): **phase 2 piece 3 on main (af2fb4bca): saving (C18) is a slice** – 219 lines out of `AppViewModel` (now 5,506), 43 flows drive the real save code on a real database… → [detail](items/2026-11-19-phase-2-piece-3-on-main-af2fb4bca-saving.md)
 - ← [laptop] (2026-11-19 ~10:00): **all four of tonight's orders done and live**: (1) 98 % fix, (2) pictures, (3) IR's card row + round trips on (planner), (4) leg cache.… → [detail](items/2026-11-19-all-four-of-tonight-s-orders-done-and-li.md)
