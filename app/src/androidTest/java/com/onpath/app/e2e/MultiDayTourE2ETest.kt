@@ -27,7 +27,7 @@ import org.junit.runner.RunWith
 /**
  * Multi-day tours, stage 4 (docs/design/multi-day-tours.md §8: "E2E: synced 3-day plan → pick day 2 → start → recording
  * saved"): a 3-day plan arrives as the browser sync stores it (DbTourStore.addPlan, with its days), it is opened, day 2 is
- * picked in the plan sheet's day rows and "Tag 2 fahren" makes it the plan; the tour starts, Navigate says "Day 2 of 3",
+ * picked in the plan sheet's day rows and "Tag 2 starten" makes it the plan; the tour starts, Navigate says "Day 2 of 3",
  * the tour ends and is saved – its followed plan is day 2, the multi-day route keeps its days.
  */
 @RunWith(AndroidJUnit4::class)
@@ -77,7 +77,7 @@ class MultiDayTourE2ETest : E2EBase() {
             scenario.onActivity { a -> vm(a).multiDay.answerTourMaps(com.onpath.app.ui.plan.MultiDaySlice.TourMapsAnswer.LATER); vm(a).planSize = PlanSize.FULL }
             pause(1_000, "the sheet grows to full")
             shot("1-overview")
-            // pick day 2 in the rows (its number), then "Tag 2 fahren"
+            // pick day 2 in the rows (its number), then "Tag 2 starten"
             val two = findFresh(By.text("2"), 8_000)
             assertNotNull("day row 2 – ${state()}", two)
             two!!.click()

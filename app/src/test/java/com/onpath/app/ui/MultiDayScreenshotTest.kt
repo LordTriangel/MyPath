@@ -26,7 +26,7 @@ import com.onpath.strings.multiday_day_of
 
 /**
  * Multi-day tours on the phone (stage 4, sketch round 2 steps 9–12, symbols round 3 variant A): the plan sheet's overview
- * (title · N Tage, profile with day borders, one row per day, "Tag 4 fahren"), a followed day's head ("Tag 4 von 6 ·
+ * (title · N Tage, profile with day borders, one row per day, "Tag 4 starten"), a followed day's head ("Tag 4 von 6 ·
  * ‹ Alle Tage" + missing maps) and the maps question at the first opening. EN + DE (lengths).
  */
 abstract class MultiDayScreenshotTest(private val locale: Locale) {
