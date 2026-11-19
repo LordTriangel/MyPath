@@ -47,6 +47,17 @@ class RecordingClientTest {
             answer(40 + i)
             assertEquals("com.onpath.app.$action" to mapOf<String, Any>("question" to 40 + i), last())
         }
+        // ServiceRecordingClient.intent() carries exactly String, Int, Long, Boolean, Double; any other type would be dropped on the phone
+        for (c in client.sent) for ((k, v) in c.extras)
+            assertTrue("${c.action} extra $k (${v::class.simpleName}) has a type intent() carries", v is String || v is Int || v is Long || v is Boolean || v is Double)
+    }
+
+    @Test fun everyExtraHasATypeTheRealIntentCarries() {
+        client.start("HIKE", 2); client.continueTour(7L); client.followChanged(true); client.navigating(true)
+        client.say("arrived"); client.proposeSwitch(1.5); client.activityChanged("BIKE", 2); client.takeRoute(1)
+        assertEquals("every command with extras was sent", 8, client.sent.size)
+        for (c in client.sent) for ((k, v) in c.extras)
+            assertTrue("${c.action} extra $k (${v::class.simpleName}) has a type intent() carries", v is String || v is Int || v is Long || v is Boolean || v is Double)
     }
 
     @Test fun everyActionTheServiceKnowsHasItsCommandAndTheOtherWayRound() {

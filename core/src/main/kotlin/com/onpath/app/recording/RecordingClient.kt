@@ -59,7 +59,7 @@ data class RecordingCommand(val action: String, val extras: Map<String, Any> = e
         fun navigating(on: Boolean) = RecordingCommand(RecordingWire.ACTION_NAVIGATING, mapOf(RecordingWire.EXTRA_ON to on))
         fun activityChanged(activity: String, sac: Int) = RecordingCommand(RecordingWire.ACTION_ACTIVITY_CHANGED,
             mapOf(RecordingWire.EXTRA_ACTIVITY to activity, RecordingWire.EXTRA_SAC to sac))
-        val settingsChanged =RecordingCommand(RecordingWire.ACTION_SETTINGS)
+        val settingsChanged = RecordingCommand(RecordingWire.ACTION_SETTINGS)
         val checkNow = RecordingCommand(RecordingWire.ACTION_CHECK_NOW)
         fun say(what: String) = RecordingCommand(RecordingWire.ACTION_SAY, mapOf(RecordingWire.EXTRA_SAY to what))
         fun proposeSwitch(timeS: Double) = RecordingCommand(RecordingWire.ACTION_PROPOSE_SWITCH, mapOf(RecordingWire.EXTRA_TIME_S to timeS))

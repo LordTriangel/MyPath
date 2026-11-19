@@ -757,6 +757,8 @@ class ActivityCheckFlowTest {
         stepIo()
         assertEquals("HIKE" to 4, tourRow())
         assertTrue(log.indexOf("recalc HIKE T3 prefs=HIKE/T3") < log.indexOf("recalc HIKE T4 prefs=HIKE/T4"))
+        assertTrue("the command goes out after the plan change and before the row write",
+            log.indexOf("recalc HIKE T4 prefs=HIKE/T4") < log.indexOf("send ACTIVITY_CHANGED") && log.indexOf("send ACTIVITY_CHANGED") < log.indexOf("updateActivity($tourId, HIKE, T4)"))
         assertEquals("the Hike chip was traced", listOf("Activity check: Hike T4 chosen (was MTB)"), traced().filter { it.startsWith("Activity check") })
         assertEquals(listOf("ACTIVITY_CHANGED"), sentActions())
         assertEquals(mapOf<String, Any>("activity" to "HIKE", "sac" to 4), client.sent.single().extras)

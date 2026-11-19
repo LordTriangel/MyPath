@@ -354,11 +354,10 @@ class RecordingService : Service() {
                 // ride detection, the time prior and a rescued row use it from now on (the tour's row is the app's write)
                 val level = intent.getIntExtra(EXTRA_SAC, 0)
                 if (recorded.switchTo(intent.getStringExtra(EXTRA_ACTIVITY), level)) {
-                    tourMeta = tourMeta?.let { Triple(it.first, it.second, recorded.sac) }
                     trip.setPrior(priorFor(timeActivity()))
                     Problems.trace("recording", "The tour is recorded as ${recorded.activity.name} from now on (switched in the app)")
                     publish()
-                } else Problems.warn("recording", "Activity switch ignored: no known activity in the command")
+                } else Problems.warn("recording", "Activity switch ignored: no known activity in the command (\"${intent.getStringExtra(EXTRA_ACTIVITY)}\")")
                 return START_STICKY
             }
             ACTION_SETTINGS -> {
@@ -802,8 +801,9 @@ class RecordingService : Service() {
         var gone = false
         safeDb("stats") { gone = db.updateStats(tourId, distance, ascent, descent, elapsedS.toDouble(), state) == 0 }
         if (!gone || tourId < 0) return
-        val (name, created, sac) = tourMeta ?: Triple(RideApply.dateName(System.currentTimeMillis()),
+        val (name, created, _) = tourMeta ?: Triple(RideApply.dateName(System.currentTimeMillis()),
             System.currentTimeMillis(), Prefs(this).sac)
+        val sac = recorded.sac // one source with the activity (a switch in the app or on the route moves both)
         val segments = track.snapshot().map { seg -> seg.map { TrackPoint(it.lat, it.lon, it.ele, null) } }
         if (safeDb("rescue") {
                 seq = db.rescueRecording(tourId, name, recorded.activity.name, sac, created, segments, distance, ascent, descent,

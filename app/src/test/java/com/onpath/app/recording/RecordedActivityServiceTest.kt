@@ -25,7 +25,7 @@ class RecordedActivityServiceTest {
         val handler = svc.substringAfter("ACTION_ACTIVITY_CHANGED ->").substringBefore("return START_STICKY")
         assertTrue(handler.contains("recorded.switchTo(intent.getStringExtra(EXTRA_ACTIVITY), level)"))
         assertTrue("the time prior follows", handler.contains("trip.setPrior(priorFor(timeActivity()))"))
-        assertTrue("the rescue row's level follows", handler.contains("tourMeta"))
+        assertTrue("the rescue row reads its level from the same copy (also after a switch on the route)", svc.contains("val sac = recorded.sac"))
     }
 
     @Test fun theEndTheTimesAndTheRescueReadTheSwitchedActivity() {
