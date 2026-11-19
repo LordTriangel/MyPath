@@ -457,7 +457,12 @@
     {
       "app": "app/src/main/java/com/onpath/app/ui/PlanPanel.kt",
       "why": "plan sheet layout and actions",
-      "blob": "e0b73d372d9096ea0f4715071c427e5ef5fb4375"
+      "blob": "c5df0c042795f97c091e36e2a008840b65d53f4d"
+    },
+    {
+      "app": "state/src/main/kotlin/com/onpath/app/ui/PlanSize.kt",
+      "why": "plan sheet steps",
+      "blob": "24edfb104baf5def2420104fcd395dd2c695e4d9"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapScreen.kt",
