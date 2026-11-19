@@ -27,6 +27,7 @@ import com.onpath.app.ui.plan.PlanRunSlice
 import com.onpath.app.ui.routes.SaveSlice
 import com.onpath.app.ui.routes.ToursStore
 import com.onpath.strings.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -73,7 +74,7 @@ interface TourSessionHost {
  * tour it meets the same world as before) and the mode flip comes after `recalc()` (risk 2: the initial mode is Plan).
  *
  * Latent bugs kept as they were: L2 (the start-up check: a failing `findActiveRecording` never sets `startModeKnown`), L4 (a failed
- * start can show two boxes), L1 for the `state` collector (a throw inside `syncNavActivity` ends the collect).
+ * start can show two boxes), and (fixed 2026-11-19) L1: each pass of the `startFailed` and `state` collectors is guarded – a throw is reported and the collector goes on.
  */
 class TourSession(
     private val plan: PlanDocument,
@@ -176,7 +177,14 @@ class TourSession(
         // The service stopped by itself (permission gone, foreground refused, database broken): say why, in the app too.
         scope.launchSafe("app", "start-up work") {
             recording.startFailed.collect { why ->
-                if (why != null) { recording.startFailedSeen(); sayError(why, NoticePlace.BACKGROUND); if (mode == AppMode.NAVIGATE) enter(AppMode.PLAN) }
+                // L1 (fixed 2026-11-19): one pass is guarded – a throw is reported and the collector lives for the next failed start
+                try {
+                    if (why != null) { recording.startFailedSeen(); sayError(why, NoticePlace.BACKGROUND); if (mode == AppMode.NAVIGATE) enter(AppMode.PLAN) }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    Problems.error("app", "Failed-start pass of the startFailed collector failed; the collector goes on", e)
+                }
             }
         }
         // Re-routing (service): follow the line the service navigates now (new route taken / original again).
@@ -184,21 +192,28 @@ class TourSession(
             var saveFailedShown = false
             var recordingSeen: Long? = null
             recording.state.collect { st ->
-                if (st?.tourId != recordingSeen) {
-                    followHistory.clear() // Undo brings back a followed route only within its own tour
-                    if (st != null) Problems.trace("tour", "Tour ${st.tourId} recording (plan ${waypoints.size} points, " +
-                        (if (followLine != null) "following ${followName ?: "a route"}" else "nothing followed") + ")")
-                    else { Problems.trace("tour", "Tour $recordingSeen recording ended"); follow.guidanceEndedByEmptyPlan = false }
-                    recordingSeen = st?.tourId
+                // L1 (fixed 2026-11-19): one pass is guarded – a throw is reported, the next state repeats the work
+                try {
+                    if (st?.tourId != recordingSeen) {
+                        followHistory.clear() // Undo brings back a followed route only within its own tour
+                        if (st != null) Problems.trace("tour", "Tour ${st.tourId} recording (plan ${waypoints.size} points, " +
+                            (if (followLine != null) "following ${followName ?: "a route"}" else "nothing followed") + ")")
+                        else { Problems.trace("tour", "Tour $recordingSeen recording ended"); follow.guidanceEndedByEmptyPlan = false }
+                        recordingSeen = st?.tourId
+                    }
+                    if (st?.saveFailed == true && !saveFailedShown) {
+                        saveFailedShown = true
+                        sayError(Txt.s(Res.string.msg_track_save_failing), NoticePlace.BACKGROUND)
+                    } else if (st?.saveFailed == false) saveFailedShown = false
+                    tour.onArrived(st?.arrived == true)
+                    val n = st?.nav ?: run { follow.navActivitySeen = null; return@collect }
+                    if (n.version != follow.navVersion) { follow.navVersion = n.version; if (followLine != n.line) follow.followLine = n.line }
+                    follow.syncNavActivity(n.session)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    Problems.error("app", "State pass of the recording-state collector failed; the collector goes on", e)
                 }
-                if (st?.saveFailed == true && !saveFailedShown) {
-                    saveFailedShown = true
-                    sayError(Txt.s(Res.string.msg_track_save_failing), NoticePlace.BACKGROUND)
-                } else if (st?.saveFailed == false) saveFailedShown = false
-                tour.onArrived(st?.arrived == true)
-                val n = st?.nav ?: run { follow.navActivitySeen = null; return@collect }
-                if (n.version != follow.navVersion) { follow.navVersion = n.version; if (followLine != n.line) follow.followLine = n.line }
-                follow.syncNavActivity(n.session)
             }
         }
     }

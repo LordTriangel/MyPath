@@ -18,6 +18,7 @@ import com.onpath.app.ui.Say
 import com.onpath.app.ui.routes.RoutesState
 import com.onpath.app.ui.routes.ToursStore
 import com.onpath.strings.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.withContext
@@ -76,8 +77,7 @@ interface TourEndHost {
  * It talks to the service only through [recording] (the ONE client of the view model: `finishedSeen`, `takeFinishedParts`,
  * and through the controller `stop` / `continueTour`). The tour database is written through [rows] / [tours] on `io`, the
  * backup is told through [host] on the thread the old code told it. The follow state, the mode and the plan are the host's
- * (pieces 18a / 19). The tour paper's rules 7–12, 26–28, 32, 35 hold here; the latent bugs L1 (the unguarded reads in the
- * collector) and L8 (`saveUnfinished`'s unguarded `updateStats`) are kept as they were.
+ * (pieces 18a / 19). The tour paper's rules 7–12, 26–28, 32, 35 hold here; L1 (the unguarded reads in the collector) is fixed (2026-11-19); the latent bug L8 (`saveUnfinished`'s unguarded `updateStats`) are kept as they were.
  *
  * [start] launches the `finished` collector: the view model calls it exactly where the collector was launched in its big
  * `init` (paper risk 1: on `Main.immediate` its first pass runs inline during construction).
@@ -98,46 +98,80 @@ class TourEndSlice(
     private fun activityOrNull(name: String?): Activity? = host.activityOrNull(name)
     private fun sayError(text: String, place: NoticePlace) = say.say(text, NoticeKind.ERROR, place)
 
-    /** The `finished` collector (moved from the view model's big `init`; see the class comment). */
+    /**
+     * The `finished` collector (moved from the view model's big `init`; see the class comment). L1 (fixed 2026-11-19): one
+     * emission is one guarded pass ([handleFinished]); a throw is reported and the collector lives for the next end. A read
+     * that fails is reported and read as "tour not found" (the existing branch: no box, the rest as always), so the app is
+     * never left in Navigate with the plan of an ended tour.
+     */
     fun start() {
         scope.launchSafe("app", "start-up work") {
             recording.finished.collect { id ->
                 if (id != null) {
                     recording.finishedSeen()
-                    val done = withContext(io) { tours.getTour(id) }
-                    // Löschen chosen → the bin; else a short recording (owner 2026-11-12: never got away from its start,
-                    // no ride part) → the bin with the box "Kurze Aufzeichnung" and Rückgängig; else the saved box.
-                    // A tour not found or not readable is never "short" – a doubt keeps the tour.
-                    when (tour.finishedOutcome(short = done != null && isShortRecording(done))) {
-                        TourController.Finished.DELETED -> {
-                            tour.closeFinished()
-                            if (!binFinishedTour(id)) sayError(Txt.s(Res.string.msg_track_delete_failed_here), NoticePlace.MAP)
-                        }
-                        TourController.Finished.SHORT -> {
-                            tour.closeFinished()
-                            val ok = binFinishedTour(id)
-                            Problems.trace("tour", "Short recording (${done!!.distanceM.toInt()} m, tour $id) → " +
-                                if (ok) "recycle bin; the box with Rückgängig" else "bin write failed; kept as a tour (saved box)")
-                            tour.afterShortBin(done, binned = ok, times = if (ok) null else withContext(io) { host.tourTimes(done) })
-                        }
-                        TourController.Finished.SAVED -> {
-                            tour.showFinished(done, withContext(io) { done?.let { host.tourTimes(it) } })
-                            done?.let { host.nameRecordedTour(it) }
-                            // "Split into two tours": the parts after the rides get a place name too
-                            val parts = recording.takeFinishedParts()
-                            parts.forEach { p -> withContext(io) { tours.getTour(p) }?.let { host.nameRecordedTour(it) } }
-                        }
+                    var tailStarted = false
+                    try {
+                        handleFinished(id) { tailStarted = true }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Throwable) {
+                        Problems.error("app", "Tour end of tour $id: one pass of the finished collector failed; the collector goes on", e)
+                        if (!tailStarted) endTail()
                     }
-                    host.refreshTours()
-                    host.clearFollow()
-                    // a demo ride ends with its tour: no "DEMO" / "Sim" left on the map (the recording is closed – no jump into it)
-                    host.demoEndedWithTour()
-                    host.enterMode(AppMode.PLAN)
-                    tour.afterFinished() // no arrival box, no "Neuer Plan" line of the old tour
-                    afterTourEnded()
                 }
             }
         }
+    }
+
+    /** One step of the end, guarded: a throw is reported and the next step still runs (a step is never the end of the collector). */
+    private inline fun <T> guarded(what: String, fallback: T, block: () -> T): T = try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        Problems.error("app", "Tour end: $what failed; the end goes on without it", e)
+        fallback
+    }
+
+    private suspend fun handleFinished(id: Long, onTail: () -> Unit) {
+        // a read that fails is a tour not found (reported): the branch below that already exists
+        val done = guarded("reading tour $id", null as Tour?) { withContext(io) { tours.getTour(id) } }
+        // Löschen chosen → the bin; else a short recording (owner 2026-11-12: never got away from its start,
+        // no ride part) → the bin with the box "Kurze Aufzeichnung" and Rückgängig; else the saved box.
+        // A tour not found or not readable is never "short" – a doubt keeps the tour.
+        when (tour.finishedOutcome(short = done != null && isShortRecording(done))) {
+            TourController.Finished.DELETED -> {
+                tour.closeFinished()
+                if (!binFinishedTour(id)) sayError(Txt.s(Res.string.msg_track_delete_failed_here), NoticePlace.MAP)
+            }
+            TourController.Finished.SHORT -> {
+                tour.closeFinished()
+                val ok = binFinishedTour(id)
+                Problems.trace("tour", "Short recording (${done!!.distanceM.toInt()} m, tour $id) → " +
+                    if (ok) "recycle bin; the box with Rückgängig" else "bin write failed; kept as a tour (saved box)")
+                tour.afterShortBin(done, binned = ok, times = if (ok) null else guarded("times of tour $id", null as TourTimes?) { withContext(io) { host.tourTimes(done) } })
+            }
+            TourController.Finished.SAVED -> {
+                tour.showFinished(done, guarded("times of tour $id", null as TourTimes?) { withContext(io) { done?.let { host.tourTimes(it) } } })
+                done?.let { host.nameRecordedTour(it) }
+                // "Split into two tours": the parts after the rides get a place name too
+                val parts = recording.takeFinishedParts()
+                parts.forEach { p -> guarded("reading part $p", null as Tour?) { withContext(io) { tours.getTour(p) } }?.let { host.nameRecordedTour(it) } }
+            }
+        }
+        onTail()
+        endTail()
+    }
+
+    /** What follows every end, whatever the reads said (the old tail of the collector): each step alone guarded. */
+    private fun endTail() {
+        guarded("refreshing the list", Unit) { host.refreshTours() }
+        guarded("clearing the followed line", Unit) { host.clearFollow() }
+        // a demo ride ends with its tour: no "DEMO" / "Sim" left on the map (the recording is closed – no jump into it)
+        guarded("ending the demo", Unit) { host.demoEndedWithTour() }
+        guarded("leaving Navigate", Unit) { host.enterMode(AppMode.PLAN) }
+        guarded("closing the boxes", Unit) { tour.afterFinished() } // no arrival box, no "Neuer Plan" line of the old tour
+        guarded("the end of the plan", Unit) { afterTourEnded() }
     }
 
     /**
@@ -150,9 +184,9 @@ class TourEndSlice(
      */
     private fun afterTourEnded() {
         Problems.trace("tour", "Tour ended: back to the start – the plan (${host.planPoints} points) goes the \"Neu planen\" way")
-        host.clearPlan()
-        host.endGuidanceFlag() // nothing of the ended tour is resumed by the next plan
-        host.kickThumbs() // the ended tour's map picture: in the background, the tour is saved already
+        guarded("clearing the plan", Unit) { host.clearPlan() }
+        guarded("resetting the guidance flag", Unit) { host.endGuidanceFlag() } // nothing of the ended tour is resumed by the next plan
+        guarded("starting the map picture", Unit) { host.kickThumbs() } // the ended tour's map picture: in the background, the tour is saved already
     }
 
     /** The ended tour [id] into the recycle bin (Löschen, or a short recording); false = it stays in My routes (said). */

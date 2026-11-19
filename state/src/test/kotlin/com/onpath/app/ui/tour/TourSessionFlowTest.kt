@@ -478,6 +478,7 @@ class TourSessionFlowTest {
 
     private val startFailedAtSay = ArrayList<String?>()
     private fun say(text: String, kind: NoticeKind, place: NoticePlace) {
+        if (text == "say breaks") throw IllegalStateException("the notice board broke")
         if (text == "Recording could not start: permission missing") startFailedAtSay += client.startFailed.value
         said += Triple(text, kind, place)
         board.say(text, kind, place)
@@ -986,6 +987,17 @@ class TourSessionFlowTest {
         assertEquals("Plan stays Plan, `enter` did not run", emptyList<String>(), log)
     }
 
+    /** L1 shape in the `startFailed` collector (fixed 2026-11-19): a throw while saying the reason is reported; the next failed start is still said. */
+    @Test fun aThrowWhileSayingAFailedStartIsReportedAndTheNextOneIsStillSaid() {
+        create()
+        ui { session.start() }
+        stepIo()
+        client.fail("say breaks")
+        assertTrue("reported", problems.said("app").any { it.contains("startFailed") && it.contains("pass") })
+        client.fail("next")
+        assertEquals(listOf("next"), said.map { it.first })
+    }
+
     /** L4 (kept, shown): a failed start can show two boxes – the service's reason, and after 6 s "did not start" once the first was closed. */
     @Test fun L4_aFailedStartCanShowTwoBoxes() {
         create(); routeNow = routeFor(plan.points.toList())
@@ -1078,17 +1090,17 @@ class TourSessionFlowTest {
         assertEquals("adopted again", 2, log.count { it.startsWith("routeEvent(${RouteRun.Event.AdoptBaseline})") })
     }
 
-    /** L1 (kept, shown): a throw inside the state collector ends it for good – the next state's arrival is never noticed. */
-    @Test fun L1_aThrowInTheStateCollectorEndsItForGood() {
+    /** L1 (fixed 2026-11-19): a throw inside one pass of the state collector is reported; the next state is still followed. */
+    @Test fun aThrowInOneStatePassIsReportedAndTheNextStateIsStillFollowed() {
         runningTour()
         ui { session.start() }
         val s = files.load().session!!.copy(activity = Activity.BIKE_TOURING)
         throwInSync = true
         client.publish(recState(tour7).copy(nav = NavState(s.active, s.version, null, null, null, null, s, 0.0)))
-        assertTrue("reported", problems.said("app").any { it.contains("start-up work failed") })
+        assertTrue("reported", problems.said("app").any { it.contains("state") && it.contains("pass") })
         throwInSync = false
         client.publish(recState(tour7, arrived = true))
-        assertFalse("L1: the collector is gone – the arrival is not seen", ctl.arrivalAsk)
+        assertTrue("the collector lives: the arrival is seen", ctl.arrivalAsk)
     }
 
     // ======================================================================================================================

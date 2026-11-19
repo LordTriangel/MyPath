@@ -405,21 +405,33 @@ class TourEndFlowTest {
         assertTrue(log.any { it.startsWith("enterMode(PLAN)") })
     }
 
-    /** Latent bug L1, kept as it is: one failed read of the tour and the collector is over – no later end is handled. */
-    @Test fun L1_aFailedReadEndsTheCollectorForGood() {
+    /**
+     * L1 (fixed 2026-11-19): one failed read of the tour at the end is reported, the end is handled as a tour not found
+     * (no box; the list, the follow, the mode, the plan as always) and the collector lives for the next end.
+     */
+    @Test fun aFailedReadAtATourEndIsReportedLeavesNavigateAndTheNextEndIsStillHandled() {
         failGetTour = true
         touring(hike)
         ui { slice.start() }
         client.finish(hike)
         stepIo()
         assertNull("finishedSeen was said", client.finished.value)
-        assertEquals("nothing else happened: the app would stay in Navigate", emptyList<String>(), log)
-        assertTrue(problems.said().any { it.contains("start-up work") || it.contains("failed") || it.contains("unreadable") })
+        assertTrue("reported", problems.said("app").any { it.contains("Tour end") && it.contains("reading tour") })
+        assertNull("no box for a tour that could not be read", ctl.finishedTour)
+        assertTrue("the list is read again", log.any { it.startsWith("refreshTours") })
+        assertTrue("the line goes", log.any { it.startsWith("clearFollow") })
+        assertTrue("back in Plan", log.any { it.startsWith("enterMode(PLAN)") })
+        assertTrue("the plan is cleared the Neu planen way", log.any { it.startsWith("clearPlan") })
+        log.clear()
         failGetTour = false
+        touring(busTour)
         client.finish(busTour)
         stepIo()
-        assertEquals("no later tour end is handled", emptyList<String>(), log)
-        assertEquals("…and the end is not even marked seen", busTour, client.finished.value)
+        assertNull("the second end is marked seen", client.finished.value)
+        assertEquals("the second end is handled fully: the saved box", busTour, ctl.finishedTour!!.id)
+        assertTrue(log.any { it.startsWith("tourTimes($busTour)") })
+        assertTrue(log.any { it.startsWith("refreshTours") })
+        assertTrue(log.any { it.startsWith("enterMode(PLAN)") })
     }
 
     /** The collector's first pass: an end the service already published is handled when the slice starts (a re-created screen). */
