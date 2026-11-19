@@ -52,6 +52,11 @@ a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines fo
 - Next after them: lane C piece 6 / 7, lane B piece 13 (Routes I), lane A piece 10 (PlanEdit, after 9). Pieces 16–19 (tour) one at a time with `CoreFieldE2ETest` between; no release between them and the owner's Pixel tour (his answer is still open – assume yes).
 - Review lessons now in every helper prompt: fakes record state at call time (order), fakes check the thread, old pins re-pointed with anchors that must be found, adapters get source pins, no rule twice.
 
+## State 2026-11-19 ~20:00
+- On main: phase 2 pieces 1–6, 8, 9a (`PlanRunSlice`: run state + effects; **`recalc`'s coroutine did NOT move** – ~35 members incl. tour code; second half after pieces 10 + 16–19; suggested order: `snapToRoute` + `aliasSnappedLegs`, the routing-data members, then the coroutine). `MAX_LINES` 4,987.
+- Running: piece 13 (`RoutesSlice`, branch `worktree-agent-aa365053dc6604e85`, in Opus review), piece 10 (`PlanEdit`, lane A).
+- Merge recipe that works: `git checkout -B umbau-tmp2 origin/main`; cherry-pick the helper's commits (on a `web/parity.json` conflict: `git checkout --ours web/parity.json`, continue, then `node web/parity/check.mjs --update app/src/main/java/com/onpath/app/ui/AppViewModel.kt` – and re-add a NEW mirror entry by hand if the helper's commit added one and it got dropped; check `grep -c <Slice> web/parity.json`); set `MAX_LINES` to `wc -l`; `gate --full`, assembleDebug + androidTest compile, `-p web/engine test generateWasmGC -Pkotlin.incremental=false`; push to `ci/umbau-p2-N`, run the piece's E2E class with `e2e_github.sh --ref … --tests <one class> --wait`; push to main. A source pin that counted one occurrence may match twice after two pieces meet (seen: `RouteWarningsTest`) – scope it to its object.
+
 ## Open, in this order
 1. **Tag `umbau-phase-0`:** needs one green full E2E run of main: push main's head to `ci/umbau-p0`, then
    `tools/ci/e2e_github.sh --ref ci/umbau-p0 --wait` (no `--tests`; a comma list of tests runs only the first). Red today
