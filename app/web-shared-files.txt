@@ -15,7 +15,7 @@ search/OfflineIndex.kt
 search/OnlineSearch.kt
 search/AddressSearch.kt
 search/PlaceIndex.kt
-# kept places (owner 2026-11-15, „Orte merken“, F-PLAN-14): Zuhause + favourites, the empty search's lists (WebKept.kt)
+# kept places (owner 2026-11-15, „Orte merken“, F-PLAN-14): search/SavedPlaces.kt lives in :core now (the core folder is compiled as a whole)
 # web UI (docs/design/web-planner.md §13): route name proposal (Save)
 search/RouteNamer.kt
 # Google link-out (page parity with the phone, web-planner.md §11)

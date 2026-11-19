@@ -31,7 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.onpath.app.search.Place
 import com.onpath.app.search.SearchKinds
 import com.onpath.strings.*
 import com.onpath.app.ui.ActionButtons

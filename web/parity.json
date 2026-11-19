@@ -46,7 +46,7 @@
         "web/app/src/search.ts",
         "web/app/src/main.ts"
       ],
-      "blob": "dbba0fd09e2dc0ddb329492358c0d824b8fb514e"
+      "blob": "9dc4f31acc570f7ee817a1fb2d5699e75b97e038"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/routing/PlanPoints.kt",
