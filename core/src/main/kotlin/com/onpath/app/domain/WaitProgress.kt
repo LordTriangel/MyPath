@@ -207,9 +207,10 @@ class OneBar {
     val share: Double get() = shown
 
     /**
-     * What of [share] was measured (the creep by time and the borrowed percents not counted) – the share a time left is
-     * estimated from ([TimeLeft.seconds]): a bar that only creeps promises no time (owner 2026-11-19, „noch etwa 5
-     * Sekunden“ and then minutes).
+     * What of [share] was measured (the creep by time and the borrowed percents not counted). A wait whose creep knows
+     * nothing of the step (no step time, the route's legs) estimates its time left from this, not from [share]: a bar that
+     * only creeps promises no time (owner 2026-11-19, „noch etwa 5 Sekunden“ and then minutes). A wait whose steps have
+     * learned times (the round-trip search, the map's steps) keeps [share]: its creep runs at the step's own pace.
      */
     var measured = 0.0
         private set
@@ -241,8 +242,7 @@ object TimeLeft {
     const val MIN_ELAPSED_MS = 3_000L
 
     /**
-     * Seconds left for a wait at [share] 0..1 (the measured share, [OneBar.measured] – not the bar with its creep) after
-     * [elapsedMs]: the pace so far for the rest; never less than the
+     * Seconds left for a wait at [share] 0..1 after [elapsedMs]: the pace so far for the rest; never less than the
      * running step's own measured time left [stepLeftS] (the server's estimate, the bytes at the measured rate). Null =
      * not estimable yet.
      */

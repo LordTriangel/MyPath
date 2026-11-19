@@ -56,6 +56,13 @@ class WaitPromiseTest {
         assertTrue("no time is promised: $lines", lines.all { it == null || it == "taking a bit longer…" })
     }
 
+    /** A quick first leg, then a long one the router reports nothing of: no „10 seconds“ counting up or down – no time. */
+    @Test fun routeWindow_aLongLegAfterAQuickOneWithoutProgressPromisesNoTime() {
+        val rw = RouteWait(ProgressMemory.InMemory())
+        val lines = (0 until 300).map { t -> rw.update(true, (if (t < 3) 0 else 1) to 2, null, null, t * 1000L, gen = 1)!!.window.line }.toSet()
+        assertTrue("no time is promised: $lines", lines.all { it == null || it == "taking a bit longer…" })
+    }
+
     /** The router reported 30 % in 10 s and then nothing for minutes: the time left never counts down while nothing happens. */
     @Test fun routeWindow_aLegThatStopsReportingNeverCountsDownByItself() {
         val rw = RouteWait(ProgressMemory.InMemory())

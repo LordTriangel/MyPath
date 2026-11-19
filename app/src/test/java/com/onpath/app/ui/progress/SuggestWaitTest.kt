@@ -52,6 +52,23 @@ class SuggestWaitTest {
         assertTrue("the long second run says so", w.update(true, false, laps(10), 120 * 500L)!!.late)
     }
 
+    /**
+     * A long phase (the loops, 15 s after three quick ones): the time left falls or stays, it never counts UP while the
+     * search works (a review of the release hardening: an estimate from the measured share alone did, 10 → 25 s).
+     */
+    @Test fun theTimeLeftNeverCountsUpInALongPhase() {
+        val w = SuggestWait(ProgressMemory.InMemory())
+        val done = listOf(3.0, 2.0, 1.0).mapIndexed { i, s -> phases[i] to s }
+        val ends = listOf(3_000L, 5_000L, 6_000L)
+        val left = (0..42).mapNotNull { t ->
+            val now = t * 500L
+            val ui = w.update(true, false, done.take(ends.count { it <= now }), now)!!
+            ui.secondsLeft.takeIf { now >= 6_000 && !ui.late }
+        }
+        assertTrue("a time is said in the long phase", left.size > 10)
+        assertTrue("never more: $left", left.zipWithNext().all { (a, b) -> b <= a })
+    }
+
     /** Loading routing data first: step 1 with its own line, the bar creeps; then the phases as usual. */
     @Test fun routingDataFirstSaysSo() {
         val w = SuggestWait(ProgressMemory.InMemory())

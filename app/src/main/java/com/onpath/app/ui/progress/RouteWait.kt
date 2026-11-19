@@ -67,7 +67,11 @@ class RouteWait(private val memory: ProgressMemory) {
         val pct = bar.next(raw, stepEnd, stepLeftMs, now, stepStart = if (checking) legs else legs * done / total)
         val names = labels?.takeIf { it.size == total } ?: (1..total).map { Txt.s(Res.string.wait_leg, it) }
         val rows = names.map { it to null } + ((if (checking) Txt.s(Res.string.wait_step_checking) else Txt.s(Res.string.wait_step_check)) to null)
-        return RouteWaitUi(pct, WaitSteps.of(rows, if (checking) total else done), TimeLeft.seconds(bar.measured, gone, null), bar.late)
+        // a time only while the router measures (its share within the legs, or the check with its learned share): a leg it
+        // reports nothing of promises none – the bar creeps on, the time is not read off the creep (owner 2026-11-19,
+        // „noch etwa 5 Sekunden“ and then minutes); the planner's WebWait has the same rule
+        val left = if (checking || share != null) TimeLeft.seconds(bar.measured, gone, null) else null
+        return RouteWaitUi(pct, WaitSteps.of(rows, if (checking) total else done), left, bar.late)
     }
 
     /** The run ended: its legs' and check's times teach the check's share; the next run starts afresh. */

@@ -245,7 +245,7 @@ class MapWait(private val shares: StepShares = StepShares.DEFAULT, defaultBuildS
         }
         val pct = bar.next(raw, stepEnd, stepLeftS?.let { it * 1000L }, now, paused = !running,
             stepStart = steps.takeWhile { it != step }.sumOf { share(it) })
-        val left = if (running) TimeLeft.seconds(bar.measured, clock.elapsed, stepLeftS) else null
+        val left = if (running) TimeLeft.seconds(bar.share, clock.elapsed, stepLeftS) else null
         val failed = openStates.filterIsInstance<CellState.Failed>()
         return MapLoadUi(kind, pct, left,
             reason = if (kind != MapLoadUi.Kind.FAILED) null else if (!map) RoutingLoads.FAILED_TEXT
