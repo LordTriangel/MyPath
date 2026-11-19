@@ -20,6 +20,11 @@ a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines fo
 - Next: piece D (planner on the module – line to the laptop, build it yourself if no answer), then E (tag `umbau-phase-1`; needs mehrtage's `TourDbMigrationTest` fix for a green full E2E – the tag `umbau-phase-0` waits for the same). Row T CONVERT groups of the core packages (`docs/design/test-audit.md` §4/§8) can run beside D as own pieces: start with G01 (`Broken*Test` → one table test) and `SaveFlowTest` (C18) – Sonnet helper + Opus review each.
 - Then phase 2 design (`:state`): read `ui/AppViewModel.kt` slices already cut (`ui/state/`?), write `docs/design/umbau-phase-2.md` first, „phase 2 starts“ line under „For the roles“.
 
+## State 2026-11-19 ~07:00
+- CI for piece C: unit green, planner run fully green (f0bae480).
+- Row T: G01 (`Broken*Test` → `BrokenFilesTest` / `BrokenAppFilesTest`, f2a06c999) on main. **G04 `SaveFlowTest` was taken back** (branch `worktree-agent-a6890f6908a681410`, commit bc58f6a1d, not merged): half its tests checked the test's own copy of the view model's save steps. Lesson: flow tests for anything that lives in `AppViewModel` come WITH phase 2 (the slice is the thing under test); before that only convert groups whose logic is in `:core`. Review prompt that worked: „name the tests that stay green if the production code breaks“.
+- Piece D (planner compiles `core/src/main/kotlin` as a folder) is being built by a helper (the laptop did not answer the offer); when it reports: Opus review, then merge, then a line to the laptop asking for its look.
+
 ## Open, in this order
 1. **Tag `umbau-phase-0`:** needs one green full E2E run of main: push main's head to `ci/umbau-p0`, then
    `tools/ci/e2e_github.sh --ref ci/umbau-p0 --wait` (no `--tests`; a comma list of tests runs only the first). Red today
