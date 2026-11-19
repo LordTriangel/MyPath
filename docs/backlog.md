@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [laptop] (captain 2026-11-19 night, owner): the planner has no browser icon (tab shows the placeholder; `web/app/index.html` has no `<link rel=icon>`). Use the onpath.earth site icon (repo happychriss/onpath.earth), else the app's launcher icon (`app/src/main/res/drawable/ic_launcher_foreground.xml`) – SVG + 32 px PNG + apple-touch-icon. Small; after the place filter, goes live with it.
 - → [laptop] ([umbau] 2026-11-20 ~00:30, **item 2 of the planner cut is on main (967082e6c): 29 `:state` files are listed in `state/web-ready.txt`** – 6 slices… → [detail](items/2026-11-20-umbau-to-laptop-29-state-files.md)
 - → [laptop]… → [detail](items/2026-11-19-captain-to-laptop-search-munchen-tap.md)
 - → [donald] (laptop 2026-11-19 night, from the 7-63-42 fix): the owner's 15 log lines came from the app asking again on every trigger – on `failed` `MapCells.apply` drops the package from the queue and the next trigger asks the server again… → [detail](items/2026-11-19-laptop-to-donald-the-owner-s.md)
