@@ -70,6 +70,9 @@ class WebWait(private var shares: StepShares, private var check: Double, private
     private var rate: Double? = null
     // the route part's clock: when it started, when the check started; when the map part ended
     private var routeFromMs = -1L
+    // the route part's legs: how many were done at the last tick, when the last one was done
+    private var legsDone = 0
+    private var legAtMs = -1L
     private var checkFromMs = -1L
     private var mapEndMs = -1L
     private var startMs = -1L
@@ -133,6 +136,8 @@ class WebWait(private var shares: StepShares, private var check: Double, private
         val mapStep = if (inMap) mapSteps[cur] else null
         if (mapPart && !inMap && mapEndMs < 0) mapEndMs = now
         if (!inMap && routeFromMs < 0) routeFromMs = now
+        if (!inMap && legAtMs < 0) legAtMs = routeFromMs
+        if (!inMap && done > legsDone) { legsDone = done; legAtMs = now }
         val running = !t.paused
         if (running && mapStep == LoadStep.DOWNLOAD) measureRate(dlDone, now) else if (!running) rateAt = -1L
         if (mapStep != null) clock.at(mapStep, now, running)
@@ -151,7 +156,18 @@ class WebWait(private var shares: StepShares, private var check: Double, private
             } else null
         }
         val pct = bar.next(raw, stepEnd, stepLeftS?.let { it * 1000L }, now, paused = t.paused, stepStart = stepStart)
-        val left = if (running) TimeLeft.seconds(bar.share, now - startMs, stepLeftS) else null
+        // the time left (owner 2026-11-19, München → Hilden: „bereit in 5 s“ – then the one 600 km leg took minutes): a
+        // number only when the rest of the wait is measured – never the bar's pace over steps that are no measure of
+        // what is left (the map part's quick steps, the bar's creep inside a leg the router says nothing about)
+        val left: Int? = when {
+            !running -> null
+            // a route lies ahead: its legs are not measured yet
+            inMap && hadRoute -> null
+            inMap -> TimeLeft.seconds(raw, now - startMs, stepLeftS)
+            checking -> TimeLeft.seconds(raw, now - startMs, stepLeftS)
+            else -> legsLeftS(legs, done, now)
+        }
+        val overLeg = running && !inMap && !checking && done > 0 && left == null
         // the rows: the map steps' words as the app's MapLoadUi, the legs as the app's RouteWait
         val load = when {
             !hadMap && !hadPrepare && hadRouting -> Txt.s(Res.string.wait_step_loading_routing)
@@ -181,11 +197,27 @@ class WebWait(private var shares: StepShares, private var check: Double, private
         val late = running && bar.late
         val line = when {
             t.paused -> Txt.s(Res.string.maps_offline_text)
-            late -> TimeLeft.LATE
+            late || overLeg -> TimeLeft.LATE
             else -> left?.let(TimeLeft::text)
         }
         val title = if (inMap) Txt.s(Res.string.wait_title_map) else Txt.s(Res.string.wait_title_route)
-        return Ui(title, !inMap, pct, WaitSteps.shown(WaitSteps.of(labels, cur)), line, t.paused, late).also { last = it }
+        return Ui(title, !inMap, pct, WaitSteps.shown(WaitSteps.of(labels, cur)), line, t.paused, late || overLeg).also { last = it }
+    }
+
+    /**
+     * The route part's time left while the router works on a leg: the legs done so far in this wait give the pace (the
+     * router says nothing within a leg) – the rest of this leg, the legs after it, the check by its share. Null = not
+     * measurable: no leg done yet (one long leg: no number at all), or this leg already took longer than the legs before
+     * it (a longer leg – no number it cannot keep).
+     */
+    private fun legsLeftS(legs: Int, done: Int, now: Long): Int? {
+        if (done <= 0 || routeFromMs < 0 || legAtMs < routeFromMs) return null
+        val per = (legAtMs - routeFromMs).toDouble() / done
+        val inLeg = (now - legAtMs).toDouble()
+        if (per <= 0 || inLeg > per) return null
+        val c = RouteShares.bounded(check)
+        val ms = (per - inLeg) + per * (legs - done - 1).coerceAtLeast(0) + per * legs * c / (1 - c)
+        return (ms / 1000).toInt()
     }
 
     /**

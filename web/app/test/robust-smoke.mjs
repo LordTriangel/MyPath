@@ -341,6 +341,51 @@ check(errors.length === 0, `no page error (${errors.join(' | ')})`);
   await c.close();
 }
 
+// ---- 9b: ONE long leg (owner 2026-11-19, München → Hilden: „bereit in 5 s“ – then it hung for minutes): the routing
+//      data comes quickly (most of the bar), then the router works on the one leg without a word (?slowRoute holds the
+//      worker 15 s before it routes). The time left never claims less than that hold still needs – no number, or
+//      „taking a bit longer…“, until the leg is measured ----
+{
+  const HOLD = 15_000;
+  const c = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+  await c.route('**/maps/v1/**', (r) => r.fulfill({ status: 503, body: '' }));
+  await c.addInitScript(() => {
+    window.__card = [];
+    setInterval(() => {
+      const el = document.getElementById('waitwin');
+      const now = el ? { pct: Number(el.dataset.pct), rows: [...el.querySelectorAll('.wwsteps li')].map((l) => l.className + ':' + l.querySelector('.lab').textContent),
+        line: el.querySelector('.wwline')?.textContent ?? '' } : null;
+      const key = JSON.stringify(now);
+      const last = window.__card.at(-1);
+      if (!last || last.key !== key) window.__card.push({ key, t: performance.now(), ...(now ?? { gone: true }) });
+    }, 50);
+  });
+  const p = await c.newPage();
+  const errs = [];
+  p.on('pageerror', (e) => errs.push(String(e)));
+  await p.goto(url + 'index.html');
+  await p.waitForFunction(() => document.body.dataset.engine === 'ready', null, { timeout: 120_000 });
+  const code = await p.evaluate(() => window.__engine.encode({ points: [[46.6700, 11.1600], [46.6879, 11.1111]],
+    activity: 'BIKE_TOURING', sac: 2, pinned: [], names: {}, title: null }));
+  await p.goto(url + `index.html?slowRoute=${HOLD}#p=` + code);
+  await p.waitForFunction(() => document.body.dataset.engine === 'ready', null, { timeout: 120_000 });
+  // the leg ran, the check began (the worker's second hold) – the leg's part is over
+  const legOver = await p.waitForFunction(() => window.__card.some((x) => x.rows?.some((r) => /^now:checking/.test(r))), null, { timeout: 90_000 }).then(() => true, () => false);
+  const log = (await p.evaluate(() => window.__card)).filter((x) => !x.gone);
+  const inLeg = log.filter((x) => x.rows.some((r) => /^now:Section 1/.test(r)));
+  const end = log.find((x) => x.rows.some((r) => /^now:checking/.test(r)))?.t ?? 0;
+  console.log('(one long leg: ' + inLeg.map((x) => `${Math.round((end - x.t) / 1000)} s before its end: ${x.pct} % "${x.line}"`).join(' ; ') + ')');
+  // the most seconds a line can mean ("about 5 seconds left" → 5, minutes rounded → +29 s)
+  const claimed = (l) => { const s = /about (\d+) seconds? left/.exec(l); if (s) return Number(s[1]); if (/about 1 minute left/.test(l)) return 89;
+    const m = /about (\d+) minutes left/.exec(l); return m ? Number(m[1]) * 60 + 29 : null; };
+  const lies = inLeg.filter((x) => claimed(x.line) != null && claimed(x.line) + 5 < (end - x.t) / 1000);
+  check(legOver && inLeg.length > 0, `one long leg: the window shows the leg as its step (${inLeg.length} pictures)`);
+  check(lies.length === 0, `one long leg: the time left never claims less than the leg still needs (${lies.map((x) => `"${x.line}" ${Math.round((end - x.t) / 1000)} s before its end`).join(' | ')})`);
+  check(errs.length === 0, `one long leg: no page error (${errs.join(' | ')})`);
+  await p.click('#waitwin .wwcancel').catch(() => {});
+  await c.close();
+}
+
 // ---- 4: no WasmGC ----
 for (const [locale, want] of [['de-DE', 'zu alt'], ['en-US', 'too old']]) {
   const c = await browser.newContext({ locale });

@@ -1047,7 +1047,11 @@ load (map tiles, routing data, the engine – by bytes) · add to the map (the r
 with routing data) · the legs the router works on · check. The math is the app's shared code (core
 `domain/WaitProgress.kt`: OneBar, StepShares, RouteShares, WaitSteps, TimeLeft, PrepareProgress) in `WebWait.kt`, run by a
 second instance of the Wasm engine on the page's thread (`waitengine.ts` – the routing worker is blocked while BRouter
-routes); the shares are learned per browser (`progressmemory.ts`, localStorage, bounded, defaults on failure). Tiles
+routes); the shares are learned per browser (`progressmemory.ts`, localStorage, bounded, defaults on failure). The
+time left is shown only when the rest of the wait is measured (owner 2026-11-19, München → Hilden: „bereit in 5 s“, then
+the one 600 km leg took minutes): no number while a route lies ahead of the map part or no leg of this wait is done yet
+(the router says nothing within a leg), then the legs' measured pace – „taking a bit longer…“ once a leg outlasts the
+ones before it; the map alone by its measured progress (not the bar's creep). Tiles
 alone bring the window only for the page's first map; later they only join a window that is up. A plan brings it after
 a second (`?waitMs`), at once once routing data comes; a map area the user waits for (own point / search / position, or
 the view without detailed map – the app's MapLoadWait) after 400 ms. Cancel stops a route (the app's cancelRouting);

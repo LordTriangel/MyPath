@@ -63,6 +63,91 @@ class WebWaitTest {
         assertTrue("says it takes longer: ${seen.distinct()}", late)
     }
 
+    /** The most seconds a line can mean ("about 5 seconds left" = 5, "about 3 minutes left" = 209 – minutes are rounded); null = no number. */
+    private fun claimedS(line: String?): Int? {
+        if (line == null) return null
+        Regex("about (\\d+) seconds left").find(line)?.let { return it.groupValues[1].toInt() }
+        if (line == "about 1 minute left") return 89
+        Regex("about (\\d+) minutes left").find(line)?.let { return it.groupValues[1].toInt() * 60 + 29 }
+        return null
+    }
+
+    /**
+     * Runs a wait every half second: [map] ms of map download (0 = none), then [legMs] for each of [legs] legs (the router
+     * says nothing within a leg), then [checkMs] of check; returns (time, line, seconds really left) at each tick.
+     */
+    private fun run(w: WebWait, map: Long, legs: Int, legMs: Long, checkMs: Long): List<Triple<Long, String?, Long>> {
+        val out = ArrayList<Triple<Long, String?, Long>>()
+        val end = map + legs * legMs + checkMs
+        var t = 0L
+        while (t < end) {
+            val inMap = t < map
+            val r = t - map
+            val done = if (inMap) 0 else minOf(legs, (r / legMs).toInt())
+            val dl = if (map == 0L) 0L else 10_000_000L
+            val tk = WebWait.Tick(t, dlDone = if (inMap) dl * t / map else dl, dlTotal = dl, routing = map > 0,
+                route = WebWait.Route(done, if (inMap) 0 else legs, done >= legs, null))
+            out += Triple(t, w.tick(tk).line, (end - t) / 1000)
+            t += 500
+        }
+        return out
+    }
+
+    private fun assertHonest(what: String, seen: List<Triple<Long, String?, Long>>) {
+        // a number is never less than the wait really needs (rounding: the text is in fives / whole minutes)
+        val lies = seen.filter { (_, line, left) -> claimedS(line)?.let { it + 5 < left } == true }
+        assertTrue("$what: the time left claims less than is left: " +
+            lies.take(6).joinToString { (t, l, left) -> "${t / 1000} s: \"$l\" (really $left s)" }, lies.isEmpty())
+    }
+
+    @Test fun aSingleLongLegAfterAQuickMapClaimsNoShortTime() {
+        // the owner's München → Hilden (2026-11-19, „bereit in 5 s“ – then it hangs): the routing data in 6 s (the map
+        // part's steps, 70 % of the bar), then ONE leg of 600 km the router works on for two minutes without a word
+        val seen = run(fresh(), map = 6_000, legs = 1, legMs = 120_000, checkMs = 4_000)
+        assertHonest("map 6 s, one leg 120 s", seen)
+    }
+
+    @Test fun aSingleLongLegAloneClaimsNoShortTime() {
+        // the same leg with the routing data already here: the bar creeps on time – that is no measure of the leg
+        assertHonest("one leg 120 s", run(fresh(), map = 0, legs = 1, legMs = 120_000, checkMs = 4_000))
+        // a route part learned from short routes (MIN: the route only 10 % of the bar) changes nothing
+        assertHonest("one leg 120 s, learned part", run(WebWait(StepShares.DEFAULT, RouteShares.DEFAULT_CHECK, WebWait.MIN_PART),
+            map = 6_000, legs = 1, legMs = 120_000, checkMs = 4_000))
+    }
+
+    @Test fun equalLegsGiveATimeOnceOneIsDone() {
+        // three legs of 20 s each: after the first the time left is the legs' measured pace – an honest number shows
+        val seen = run(fresh(), map = 0, legs = 3, legMs = 20_000, checkMs = 3_000)
+        assertHonest("three legs of 20 s", seen)
+        assertTrue("a number once a leg is done: ${seen.map { it.second }.distinct()}",
+            seen.filter { it.first in 21_000..39_000 }.any { claimedS(it.second) != null })
+    }
+
+    @Test fun aLegLongerThanTheOnesBeforeDropsTheNumber() {
+        // a short leg (5 s), then a long one (90 s): the pace of the short one would say "5 s" – past it the window says
+        // it takes longer instead of a number it cannot keep
+        val w = fresh()
+        val seen = ArrayList<Triple<Long, String?, Long>>()
+        var t = 0L
+        while (t < 99_000) {
+            val done = when { t < 5_000 -> 0; t < 95_000 -> 1; else -> 2 }
+            seen += Triple(t, w.tick(WebWait.Tick(t, route = WebWait.Route(done, 2, done >= 2, null))).line, (99_000 - t) / 1000)
+            t += 500
+        }
+        val late = seen.filter { it.first in 15_000..90_000 }
+        assertTrue("no number in the long leg past the short one's time: ${late.map { it.second }.distinct()}",
+            late.all { claimedS(it.second) == null })
+    }
+
+    @Test fun aMapAloneStillShowsItsTime() {
+        // no route: the download by bytes at the measured rate – the number stays
+        val w = fresh()
+        var t = 0L
+        val lines = ArrayList<String?>()
+        while (t < 20_000) { lines += w.tick(WebWait.Tick(t, dlDone = t * 500, dlTotal = 10_000_000, map = true)).line; t += 500 }
+        assertTrue("a number for the map alone: ${lines.distinct()}", lines.any { claimedS(it) != null })
+    }
+
     @Test fun atMostThreeRowsMovingAlongTheLegs() {
         val w = fresh()
         val u = w.tick(WebWait.Tick(0, route = WebWait.Route(2, 5, false, listOf("A → B", "B → C", "C → D", "D → E", "E → F"))))
