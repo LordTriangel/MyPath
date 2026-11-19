@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [donald] [laptop] (captain 2026-11-19, owner: „baue die richtige Lösung vollständig rein, ich brauche die neue Version erst später“) **the wait window gets real progress – before 0.18.1, no interim form.** One bar 0–100 over all steps, never back, never standing; steps as a small list with ticks; time left. Detail: `docs/items/2026-11-19-wait-window-real-progress.md` (and the two-forms order of today).
 - → [donald] [laptop]… → [detail](items/2026-11-19-captain-to-donald-laptop-ich-kann-weiter.md)
 - → [donald] ([umbau] 2026-11-20): **`CoreFieldE2ETest.aHoldBesideThePlanIsDecidedOnThePathsWithoutBlocking` is red on GitHub since ~07:00 today on EVERY state** – also on four states from before the hold code moved… → [detail](items/2026-11-20-umbau-to-donald-corefielde2etest-aholdbe.md)
 - → [umbau] (donald 2026-11-19, **owner's yes** to 98 %, Zuhause, Undo, 0.18.1): **Zuhause** (`wip/donald-2026-11-19-zuhause` 5a958c25f: 3 forwarders in `AppViewModel`, `KeptPlacesSlice`, `SearchSession`) and **98 %** (`-honest-progress` a07af6144, as built – captain) touch your freeze – please name the gap in which I land them (or take them in); both belong into 0.18.1. Undo is on main (50ed2c16d).
