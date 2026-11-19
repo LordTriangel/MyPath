@@ -13,7 +13,7 @@ Status: **design with a build plan (§14), nothing built.** No product code on `
  phone (tour is recording)                  plan.onpath.earth                    her phone / any browser
  ┌───────────────────────┐   locked data   ┌──────────────────┐   locked data   ┌────────────────────────┐
  │ RecordingService      │ ──────────────▶ │ live mailbox     │ ──────────────▶ │ viewer page  /live/    │
- │  writes points to DB  │  every ~2 min   │ (Worker + D1)    │  asks every 30 s │  opens with the key    │
+ │  writes points to DB  │  every ~2 min   │ (Worker + D1)    │  asks ~every 2 min│  opens with the key    │
  │ LiveShare reads them  │  1 request      │ cannot read it   │                  │  from the link         │
  └───────────────────────┘                 └──────────────────┘                  └────────────────────────┘
         the link (with the key after "#") goes by Signal / WhatsApp – never through our server
@@ -95,7 +95,9 @@ The status line, in this order of priority (calm words – a dead zone in the mo
   A tap copies it; „In Karten-App öffnen“ is a `geo:` link.
 - **After a gap the whole way appears**, not a straight jump: the phone uploads everything it recorded meanwhile.
 - A small fixed line at the bottom: „Kein Notruf-Dienst – im Notfall 112.“
-- The page asks the server every 30 s while it is visible, at once when the tab comes back; nothing while hidden.
+- The page asks the server **only when something new can be there**: the phone's head says when its next upload is due
+  (2 min moving, 10 min standing), the page asks shortly after that; at once when the tab comes back; nothing while
+  hidden; slower and slower while there is no contact; never again after the end (§5.1).
 - Age („vor 2 Min.“) is computed from the **server's** clock (the answer carries the server's time and the time of the
   last upload), so a wrong clock on either phone does not matter.
 
@@ -149,6 +151,25 @@ Why 2 minutes: every upload wakes the mobile radio for some seconds. *Estimate*:
 the recording, 1 min about double, 5 min under 0.3 %. For „is he on his way and where“ two minutes old is fresh; events
 go at once anyway. The number is one constant – measured on the Pixel before release (§10), changed if the cost is off.
 
+### 5.1 Request budget – the server is asked as rarely as possible (owner's concern 2026-11-20)
+
+Cloudflare's free plan gives the whole account 100,000 Worker requests a day (`map-hosting.md`) – shared with the map
+server and plan sync. So live tracking counts every request:
+
+| Who | Rule | Requests |
+| --- | --- | --- |
+| Phone | one `push` per upload (blocks + head together) | 30 an hour moving, 6 standing |
+| Viewer page | no fixed tick. The head carries `nextS` (seconds to the phone's next planned upload); the page asks `nextS` + 10 s after the last upload it saw. Nothing new → again after 1, 2, 5, then every 10 min („kein Kontakt“). Tab hidden → nothing. Ended / stopped → never again | ≤ 30 an hour while watched and moving, ~6 an hour in a dead zone |
+| Both | 429 / 5xx → wait as told, at least 1 min; no retry storms | – |
+
+A ten-hour tour with the page open the whole day: about 300 + 300 = **600 requests** (0.6 % of a day's budget); looked at
+now and then, about 350. With a 30-s tick the page alone would have cost 1,200 – hence the rule. D1: a push writes ~4
+rows (≈ 1,200 a tour, limit 100,000 a day), a question reads 2–5 rows (limit 5 million).
+
+If many people use it later, three ways down, in this order: the phone's moving interval 2 → 3 min (one constant);
+the head as a small file in R2 that the page reads without the Worker (reads there do not count as Worker requests);
+the paid Workers plan (10 million requests a month). None is needed for version 1.
+
 ## 6. Link, keys, server
 
 **Link:** `https://plan.onpath.earth/live/#t=<code>`. The app's App Link filter takes only the path `/` of that host
@@ -182,7 +203,7 @@ database (migration `0004_live.sql`: `live_box` – id, read hash, write hash, r
 - Clean-up by the existing daily cron, made hourly for this table: ended boxes after the keep time, any box 48 h after
   its last write.
 - Cost: an upload is ~3 row writes; a ten-hour tour ≈ 900 – nothing against D1's free 100,000 a day. The viewer's
-  30-s question is one small read.
+  question is one small read (§5.1).
 - A down server never touches the tour: uploads fail quietly and retry (§7).
 
 ## 7. Robust first – the recording must never suffer
@@ -313,6 +334,7 @@ data class LiveHead(
     val distanceM: Int, val ascentM: Int, val movingS: Int, val startedMs: Long,
     val toGoM: Int?, val arrivalMs: Long?,                     // only when following a plan
     val batteryPct: Int?, val activity: String, val name: String, val counter: Int,
+    val nextS: Int,                                            // seconds to the next planned upload – the page's pacing (§5.1)
 )
 data class LivePoint(val seg: Int, val lat: Double, val lon: Double, val eleM: Int?, val timeMs: Long)
 
@@ -406,8 +428,9 @@ a pull request together with the privacy text.
 
 - `live/index.html` – a second Vite entry; `src/live/main.ts` (boot: read `#t=`, strip it from the address, keep the
   code in memory only – a reload needs the link again; to be shown to the owner with the pictures, the alternative is
-  keeping it in the tab's session storage), `src/live/box.ts` (the `GET` loop: 30 s while visible, at once on
-  `visibilitychange` / `online`, back-off on errors, stops for good on 410), `src/live/view.ts` (status line, numbers,
+  keeping it in the tab's session storage), `src/live/box.ts` (the `GET` loop paced by the head's `nextS`, §5.1 –
+  the wait is one tested Kotlin function `LivePolicy.viewerNext`; at once on `visibilitychange` / `online`, stops for
+  good on 410 or after the end), `src/live/view.ts` (status line, numbers,
   last place with copy / `geo:`), `src/live/map.ts` (MapLibre with the planner's map-area loader and style; the way, the
   route, the dot; follows the dot until the user moves the map, then a „Zur Position“ button).
 - Engine: `WebLive.kt` in `web/engine` – `liveKeys(code)`, `liveOpen(code, name, blob)` → JSON of head / route / chunk
@@ -421,7 +444,7 @@ a pull request together with the privacy text.
 | Test | Guards |
 | --- | --- |
 | `LiveFormatTest` (`:core`) | frozen bytes of code, keys, head, route, chunk (a format change cannot slip in); any flipped byte refused; a blob opened under another name or box refused; an older reader skips unknown tags |
-| `LivePolicyTest` | §5's table; never more often than the floor; back-off and `retry-after` |
+| `LivePolicyTest` | §5's table; never more often than the floor; back-off and `retry-after`; the viewer's pacing (§5.1): a watched ten-hour tour stays under 350 page requests, a dead zone under 8 an hour |
 | `LiveStatusLineTest` | §3's table and its priority (no contact beats moving; ended beats all) |
 | `LiveUploaderTest` (fake box, fake track, fake clock) | no network for hours → everything arrives in order afterwards; every 2nd call fails → no point twice, none missing (random seeded sequences); death between push and cursor write → same names again; 410 → stops, share forgotten; end → final head with `ended`; stop → delete retried until it lands |
 | `LiveNeverBlocksRecordingTest` | the box hangs forever → the track is still only read, the lane holds no lock the point writer takes (the writer finishes while `step` hangs) |
