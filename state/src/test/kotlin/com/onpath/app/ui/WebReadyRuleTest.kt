@@ -8,7 +8,7 @@ import java.io.File
 /**
  * The files named in `state/web-ready.txt` are the ones the planner (TeaVM, no coroutines, no Compose runtime jar) may take
  * as they are, with a stand-in for the five Compose runtime names (docs/design/umbau-phase-2.md §2.2, rules 1 + 2; what the
- * planner's owner needs: docs/items/2026-11-19-how-we-split-web.md). Checks on every listed file:
+ * planner's owner needs: docs/team/items/2026-11-19-how-we-split-web.md). Checks on every listed file:
  *  1. imports: only `com.onpath.app.*`, `com.onpath.strings.*`, `java.*` / `kotlin.*`, `org.json.*`, the two text-resource
  *     classes the engine has a stand-in for, and the five Compose runtime names; 2. no coroutine, no `suspend`, no thread /
  *     lock / file / wall clock used directly; 3. the closure: every `:state` file it uses is listed too; 4. every `:core`
