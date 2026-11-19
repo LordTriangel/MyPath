@@ -3170,6 +3170,10 @@
     "core/src/main/kotlin/com/onpath/app/rides/RideApply.kt": {
       "blob": "e8d7d7838b8f75775a38f178eb44dc6196ec7be0",
       "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/recording/RecordedActivity.kt": {
+      "blob": "47d96d2b3ea2ed8f96d75562ef26ac03cb627ac1",
+      "perf": []
     }
   }
 }
