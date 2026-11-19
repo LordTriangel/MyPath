@@ -333,8 +333,11 @@ class RouteWarningsTest {
         // expected: the web planner's build runs this shared test in web/engine, without the app's view model
         if (!vmFile.exists()) return
         val vm = vmFile.readText()
-        assertEquals(1, Regex("""override val touring: Boolean get\(\) = recState\.value != null""").findAll(vm).count())
-        assertTrue(vm.contains("override val mode: AppMode get() = this@AppViewModel.mode"))
+        // the route slice's own host object (other slices' hosts have a `touring` too)
+        assertTrue("the PlanRouteHost object is not found", vm.contains("PlanRouteHost {"))
+        val host = vm.substringAfter("PlanRouteHost {").substringBefore("object : ")
+        assertEquals(1, Regex("""override val touring: Boolean get\(\) = recState\.value != null""").findAll(host).count())
+        assertTrue(host.contains("override val mode: AppMode get() = this@AppViewModel.mode"))
     }
 
     // ---------------- "route changed" ----------------
