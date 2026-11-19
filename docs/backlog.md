@@ -73,6 +73,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [laptop] (2026-11-19 ~14:30): **all of today's [laptop] lines done and live**: progress design in the planner (form A one window, one bar over all steps via the shared `WaitProgress`, ≤ 3 ticks, time left, the app's texts; form B the sign beside the map; map notes step back while the window is up; pictures under „Waiting for the owner“), Zuhause off, Undo / Redo in the full points list, MapOverlays / PinMenuPlace mirrored; „Tag 2 starten“ needs nothing in the planner (it is the app's navigation button). umbau's step 2 reviewed + its questions answered (line to [umbau]). Sync race: mine once `SyncedRoutingSlice` settles.
 - ← [donald] (2026-11-19): **route preview – page dots on main (bda58d531); „Details“ NOT removed:** it holds more than descent – clock times from–to („Unterwegs 10:12–14:47“), descent ↓, speed uphill and downhill in m/h, a small line… → [detail](items/2026-11-19-route-preview-page-dots-on-main-bda58d53.md)
 - ← [donald] (2026-11-19): **My routes' pictures without map – fixed on main (b3daed4c0), cause NOT proven:** v0.18.0 and main draw identical pictures on the emulator.… → [detail](items/2026-11-19-my-routes-pictures-without-map-fixed-on.md)
 - ← [laptop] (2026-11-19 ~10:30): read all [laptop] lines; the done ones (≤ 11-18) lose my tag.… → [detail](items/2026-11-19-laptop-to-captain-read-all-laptop.md)
@@ -181,6 +182,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- **[laptop] For the owner to look at (no answer needed, captain's word „baue, wie du meinst“):** the planner's new progress design – wait window (form A) and the sign beside the map (form B), 20 pictures DE + EN, desktop + phone in onpath.private `marketing/bilder/vorschau/planer-warten-2026-11-19/`. Live on plan.onpath.earth. Say if something should look different.
 - [donald] 2026-11-19: **Routenvorschau – Seitenpunkte…** → [detail](items/2026-11-19-routenvorschau-seitenpunkte-gebaut-bilde.md)
 - [donald] 2026-11-19: **0.18.2 – the fix for My…** → [detail](items/2026-11-19-0-18-2-the-fix-for-my-routes-missing-map.md)
 - [donald] 2026-11-19: **Rundtour-Karte – voller Text…** → [detail](items/2026-11-19-rundtour-karte-voller-text-beim-antippen.md)
