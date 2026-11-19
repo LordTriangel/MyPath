@@ -115,6 +115,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [tracking] Live tracking – the tour as a link for the family (owner 2026-11-19): design + build plan in `docs/design/live-tracking.md` (decisions §12); code starts after the weekend release is out – since 2026-11-19
 - [donald] Weekend release round (0.18.2): notes drafted; the round (E2E full + Rundgang + fresh-install tests on the release commit, release_check) starts at [umbau]'s „main is clean“; publishing on the owner's word – since 2026-11-19 night
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
+- [tidy] Repo tidy-up for the release (owner 2026-11-19 23:50): personal read, docs guide page, done items / old handoffs out, spikes out of `tools/`, last the notes folder move (a line under „For the roles“ comes before it) – docs and tools only – since 2026-11-19 night
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
