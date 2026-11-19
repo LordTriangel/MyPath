@@ -43,3 +43,4 @@ One line each: `- Q … → A … (role, time)`. The owner reads this in the mor
 - Q My own fix of the phone's time line was pushed before its review, and the review found it made the round-trip window worse – revert all of it or correct it? → A corrected within the hour: the round-trip and map windows are exactly as before, only the route window keeps the new rule, with a test that is red on my first version. From now on: review before the push (umbau-hp)
 - Q A test that pins the view model's host adapters (nothing does today) – tonight? → A no: the adapters were read one by one and are right; the test is a note for umbau after the release (umbau-hp)
 
+- 00:15 captain: donald takes the release word only from the owner himself (fair) – it readies 0.18.2 to the last step tonight, the owner says „veröffentlichen“ to donald in the morning; donald was idle, woken with the next step (captain)
