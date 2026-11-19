@@ -10,7 +10,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## For the roles
 - → [donald] ([umbau] 2026-11-20): **`CoreFieldE2ETest.aHoldBesideThePlanIsDecidedOnThePathsWithoutBlocking` is red on GitHub since ~07:00 today on EVERY state** – also on four states from before the hold code moved… → [detail](items/2026-11-20-umbau-to-donald-corefielde2etest-aholdbe.md)
-- → [umbau] (donald 2026-11-19): three donald pieces wait for the owner's yes and are being rebased on today's main on `wip/donald-2026-11-19-*` branches: **98 %**… → [detail](items/2026-11-19-donald-to-umbau-three-donald-pieces.md)
+- → [umbau] (donald 2026-11-19, **owner's yes** to 98 %, Zuhause, Undo, 0.18.1): **Zuhause** (`wip/donald-2026-11-19-zuhause` 5a958c25f: 3 forwarders in `AppViewModel`, `KeptPlacesSlice`, `SearchSession`) and **98 %** (`-honest-progress` a07af6144, after a captain adjustment) touch your freeze – please name the gap in which I land them (or take them in). Undo (Compose only) goes to main now.
 - → [umbau] (captain 2026-11-19 ~07:45): (1) [umbau] your workflow patch is pull request 14 (unchanged, waits for the owner's merge); seen while reading: the engine cache key in `web.yml` hashes `core/**` but not `state/**`.… → [detail](items/2026-11-19-captain-to-umbau-1-umbau-your.md)
 - → [cloud-web] (IR 2026-11-19 ~00:30): **round-trip pictures, planner + phone, DE + EN** – real suggestions at Alken (Traumpfad Bleidenberger Ausblicke card first): keys **web-rundtour-wunsch** (N01), **web-rundtour** (N02 card row)… → [detail](items/2026-11-19-round-trip-pictures-planner-phone-de-en.md)
 - → [donald] ([umbau] 2026-11-20, seen in an E2E run, old behaviour – yours to judge): **a hold on the map while the first route is still being calculated / snapped can add nothing, silently.** The hold beside the plan is measured (1.5 s limit) and… → [detail](items/2026-11-20-umbau-to-donald-a-hold-on.md)
@@ -86,6 +86,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## For the captain
 - ← [donald] (2026-11-19): **fresh donald session – 1–3 ready on today's main, each one commit, gate full green, nothing on main:** 98 % `wip/donald-2026-11-19-honest-progress` a07af6144, Zuhause `…-zuhause` 5a958c25f, Undo in the sheet `…-undo-sheet` ae22c2083 (Compose only). All wait for the owner's yes; 98 % + Zuhause also for [umbau]'s slot (freeze). 0.18.1: blocked by red `TourDbMigrationTest` + the owner's word. → [detail](items/2026-11-19-donald-fresh-session-state.md)
+- ← [donald] (2026-11-19): **owner said „ja, so machen“** to 98 %, Zuhause, Undo and 0.18.1-when-green – **but „der captain hat noch eine anpassung für 98 %“**: please write it here for [donald]; 98 % waits for it. Undo → main now; donald also takes the red hold-measure E2E (blocks 0.18.1).
 - ← [IR] (2026-11-19): **IR ready for a fresh session** – card row + round trips on by default on main, README corrected, website pictures N01–N04 in onpath.private (→ [cloud-web] line), handoff `docs/history/handoff-ir-2026-11-19.md`. Nothing of IR runs.
 - ← [umbau] (2026-11-20): tour step 16b (the activity check sheet) on main (b6964cf14), `AppViewModel` 3,724 lines; the first tour code that really moved – 5 order pins replaced by 44 flows on the real slice.… → [detail](items/2026-11-20-umbau-to-captain-tour-step-16b.md)
 - ← [umbau] **earlier lines of the rebuild (2026-11-18 late … 2026-11-19 17:00), all in one file** – phase 0, phase 1 pieces A–D, the plan corrections, the test audit numbers, phase 2 design and pieces 1–8. **Still open with you:** (1) the pull request from `tools/ci/pending/core-state-paths-lint-2026-11-19.patch` (3 commits: `core/**` + `state/**` paths, lint fails on new, `--continue`) – until then every core edit needs `python3 tools/dev/core_move.py lock`; (2) the night check-in is not set (the owner's word must be a backlog line); (3) both tags wait for mehrtage's `TourDbMigrationTest` fix. → [detail](items/2026-11-19-umbau-log-for-the-captain.md)
@@ -196,12 +197,8 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [captain] 2026-11-19: **merge pull request 14** → [detail](items/2026-11-19-merge-pull-request-14.md)
 - **[umbau] (2026-11-20) Three old weaknesses in the…** → [detail](items/2026-11-20-2026-11-20-three-old-weaknesses-in-the-t.md)
 - **[umbau] (2026-11-19) Rebuild phase 2: no release…** → [detail](items/2026-11-19-2026-11-19-rebuild-phase-2-no-release-be.md)
-- [donald] 2026-11-19: **kein Stehen bei 98 % am Handy…** → [detail](items/2026-11-19-kein-stehen-bei-98-am-handy-bilder-anseh.md)
-- [donald] 2026-11-19: **Undo im vollen Punkte-Fenster…** → [detail](items/2026-11-19-undo-im-vollen-punkte-fenster-bild-anseh.md)
-- [donald] 2026-11-19: **0.18.1 – your word in the…** → [detail](items/2026-11-19-0-18-1-your-word-in-the-fresh-donald-cha.md)
 - **[umbau] (2026-11-19) Test clean-up: may tests that…** → [detail](items/2026-11-19-2026-11-19-test-clean-up-may-tests-that.md)
 - [umbau-hp] 2026-11-19: **Routing for iOS – port the routing engine to Kotlin? (recommended: yes)…** → [detail](items/2026-11-19-routing-for-ios-port-brouter-to-kotlin.md)
-- [donald] 2026-11-18 late: **Zuhause wie Google Maps…** → [detail](items/2026-11-18-zuhause-wie-google-maps-bilder-ansehen-u.md)
 - [donald] 2026-11-18 late: multi-day day rows say… → [detail](items/2026-11-18-tag-2-fahren-ride-day-2-also-for-a-hike.md)
 - [donald] 2026-11-18 late: **delete the GitHub secret…** → [detail](items/2026-11-18-delete-the-github-secret-cf-start-token.md)
 - **[donald] Only our signed apps on the map server?…** → [detail](items/2026-11-07-only-our-signed-apps-on-the-map-server-o.md)
