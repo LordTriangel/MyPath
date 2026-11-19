@@ -99,6 +99,12 @@ class ThumbMaker(
             val bytes = snap(json, segs, t)
             val ms = clock() - t0
             if (bytes == null) {
+                // the map changed under the picture (areas joined – MapPictureGuard gave up): not a failure of this line,
+                // tried again at the next kick, on the map as it is then
+                if (style().let { it != null && it != json }) {
+                    Problems.info("routes", "Map picture of a route waits: the map changed while it was drawn (${ms} ms)")
+                    continue
+                }
                 failed += key
                 Problems.info("routes", "Map picture of a route not made (${ms} ms) – its row keeps the drawn line")
                 continue

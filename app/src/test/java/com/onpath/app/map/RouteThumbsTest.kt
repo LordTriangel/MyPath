@@ -114,6 +114,47 @@ class RouteThumbsTest {
         assertEquals(listOf("g1", "g2", "g3"), seen)
     }
 
+    /**
+     * A picture given up because the map changed under it (areas joined during a download – MapPictureGuard) is made at the
+     * next look, on the map as it is then; a picture that failed on an unchanged map is not tried again in this run.
+     */
+    @Test fun aPictureGivenUpBecauseTheMapChangedIsMadeAtTheNextLookAFailedOneIsNot() {
+        val thumbs = RouteThumbs(tmp.newFolder("t4"))
+        var gen = 1
+        var changing = true
+        var works = false
+        val seen = mutableListOf<String>()
+        val maker = ThumbMaker(thumbs, CoroutineScope(Dispatchers.Unconfined), binned = { emptySet() }, lineKey = { "x${it.id}" },
+            line = { listOf(listOf(GeoPoint(46.6, 11.1), GeoPoint(46.7, 11.2))) }, style = { "g$gen" },
+            snap = { json, _, _ -> seen += json; if (changing) { gen++; null } else if (works) byteArrayOf(1) else null },
+            busy = { false }, made = {}, io = Dispatchers.Unconfined, pauseMs = 0)
+        val list = listOf(tour(1))
+        maker.kick(list)
+        assertEquals(listOf("g1"), seen)
+        assertNull("nothing kept", thumbs.storedKey(list[0].uuid))
+        // the map is still now, but the snapshot fails: tried once more, then left for the next start
+        changing = false
+        maker.kick(list)
+        assertEquals("tried again on the map as it is now", listOf("g1", "g2"), seen)
+        works = true
+        maker.kick(list)
+        assertEquals("a real failure is not tried again in this run", listOf("g1", "g2"), seen)
+    }
+
+    @Test fun aPictureGivenUpBecauseTheMapChangedIsKeptOnceTheMapIsStill() {
+        val thumbs = RouteThumbs(tmp.newFolder("t5"))
+        var gen = 1
+        var changing = true
+        val maker = ThumbMaker(thumbs, CoroutineScope(Dispatchers.Unconfined), binned = { emptySet() }, lineKey = { "x${it.id}" },
+            line = { listOf(listOf(GeoPoint(46.6, 11.1), GeoPoint(46.7, 11.2))) }, style = { "g$gen" },
+            snap = { _, _, _ -> if (changing) { gen++; null } else byteArrayOf(1) }, busy = { false }, made = {}, io = Dispatchers.Unconfined, pauseMs = 0)
+        val list = listOf(tour(1))
+        maker.kick(list)
+        changing = false
+        maker.kick(list)
+        assertTrue("the picture is kept with its key", thumbs.storedKey(list[0].uuid)!!.endsWith("|x1"))
+    }
+
     private class Maker(dir: java.io.File) {
         var busy = false
         var snaps = 0
