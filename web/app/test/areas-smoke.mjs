@@ -106,11 +106,15 @@ const magenta = ([r, g, b]) => r - g > 50 && b - g > 40;
 {
   const asked = [], ids = [];
   let polls = 0;
+  let page = null, answeredAt = null; // the server's first estimate leaves at [answeredAt] (the page's clock)
   const doorman = { fetch: async (req) => {
     const u = new URL(req.url);
     if (req.headers.get('x-onpath-key') !== 'k') return Response.json({ error: 'unknown app key' }, { status: 401 });
     if (u.pathname === '/v1/cells/request') {
       const b = await req.json(); asked.push(b);
+      // the server's answer a moment late: the window is up before any estimate (the „3 minutes“ flash, 2026-11-19)
+      await new Promise((r) => setTimeout(r, 1500));
+      answeredAt = await page.evaluate(() => performance.now()); // on the page's clock, before the answer leaves
       return Response.json({ cells: b.cells.map((id) => ({ id, state: 'queued', position: 1, eta_s: 290 })), poll_s: 5 });
     }
     const ids = u.searchParams.get('ids').split(',');
@@ -122,8 +126,15 @@ const magenta = ([r, g, b]) => r - g > 50 && b - g > 40;
     }
     return Response.json({ cells: ids.map((id) => ({ id, state: 'building', step: 'base', progress: 0.4, eta_s: 110 })), poll_s: 5 });
   } };
-  const { page, ctx, server, log } = await open({ geolocation: { ...MUNICH, accuracy: 20 }, permissions: ['geolocation'] }, '11.16,46.67,12',
+  const opened = await open({ geolocation: { ...MUNICH, accuracy: 20 }, permissions: ['geolocation'] }, '11.16,46.67,12',
     { maps: (req) => { if (req.method === 'POST') ids.push(req.headers.get('x-onpath-browser')); return handleMaps(req, { MAP_KEY: 'k', DOORMAN: doorman }); } });
+  page = opened.page;
+  const { ctx, server, log } = opened;
+  // the window's line every 50 ms from its first appearance (the „3 minutes“ flash before the server's estimate)
+  await page.evaluate(() => { window.__lines = []; window.__lTimer = setInterval(() => {
+    const w = document.getElementById('waitwin');
+    if (w || window.__lines.length) window.__lines.push({ t: performance.now(), line: w?.querySelector('.wwline')?.textContent ?? '' });
+  }, 50); });
   await page.click('#locate');
   // what the page did meanwhile, for a failure message (CI: the window late on two cores)
   await page.evaluate(() => { window.__bLog = []; const t0 = performance.now(); window.__bTimer = setInterval(() => {
@@ -138,8 +149,16 @@ const magenta = ([r, g, b]) => r - g > 50 && b - g > 40;
   const bLog = await page.evaluate(() => { clearInterval(window.__bTimer); return window.__bLog; });
   if (!came) console.log('(page: ' + bLog.map((x) => `${x.t} ${x.s}`).join('\n       ') + ')');
   check(!(await strip(page)).includes('Preparing map'), 'one wait: no strip line beside the window');
+  for (let i = 0; i < 100 && answeredAt == null; i++) await page.waitForTimeout(100); // the server's first answer
   const left = await page.waitForFunction(() => /minutes? left/.test(document.querySelector('#waitwin .wwline')?.textContent ?? ''), null, { timeout: 10_000 }).then(() => true, () => false);
   check(left, `the time left from the server's estimate ("${(await win())?.line}")`);
+  {
+    const at = answeredAt;
+    const lines = await page.evaluate(() => { clearInterval(window.__lTimer); return window.__lines; });
+    const early = lines.filter((x) => at != null && x.t < at && /left|longer/.test(x.line));
+    check(at != null && lines.some((x) => x.t < at) && early.length === 0,
+      `no time before the server's first estimate (${lines.filter((x) => at != null && x.t < at).length} samples before it; ${[...new Set(early.map((x) => x.line))].join(' · ')})`);
+  }
   check(asked.length === 1 && asked[0].reason === 'point' && asked[0].cells.join() === CELL && asked[0].formats.join() === '2',
     `one request through the proxy: ${JSON.stringify(asked)}`);
   check(ids.length === 1 && /^[0-9a-f]{32}$/.test(ids[0] ?? ''), `the request carries the browser's random id (quotas): ${ids[0]}`);

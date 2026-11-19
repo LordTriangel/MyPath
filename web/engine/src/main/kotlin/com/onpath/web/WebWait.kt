@@ -64,6 +64,8 @@ class WebWait(private var shares: StepShares, private var check: Double, private
     private var dlFracMax = 0.0
     private var lastJoin = 0.0
     private var areaIds = LinkedHashSet<String>()
+    /** The areas the server gave a time estimate for in this wait (the others' prepare time is only the assumed default). */
+    private val etaSeen = HashSet<String>()
     // the download rate (bytes / s) for the load step's own time left
     private var rateAt = -1L
     private var rateBytes = 0L
@@ -88,7 +90,7 @@ class WebWait(private var shares: StepShares, private var check: Double, private
         lastMs = now
         if (t.paused) paused = true
         if (t.areas.isNotEmpty()) hadPrepare = true
-        t.areas.forEach { areaIds += it.id }
+        t.areas.forEach { areaIds += it.id; if (it.etaS != null) etaSeen += it.id }
         if (t.map) hadMap = true
         if (t.routing) hadRouting = true
         if (t.join != null) { hadJoin = true; lastJoin = maxOf(lastJoin, t.join.coerceIn(0.0, 1.0)) }
@@ -163,6 +165,9 @@ class WebWait(private var shares: StepShares, private var check: Double, private
             !running -> null
             // a route lies ahead: its legs are not measured yet
             inMap && hadRoute -> null
+            // the prepare step without the server's estimate for every open area: its time is only the assumed
+            // default (the „3 minutes“ flash before the worker's first report) – no number before a measurement
+            mapStep == LoadStep.PREPARE && t.areas.any { it.state != "ready" && it.state != "failed" && it.id !in etaSeen } -> null
             inMap -> TimeLeft.seconds(raw, now - startMs, stepLeftS)
             checking -> TimeLeft.seconds(raw, now - startMs, stepLeftS)
             else -> legsLeftS(legs, done, now)

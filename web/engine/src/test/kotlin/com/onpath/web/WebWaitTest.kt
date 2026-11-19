@@ -139,6 +139,40 @@ class WebWaitTest {
             late.all { claimedS(it.second) == null })
     }
 
+    @Test fun anAreaWithoutTheServersEstimateShowsNoTime() {
+        // the flash before the worker's first report (2026-11-19): an area asked for, the server's answer not in yet –
+        // the prepare step's 3 minutes are only the assumed default (PrepareProgress.DEFAULT_S), no measurement
+        val w = fresh()
+        var t = 0L
+        val before = ArrayList<String?>()
+        while (t < 10_000) {
+            before += w.tick(WebWait.Tick(t, areas = listOf(WebWait.Area("10-1-1", if (t < 5_000) "requested" else "queued", 0.0, null)),
+                dlTotal = 1_000_000, map = true)).line
+            t += 500
+        }
+        assertTrue("no time before the server's estimate: ${before.distinct()}", before.all { claimedS(it) == null })
+        // the server says 60 s: now the step is measured – its time shows
+        val after = ArrayList<String?>()
+        while (t < 14_000) {
+            after += w.tick(WebWait.Tick(t, areas = listOf(WebWait.Area("10-1-1", "building", 0.1, 60)), dlTotal = 1_000_000, map = true)).line
+            t += 500
+        }
+        assertTrue("the server's time once it came: ${after.distinct()}", after.any { (claimedS(it) ?: 0) >= 50 })
+    }
+
+    @Test fun twoAreasOneWithoutAnEstimateShowNoTime() {
+        // one area's estimate is not the other's: the step's time left is unknown while one has none
+        val w = fresh()
+        var t = 0L
+        val lines = ArrayList<String?>()
+        while (t < 6_000) {
+            lines += w.tick(WebWait.Tick(t, areas = listOf(WebWait.Area("a", "building", 0.5, 20), WebWait.Area("b", "requested", 0.0, null)),
+                dlTotal = 1_000_000, map = true)).line
+            t += 500
+        }
+        assertTrue("no time while an area has no estimate: ${lines.distinct()}", lines.all { claimedS(it) == null })
+    }
+
     @Test fun aMapAloneStillShowsItsTime() {
         // no route: the download by bytes at the measured rate – the number stays
         val w = fresh()
