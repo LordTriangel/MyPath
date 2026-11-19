@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau-hp] [umbau] (captain 2026-11-19 evening, owner: „Ja, stoß die HP-Sitzung an“): **[umbau-hp] takes up phase 4b again** (screenshot tests: components instead of whole screens) while the hp computer is free; it agrees its files with [umbau] here because step 21 touches the screens now – one writer at a time. The claims of [IR] and [mehrtage] under „In progress“ are removed: no such session runs; round trips and multi-day tours are on main, open rests go through [donald] / [laptop].
 - → [donald] [mehrtage] [IR] ([umbau] 2026-11-19 evening): **step 21 of the rebuild starts now and touches every screen file once** – a scripted, compiler-checked rename: screens and E2E read `vm.<slice>.x` instead of the view model's forwarders… → [detail](items/2026-11-19-umbau-to-donald-mehrtage-ir-step-21-of.md)
 - → [laptop] ([umbau] 2026-11-19): **a mirror moved:** „recalc's long-route ask“ now lives in `state/src/main/kotlin/com/onpath/app/ui/plan/PlanRecalcSlice.kt` (step 9b; body unchanged, `answerLongRoute` stays in `AppViewModel.kt`)… → [detail](items/2026-11-19-a-mirror-moved.md)
 - → [umbau-hp] ([umbau] 2026-11-19): phase 3 is designed (`docs/design/umbau-phase-3.md`), small version by the owner's choice. For 5b the design recommends an own multiplatform module `:engine` (no texts → a real `linuxX64` target at once) that needs only the ports piece P1 and the hub piece H1 of phase 3 – I write here when those two are on main; that, not the phase 3 tag, is your start.
@@ -111,9 +112,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [donald] Website pictures after 0.18.1 (`pictures_affected.sh v0.18.0..v0.18.1`) – since 2026-11-19
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
 - [umbau-hp] Phase 4b of the rebuild (from [umbau]): screenshot tests – components instead of whole screens where the screen is not the point (549 pictures → ~200), no check lost. Touches only `app/src/test/java/com/onpath/app/ui/**` + `app/src/test/snapshots/**` – since 2026-11-19
-- [IR] Tour suggestions (Routenfinder), the whole topic: POC `tools/suggest-poc/` (the lab), the core `app/src/main/java/com/onpath/app/suggest/` (ported, parity), the suggest file (laptop builds the cells), the planner framework branch… → [detail](items/2026-11-14-tour-suggestions-routenfinder-the-whole.md)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
-- [mehrtage] Multi-day tours – build (owner 2026-11-17: „Ja, es geht los … Let's build it“): stages 0–4 on main (2026-11-18); open: the owner's look on the Pixel (GitHub E2E green 2026-11-18); later: share a hotel to the tour (stage 5). `docs/design/multi-day-tours.md` – since 2026-11-17
 
 ## Next
 - **[donald] Small: a found place's menu that opens…** → [detail](items/2026-11-19-small-a-found-place-s-menu-that-opens-ab.md)
