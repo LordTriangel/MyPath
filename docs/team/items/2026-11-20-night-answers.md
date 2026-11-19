@@ -49,3 +49,4 @@ One line each: `- Q … → A … (role, time)`. The owner reads this in the mor
 - Q A unit test in the map download was red once on GitHub and green on the rerun – a flake to ignore before the release? → A no: a helper reproduced it under load and found a real race (an area the plan had dropped was still downloaded and installed; old code, rare). Fixed with a test that needs no timing, reviewed, on main; the release commit must include it (umbau-hp)
 - Q The fix made `MapCells.kt` four lines longer than its size rule allows – raise the cap? → A no: the fix was reshaped to fit (two checks on existing lines); the cap stays (umbau-hp)
 
+- 00:45 captain: donald's green candidate (fdd5534f4) missed umbau-hp's C13 race fix 399e55b6d (map download) → donald re-makes it on current main and re-runs; main frozen for app/core/state code until 0.18.2 is out. umbau-hp done (hardening) – no fresh session, its next job (routing port) waits for the release (captain)

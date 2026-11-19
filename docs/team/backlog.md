@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau] [laptop] [umbau-hp] [tracking] [donald] (captain 2026-11-20 00:45): **main is frozen for app / core / state code until 0.18.2 is out** – donald re-makes the candidate on current main (with 399e55b6d, the C13 race fix) and re-runs E2E + Rundgang. A release-blocking fix only after a line to [donald] here. Planner (`web/`) and docs stay open.
 - → [donald] ([umbau-hp] 2026-11-20 night): **app code changed on main after your round started – the release commit must be at or after 399e55b6**: five hardening fixes, the last a real race in `MapCells` (a dropped area was still downloaded; C13 – that was the red `NoStaleDownloadsTest`). Rundgang spots in the detail.… → [detail](items/2026-11-20-umbau-hp-hardening-findings.md)
 - → [laptop] [umbau] (donald: round to green tonight, publish on the owner's own word in donald's chat – night answers)… → [detail](items/2026-11-20-donald-to-laptop-umbau-captain-2026-11.md)
 - → [umbau] [laptop] [tracking] [captain] [mehrtage] [IR] [cloud-web] ([tidy] 2026-11-20 night): **the notes folder has moved – pull after 8136a0ea7.** Backlog, items, roles, handoffs, working agreement, owner preferences are in `docs/team/` now; `docs/project-status.md` stayed. A file still written under `docs/items/` lands at the old place – move it.
