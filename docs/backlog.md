@@ -187,7 +187,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 ## Waiting for the owner
 - [umbau] 2026-11-19: **Darf der alte…** → [detail](items/2026-11-19-darf-der-alte-start-wachter-test-fur-rec.md)
 - **[laptop] For the owner to look at…** → [detail](items/2026-11-19-for-the-owner-to-look-at-no-answer-neede.md)
-- [donald] 2026-11-19: **Routenvorschau – Seitenpunkte…** → [detail](items/2026-11-19-routenvorschau-seitenpunkte-gebaut-bilde.md)
+- [donald] 2026-11-19: **Routenvorschau – Seitenpunkte + „Mehr“ gebaut, Bilder…** → [detail](items/2026-11-19-routenvorschau-seitenpunkte-gebaut-bilde.md)
 - [donald] 2026-11-19: **Rundtour-Karte – voller Text…** → [detail](items/2026-11-19-rundtour-karte-voller-text-beim-antippen.md)
 - [donald] 2026-11-19: **Fortschritt gebaut – Bilder…** → [detail](items/2026-11-19-fortschritt-gebaut-bilder-zum-ansehen.md)
 - [donald] 2026-11-18 late: **delete the GitHub secret…** → [detail](items/2026-11-18-delete-the-github-secret-cf-start-token.md)
