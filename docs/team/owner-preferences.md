@@ -46,6 +46,16 @@ gestures, re-routing only after asking, core-feature bugs test first, public tex
 - **Code first for bugs:** when diagnostics exist, find the cause by reading the code and reproduce it in a JVM test.
   Use the phone only briefly to confirm, say how long, say when it is free again, and restore the owner's app state
   before handing it back (a long trial-and-error session on the phone was not OK).
+- **Night jobs – the standing rules** (owner 2026-11-20 ~00:05, „merken wir uns für weitere Nachtjobs“): when the owner
+  goes to bed with work running, without him repeating it: (1) **no AskUserQuestion boxes** – a box blocks the session
+  all night; every role answers its own questions with its recommendation and logs one line `Q … → A … (role, time)` in
+  the night's `docs/team/items/<date>-night-answers.md`; (2) work through, never stop with „done“ while the backlog has
+  work – a worn-out session writes a handoff and asks for a fresh one; (3) a night captain checks every 15 min (pull,
+  „For the captain“, each session's state), wakes stopped sessions with their next step, unblocks a session stuck on a
+  box (interrupt + its recommendation as the answer), logs a line only when it acted; (4) **a German morning report** at
+  ~06:30 in `docs/team/items/<date>-morning-report.md` (plain words: done, release candidate ready?, the night's
+  answers, what needs his word, who works on what). Publishing needs his word – given for a night, it is in the
+  backlog's „For the roles“.
 - **Don't weaken CI gates** without the owner's explicit words. Releases are batched unless the owner asks.
 
 ## The owner's phone (Pixel 8, adb)
