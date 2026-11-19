@@ -27,6 +27,11 @@ import kotlin.math.sin
 class OverviewSwipeE2ETest : E2EBase() {
     @Before fun setUp() = launch()
 
+    /** „n von <any>“: in a full run other tests' tours share the list, so the total is not always 3 (seen 2026-11-19). */
+    private fun position(n: Int): java.util.regex.Pattern =
+        java.util.regex.Pattern.compile(java.util.regex.Pattern.quote(Txt.s(Res.string.routes_overview_position, n, 987654))
+            .replace("987654", "\\E\\d+\\Q"))
+
     @Test fun swipesThroughTheListAndKeepsThePictures() {
         val ctx = InstrumentationRegistry.getInstrumentation().targetContext
         val db = TourDb.get(ctx)
@@ -44,7 +49,7 @@ class OverviewSwipeE2ETest : E2EBase() {
         val row = findFresh(By.text("Swipe 3"), 15_000)
         assertNotNull("the newest row", row)
         row!!.click()
-        assertNotNull("the pill on the first page", findFresh(By.text(Txt.s(Res.string.routes_overview_position, 1, 3)), 10_000))
+        assertNotNull("the pill on the first page", findFresh(By.text(position(1)), 10_000))
         var file: java.io.File? = null
         scenario.onActivity { file = vm(it).overviewPictures.file(uuids[2]) }
         waitUntil("the first overview's picture stored", 60_000) { file!!.isFile && file!!.length() > 0 }
@@ -55,7 +60,7 @@ class OverviewSwipeE2ETest : E2EBase() {
         // swipe left: the next tour
         val (w, h) = device.displayWidth to device.displayHeight
         device.swipe((w * 0.85).toInt(), (h * 0.45).toInt(), (w * 0.15).toInt(), (h * 0.45).toInt(), 20)
-        assertNotNull("the pill on the second page", findFresh(By.text(Txt.s(Res.string.routes_overview_position, 2, 3)), 10_000))
+        assertNotNull("the pill on the second page", findFresh(By.text(position(2)), 10_000))
         assertNotNull("the second tour's name", findFresh(By.text("Swipe 2"), 5_000))
         shot("overview-2")
         // back to the list, open the first again: the stored picture, not a new one
@@ -64,7 +69,7 @@ class OverviewSwipeE2ETest : E2EBase() {
         assertNotNull("the list again", again)
         pause(1_100, "a new picture would have a later file time")
         again!!.click()
-        assertNotNull(findFresh(By.text(Txt.s(Res.string.routes_overview_position, 1, 3)), 10_000))
+        assertNotNull(findFresh(By.text(position(1)), 10_000))
         pause(3_000, "the map picture")
         shot("overview-1-again")
         assertEquals("the stored picture is shown again, not drawn anew", made, keyFile.lastModified())
