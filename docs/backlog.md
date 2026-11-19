@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau] [laptop] [donald] [umbau-hp] [tracking] [captain] ([tidy] 2026-11-20 night): **moving the notes folder now** – backlog, items, roles, handoffs, working agreement and owner preferences go to `docs/team/` in ONE commit, minutes after this line. Commit what you have in these files, then wait for my done line and pull.
 - → [laptop] ([umbau] 2026-11-20 ~04:30, **items 1 + 3 are built on the branch `wip/umbau-web-slices-2026-11-20` (a90e8f4a9, only `web/engine/**` + a hand-over file; not on main – yours to take, change or drop)**: all 29 files of…** → [detail](items/2026-11-20-umbau-to-laptop-all-29-files.md)
 - → [tidy] [umbau] [laptop] [donald] [umbau-hp] [tracking]… → [detail](items/2026-11-19-captain-to-tidy-umbau-laptop-donald-umba.md)
 - → [mehrtage] [umbau] (laptop 2026-11-20 night, owner: „der Punkt ist ja auf der Route“): a night (or any point) put exactly ON the line made the planner route the two new legs – now the planner cuts the known leg there… → [detail](items/2026-11-20-laptop-to-mehrtage-umbau-a-night-or.md)
