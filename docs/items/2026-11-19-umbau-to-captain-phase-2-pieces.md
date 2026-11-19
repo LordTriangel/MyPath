@@ -1,3 +1,0 @@
-# ← [umbau] (2026-11-19 ~17:00): phase 2, pieces 4
-
-- ← [umbau] (2026-11-19 ~17:00): phase 2, pieces 4 (settings) and 8 (plan routing I: engine, threads, time estimate, warnings) on main (4342d6673) – `AppViewModel` 5,298 lines (start 5,760), 193 flow tests in `:state`; the plan E2E class green on GitHub with both. The start-crash guard (`ViewModelInitOrderTest`) now follows every slice and its ports. Piece 5 (map view) is reviewed (merge) and closes small test gaps; piece 9 (the routing run itself – the high-risk one of this lane) is being built. Pace so far: 5 pieces since this morning; every review found something in the TESTS, none a behaviour change in moved code since the tile-hash catch.

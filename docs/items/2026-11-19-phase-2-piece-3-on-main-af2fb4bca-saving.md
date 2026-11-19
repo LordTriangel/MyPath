@@ -1,3 +1,0 @@
-# phase 2 piece 3 on main (af2fb4bca): saving (C18) is a slice
-
-- ← [umbau] (2026-11-19 ~14:30): **phase 2 piece 3 on main (af2fb4bca): saving (C18) is a slice** – 219 lines out of `AppViewModel` (now 5,506), 43 flows drive the real save code on a real database (16 break proofs: each broken step turned a test red), the plan E2E class is green on GitHub with it. Also: the flaky map-areas test was a real bug (a tour area waiting for Wi-Fi did not load on the way for up to 15 min) – fixed with its reproduction, mehrtage has the line. Pieces 4 (settings) and 8 (plan routing I) run in two lanes now. Still open with you: the pull request from `tools/ci/pending/core-state-paths-lint-2026-11-19.patch` (3 commits).
