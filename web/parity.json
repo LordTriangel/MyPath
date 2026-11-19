@@ -185,6 +185,15 @@
       "blob": "701492e0db9370d51749ab4e13c82f1e201668c8"
     },
     {
+      "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlanRunSlice.kt",
+      "what": "cancelRouting, planAnyway and perform (LoadDeferredMaps -> Rerun) = the long-route yes: the planner's cancelRouting / allowLongRoute (main.ts, longroute.ts) – moved here from AppViewModel, rebuild phase 2 piece 9; the rest (the run's handles, the slow-plan answer) is the phone's",
+      "web": [
+        "web/app/src/main.ts",
+        "web/app/src/longroute.ts"
+      ],
+      "blob": "f82d95a4a48b5f4d8f5af68958471d39f7072a1b"
+    },
+    {
       "app": "app/src/main/java/com/onpath/app/ui/AppViewModel.kt",
       "what": "recalc long-route ask / answerLongRoute / cancelRun; importGpx (its note is the shared GpxData.skippedNote), planFromShown; addPlace; poiAsNewDestination (appends while planning – PlaceAddMenu.keepsOldGoal; the planner has no tour, main.ts placeAsNewDestination); suggestName; pinnedPoiKinds / refreshPinnedKinds; holdOnMap (F-PLAN-15: on the line / new goal / stop at once, else the hold menu – PlaceAddMenu.planningHold, the engine's WebApi.holdOnMap; a round trip by the zone) and placeMenu while planning = PlaceAddMenu.planningMenu (WebApi.placeMenu); holdAsStop / holdAsNewDestination (main.ts holdAddMenu); keepPlaces / placesChanged = the kept-places sync (keptplaces.ts / sync.ts); the done tours' Ø speed is not in the planner (no recorded tours)",
       "web": [

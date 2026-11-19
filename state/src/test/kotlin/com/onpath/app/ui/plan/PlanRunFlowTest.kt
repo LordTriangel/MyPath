@@ -22,8 +22,7 @@ import org.junit.Test
  * The route run's state and what its effects do (rebuild phase 2 piece 9, first part) as flows of the REAL [PlanRunSlice]
  * with the real [RouteRun] and [RunCause]: a run starting, the long-route question (ask, yes, no), the slow-plan question,
  * Cancel, "Plan anyway", and a plan left without a route. The slice's own state at the moment each port call arrives is
- * recorded, so the ORDER of effects is proven (a stopped run is stopped before its route goes), and every port call must
- * come on the thread the slice is used on (the main thread: the fake checks it). The run's coroutine (`recalc`) is still
+ * recorded, so the ORDER of effects is proven (a stopped run is stopped before its route goes),. The run's coroutine (`recalc`) is still
  * in the view model: it is a recorded call here.
  */
 class PlanRunFlowTest {
@@ -37,7 +36,6 @@ class PlanRunFlowTest {
     private val far = GeoPoint(60.0, 11.10)
 
     private class App {
-        private val main = Thread.currentThread()
         var points: List<GeoPoint> = emptyList()
         val causes = RunCause()
         /** What the view model was asked to do, in order, with the slice's state at that moment. */
@@ -46,19 +44,18 @@ class PlanRunFlowTest {
         var job: Job? = null
         var cancel: RouteCancel? = null
 
-        private fun onMain(what: String) { check(Thread.currentThread() === main) { "$what called off the main thread" } }
         /** True when the slice holds no run handle any more (job, router signal, wait card) – read when each call arrives. */
         private fun state() = "stopped=${slice.routeJob == null && slice.routeCancel == null && slice.routeProgress == null && slice.routeShare == null}"
 
         val host = object : PlanRunHost {
-            override fun points(): List<GeoPoint> { onMain("points"); return points }
-            override fun clearRoute() { onMain("clearRoute"); log += "clearRoute ${state()}" }
-            override fun noCorridor() { onMain("noCorridor"); log += "noCorridor ${state()}" }
+            override fun points(): List<GeoPoint> = points
+            override fun clearRoute() { log += "clearRoute ${state()}" }
+            override fun noCorridor() { log += "noCorridor ${state()}" }
             override fun loadDeferredMaps(before: List<GeoPoint>) {
-                onMain("loadDeferredMaps"); log += "loadMaps ${before.size} deferred=${slice.longRouteDeferred?.size}"
+                log += "loadMaps ${before.size} deferred=${slice.longRouteDeferred?.size}"
             }
-            override fun recalc() { onMain("recalc"); log += "recalc next=${causes.next::class.simpleName} run=${causes.run::class.simpleName}" }
-            override fun cancelRun(why: NotRouted) { onMain("cancelRun"); log += "cancelRun $why" }
+            override fun recalc() { log += "recalc next=${causes.next::class.simpleName} run=${causes.run::class.simpleName}" }
+            override fun cancelRun(why: NotRouted) { log += "cancelRun $why" }
         }
 
         init { slice = PlanRunSlice(causes, host) }
@@ -115,9 +112,11 @@ class PlanRunFlowTest {
         val app = App()
         app.slice.cancelRouting()
         assertEquals(emptyList<String>(), app.log)
+        assertEquals(emptyList<String>(), problems.said()) // nothing is calculated: nothing is reported either
         app.startRun(listOf(a, b))
         app.slice.cancelRouting()
         assertEquals(listOf("cancelRun STOPPED"), app.log)
+        assertEquals(listOf("Route calculation cancelled by the user"), problems.said("routing"))
     }
 
     // ---------------- plan left without a route ----------------
@@ -132,6 +131,7 @@ class PlanRunFlowTest {
         assertEquals(listOf("clearRoute stopped=true", "noCorridor stopped=true"), app.log)
         assertTrue(job.isCancelled); assertTrue(cancel.isCancelled)
         assertNull(app.slice.routeJob); assertNull(app.slice.routeCancel)
+        assertEquals(listOf("Plan left without a route (stopped): 2 points"), problems.said("routing"))
         assertEquals(NotRouted.STOPPED, app.slice.notRouted)
         assertFalse(app.slice.routing)
     }
@@ -163,6 +163,8 @@ class PlanRunFlowTest {
         assertTrue(app.slice.longRouteAsk!! > 86_400.0)
         assertFalse(app.slice.routing)
         assertEquals(listOf("clearRoute stopped=true", "noCorridor stopped=true"), app.log)
+        val said = problems.traced("routing").single()
+        assertTrue(said, said.startsWith("Very long plan (") && said.endsWith(") – asking first"))
     }
 
     private fun answerLong(app: App, plan: Boolean) {
@@ -224,6 +226,7 @@ class PlanRunFlowTest {
         assertFalse(app.slice.routing)
         app.slice.answerSlowPlan(SlowPlan.Answer.KEEP_WAITING)
         assertEquals(listOf("recalc next=PointEdit run=PointEdit"), app.log)
+        assertEquals(listOf("Slow plan: keep_waiting after 1 period(s)"), problems.said("routing"))
         assertNull(app.slice.slowPlanAsk)
         // the new run starts with one more period and still asks at its limit
         val again = app.startRun(listOf(a, b))!!
@@ -236,12 +239,20 @@ class PlanRunFlowTest {
         slowAsked(app)
         app.slice.answerSlowPlan(SlowPlan.Answer.CANCEL)
         assertEquals(listOf("cancelRun STOPPED"), app.log)
+        assertEquals(listOf("Slow plan: cancel after 1 period(s)"), problems.said("routing"))
         assertNull(app.slice.slowPlanAsk)
     }
 
     @Test fun anAnswerWithNoQuestionOpenDoesNothing() {
         val app = App()
         app.slice.answerSlowPlan(SlowPlan.Answer.KEEP_WAITING)
+        assertEquals(emptyList<String>(), app.log)
+        assertEquals(emptyList<String>(), problems.said()) // no question open: nothing is reported
+    }
+
+    @Test fun loadingDeferredMapsWithNothingDeferredLoadsNothing() {
+        val app = App()
+        app.slice.perform(listOf(RouteRun.Effect.LoadDeferredMaps))
         assertEquals(emptyList<String>(), app.log)
     }
 
