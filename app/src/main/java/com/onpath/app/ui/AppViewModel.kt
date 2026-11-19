@@ -28,7 +28,6 @@ import com.onpath.app.domain.HoldPaths
 import com.onpath.app.domain.NewPlanNote
 import com.onpath.app.domain.NotRouted
 import com.onpath.app.domain.OfflineReady
-import com.onpath.app.domain.OpenAsk
 import com.onpath.app.domain.PlaceAddMenu
 import com.onpath.app.domain.PlaceMenuMeasure
 import com.onpath.app.domain.PlanAutoSave
