@@ -1,7 +1,7 @@
 # Map colours: how the OnPath route band and ground colours were derived
 
 Status: analysis done 2026-10-19 (owner + Claude); built into the app (map package with paths.geojson).
-Reproduce the numbers with `python3 tools/style_analysis/route_green.py`. The interactive matrix is
+Reproduce the numbers with `python3 experiments/style_analysis/route_green.py`. The interactive matrix is
 [`route-green-matrix.html`](route-green-matrix.html) (open in a browser).
 
 ## Why this document exists
@@ -51,7 +51,7 @@ The optimiser searches CIE LCh space: hue 120–150° (green), lightness 20–90
 colours. It keeps the colour with the largest weakest-ground ΔE00 among those whose path contrast stays above a
 floor (3.5 or 4.5).
 
-## Results (from `tools/style_analysis/route_green.py`)
+## Results (from `experiments/style_analysis/route_green.py`)
 
 Weakest ground at 40 % opacity:
 

@@ -235,7 +235,7 @@ sensitive to what its entry points reach, not to what `core` contains – every 
 ### 3.1 Recommendation: staged, sources stay in place
 | | Staged (recommended) | Flip to multiplatform first |
 | --- | --- | --- |
-| Start | `:core` stays `kotlin("jvm")`. New side build `tools/common-check/` (multiplatform, `linuxX64` only, like `tools/spike-routing-kmp`) compiles `core/src/main/kotlin` minus the files in `core/jvm-only.txt` (222 lines at the start), with a generated texts stand-in | all 222 files would have to move to `src/jvmMain/kotlin` on day one and back one by one: every move changes a path in `web/parity.json`, the rule files and the risk table |
+| Start | `:core` stays `kotlin("jvm")`. New side build `tools/common-check/` (multiplatform, `linuxX64` only, like `experiments/spike-routing-kmp`) compiles `core/src/main/kotlin` minus the files in `core/jvm-only.txt` (222 lines at the start), with a generated texts stand-in | all 222 files would have to move to `src/jvmMain/kotlin` on day one and back one by one: every move changes a path in `web/parity.json`, the rule files and the risk table |
 | Guard while pieces run | the compiler: a file not on the list that uses a JVM API, or uses a listed file, fails the check; a piece's result is "N lines deleted from the list" | the compiler |
 | Risk to the app build | none until the last pieces | the Android build, Animal Sniffer, the gate and the planner build change at once, before any value |
 | End | flip (pieces X2, X3): the list becomes the `jvmMain` folder | – |

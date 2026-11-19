@@ -31,7 +31,7 @@ What this means:
 
 ## What was built
 
-`tools/spike-routing-kmp/` – a Gradle build of its own, **not wired into the app or the planner**.
+`experiments/spike-routing-kmp/` – a Gradle build of its own, **not wired into the app or the planner**.
 - Source: `abrensch/brouter` commit `29898106`. That is exactly the app's jars: compiled, it matches
   `app/libs/brouter-*-1.7.11-beta-onpath1.jar` class for class, except the one class OnPath patches.
 - `src/commonMain/kotlin/btools/{util,codec,expressions,mapaccess,router}` – 74 files, 13,100 lines, no `java.*`.
@@ -46,10 +46,10 @@ What this means:
 
 Run it (Gradle only in a slot):
 ```
-tools/dev/gradle_slot.sh -- ./gradlew -p tools/spike-routing-kmp linkReleaseExecutableLinuxX64 jvmClasspath
-tools/spike-routing-kmp/run_kotlin.sh <dir with E5_N50.rd5 + E10_N45.rd5>      # both targets + comparison
-tools/spike-routing-kmp/bench.sh <dir>                                          # the time table
-tools/spike-routing-kmp/ref/run_ref.sh <dir>                                    # fixtures again from the jars
+tools/dev/gradle_slot.sh -- ./gradlew -p experiments/spike-routing-kmp linkReleaseExecutableLinuxX64 jvmClasspath
+experiments/spike-routing-kmp/run_kotlin.sh <dir with E5_N50.rd5 + E10_N45.rd5>      # both targets + comparison
+experiments/spike-routing-kmp/bench.sh <dir>                                          # the time table
+experiments/spike-routing-kmp/ref/run_ref.sh <dir>                                    # fixtures again from the jars
 ```
 
 ## How "identical" was checked
@@ -132,7 +132,7 @@ open points – none blocks the decision, all belong to the real port (5b):
 ## Recommendation
 
 **Port (way A of plan §4).** Order:
-1. Now: nothing more – the spike stays as `tools/spike-routing-kmp/`, outside every build.
+1. Now: nothing more – the spike stays as `experiments/spike-routing-kmp/`, outside every build.
 2. After phase 3 of the rebuild (`:core` is multiplatform): phase 5b takes the spike's code into `:core` behind the
    `RoutingEngine` port, works off the list above, widens the comparison to what the app reads, and switches Android
    when the routes are identical and the Pixel is not slower (`tools/routing/phone-bench`). Size: 3–5 nights.

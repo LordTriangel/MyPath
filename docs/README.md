@@ -32,4 +32,5 @@ repository, so it is public – but it is a workbench, not documentation:
 | where things stand, the last hand-over | [project-status.md](project-status.md), longer hand-overs in [history/](history/) |
 | how the sessions work together, who does what | [working-agreement.md](working-agreement.md), [roles/](roles/), [owner-preferences.md](owner-preferences.md) |
 
-Finished work is not kept there: the git history and the releases hold it.
+Finished work is not kept there: the git history and the releases hold it. Trials that are in no build live in
+[`experiments/`](../experiments/README.md) at the top of the repository.

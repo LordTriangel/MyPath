@@ -2,7 +2,7 @@
 
 Finds the green for the transparent route band that stays most visible on the WEAKEST ground of the map
 (forest, forest in hill shadow, meadow, farmland, rock, ...) while the black path drawn on top keeps a
-minimum luminance contrast. Pure Python, no dependencies. Run: python3 tools/style_analysis/route_green.py
+minimum luminance contrast. Pure Python, no dependencies. Run: python3 experiments/style_analysis/route_green.py
 
 Metrics
 - band visibility: CIEDE2000 colour difference between (ground) and (ground with the band composited on top)

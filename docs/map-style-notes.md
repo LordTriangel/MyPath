@@ -104,7 +104,7 @@ Used for map decisions (renders in `docs/design/img/`):
    then **drop layers whose metadata has `onpath:fallback-for` when that source's file exists** – the app's
    `OptionalSources` does this; without it the base-map paths are drawn under the own ones.
 4. `new maplibregl.Map({..., canvasContextAttributes:{preserveDrawingBuffer:true}})`, wait for `idle`, screenshot
-   with Playwright (viewport 400×400, deviceScaleFactor 2). Colour maths: `tools/style_analysis/route_green.py`.
+   with Playwright (viewport 400×400, deviceScaleFactor 2). Colour maths: `experiments/style_analysis/route_green.py`.
 
 ## Track junctions and ground symbols (owner field report)
 - **Track crossings.** Two-edge tracks (`line-gap-width` dotted edges, round caps) had no fill, so at crossings and

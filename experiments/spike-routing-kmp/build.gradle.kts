@@ -10,7 +10,7 @@ kotlin {
     compilerOptions { freeCompilerArgs.add("-Xexpect-actual-classes") }
 }
 
-// JVM run of the same main: ./gradlew -p tools/spike-routing-kmp runJvm --args="<segmentsDir> <profilesDir> <routes.txt> <outDir>"
+// JVM run of the same main: ./gradlew -p experiments/spike-routing-kmp runJvm --args="<segmentsDir> <profilesDir> <routes.txt> <outDir>"
 tasks.register<JavaExec>("runJvm") {
     val main = kotlin.jvm().compilations["main"]
     dependsOn(main.compileTaskProvider)
