@@ -44,6 +44,22 @@ class WebKeptTest {
         assertTrue(h, h.startsWith("{\"home\":\"n1\\tWaldcafé"))
         assertTrue(WebKept.state(cafe, "", cafe).contains("\"home\":true"))
         assertTrue(WebKept.apply(cafe, "", "clearHome", "").startsWith("{\"home\":null"))
+        // another place: it replaces the old home
+        assertTrue(WebKept.apply(cafe, "", "setHome", ruin).startsWith("{\"home\":\"n2\\tBurgruine"))
+    }
+
+    /**
+     * The app's KeptPlacesSlice toggles; the page's rows say what they showed. A row that no longer fits what is kept now
+     * (the sync or another tab changed it meanwhile) changes nothing – never the opposite of what was tapped.
+     */
+    @Test fun aStaleRowNeverDoesTheOpposite() {
+        assertEquals(listOf(cafe), favs(WebKept.apply("", cafe, "keep", cafe))) // a favourite already: stays one
+        assertEquals(listOf(cafe), favs(WebKept.apply("", cafe, "unkeep", ruin))) // not a favourite: nothing goes
+        assertTrue(WebKept.apply(cafe, "", "setHome", cafe).startsWith("{\"home\":\"n1\\tWaldcafé")) // the home already: stays
+        assertEquals("{\"home\":null,\"favourites\":[]}", WebKept.apply("", "", "clearHome", "")) // no home: nothing
+        // the kept line is the place as the page had it (its address, kind, height) – not rebuilt from a map POI
+        val full = WebKept.encode(Place("n3", "Hütte", "hut", 46.5, 11.2, 2100, address = "Weg 1, Meran"))
+        assertEquals(listOf(full), favs(WebKept.apply("", "", "keep", full)))
     }
 
     @Test fun theEmptySearchListsEveryPlaceOnce() {

@@ -5,7 +5,11 @@ import com.onpath.app.data.Geo
 import com.onpath.app.debug.Problems
 import com.onpath.app.search.Place
 import com.onpath.app.search.SavedPlaces
+import com.onpath.app.poi.Poi
 import com.onpath.app.search.SearchMerge
+import com.onpath.app.ui.plan.KeptPlacesHost
+import com.onpath.app.ui.plan.KeptPlacesSlice
+import com.onpath.app.ui.plan.PlacesStore
 
 /**
  * Kept places in the planner (owner 2026-11-15, „Orte merken“, F-PLAN-14; docs/design/web-planner.md §32): the app's
@@ -59,21 +63,46 @@ object WebKept {
     }
 
     /**
-     * One change ([op]: keep, unkeep, setHome, clearHome) by the app's rules: keep / unkeep = SavedPlaces.toggleFavourite
-     * when the place is not / is a favourite (every copy of it goes), setHome / clearHome = withHome. JSON {home, favourites}.
+     * One change ([op]: keep, unkeep, setHome, clearHome) made by the app's own [KeptPlacesSlice] (toggleFavouritePlace /
+     * toggleHomePlace) on what is kept now: keep / unkeep when the place is not / is a favourite (every copy of it goes),
+     * setHome when it is not the home (replaces the old one), clearHome on the home. JSON {home, favourites}.
      */
     fun apply(home: String, favourites: String, op: String, code: String): String {
-        var s = saved(home, favourites)
+        val now = saved(home, favourites)
         val p = decode(code)
-        s = when (op) {
-            "keep" -> if (p == null || s.isFavourite(p)) s else s.toggleFavourite(p)
-            "unkeep" -> if (p == null || !s.isFavourite(p)) s else s.toggleFavourite(p)
-            "setHome" -> if (p == null) s else s.withHome(p)
-            "clearHome" -> s.withHome(null)
-            else -> s
+        // the page's four ops are the menu's rows as it showed them: a row that no longer fits what is kept now (another
+        // tab or the sync changed it meanwhile) changes nothing – the slice itself only toggles
+        val target = when (op) {
+            "keep" -> p?.takeIf { !now.isFavourite(it) }
+            "unkeep" -> p?.takeIf { now.isFavourite(it) }
+            "setHome" -> p?.takeIf { !now.isHome(it) }
+            "clearHome" -> now.home
+            else -> null
+        }
+        val s = if (target == null) now else {
+            val store = PageStore(now)
+            val slice = KeptPlacesSlice(store, object : KeptPlacesHost {
+                override fun searchMark(): Place = target // the place itself (address, kind): its menu is about it
+                override fun isCandidate(poi: Poi) = true
+            })
+            val poi = Poi(target.id, target.kind, target.name, target.lat, target.lon, target.ele)
+            if (op == "keep" || op == "unkeep") slice.toggleFavouritePlace(poi) else slice.toggleHomePlace(poi)
+            store.places
         }
         return "{\"home\":" + (s.home?.let { str(encode(it)) } ?: "null") + ",\"favourites\":" +
             s.favourites.joinToString(",", "[", "]") { str(encode(it)) } + "}"
+    }
+
+    /**
+     * [PlacesStore] for one call of the app's [KeptPlacesSlice]: what the page keeps now, changed in memory; the page
+     * stores the result itself (keptplaces.ts: localStorage, one change after the other) and its store's change event is
+     * what backs it up and sends it to the paired phone (sync.ts) – the two notices are the page's, nothing here.
+     */
+    private class PageStore(var places: SavedPlaces) : PlacesStore {
+        override fun saved() = places
+        override fun update(change: (SavedPlaces) -> SavedPlaces): SavedPlaces = change(places).also { places = it }
+        override fun backupChanged() {} // expected: the page's store event (keptplaces.ts emit)
+        override fun syncChanged() {} // expected: the page's store event → the next sync round (sync.ts keptPlaces)
     }
 
     /** The app's SearchStore.addRecent: [code] first, the same place not twice, at most [MAX_RECENT]. Lines. */

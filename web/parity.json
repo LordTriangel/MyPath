@@ -487,15 +487,6 @@
       "blob": "75007588452a623b8edfa1a44b6c3584b16a5022"
     },
     {
-      "app": "state/src/main/kotlin/com/onpath/app/ui/plan/KeptPlacesSlice.kt",
-      "what": "toggleFavouritePlace / toggleHomePlace / keepPlaces (one change made on what is stored now, then backed up and sent to the paired browser) = the kept places in the planner (keptplaces.ts, sync.ts) – moved here from AppViewModel, rebuild phase 2 piece 12; the phone's store (SearchStore, Backups) stays behind PlacesStore",
-      "web": [
-        "web/app/src/keptplaces.ts",
-        "web/app/src/sync.ts"
-      ],
-      "blob": "9d2168e49df3a475023755c08caf10afc4ac3704"
-    },
-    {
       "app": "app/src/main/java/com/onpath/app/ui/MapLoad.kt",
       "what": "the wait window for the map of a place (form A, owner 2026-11-19): MapLoadUi's steps and words („vorbereitet · lädt Karte + Routendaten · einfügen“, wait_* / maps_phase_*), MapWait's measurement per step (prepare = the server's time left, download = bytes, join), the ONE bar (OneBar), when it shows and closes, Cancel – the planner's WebWait.kt (map part) + loadoverlay.ts; MapLoadWait.waits (own point / search, or a view without detailed map) – areas.ts show()",
       "web": [
