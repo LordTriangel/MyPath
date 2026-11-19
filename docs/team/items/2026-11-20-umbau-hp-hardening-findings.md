@@ -1,5 +1,11 @@
 # [umbau-hp] release hardening for 0.18.2 – findings and what was done
 
+**State at the hand-over (2026-11-20 night): done as far as the brief goes.** The state to release is main at or after
+399e55b6 (app) / 07b07800 (planner, GitHub's planner run green; the deploy is the laptop's). A fresh [umbau-hp] session
+starts from this file; nothing is half-done and nothing of mine is unpushed. Left for a fresh session if the night has
+room: the sibling flake `NoStaleDownloadsTest.aMultiDayTour…` (not looked at – after tonight's find it deserves the same
+question: test timing or a race?), the adapter pin test for [umbau], then the routing port 5b after the release.
+
 Four read-only reviews of everything since `v0.18.1` (recording + map download · routing + plan sync · wait windows + late
 answers · cards / „Mehr“ / pictures), each finding checked by the lead before a fix. Updated as the night goes.
 
@@ -41,6 +47,15 @@ answers · cards / „Mehr“ / pictures), each finding checked by the lead befo
    Known, left: a replan the app starts by itself after Abbrechen (undo / activity back) can bring the window back when
    another job is still open and the replan takes over a second – the same as when no job is open.
 
+7. **Map cells, a real race behind a "flaky" test** (399e55b6, `MapCells.downloadAndInstall`, core feature C13; in the code
+   since before v0.18.1): GitHub's unit run on fa9031fe was red once at `NoStaleDownloadsTest.runningCorridorDownloadStops`.
+   The worker downloads from a list taken earlier; when the plan dropped the area (or the user cancelled) between the list and
+   the download, only the progress callback noticed – every 256 KB, never on a retry's first request or a small file – so the
+   dropped area was fetched and installed (data, storage). Now checked before every file and before the folder is made
+   complete. Reproduced under CPU load (1 of 40), a deterministic test without sleeps
+   (`planDropsTheCellBetweenTheWorkersListAndItsDownload`, red on main), fresh review: every legitimate download keeps its
+   queue entry, push. Left: one request can still go out in the microseconds between the check and the GET (never an install).
+
 ## Second round (all clean)
 - `TourEdits` (edits of a running tour) line by line against v0.18.1, every host adapter of the new slices in `AppViewModel`,
   the initialisation order by hand: faithful, no finding.
@@ -63,10 +78,6 @@ answers · cards / „Mehr“ / pictures), each finding checked by the lead befo
     reopening My routes (fix 1).
 
 ## Open (in work or noted)
-- **GitHub's unit run on fa9031fe was red once: `NoStaleDownloadsTest.runningCorridorDownloadStops`** (core, C13; line 106 – the
-  cell was still / again queued 400 ms after the plan dropped its corridor). `MapCells` is unchanged since v0.18.1 and my
-  commit does not touch it; its sibling test is a known flake on the runner. Rerun started; a helper checks whether it is
-  a real race in `MapCells` (a retry putting the cell back) or the test's 400 ms.
 - The planner run on fa9031fe was red at the parity check: my two app files (`RouteWait`, `ThumbMaker`) are mirrored by the
   planner and needed a parity note – my miss (`node web/parity/check.mjs` before an app push); the laptop added it (0072edd7).
 - Noted for [umbau], after the release: nothing pins the real host adapters in `AppViewModel` for `TourSession`, `TourEdits`,
