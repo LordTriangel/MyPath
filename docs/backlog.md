@@ -195,7 +195,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
-- [donald] 2026-11-20 night: **Farben „Alpenrand“…** → [detail](items/2026-11-20-farben-alpenrand-mypath-auf-deinem-pixel.md)
+- [donald] 2026-11-20 night: **Papier warm, ~10 % dunkler (`#F2EFE6`) – auf deinem Pixel** (MyPath's palette was too close to see a difference). Before / after: onpath.private `ideen/2026-11-20-papier-dunkler/`. Into the release? Only on your word – then one more E2E round (~40 min).
 - [donald] 2026-11-20 night: **may donald clear the app…** → [detail](items/2026-11-20-may-donald-clear-the-app-once-on-its-own.md)
 - [captain] 2026-11-19: **merge pull request 15** → [detail](items/2026-11-19-merge-pull-request-15.md)
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)
