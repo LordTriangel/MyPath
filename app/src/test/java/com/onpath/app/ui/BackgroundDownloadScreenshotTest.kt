@@ -13,6 +13,7 @@ import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import com.android.resources.Density
 import com.onpath.app.routing.Activity
+import com.onpath.strings.*
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -20,10 +21,11 @@ import org.junit.Test
 import java.util.Locale
 
 /**
- * Background downloads, visible and stoppable: the light blue chip with its progress ring (Plan, Navigate; spinning while
- * areas are still prepared), the details sheet, the Settings line. German + largest font: the subclasses below.
+ * Form B, "ich kann weitermachen" (owner 2026-11-19 „einfach nur Prozent, muss aber passen für die gesamte Aktion“):
+ * the small sign beside the map – a ring and ONE percent over the whole action (Plan, Navigate, Settings → Offline maps),
+ * its details sheet (one bar, one line per load with where it stands, the finished ones "fertig"). EN, DE, DE at the
+ * largest font: the subclasses below.
  */
-/** English frames dropped (test audit 2026-11-07: the German twin at the same font size is the check); the subclasses draw. */
 abstract class BackgroundDownloadScreenshotTest {
 
     @get:Rule
@@ -34,27 +36,19 @@ abstract class BackgroundDownloadScreenshotTest {
 
     private val mb = 1_048_576L
     // getters: the names are read in the test (after @Before set the language), not when the class is made
-    private val ui get() = BackgroundDownloadUi(regions = 3, routingParts = 1, bytes = 24L * mb, percent = 34,
-        groups = LoadNames.groups(listOf(
-            LoadEntry(LoadWhy.POINT, "Bad Waldsee", "Ravensburg", waiting = true, bytes = 9 * mb),
-            LoadEntry(LoadWhy.ROUTE, "Gasthof Taser Alm", "Bozen", bytes = 7 * mb, phase = LoadPhase.PREPARING),
-            LoadEntry(LoadWhy.ROUTE, "Gasthof Taser Alm", "Bozen", bytes = 6 * mb, phase = LoadPhase.WAITING),
-            LoadEntry(null, paths = true, bytes = 2 * mb),
-        )))
-    private val longName get() = ui.copy(groups = LoadNames.groups(listOf(
-        LoadEntry(LoadWhy.ROUTE, "Berggasthof Gampenalm am Hochplateau über Unsere Liebe Frau im Walde", bytes = 9 * mb))))
+    /** A multi-day tour's maps: stage 1 there, stage 2 loads, stage 3 is prepared on the server – one action, 34 %. */
+    private val ui: BackgroundDownloadUi get() {
+        val p = BackgroundProgress(com.onpath.app.domain.ActionPercent())
+        fun g(stages: List<Pair<String, LoadPhase>>) = LoadNames.groups(stages.map { (n, ph) -> LoadEntry(LoadWhy.ROUTE, n, bytes = 9 * mb, phase = ph) })
+        fun item(k: String, f: Double) = com.onpath.app.domain.ActionPercent.Item(k, 9 * mb, f)
+        p.update(listOf(item("a", 0.0), item("b", 0.0), item("c", 0.0)), 3, 0, groups = g(listOf("Meran" to LoadPhase.LOADING,
+            "Brixen" to LoadPhase.PREPARING, "Klausen" to LoadPhase.PREPARING)))
+        return p.update(listOf(item("b", 0.02), item("c", 0.0)), 2, 0, groups = g(listOf("Brixen" to LoadPhase.LOADING,
+            "Klausen" to LoadPhase.PREPARING)))!!
+    }
 
-    /** Plan: small light blue chip under ☰ – ring at 34 %, "Bad Waldsee +1 · 34 %". */
+    /** Plan: the small light blue sign under ☰ – the ring and „34 %“, nothing else. */
     @Test fun planChip() = planWith(ui)
-
-    /** Nothing has a percent yet (areas being prepared on the server): the ring spins, no "0 %". */
-    @Test fun planChipPreparing() = planWith(ui.copy(percent = 0, phase = LoadPhase.PREPARING))
-
-    /** Everything downloaded, joined into the map: the ring spins, no "99 %" that stands (owner 2026-11-18). */
-    @Test fun planChipFinishing() = planWith(ui.copy(percent = 100, phase = LoadPhase.FINISHING))
-
-    /** A long name is cut with "…" at about half the width; the % always shows. */
-    @Test fun planChipLongName() = planWith(longName)
 
     private fun planWith(u: BackgroundDownloadUi) = paparazzi.snapshot {
         OnPathTheme {
@@ -82,12 +76,15 @@ abstract class BackgroundDownloadScreenshotTest {
         }
     }
 
-    /** Tap on the chip: what loads, Cancel all (red) · Close – a bottom sheet over the map (drawn as the sheet looks). */
+    /** Tap on the sign: the ONE bar, one line per load (fertig · lädt · wird vorbereitet), Cancel all (red) · Close. */
     @Test fun details() = sheet(ui)
 
-    /** The same while nothing downloads: "… · wird vorbereitet" / "… · fast fertig" in place of the percent. */
-    @Test fun detailsPreparing() = sheet(ui.copy(percent = 0, phase = LoadPhase.PREPARING))
-    @Test fun detailsFinishing() = sheet(ui.copy(percent = 100, phase = LoadPhase.FINISHING))
+    /** The action's number is the same in the sign, its details and the notification; finished loads stay as "fertig". */
+    @Test fun oneNumberOverTheAction() {
+        val u = ui
+        org.junit.Assert.assertEquals(34, u.percent)
+        org.junit.Assert.assertEquals(listOf(Txt.s(Res.string.maps_phase_done), LoadPhase.LOADING.text, LoadPhase.PREPARING.text), u.rows.map { it.state })
+    }
 
     /** The bottom sheet as ModalBottomSheet draws it (white, 28 dp top corners, drag handle, scrim) – Paparazzi has no popups. */
     @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -108,27 +105,37 @@ abstract class BackgroundDownloadScreenshotTest {
         }
     }
 
-    /** Settings → Offline maps: "Waiting to download: 16 areas · about 380 MB" with Cancel all. */
+    /** Settings → Offline maps: the same sign (34 %) and "Waiting to download: 16 areas · about 380 MB" with Cancel all. */
     @Test fun settingsWaiting() = paparazzi.snapshot {
         OnPathTheme {
             androidx.compose.material3.Surface(Modifier.fillMaxSize(), color = androidx.compose.material3.MaterialTheme.colorScheme.background) {
                 Column(Modifier.padding(12.dp)) {
                     OfflineMapsSection(OfflineMapsUi(true, listOf(OfflineArea("10-543-361", "Meran", 10_400_000, "19 Oct 2026")),
-                        wifiOnly = false, loading = 16, waiting = WaitingDownloads(16, 2, 380L * 1_048_576)), OfflineMapsCallbacks())
+                        wifiOnly = false, loading = 16, waiting = WaitingDownloads(16, 2, 380L * 1_048_576), action = 34), OfflineMapsCallbacks())
                 }
             }
         }
     }
 
-    private val newer get() = BackgroundDownloadUi(regions = 3, routingParts = 0, bytes = 22L * mb, percent = 34, newer = 3, newerEtaMin = 4,
-        groups = LoadNames.groups(listOf(
+    private val newer: BackgroundDownloadUi get() {
+        val groups = LoadNames.groups(listOf(
             LoadEntry(LoadWhy.REFRESH, town = "Meran", bytes = 8 * mb, phase = LoadPhase.PREPARING),
             LoadEntry(LoadWhy.REFRESH, town = "Meran", bytes = 7 * mb, phase = LoadPhase.PREPARING),
             LoadEntry(LoadWhy.REFRESH, town = "Bozen", bytes = 7 * mb),
-        )))
+        ))
+        return BackgroundProgress(com.onpath.app.domain.ActionPercent()).update(
+            listOf(com.onpath.app.domain.ActionPercent.Item("a", 22 * mb, 0.34)), 3, 0, newer = 3, newerEtaMin = 4, groups = groups)!!
+    }
 
     /** Its details: newer version, being prepared, about N min. */
     @Test fun detailsNewerMap() = sheet(newer)
+}
+
+/** The same in English. */
+class BackgroundDownloadEnglishScreenshotTest : BackgroundDownloadScreenshotTest() {
+    private val before = Locale.getDefault()
+    @Before fun english() = Locale.setDefault(Locale.US)
+    @After fun back() = Locale.setDefault(before)
 }
 
 /** The same in German. */
@@ -138,7 +145,7 @@ class BackgroundDownloadGermanScreenshotTest : BackgroundDownloadScreenshotTest(
     @After fun back() = Locale.setDefault(before)
 }
 
-/** The phone's largest font (2.0), German: the chip still a small pill (name cut, % whole), the sheet's buttons fit. */
+/** The phone's largest font (2.0), German: the sign still a small pill, the sheet's lines and buttons wrap, never cut. */
 class BackgroundDownloadLargeFontTest : BackgroundDownloadScreenshotTest() {
     @get:Rule
     override val paparazzi = Paparazzi(

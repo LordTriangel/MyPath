@@ -28,6 +28,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -273,6 +275,11 @@ class MainActivity : ComponentActivity() {
                     }
                     if (vm.showSettings) BackHandler { vm.settingsBack() }
                     PageFade(vm.showSettings) {
+                        // Offline maps: what loads – the sign beside the map's number and its details sheet (form B)
+                        val loads = com.onpath.app.ui.rememberBackgroundDownload(vm)
+                        var loadsOpen by remember { mutableStateOf(false) }
+                        if (loadsOpen && loads != null) com.onpath.app.ui.BackgroundDownloadSheet(loads,
+                            onCancelAll = { vm.cancelAllDownloads(); loadsOpen = false }, onClose = { loadsOpen = false })
                         SettingsScreen(
                             page = vm.settingsPage,
                             onPage = { vm.settingsPage = it },
@@ -332,7 +339,7 @@ class MainActivity : ComponentActivity() {
                                 val states by vm.cells.states.collectAsState()
                                 vm.recState.collectAsState().value // Clear all is blocked while a tour runs
                                 LaunchedEffect(installed) { vm.loadAreaNames() }
-                                vm.offlineMapsUi(states, installed)
+                                vm.offlineMapsUi(states, installed).copy(action = loads?.percent)
                             },
                             offlineMapsCb = com.onpath.app.ui.OfflineMapsCallbacks(
                                 onDelete = vm::deleteMapArea,
@@ -343,6 +350,7 @@ class MainActivity : ComponentActivity() {
                                 onCleanUpConfirm = vm::confirmCleanup,
                                 onCleanUpCancel = { vm.cleanupPreview = null },
                                 onClearAll = vm::clearAllMaps,
+                                onLoads = { loadsOpen = true },
                             ),
                             dataDir = vm.dataFiles.dir.absolutePath,
                             version = "${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})",

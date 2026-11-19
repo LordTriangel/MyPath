@@ -601,6 +601,10 @@ private fun PlanBottom(vm: AppViewModel, rec: RecState?, onStartNavigation: () -
     MapLoadModal(MapLoadWait.shown(loadUi, vm.setupOpen), MapLoadCallbacks(onCancel = vm::cancelLoadModal, onRetry = vm::cellCardRetry, onClose = vm::hideLoadModal,
         onLoadOnMobile = vm::loadModalOnMobile))
     vm.loadAsk?.let { LoadAskDialog(it.regions, it.bytes, onLoad = { vm.answerLoadAsk(true) }, onNotNow = { vm.answerLoadAsk(false) }) }
+    // a route that takes a while: the wait window (form A, owner 2026-11-19) – the legs as steps, Cancel; not over a question
+    com.onpath.app.ui.progress.RouteWaitWindow(com.onpath.app.data.ProgressMemory.of(androidx.compose.ui.platform.LocalContext.current),
+        vm.routing, slow = vm.routingSlow && vm.slowPlanAsk == null && vm.longRouteAsk == null, vm.routeProgress, vm.routeShare,
+        com.onpath.app.ui.progress.RouteWait.legLabels(rows, vm.waypoints.size, vm.routeProgress?.second), onCancel = vm::cancelRouting)
     // the "hold to set a point" line goes with any plan change (owner 2026-11-03)
     LaunchedEffect(vm.waypoints.toList()) { vm.tapHoldHint = false }
     PlanPanel(
@@ -609,7 +613,7 @@ private fun PlanBottom(vm: AppViewModel, rec: RecState?, onStartNavigation: () -
             roundTrip = vm.isRoundTrip(), canRoundTrip = vm.canRoundTrip(), canReverse = vm.canReverse(),
             tour = rec?.let { TourState(it.distanceM, it.elapsedS, it.paused, vm.guidanceEndedByEmptyPlan) },
             points = rows,
-            routingSlow = vm.routingSlow, routeProgress = vm.routeProgress, routeShare = vm.routeShare, notRouted = vm.notRouted, gapText = vm.planGapText(), warnText = vm.warningLineText(), warnCount = vm.warningCount(),
+            notRouted = vm.notRouted, gapText = vm.planGapText(), warnText = vm.warningLineText(), warnCount = vm.warningCount(),
             changedText = vm.routeChangedLineText(), syncRoutingText = vm.syncRoutingNote, tapHint = vm.tapHoldHint,
             offlineInfo = vm.offlineReady?.takeIf { vm.offlineInfo }?.let { OfflineReady.explain(it) },
             days = vm.multiDay.daysUi(), dayHead = vm.multiDay.dayHeadUi()),
@@ -619,7 +623,6 @@ private fun PlanBottom(vm: AppViewModel, rec: RecState?, onStartNavigation: () -
             onReverse = vm::reverseRoute, onRoundTrip = vm::roundTrip,
             onActivity = onActivity, onTimeDetails = vm::openTimeDetails, onDetails = { vm.routeDetailsOpen = true },
             onHighlight = { vm.highlight = it },
-            onCancelRouting = vm::cancelRouting,
             onPlanAnyway = vm::planAnyway,
             onShowGap = vm::showPlanGap,
             onWarnings = vm::tapWarningLine,

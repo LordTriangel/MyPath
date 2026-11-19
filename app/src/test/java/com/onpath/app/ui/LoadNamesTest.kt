@@ -58,9 +58,6 @@ class LoadNamesTest {
             LoadEntry(null, town = "Meran")))
         assertEquals("Taser Alm" to 1, LoadNames.chip(two))
         assertEquals("Your route" to 0, LoadNames.chip(LoadNames.groups(listOf(LoadEntry(LoadWhy.ROUTE)))))
-        val ui = BackgroundDownloadUi(2, 0, 0, 34, groups = two)
-        assertEquals("Taser Alm +1 · 34 %", ui.chipText)
-        assertEquals("Bad Waldsee · 34 %", ui.copy(groups = LoadNames.groups(listOf(LoadEntry(LoadWhy.POINT, "Bad Waldsee")))).chipText)
     }
 
     @Test fun longNamesAreShortened() {

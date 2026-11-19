@@ -310,7 +310,7 @@ class MapDataFlow(
         // none – never the map for here, MapLoadWait): the modal shows (again), over all regions asked for so far
         if (waits) {
             jobWaited = true
-            if (loadModalFor.isEmpty()) { loadProgress.clear(); loadHeld = 0; loadBySearch = false }
+            if (loadModalFor.isEmpty()) { endWait(0L, done = false); loadBySearch = false }
             if (j.why == com.onpath.app.cells.CellWhy.SEARCHED) loadBySearch = true
             loadModalFor = loadModalFor + j.cells
         }
@@ -322,9 +322,12 @@ class MapDataFlow(
     private var loadModalFor by mutableStateOf<Set<com.onpath.app.cells.CellId>>(emptySet())
     /** The open card's job was waited for in the modal: when it is all there it simply goes – no "Map ready" card. */
     private var jobWaited by mutableStateOf(false)
-    private val loadProgress = mutableMapOf<com.onpath.app.cells.CellId, MapLoadProgress>()
-    /** Last % shown (never backwards). */
-    private var loadHeld = 0
+    /** The wait the window shows now – one per wait ([MapWait]: the ONE bar, the steps, the measured step times). */
+    private var wait: MapWait? = null
+    /** The window waits for the first map of the user's area ([FirstMapCard.waits]): Cancel stops that job. */
+    private var firstMapWait by mutableStateOf(false)
+    /** The learned shares of time of the wait window's steps – also the sign's and the notification's ([ProgressMemory]). */
+    val progressMemory: com.onpath.app.data.ProgressMemory by lazy { com.onpath.app.data.ProgressMemory.of(app) }
     /** A search / shared place opened (or joined) the modal: Cancel also removes its ring ([MapLoadCancel]). */
     private var loadBySearch = false
     /**
@@ -334,26 +337,45 @@ class MapDataFlow(
     var viewWithoutDetail by mutableStateOf(false)
 
     /**
-     * What the modal shows now ([now]: uptime ms; called about every second): in Plan, while some of the regions the user
-     * waits for are not there yet. Null = no modal (and it is over when everything is there).
+     * What the wait window shows now ([now]: uptime ms; called about every second): in Plan, while some of the regions the
+     * user waits for are not there yet – or the first map of their area ([FirstMapCard.waits]: the first-map card's
+     * content is this window, owner 2026-11-19) –, with the routing data waited for in the same window. Null = no window
+     * (and the wait is over when everything is there: the learned shares take its step times, [StepShares.learn]).
      */
     fun mapLoadUi(states: Map<com.onpath.app.cells.CellId, com.onpath.app.cells.CellState>, now: Long): MapLoadUi? {
-        if (mode != AppMode.PLAN) return null
-        val focus = loadModalFor
-        val map = if (focus.isEmpty() || !cells.downloadsAvailable) null else
-            MapLoads.aggregate(focus, states, cells.installed.value.associate { it.id to it.totalBytes }, loadProgress, loadHeld, now)
-                .also { if (it == null) loadModalFor = emptySet() else loadHeld = it.percent } // null: the map is there
-        // routing data in the same modal: one % over both, closes when both are there
+        if (mode != AppMode.PLAN) { firstMapWait = false; return endWait(now, done = false) }
+        val sizes = cells.installed.value.associate { it.id to it.totalBytes }
+        val job = cellJob
+        val first = loadModalFor.isEmpty() && !routingModal && job != null &&
+            FirstMapCard.waits(job, states, sizes, viewWithoutDetail, cells.downloadsAvailable)
+        if (first != firstMapWait) { endWait(now, done = false); firstMapWait = first }
+        val focus = if (first) job!!.cells.toSet() else if (cells.downloadsAvailable) loadModalFor else emptySet()
+        // routing data in the same window: its bytes in the loading step, its rewrite in the join step
         val r = if (routingModal) routingData.status.also { if (it == null) routingModal = false } else null
-        // each phase its own progress (owner 2026-11-18, [MapLoadUi.Kind]): the % is the real bytes and shows only while
-        // they flow – no time-based guess that races ahead and then stands at 98 while the map is joined in
-        val ui = RoutingLoads.combine(map, r, combinedHeld)
-        combinedHeld = ui?.percent ?: 0
+        if (focus.isEmpty() && r == null && wait == null) return null
+        val w = wait ?: MapWait(progressMemory.shares).also { wait = it }
+        val ui = try { w.update(focus, states, sizes, r, cells.joining.value, now) } catch (e: Exception) {
+            Problems.warn("cells", "Wait window not updated; it shows again with the next state", e); null
+        }
+        if (ui == null) { if (!first) loadModalFor = emptySet(); endWait(now, done = true) }
         return ui
     }
 
+    /** The wait ends; [done] = everything arrived: its measured step times teach the shares (cancelled / failed: nothing). */
+    private fun endWait(now: Long, done: Boolean): MapLoadUi? {
+        val w = wait ?: return null
+        wait = null
+        if (done && w.started) try {
+            val d = w.durations(now)
+            progressMemory.shares = progressMemory.shares.learn(d)
+            Problems.trace("cells", "Wait window done: " + d.entries.joinToString { (s, ms) -> "${s.name.lowercase()} $ms ms" } +
+                " → shares ${progressMemory.shares.encode()}")
+        } catch (e: Exception) { Problems.warn("cells", "Wait window step times not learned", e) }
+        return null
+    }
+
     /** Modal (failed) → Close: the modal goes; the card shows the failure with Retry. */
-    fun hideLoadModal() { loadModalFor = emptySet(); routingModal = false }
+    fun hideLoadModal() { loadModalFor = emptySet(); routingModal = false; endWait(0L, done = false) }
 
     // ---------------- routing data (loaded by the app itself, also on a fresh install) ----------------
 
@@ -369,10 +391,10 @@ class MapDataFlow(
     }
     /** The loading modal waits for routing data too (point set, first start, search). */
     private var routingModal by mutableStateOf(false)
-    /** Last % of the combined modal (never backwards). */
-    private var combinedHeld = 0
     /** Settings → "Download routing data" tapped: its progress shows in the data line. */
     private var manualRouting: String? = null
+    /** Its percent shown last (never back). */
+    private var manualHeld = 0
 
     /** Routing data for [points] (a point, a position, a route): missing tiles load; [wait] = in the modal. */
     private fun routingFor(points: List<GeoPoint>, wait: Boolean) = safeRouting("trigger") {
@@ -479,10 +501,12 @@ class MapDataFlow(
                 if (routingData.exists(name)) sayInfo(Txt.s(Res.string.msg_routing_data_ready), NoticePlace.SETTINGS)
                 else sayError(Txt.s(Res.string.msg_routing_data_stopped), NoticePlace.SETTINGS)
             }
-            s.phase == com.onpath.app.data.RoutingDataLoader.Phase.LOADING ->
-                // downloaded, written into the routing file now: no % that stands at 99 (owner 2026-11-18)
-                dataBusy = if (s.writing) Txt.s(Res.string.msg_routing_data_writing)
-                    else Txt.s(Res.string.msg_routing_data_progress, s.percent, mb(s.totalBytes))
+            s.phase == com.onpath.app.data.RoutingDataLoader.Phase.LOADING -> {
+                // form B's number (owner 2026-11-19): its download and the rewrite of its file by their shares, never back
+                val f = BackgroundProgress.routingItem(s, progressMemory.shares).fraction
+                manualHeld = maxOf(manualHeld, (f * 100).toInt().coerceIn(0, 99))
+                dataBusy = Txt.s(Res.string.wait_loading_pct, manualHeld)
+            }
             else -> {
                 manualRouting = null; dataBusy = null
                 sayError(Txt.s(if (s.phase == com.onpath.app.data.RoutingDataLoader.Phase.OFFLINE) Res.string.msg_routing_data_offline
@@ -496,12 +520,14 @@ class MapDataFlow(
      * follows, a searched place's ring goes, points set stay, the camera stays.
      */
     fun cancelLoadModal() {
+        endWait(0L, done = false)
+        // the first map of the area (owner 2026-11-19: the first-map card is this window now): Cancel stops that job
+        if (firstMapWait) { firstMapWait = false; Problems.trace("cells", "First map cancelled in the wait window"); cancelCellLoading(); return }
         val job = cellJob
         val o = MapLoadCancel.decide(loadModalFor, job, jobWaited, cells.installed.value.map { it.id }.toSet(), loadBySearch)
         Problems.trace("cells", "Map loading cancelled: ${o.stop.size} region(s) stopped" +
             (job?.let { ", job ${it.why.name.lowercase()}" } ?: "") + (if (o.clearSearchMark) ", search ring removed" else ""))
         if (o.stop.isNotEmpty()) safeCells("cancel") { cells.cancel(o.stop) }
-        o.stop.forEach { loadProgress.remove(it) }
         loadModalFor = emptySet(); loadBySearch = false
         // routing data waited for in the same modal: one Cancel stops it too (the partial download stays for resuming)
         if (routingModal) { routingModal = false; safeRouting("cancel") { routingData.cancel() } }
@@ -579,7 +605,6 @@ class MapDataFlow(
         val job = cellJob ?: return
         val failed = job.cells.filter { cells.state(it) is com.onpath.app.cells.CellState.Failed }
         val own = failed.filter { it == job.own }
-        failed.forEach { loadProgress.remove(it) } // the modal's bar for them starts again
         if (jobWaited) loadModalFor = loadModalFor + failed
         safeCells("retry") {
             if (own.isNotEmpty()) cells.request(own, com.onpath.app.cells.CellReason.POINT)
@@ -769,20 +794,20 @@ class MapDataFlow(
      * What loads in the background now (map regions, routing data the user does not wait for in the modal); null =
      * nothing, or the loading modal is open. Called about every second by the strip / chip.
      */
-    fun backgroundDownloadUi(states: Map<com.onpath.app.cells.CellId, com.onpath.app.cells.CellState>): BackgroundDownloadUi? = try {
-        val modal = loadModalFor.isNotEmpty() || routingModal
-        // newer versions of installed areas: told in the strip / its details (no second indicator on the map)
-        val installed = if (modal) emptySet() else cells.installed.value.map { it.id }.toSet()
-        val cellItems = if (modal) emptyList() else BackgroundProgress.cellItems(states, emptySet(), installed, cells::knownSize)
-        val r = if (modal) null else routingData.status?.takeIf { it.phase == com.onpath.app.data.RoutingDataLoader.Phase.LOADING }
-        val items = cellItems + listOfNotNull(r?.let {
-            BackgroundProgress.Item("routing", it.doneBytes, it.totalBytes, if (it.writing) LoadPhase.FINISHING else LoadPhase.LOADING)
-        })
-        val newer = if (modal) 0 else states.count { (c, s) ->
+    fun backgroundDownloadUi(states: Map<com.onpath.app.cells.CellId, com.onpath.app.cells.CellState>): BackgroundDownloadUi? =
+        // the wait window shows these loads (form A); the sign comes when it goes
+        if (loadModalFor.isNotEmpty() || routingModal || firstMapWait) null else try {
+        // newer versions of installed areas: told in the sign's details (no second indicator on the map)
+        val installed = cells.installed.value.map { it.id }.toSet()
+        val shares = progressMemory.shares
+        val cellItems = BackgroundProgress.cellItems(states, emptySet(), installed, shares, cells.joining.value, cells::knownSize)
+        val r = routingData.status?.takeIf { it.phase == com.onpath.app.data.RoutingDataLoader.Phase.LOADING }
+        val items = cellItems + listOfNotNull(r?.let { BackgroundProgress.routingItem(it, shares) })
+        val newer = states.count { (c, s) ->
             c in installed && BackgroundProgress.loading(s) && s != com.onpath.app.cells.CellState.Requested
         }
         val eta = (MapUpdates.of(states, installed) as? MapUpdateUi.Preparing)?.minutes
-        val groups = if (modal) emptyList() else loadGroups(states, cellItems, installed, r)
+        val groups = loadGroups(states, cellItems, installed, r)
         bgProgress.update(items, cellItems.size, r?.names?.size ?: 0, newer, eta, groups)
     } catch (e: Exception) {
         Problems.warn("cells", "Background download status unknown; strip hidden", e); null
@@ -824,9 +849,9 @@ class MapDataFlow(
     }
 
     /** What loads, by name: the reason the app knows ([loadTags]), else the nearest overview town. */
-    private fun loadGroups(states: Map<com.onpath.app.cells.CellId, com.onpath.app.cells.CellState>, items: List<BackgroundProgress.Item>,
+    private fun loadGroups(states: Map<com.onpath.app.cells.CellId, com.onpath.app.cells.CellState>, items: List<com.onpath.app.domain.ActionPercent.Item>,
                            installed: Set<com.onpath.app.cells.CellId>, paths: com.onpath.app.data.RoutingDataLoader.Status?): List<LoadGroup> {
-        val bytes = items.associate { it.key to it.total }
+        val bytes = items.associate { it.key to it.weight }
         val now = android.os.SystemClock.uptimeMillis()
         // reasons of areas no longer loading go (a moment of grace: a fresh request may not show as loading yet)
         loadTags.entries.removeAll { (c, t) -> !(states[c]?.let(BackgroundProgress::loading) ?: false) && now - t.sinceMs > 10_000 }
@@ -900,7 +925,9 @@ class MapDataFlow(
             val st = states[c.id]
             OfflineArea(c.id.id, areaNames[c.id] ?: coordName(c.id), c.totalBytes + (routingBytes[c.id] ?: 0L),
                 fmt.format(built ?: Date(c.installedAt)),
-                if (c.id in removing) Txt.s(Res.string.msg_area_removed_after_tour) else st?.takeIf { it !is com.onpath.app.cells.CellState.Ready && it != com.onpath.app.cells.CellState.None }?.label())
+                if (c.id in removing) Txt.s(Res.string.msg_area_removed_after_tour) else st?.takeIf { it !is com.onpath.app.cells.CellState.Ready && it != com.onpath.app.cells.CellState.None }
+                    // the same three texts everywhere (owner 2026-11-19): wird vorbereitet · lädt · fast fertig – the number is the sign's
+                    ?.let { if (BackgroundProgress.loading(it) && it != com.onpath.app.cells.CellState.Requested) LoadNames.phaseOf(it).text else it.label() })
         }
         val ids = installed.map { it.id }.toSet()
         val loading = states.count { (c, s) -> c !in ids && s !is com.onpath.app.cells.CellState.Failed && s != com.onpath.app.cells.CellState.None }
@@ -964,7 +991,7 @@ class MapDataFlow(
         }
         if (miss.isEmpty()) { sayInfo(Txt.s(Res.string.msg_routing_data_present), NoticePlace.SETTINGS); return }
         // the same loader as the automatic download (one writer per file); an explicit tap loads on mobile data too
-        manualRouting = miss.first()
+        manualRouting = miss.first(); manualHeld = 0
         dataBusy = Txt.s(Res.string.msg_routing_data_busy)
         safeRouting("manual") { routingData.ensure(miss, ignoreWifiOnly = true) }
     }

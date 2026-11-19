@@ -109,7 +109,7 @@ steps (`ui/setup/SetupGuideScreen`) take `OnPathSetupType` – text 18 sp (`body
 
 ## Dialogs
 Only for decisions that can **lose something** (delete, replace an unsaved plan, end a tour, unpair). **The details of a
-state are a bottom sheet, not a dialog** (e.g. tap on the download chip → "Loading in the background": what loads, the
+state are a bottom sheet, not a dialog** (e.g. tap on the sign beside → "Loading in the background": what loads, the
 total, "Cancel all" as a red text button, Close; drag down closes it) – white, 28 dp top corners, drag handle. Verb buttons,
 a title that asks, no body that repeats the buttons. A tap outside does nothing where it could lose work; Back =
 the safe choice. Everything else is a message box or a line (below).
@@ -125,7 +125,7 @@ the safe choice. Everything else is a message box or a line (below).
 | ↳ ⚠ error (`HINWEIS_ERROR`) | something the user asked for failed | **red** edge + red ⚠; what failed + one way out | |
 | **ANZEIGE** (state, nothing to do) | shows how things are | **no box**: a line or card in place | when the state no longer holds |
 
-A map ANZEIGE is a **card** while the map itself is missing and loading (the first-map card: icon, title, bar); short
+A map ANZEIGE is a **card** while the map itself is missing and cannot load (the first-map card offline); short
 state infos (offline, waiting for GPS / Wi-Fi, an INFO for the map) are the **quiet pill** (`QuietPill`).
 
 ### The box: `MessageCard` (style B)
@@ -168,12 +168,12 @@ MessageSlot(Messages.pick(listOf(question, m)), MessagePlacement.topDp(MessageSc
 | An error without a screen of its own (background, link / share into the app) | HINWEIS_ERROR | "Couldn't find this place." – OK |
 | Route state | ANZEIGE | plan sheet lines (red ERROR, amber WARNING, grey INFO), "Saved as …" (a plain line; the name is changed in Save's dialog), "New route · was 13:15" |
 | Off route (step 1 of 2, owner 2026-11-07) | ANZEIGE | the amber off-route card with the arrow (Navigate) – for the whole off-route state, also while the question (step 2) is open below it; its small state line only where no box says it (no way, kept); gone when back on the route (`navigation/OffRouteSteps`) |
-| Downloads in the background | ANZEIGE | the small chip "◔ Bozen · 34 %" in the tag look (`TagContainer` / `TagInk` pill, a progress ring – the percent is the real bytes downloaded and shows only while something downloads; spinning without a number while areas are still prepared on the server or the downloaded map is joined in (the details then say "being prepared" / "almost done"); ≥ 48 dp tap target); tap → its details as a bottom sheet; offline / waiting for GPS → the quiet grey pill |
+| Downloads in the background (form B, owner 2026-11-19) | ANZEIGE | the small sign "◔ 34 %" in the tag look (`TagContainer` / `TagInk` pill, a ring and ONE percent over the whole action – every load of it together, never back; no names, no words; ≥ 48 dp tap target), under ☰ / Navigate's status card / in Settings → Offline maps; tap → its details as a bottom sheet (the same bar and number, one line per load: "fertig" · "lädt" · "wird vorbereitet" · "fast fertig", Alle abbrechen · Schließen); the notification says the same number (`ui/progress/BesideSign`, `BackgroundAction`); offline / waiting for GPS → the quiet grey pill |
 | The result of an action in My routes / Settings | ANZEIGE | `NoticeLine`: grey INFO / red ERROR line at the top, gone when the screen is left |
 | A short recording went to the recycle bin at the end (owner 2026-11-12) | the saved box's sibling | `ShortRecordingDialog` like `SavedTourDialog` (onpath.private#35): "Kurze Aufzeichnung (12 m)" · the bin line · Rückgängig · OK, stays until answered (never a timed snackbar) |
 | Work the user started | ANZEIGE | a spinner where it was started (`Busy`) |
 | A short INFO for the map, e.g. the app switched Relief off on a slow phone (owner 2026-11-07, `map/ReliefAuto`) | ANZEIGE | `vm.say(…, INFO, MAP)` → `NoticeSurface.MAP_LINE`: the quiet pill ⓘ "Relief off – the map runs smoother" beside the activity button at the GPS note's height (Plan, no search / My routes / Settings over the map); goes by itself after 8 s (`MapNote.MS`) |
-| The map for here after the setup (owner 2026-11-08, first-map card) | ANZEIGE | `FirstMapCardView`: a paper card on the map beside the activity button (`OverviewPillPlace`) – cloud icon, "Karte wird geladen", thin bar, "34 % · ca. 18 MB" while it downloads (before / after: the bar runs, "wird vorbereitet" / "fast fertig", no number); offline "Noch keine Karte · Lädt, sobald du online bist"; large font: bar and "34 %" on one line, no MB. Only for the map for here, after the setup, while the view has no detailed map; meanwhile the "Overview only" pill, the grey offline pill and the download chip wait (`ui/FirstMapCard`). Goes by itself when the map is there |
+| The map for here after the setup (owner 2026-11-08; 2026-11-19 form A) | wait window | while it loads: the wait window (below), "Karte für deine Gegend"; offline: `FirstMapCardView`, a paper card on the map beside the activity button (`OverviewPillPlace`) – "Noch keine Karte · Lädt, sobald du online bist". Only for the map for here, after the setup, while the view has no detailed map; meanwhile the "Overview only" pill, the grey offline pill and the sign beside wait (`ui/FirstMapCard`). Goes by itself when the map is there |
 
 ### Common rules
 - **One box at a time:** a FRAGE wins over a HINWEIS; the others wait in their state and come next
@@ -186,11 +186,23 @@ MessageSlot(Messages.pick(listOf(question, m)), MessagePlacement.topDp(MessageSc
   notification – it goes on the quiet navigation channel (lock screen keeps it); heads-up only when the app is not on
   screen (`TourChannels.forQuestion`, `AppVisibility`).
 - Progress = a spinner where the user started it, never a message.
-- **A percent never stands** (owner 2026-11-18: „bleibt dann bei 98 % stehen – da denkt jeder, es hängt sich auf“): a
-  number is only shown for progress that is really measured (bytes downloaded, the router's search); each phase has
-  its own progress, never one weighted % over phases. A phase without a measurable progress (the server prepares a map,
-  the downloaded map is joined in, the routing file is written, a routed plan is checked) says what happens and its
-  bar / ring runs – no number (`MapLoadUi.Kind`, `LoadPhase`, `WaitBar`; `PercentStallTest`).
+- **One progress design, two forms** (owner 2026-11-19: „A, aber nie mehr als 3 Häkchen; B: einfach nur Prozent, muss
+  aber passen für die gesamte Aktion“). **In doubt A.** The same three texts everywhere: „wird vorbereitet“, „lädt 34 %“,
+  „fast fertig“.
+  - **A – "ich muss warten"** (`ui/progress/WaitWindow`): one window over the map, always the same frame – sign + title,
+    ONE bar 0–100 over all steps with its number beside it, at most 3 step rows with ticks (✓ done, ● now, ○ later; a
+    route's legs move along as a window of 3: the last done, the running one, the next; „prüfen“ last), "noch etwa N
+    Sekunden / Minuten" once it can be estimated, Abbrechen. Missing routing data is part of the loading step („lädt
+    Karte + Routendaten“, „lädt“ at a large font), never a 4th row. For: the first map of the area, the map of a new
+    place while nothing is there, routing data, a route that takes a while (`MapLoad`, `progress/RouteWait`).
+  - **B – "ich kann weitermachen"**: the sign beside (above, "Downloads in the background"). A turns into B by itself
+    when waiting is no longer needed.
+- **A percent never goes back and never stands** (owner 2026-11-18: „bleibt dann bei 98 % stehen – da denkt jeder, es
+  hängt sich auf“): each step owns its share of the bar, learned on the phone (`StepShares`, start 30 / 50 / 20,
+  `data/ProgressMemory`), and measures itself – the server's time left, the bytes, the pieces joined in
+  (`MapCells.joining`), the routing file's bytes written; between two measurements the bar creeps on by time inside the
+  step, and a step far over its share borrows slowly from the rest – never 100 before the end (`OneBar`,
+  `core/…/domain/WaitProgress.kt`; `PercentStallTest`).
 
 ## Tags
 A tag is the **state of an item** in one short word, in a light blue pill after the item's name: "New" / "Neu" (came

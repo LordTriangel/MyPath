@@ -17,6 +17,10 @@ import androidx.core.app.ServiceCompat
 import com.onpath.app.MainActivity
 import com.onpath.app.R
 import com.onpath.app.data.AppRouting
+import com.onpath.app.data.ProgressMemory
+import com.onpath.app.data.RoutingDataLoader
+import com.onpath.app.ui.BackgroundAction
+import com.onpath.app.ui.BackgroundProgress
 import com.onpath.app.debug.Problems
 import com.onpath.app.recording.RecordingService
 import kotlinx.coroutines.CoroutineScope
@@ -45,7 +49,7 @@ class MapLoadService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // every startForegroundService() must be answered with startForeground()
         try {
-            ServiceCompat.startForeground(this, NOTE_ID, note(emptyList()),
+            ServiceCompat.startForeground(this, NOTE_ID, note(null),
                 if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC else 0)
         } catch (e: Exception) {
             Problems.warn("cells", "Map loading in the background could not start; it goes on while the app is open", e)
@@ -70,7 +74,7 @@ class MapLoadService : Service() {
                 if (RecordingService.state.value != null) break // the tour keeps the app alive now
                 if (!busy) { if (idleSince == 0L) idleSince = now; if (now - idleSince >= IDLE_STOP_MS) break } else idleSince = 0L
                 if (now > until) { Problems.info("cells", "Map loading in the background stopped after ${MAX_MS / 60_000} min"); break }
-                try { nm().notify(NOTE_ID, note(states)) } catch (e: Exception) { Problems.warn("cells", "Map loading notification not updated", e) }
+                try { nm().notify(NOTE_ID, note(actionPercent(cells))) } catch (e: Exception) { Problems.warn("cells", "Map loading notification not updated", e) }
                 delay(TICK_MS)
             }
             stopSelf()
@@ -96,10 +100,26 @@ class MapLoadService : Service() {
         Problems.warn("cells", "Routing data state unreadable for the loading notification", e); false
     }
 
+    /**
+     * The notification's number = the sign's beside the map (owner 2026-11-19 „the notification says the same number“):
+     * the same loads into the same action ([BackgroundAction]). Null = nothing measurable yet.
+     */
+    private fun actionPercent(cells: MapCells): Int? = try {
+        val shares = ProgressMemory.of(this).shares
+        val installed = cells.installed.value.map { it.id }.toSet()
+        val routing = try { AppRouting.get(this).status?.takeIf { it.phase == RoutingDataLoader.Phase.LOADING } } catch (e: Exception) {
+            Problems.warn("cells", "Routing data state unreadable for the loading notification", e); null
+        }
+        val items = BackgroundProgress.cellItems(cells.states.value, emptySet(), installed, shares, cells.joining.value, cells::knownSize) +
+            listOfNotNull(routing?.let { BackgroundProgress.routingItem(it, shares) })
+        BackgroundAction.shared.update(items)
+    } catch (e: Exception) {
+        Problems.warn("cells", "Loading notification's number unknown; the bar runs", e); null
+    }
+
     private fun nm() = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    private fun note(states: Collection<CellState>): Notification {
-        val percent = percent(states)
+    private fun note(percent: Int?): Notification {
         if (Build.VERSION.SDK_INT >= 26) nm().createNotificationChannel(
             NotificationChannel(CHANNEL, Txt.s(Res.string.maps_notif_channel), NotificationManager.IMPORTANCE_LOW).apply { setShowBadge(false) })
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java)
@@ -107,7 +127,7 @@ class MapLoadService : Service() {
         return NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(Txt.s(Res.string.maps_load_loading))
-            .setContentText(text(states))
+            .setContentText(text(percent))
             .setProgress(100, percent ?: 0, percent == null)
             .setOngoing(true).setSilent(true).setOnlyAlertOnce(true)
             .setContentIntent(open)
@@ -126,24 +146,9 @@ class MapLoadService : Service() {
         fun loading(s: CellState) = s is CellState.Requested || s is CellState.Queued || s is CellState.Building ||
             s is CellState.Downloading || s is CellState.Installing
 
-        /**
-         * The notification's number: the real bytes of the areas downloading now, 0..100 – null while nothing
-         * downloads (areas prepared on the server, the downloaded map joined in: [finishing] tells which; the bar then
-         * runs without a value – owner 2026-11-18: no number that stands at 99). Pure, unit tested.
-         */
-        fun percent(states: Collection<CellState>): Int? {
-            val dl = states.filterIsInstance<CellState.Downloading>().filter { it.totalBytes > 0 }
-            if (dl.isEmpty()) return null
-            return (dl.sumOf { it.doneBytes } * 100 / dl.sumOf { it.totalBytes }).toInt().coerceIn(0, 100)
-        }
-
-        /** Everything on its way is downloaded and joined into the map now ("almost ready"). */
-        fun finishing(states: Collection<CellState>): Boolean =
-            states.filter(::loading).let { on -> on.isNotEmpty() && on.all { it is CellState.Installing } }
-
-        /** The notification's line: "34 % – …" while it downloads, else what happens. */
-        fun text(states: Collection<CellState>): String = percent(states)?.let { Txt.s(Res.string.maps_notif_progress, it) }
-            ?: Txt.s(if (finishing(states)) Res.string.maps_notif_finishing else Res.string.maps_notif_preparing)
+        /** The notification's line: "lädt 34 % – …" (the sign's number), "wird vorbereitet – …" before there is one. */
+        fun text(percent: Int?): String = percent?.let { Txt.s(Res.string.maps_notif_progress, Txt.s(Res.string.wait_loading_pct, it)) }
+            ?: Txt.s(Res.string.maps_notif_preparing)
 
         /**
          * Start it when map areas start loading (called from the app while it is on screen – Android does not allow

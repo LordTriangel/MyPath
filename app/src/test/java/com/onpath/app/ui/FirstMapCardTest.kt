@@ -5,14 +5,16 @@ import com.onpath.app.cells.CellJob
 import com.onpath.app.cells.CellState
 import com.onpath.app.cells.CellWhy
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
 /**
- * The first-map card (owner 2026-11-08, sketch A2): after the phone setup the map for here loads in the background
- * (field bug: the modal made the user wait inside the onboarding) – the card on the map says so until the map is there.
+ * The first map of the area (owner 2026-11-08, sketch A2; 2026-11-19 form A): after the phone setup the map for here
+ * loads – the wait window shows it (the card's content went into it), never over the setup (field bug: the user had to
+ * wait inside the onboarding); offline, the small card says so until the map is there.
  */
 class FirstMapCardTest {
     private val own = CellId(543, 361)
@@ -25,10 +27,11 @@ class FirstMapCardTest {
                    view: Boolean = true, setup: Boolean = false, plan: Boolean = true, available: Boolean = true) =
         FirstMapCard.of(job, states, sizes, view, setup, plan, available)
 
-    @Test fun showsWhileTheMapForHereLoadsAfterTheSetup() {
-        val ui = of() as FirstMapCard.Ui.Loading
-        assertEquals(18 * mb, ui.bytes) // two areas, the queued one estimated
-        assertEquals(33, ui.percent) // 6 of about 18 MB
+    @Test fun theWaitWindowShowsWhileTheMapForHereLoadsAfterTheSetup() {
+        assertEquals(FirstMapCard.Ui.Loading, of())
+        assertTrue(FirstMapCard.waits(here, downloading, emptyMap(), viewWithoutDetail = true, available = true))
+        assertFalse("offline: the card, no window",
+            FirstMapCard.waits(here, mapOf(own to CellState.Offline("x"), east to CellState.Offline("x")), emptyMap(), true, true))
     }
 
     @Test fun neverOverThePhoneSetup() = assertNull(of(setup = true))
@@ -47,11 +50,8 @@ class FirstMapCardTest {
         assertEquals(FirstMapCard.Ui.Offline, of(states = mapOf(own to CellState.Ready("1"), east to CellState.Offline("x"))))
     }
 
-    @Test fun preparedOnTheServerHasNoPercentYet() {
-        val ui = of(states = mapOf(own to CellState.Building("base", 0.4, 60), east to CellState.Requested)) as FirstMapCard.Ui.Loading
-        assertNull(ui.percent)
-        assertEquals(LoadPhase.PREPARING, ui.phase)
-    }
+    @Test fun preparedOnTheServerIsWaitedForToo() =
+        assertEquals(FirstMapCard.Ui.Loading, of(states = mapOf(own to CellState.Building("base", 0.4, 60), east to CellState.Requested)))
 
     @Test fun onlyTheMapForHere_notAPointSearchOrRoute() {
         assertNull(of(job = CellJob(listOf(own), own, CellWhy.PLANNED)))
@@ -71,8 +71,14 @@ class FirstMapCardTest {
         assertNull(of(available = false))
     }
 
-    /** It replaces the grey offline pill, the "Overview only" pill and the download chip while it shows. */
+    /**
+     * It replaces the grey offline pill, the "Overview only" pill and the sign beside while it shows; the wait window is
+     * the map wait's ([MapDataFlow.mapLoadUi]), its Cancel stops the job.
+     */
     @Test fun wiring() {
+        val flow = File("src/main/java/com/onpath/app/ui/MapDataFlow.kt").readText()
+        assertTrue(flow.contains("FirstMapCard.waits(job, states, sizes, viewWithoutDetail, cells.downloadsAvailable)"))
+        assertTrue(flow.contains("if (firstMapWait) { firstMapWait = false;"))
         val map = File("src/main/java/com/onpath/app/ui/MapScreen.kt").readText()
         assertTrue(map.contains("FirstMapCardView(firstCard"))
         assertTrue(map.contains("if (overviewOnly && firstCardTarget == null && firstCard == null"))

@@ -122,10 +122,6 @@
     <string name="maps_here_ask_detail">Takes a few minutes to prepare.</string>
 
     <!-- Background downloads: chip and details -->
-    <string name="maps_bg_title">Loading map</string>
-    <string name="maps_bg_title_newer">Loading newer map</string>
-    <string name="maps_bg_newer">Newer map for %1$d of your areas – replaces the old one when loaded</string>
-    <string name="maps_bg_newer_eta">Newer map for %1$d of your areas – replaces the old one when loaded (being prepared, about %2$d min)</string>
     <plurals name="maps_areas_count">
         <item quantity="one">%1$d area</item>
         <item quantity="other">%1$d areas</item>
@@ -134,12 +130,6 @@
     <string name="maps_bg_chip_click">Show background downloads</string>
     <string name="maps_bg_dialog_title">Loading in the background</string>
     <string name="maps_bg_newer_ready">Newer map ready in about %1$d min.</string>
-    <plurals name="maps_bg_fresh">
-        <item quantity="one">Map: %1$d area along your route or around you</item>
-        <item quantity="other">Map: %1$d areas along your route or around you</item>
-    </plurals>
-    <string name="maps_bg_total">In all about %1$d MB</string>
-    <string name="maps_bg_done">%1$d % done</string>
     <string name="maps_bg_maps_stay">The maps you have stay.</string>
     <string name="maps_group_areas">%1$s (%2$d areas)</string>
     <string name="maps_name_near">near %1$s</string>
@@ -156,22 +146,26 @@
     <string name="maps_phase_finishing">almost done</string>
     <string name="maps_phase_preparing">being prepared</string>
     <string name="maps_phase_waiting">waiting</string>
+    <string name="wait_title_map">Map for your area</string>
+    <string name="wait_step_prepare">prepare</string>
+    <string name="wait_step_prepared">prepared</string>
+    <string name="wait_step_load">load</string>
+    <string name="wait_step_loaded">loaded</string>
+    <string name="wait_step_loading_map">loading map</string>
+    <string name="wait_step_loading_map_routing">loading map + routing data</string>
+    <string name="wait_step_loading_routing">loading routing data</string>
+    <string name="wait_step_join">add to the map</string>
+    <string name="wait_left_seconds">about %1$d seconds left</string>
+    <string name="wait_left_minute">about 1 minute left</string>
+    <string name="wait_left_minutes">about %1$d minutes left</string>
+    <string name="wait_loading_pct">loading %1$d %</string>
+    <string name="maps_phase_done">done</string>
 
     <!-- Loading window (modal) -->
     <string name="maps_load_preparing">Preparing the map for your area</string>
     <string name="maps_load_failed">The map for your area could not be loaded</string>
     <string name="maps_load_loading">Loading the map for your area</string>
-    <string name="maps_load_finishing">The map for your area is almost ready</string>
-    <string name="maps_load_totals_done">%1$d of %2$d map areas · about %3$d MB</string>
     <string name="maps_about_mb">about %1$d MB</string>
-    <plurals name="maps_load_totals">
-        <item quantity="one">%1$d map area</item>
-        <item quantity="other">%1$d map areas</item>
-    </plurals>
-    <plurals name="maps_load_totals_mb">
-        <item quantity="one">%1$d map area · about %2$d MB</item>
-        <item quantity="other">%1$d map areas · about %2$d MB</item>
-    </plurals>
     <string name="maps_offline_text">No internet connection – the map will load as soon as you're online.</string>
     <string name="maps_wifi_text">The map will load when you're on Wi-Fi (Settings: “Download maps only on Wi-Fi”).</string>
     <string name="maps_load_on_mobile">Load now over mobile data</string>
@@ -185,9 +179,8 @@
     </plurals>
     <string name="maps_ask_title">Load the map for this area?</string>
     <string name="maps_notif_channel">Loading maps</string>
-    <string name="maps_notif_progress">%1$d % – you can put the phone aside</string>
+    <string name="maps_notif_progress">%1$s – you can put the phone aside</string>
     <string name="maps_notif_preparing">Preparing – you can put the phone aside</string>
-    <string name="maps_notif_finishing">Almost ready – you can put the phone aside</string>
 
     <!-- State of one map area (rows, Offline maps list) -->
     <string name="maps_state_not_on_phone">not on the phone</string>
@@ -254,8 +247,6 @@
     <string name="maps_import_empty">%1$s is empty.</string>
     <string name="maps_import_cant_save">Could not save %1$s.</string>
     <string name="maps_relief_auto_off">Relief off – the map runs smoother</string>
-    <string name="maps_first_loading">Loading map</string>
-    <string name="maps_first_progress">%1$d % · about %2$d MB</string>
     <string name="maps_first_offline">No map yet</string>
     <string name="maps_first_offline_line">Loads once you're online</string>
 </resources>

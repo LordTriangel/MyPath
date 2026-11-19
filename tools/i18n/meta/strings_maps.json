@@ -441,30 +441,6 @@
     "priority": 2,
     "confidence": "sicher"
   },
-  "maps_bg_title": {
-    "area": "Background downloads",
-    "context": "Title: map loads in the background",
-    "priority": 2,
-    "confidence": "sicher"
-  },
-  "maps_bg_title_newer": {
-    "area": "Background downloads",
-    "context": "Title when only newer versions load",
-    "priority": 2,
-    "confidence": "sicher"
-  },
-  "maps_bg_newer": {
-    "area": "Background downloads",
-    "context": "Details line: %1$d = number of the user's areas getting a newer map",
-    "priority": 2,
-    "confidence": "sicher"
-  },
-  "maps_bg_newer_eta": {
-    "area": "Background downloads",
-    "context": "Same with %2$d = minutes until the server has prepared it",
-    "priority": 2,
-    "confidence": "sicher"
-  },
   "maps_areas_count": {
     "area": "Background downloads",
     "context": "Part of a line: \"3 areas\" (joined with MB and % by \" · \")",
@@ -492,24 +468,6 @@
   "maps_bg_newer_ready": {
     "area": "Background downloads",
     "context": "Dialog line: %1$d = minutes until the newer map is ready",
-    "priority": 2,
-    "confidence": "sicher"
-  },
-  "maps_bg_fresh": {
-    "area": "Background downloads",
-    "context": "Dialog line: %1$d = new map areas loading",
-    "priority": 2,
-    "confidence": "sicher"
-  },
-  "maps_bg_total": {
-    "area": "Background downloads",
-    "context": "Dialog line part: %1$d = MB in all",
-    "priority": 2,
-    "confidence": "sicher"
-  },
-  "maps_bg_done": {
-    "area": "Background downloads",
-    "context": "Dialog line part: %1$d = percent done",
     "priority": 2,
     "confidence": "sicher"
   },
@@ -632,35 +590,10 @@
     "priority": 2,
     "confidence": "sicher"
   },
-  "maps_load_finishing": {
-    "area": "Loading window",
-    "context": "Title of the loading window when everything is downloaded and the map is joined in (no percent, the bar runs); same words as maps_phase_finishing",
-    "priority": 2,
-    "confidence": "bitte prüfen",
-    "doubt": "\"fast fertig\" as in the map area state; alternative \"wird eingerichtet\""
-  },
-  "maps_load_totals_done": {
-    "area": "Loading window",
-    "context": "Line under the title when several map areas load and some are there: %1$d = areas on the phone, %2$d = all areas, %3$d = MB",
-    "priority": 2,
-    "confidence": "sicher"
-  },
   "maps_about_mb": {
     "area": "Map loading window",
     "context": "Line: only route-planning data loads, %1$d = MB",
     "priority": 3,
-    "confidence": "sicher"
-  },
-  "maps_load_totals": {
-    "area": "Map loading window",
-    "context": "Line: %1$d = map areas",
-    "priority": 2,
-    "confidence": "sicher"
-  },
-  "maps_load_totals_mb": {
-    "area": "Map loading window",
-    "context": "Line: %1$d = map areas, %2$d = MB",
-    "priority": 2,
     "confidence": "sicher"
   },
   "maps_offline_text": {
@@ -733,12 +666,6 @@
   "maps_notif_preparing": {
     "area": "Notification",
     "context": "Same while the server still prepares",
-    "priority": 2,
-    "confidence": "sicher"
-  },
-  "maps_notif_finishing": {
-    "area": "Notification",
-    "context": "Same while the downloaded map is joined in (no percent; same words as maps_phase_finishing)",
     "priority": 2,
     "confidence": "sicher"
   },
@@ -1087,20 +1014,6 @@
     "confidence": "sicher",
     "max": 45
   },
-  "maps_first_loading": {
-    "area": "Map (Plan)",
-    "context": "Title of the first-map card on the map beside the activity button (ANZEIGE, no button): after the phone setup the detailed map for the user's position is still downloading. Owner's wording (2026-11-08)",
-    "priority": 1,
-    "confidence": "sicher",
-    "max": 22
-  },
-  "maps_first_progress": {
-    "area": "Map (Plan)",
-    "context": "Line under the card's thin progress bar: %1$d = percent loaded, %2$d = size in MB (estimate). Owner's wording (2026-11-08)",
-    "priority": 1,
-    "confidence": "sicher",
-    "max": 24
-  },
   "maps_first_offline": {
     "area": "Map (Plan)",
     "context": "Title of the same card when there is no network: no detailed map on the phone yet. Owner's wording (2026-11-08)",
@@ -1114,5 +1027,89 @@
     "priority": 1,
     "confidence": "sicher",
     "max": 30
+  },
+  "wait_title_map": {
+    "area": "Wait window / background loads",
+    "context": "Wait window (form A) title while the user waits for the map of a place (first map, a new place, routing data)",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_step_prepare": {
+    "area": "Wait window / background loads",
+    "context": "Wait window step row, not started yet: the server prepares the map",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_step_prepared": {
+    "area": "Wait window / background loads",
+    "context": "Wait window step row, done (tick): the server prepared the map",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_step_load": {
+    "area": "Wait window / background loads",
+    "context": "Wait window step row, not started yet: the download",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_step_loaded": {
+    "area": "Wait window / background loads",
+    "context": "Wait window step row, done (tick): the download",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_step_loading_map": {
+    "area": "Wait window / background loads",
+    "context": "Wait window step row, running: the map downloads",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_step_loading_map_routing": {
+    "area": "Wait window / background loads",
+    "context": "Wait window step row, running: map and routing data download (one row, never a 4th)",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_step_loading_routing": {
+    "area": "Wait window / background loads",
+    "context": "Wait window step row, running: only routing data downloads",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_step_join": {
+    "area": "Wait window / background loads",
+    "context": "Wait window step row, not started yet: the downloaded map is joined into the map",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_left_seconds": {
+    "area": "Wait window / background loads",
+    "context": "Wait window: time left (in fives of seconds)",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_left_minute": {
+    "area": "Wait window / background loads",
+    "context": "Wait window: time left",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_left_minutes": {
+    "area": "Wait window / background loads",
+    "context": "Wait window: time left in minutes",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_loading_pct": {
+    "area": "Wait window / background loads",
+    "context": "One of the three progress texts everywhere (wird vorbereitet / lädt 34 % / fast fertig): notification, Offline maps",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "maps_phase_done": {
+    "area": "Wait window / background loads",
+    "context": "Background loads details: one load of the action is done",
+    "priority": 2,
+    "confidence": "sicher"
   }
 }

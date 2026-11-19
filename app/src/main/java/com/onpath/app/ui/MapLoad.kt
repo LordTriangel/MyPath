@@ -1,178 +1,313 @@
 package com.onpath.app.ui
 
 import com.onpath.strings.*
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CloudDownload
-import androidx.compose.material.icons.outlined.CloudOff
-import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.onpath.app.cells.CellId
 import com.onpath.app.cells.CellState
+import com.onpath.app.cells.MapCells
+import com.onpath.app.data.RoutingDataLoader
+import com.onpath.app.domain.CellProgress
+import com.onpath.app.domain.LoadStep
+import com.onpath.app.domain.OneBar
+import com.onpath.app.domain.StepClock
+import com.onpath.app.domain.StepShares
+import com.onpath.app.domain.TimeLeft
+import com.onpath.app.domain.WaitStep
+import com.onpath.app.domain.WaitSteps
+import com.onpath.app.ui.progress.WaitButton
+import com.onpath.app.ui.progress.WaitSign
+import com.onpath.app.ui.progress.WaitWindowDialog
+import com.onpath.app.ui.progress.WaitWindowUi
+import com.onpath.app.ui.progress.WaitWindowView
 
 /**
- * The one modal while the user waits for the map of their area: a point set / searched / tapped where there is no
- * detailed map (T1), a route computed while the visible map has none ([MapLoadWait]). Plain words, the time left, one
- * button; each phase shows its own progress (owner 2026-11-18: a % that races and then stands at 98 looks hung):
- * preparing on the server and joining the map in have no measurable progress – the title says what happens and the bar
- * runs, no number; only the download has a % – the real bytes. Closes by itself only when the map is there; Cancel stops
- * it ([MapLoadCancel]).
- * Background loads (the map for here when the app opens – also the first start –, route corridor, on tour, newer
- * versions) never show it.
+ * The wait window while the user waits for the map of a place (form A, owner 2026-11-19 „ich muss warten“): the first map
+ * of their area, a point set / searched / tapped where there is no detailed map, a route computed while the visible map
+ * has none ([MapLoadWait]), routing data. One frame: "Karte für deine Gegend", ONE bar 0–100 over all steps with its
+ * number – each step its learned share ([StepShares]), never back, never standing ([OneBar]) –, at most 3 step rows
+ * „vorbereitet · lädt Karte + Routendaten · einfügen“ (missing routing data is part of the loading step, never a 4th
+ * row), the time left once it can be estimated, Cancel. Closes by itself only when everything is there; Cancel stops it
+ * ([MapLoadCancel]). Background loads (the map for here when the app opens, route corridor, on tour, newer versions)
+ * show the sign beside the map instead (form B).
  */
 data class MapLoadUi(
+    /** What happens: the running step (PREPARING / LOADING / FINISHING) or why it waits / failed. */
     val kind: Kind,
-    /**
-     * 0..100: the bytes downloaded of everything this window waits for – real bytes, never a guess, never backwards.
-     * Shown only while bytes can flow ([hasPercent]); the other phases show no number.
-     */
+    /** 0..100 over all steps ([OneBar]): never back, never standing, 100 only when everything is there. */
     val percent: Int,
-    /** Estimated seconds left; null = unknown (no line). */
+    /** Estimated seconds left; null = not estimable yet (no line). */
     val secondsLeft: Int?,
     /** Failure: plain reason. */
     val reason: String? = null,
     val retryable: Boolean = false,
-    /** How many regions (map cells – never called that on screen) the modal waits for, and their size. */
+    /** How many regions (map cells – never called that on screen) the window waits for; 0 = only routing data. */
     val regions: Int = 1,
     val bytes: Long? = null,
-    /**
-     * Routing data loads too (its size is in [bytes]); [regions] 0 = only routing data ([RoutingLoads]). Never named on
-     * screen (it is all "the map for your area").
-     */
+    /** Routing data loads too: part of the loading step („lädt Karte + Routendaten“). */
     val routing: Boolean = false,
-    /** Of [regions]: already on the phone ("2 of 4 map areas"). */
+    /** Of [regions]: already on the phone. */
     val regionsDone: Int = 0,
 ) {
     /** FINISHING: everything is downloaded and is joined into the map / written into the routing file. */
     enum class Kind { PREPARING, LOADING, FINISHING, OFFLINE, WIFI, FAILED }
 
-    val title: String get() = when (kind) {
-        Kind.PREPARING -> Txt.s(Res.string.maps_load_preparing)
-        Kind.FINISHING -> Txt.s(Res.string.maps_load_finishing)
-        Kind.FAILED -> Txt.s(Res.string.maps_load_failed)
-        else -> Txt.s(Res.string.maps_load_loading)
+    val title: String get() = if (kind == Kind.FAILED) Txt.s(Res.string.maps_load_failed) else Txt.s(Res.string.wait_title_map)
+
+    /** Offline / waiting for Wi-Fi: the bar stands grey and the line says why. */
+    val paused: Boolean get() = kind == Kind.OFFLINE || kind == Kind.WIFI
+
+    /** The running step (the step rows' ● and where the bar's part ends). */
+    val step: LoadStep get() = when (kind) {
+        Kind.PREPARING -> LoadStep.PREPARE
+        Kind.FINISHING -> LoadStep.JOIN
+        else -> LoadStep.DOWNLOAD
     }
 
-    /**
-     * A bar with a number: while it downloads, and while a download waits (offline / Wi-Fi: the bar stands, grey, the
-     * line says why). Preparing and finishing have no measurable progress: the bar runs, no number.
-     */
-    val hasPercent: Boolean get() = kind == Kind.LOADING || kind == Kind.OFFLINE || kind == Kind.WIFI
-
-    /** The line under the bar: time left, or why it waits. */
+    /** The line under the bar: time left, or why it waits / what failed. */
     val line: String? get() = when (kind) {
         Kind.OFFLINE -> OFFLINE_TEXT
         Kind.WIFI -> WIFI_TEXT
         Kind.FAILED -> reason
-        Kind.FINISHING -> null
-        else -> secondsLeft?.let { timeLeft(it) }
+        else -> secondsLeft?.let(TimeLeft::text)
     }
 
-    val paused: Boolean get() = kind == Kind.OFFLINE || kind == Kind.WIFI
+    /**
+     * The step rows: „vorbereitet · lädt Karte + Routendaten · einfügen“ (routing data only: „lädt Routendaten ·
+     * einfügen“) – never more than 3 ([WaitSteps]).
+     */
+    val steps: List<WaitStep> get() {
+        val load = when {
+            regions == 0 -> Txt.s(Res.string.wait_step_loading_routing)
+            routing -> Txt.s(Res.string.wait_step_loading_map_routing)
+            else -> Txt.s(Res.string.wait_step_loading_map)
+        }
+        val now = step
+        fun label(s: LoadStep): Pair<String, String?> = when (s) {
+            LoadStep.PREPARE -> (if (now == s) LoadPhase.PREPARING.text else if (now > s) Txt.s(Res.string.wait_step_prepared)
+                else Txt.s(Res.string.wait_step_prepare)) to null
+            LoadStep.DOWNLOAD -> if (now == s) load to LoadPhase.LOADING.text
+                else (if (now > s) Txt.s(Res.string.wait_step_loaded) else Txt.s(Res.string.wait_step_load)) to null
+            LoadStep.JOIN -> (if (now == s) LoadPhase.FINISHING.text else Txt.s(Res.string.wait_step_join)) to null
+        }
+        val all = if (regions == 0) listOf(LoadStep.DOWNLOAD, LoadStep.JOIN) else LoadStep.entries
+        return WaitSteps.of(all.map(::label), all.indexOf(now))
+    }
 
-    /** "3 map areas · about 27 MB" (routing data included, not named); only routing data missing: "about 10 MB". */
-    val totals: String get() = if (regions == 0) bytes?.let { Txt.s(Res.string.maps_about_mb, mb(it)) } ?: ""
-        // several areas, some there: "2 of 4 map areas · about 27 MB" – the count moves while a bar cannot
-        else if (regions > 1 && regionsDone in 1 until regions && bytes != null)
-            Txt.s(Res.string.maps_load_totals_done, regionsDone, regions, mb(bytes))
-        else if (bytes == null) Txt.p(Res.plurals.maps_load_totals, regions, regions)
-        else Txt.p(Res.plurals.maps_load_totals_mb, regions, regions, mb(bytes))
+    /** The window's look ([WaitWindowView]). */
+    val window: WaitWindowUi get() = WaitWindowUi(
+        when (kind) { Kind.FAILED -> WaitSign.FAILED; Kind.OFFLINE -> WaitSign.OFFLINE; else -> WaitSign.MAP },
+        title, percent, if (kind == Kind.FAILED) emptyList() else steps, line, paused = paused, bar = kind != Kind.FAILED)
 
     companion object {
         val OFFLINE_TEXT: String get() = Txt.s(Res.string.maps_offline_text)
         val WIFI_TEXT: String get() = Txt.s(Res.string.maps_wifi_text)
-        /** One-time load over mobile data while "Maps only on Wi-Fi" waits (modal and question box; setting unchanged). */
+        /** One-time load over mobile data while "Maps only on Wi-Fi" waits (window and question box; setting unchanged). */
         val LOAD_ON_MOBILE: String get() = Txt.s(Res.string.maps_load_on_mobile)
-
-        fun timeLeft(s: Int): String = when {
-            s < 60 -> Txt.s(Res.string.maps_time_lt_minute)
-            s < 120 -> Txt.s(Res.string.maps_time_one_minute)
-            else -> Txt.s(Res.string.maps_time_minutes, (s + 30) / 60)
-        }
     }
 }
 
 /**
- * One map region on its way, from the server / download states, updated about every second – each phase its own
- * progress (owner 2026-11-18): preparing (queued + building) has the server's time left and no %; the download has the
- * real bytes (0–100 %); joining it into the map ([CellState.Installing]) has neither. Pure (time passed in), unit-tested.
+ * One wait for the map of a place, updated about every second (owner 2026-11-19 „each step measures itself“): the server
+ * prepares the regions – its own time left –, the bytes download – real bytes of the map and the routing data –, the
+ * map is joined in – the bytes of the pieces in ([MapCells.joining]) – and the routing file is rewritten – the bytes
+ * written ([RoutingDataLoader.Status.written]). Each step weighs with its learned share ([shares]); the ONE bar follows
+ * the measurement and creeps on by time between two ([OneBar]). [StepClock] measures how long each step really took –
+ * what the shares learn from when the wait ends ([durations]). Pure (time passed in), unit-tested.
  */
-class MapLoadProgress(private val defaultBuildS: Int = DEFAULT_BUILD_S) {
-    /** Bytes downloaded in % – stays where it was while offline / waiting. */
-    private var shown = 0
-    private var last: CellState? = null
-    /** When the preparing state last changed, and the server's time left then. */
-    private var anchorAt = 0L
-    private var anchorRemainS = defaultBuildS.toDouble()
-    private var preparing = false
-    /** Download rate measurement. */
-    private var dlAt: Long? = null
-    private var dlBytes = 0L
+class MapWait(private val shares: StepShares = StepShares.DEFAULT, private val defaultBuildS: Int = DEFAULT_BUILD_S) {
+    private val bar = OneBar()
+    private val clock = StepClock()
+    /** Per region still prepared: when its server estimate was anchored, the seconds left then, when it was first seen. */
+    private val prep = HashMap<CellId, LongArray>()
+    private val prepShown = HashMap<CellId, Double>()
+    private val last = HashMap<CellId, CellState>()
+    /** Routing data of this wait: its size and whether it was seen loading (gone = there). */
+    private var routingBytes = 0L
+    private var routingSeen = false
+    /** Download rate (bytes / s), measured over the whole wait. */
+    private var rateAt = -1L
+    private var rateBytes = 0L
+    private var rate: Double? = null
+    /** Join pace (share / s) of the pieces reported. */
+    private var joinAt = -1L
+    private var joinDone = 0.0
+    private var joinRate: Double? = null
 
-    fun update(s: CellState, now: Long): MapLoadUi {
-        val changed = s != last
-        last = s
-        return when (s) {
+    /**
+     * The window for [focus] (the regions waited for, [sizes] = installed sizes), [routing] (null = no routing data
+     * waited for, or there), [joining] (what is joined into the map now) at [now] (uptime ms). Null = everything there.
+     */
+    fun update(
+        focus: Collection<CellId>, states: Map<CellId, CellState>, sizes: Map<CellId, Long>,
+        routing: RoutingDataLoader.Status?, joining: MapCells.Joining?, now: Long,
+    ): MapLoadUi? {
+        if (routing != null) { routingSeen = true; routingBytes = maxOf(routingBytes, routing.totalBytes) }
+        fun st(c: CellId): CellState = states[c] ?: if (c in sizes) CellState.Ready("") else CellState.Requested
+        fun ready(s: CellState) = s is CellState.Ready || s == CellState.Downloaded
+        val open = focus.filter { !ready(st(it)) }
+        if (open.isEmpty() && routing == null) return null
+        val map = focus.isNotEmpty()
+        fun size(c: CellId) = MapLoads.knownBytes(states[c], sizes[c]) ?: MapLoads.ESTIMATED_REGION_BYTES
+        val mapBytes = focus.sumOf(::size)
+        // prepare: per region the server's time left (re-anchored with each new estimate), never back
+        val prepFrac = if (!map) 1.0 else focus.map { c -> prepareFraction(c, st(c), now) }.average()
+        // download: the real bytes of the map and the routing data
+        val mapGot = focus.sumOf { c ->
+            when (val s = st(c)) {
+                is CellState.Downloading -> s.doneBytes.coerceAtMost(size(c))
+                CellState.Installing, CellState.Downloaded, is CellState.Ready -> size(c)
+                else -> 0L
+            }
+        }
+        val rTotal = if (routingSeen) maxOf(routingBytes, routing?.totalBytes ?: 0L) else 0L
+        val rGot = if (routing == null) rTotal else routing.doneBytes.coerceAtMost(rTotal)
+        val allBytes = (mapBytes + rTotal).coerceAtLeast(1L)
+        val dlFrac = ((mapGot + rGot).toDouble() / allBytes).coerceIn(0.0, 1.0)
+        measureRate(mapGot + rGot, now)
+        // join: the pieces in of each region (map) and the routing file's bytes written
+        val mapJoined = focus.sumOf { c ->
+            when (val s = st(c)) {
+                CellState.Downloaded, is CellState.Ready -> size(c).toDouble()
+                CellState.Installing -> size(c) * (joining?.takeIf { c in it.cells }?.fraction ?: 0.0)
+                else -> 0.0
+            }
+        }
+        val rJoined = when {
+            routing == null -> rTotal.toDouble()
+            routing.writing -> rTotal * routing.written
+            else -> 0.0
+        }
+        val joinFrac = ((mapJoined + rJoined) / allBytes).coerceIn(0.0, 1.0)
+        measureJoin(joinFrac, now)
+        joining?.let { j -> measureJoinSpeed(j.done, now) }
+        // the steps there are (routing data only: no prepare) with their shares
+        val steps = if (map) LoadStep.entries else listOf(LoadStep.DOWNLOAD, LoadStep.JOIN)
+        val sum = steps.sumOf { shares.of(it) }
+        fun share(s: LoadStep) = shares.of(s) / sum
+        val frac = mapOf(LoadStep.PREPARE to prepFrac, LoadStep.DOWNLOAD to dlFrac, LoadStep.JOIN to joinFrac)
+        val raw = steps.sumOf { share(it) * frac.getValue(it) }
+        val step = steps.firstOrNull { frac.getValue(it) < DONE } ?: LoadStep.JOIN
+        // where the running step's part ends – with what later steps already did (routing data loads while the map is prepared)
+        val stepEnd = steps.takeWhile { it != step }.sumOf { share(it) } + share(step) +
+            steps.dropWhile { it != step }.drop(1).sumOf { share(it) * frac.getValue(it) }
+        // the step's own time left: the server's estimate, the bytes at the measured rate, the pieces at their pace
+        val stepLeftS: Int? = when (step) {
+            LoadStep.PREPARE -> focus.mapNotNull { c -> prepLeftS(c, st(c), now) }.maxOrNull()
+            LoadStep.DOWNLOAD -> rate?.takeIf { it > 0 }?.let { ((allBytes - mapGot - rGot) / it).toInt() }
+            // the pieces at their pace; not reported (yet): the map's size – the store is rewritten with the new areas –
+            // at this phone's measured join speed ([joinBytesPerS])
+            LoadStep.JOIN -> joinRate?.takeIf { it > 0 }?.let { ((1 - joinFrac) / it).toInt() }
+                ?: ((sizes.values.sum() + mapBytes) * (1 - joinFrac) / joinBytesPerS).toInt()
+        }
+        // what happens: failed / offline / Wi-Fi first, else the running step
+        val openStates = open.map(::st)
+        val rp = routing?.phase
+        val kind = when {
+            (map && openStates.isNotEmpty() && openStates.all { it is CellState.Failed }) || (!map && rp == RoutingDataLoader.Phase.FAILED) ->
+                MapLoadUi.Kind.FAILED
+            openStates.any { it is CellState.Offline } || rp == RoutingDataLoader.Phase.OFFLINE -> MapLoadUi.Kind.OFFLINE
+            openStates.none { it is CellState.Queued || it is CellState.Building || it == CellState.Requested || it == CellState.None ||
+                it is CellState.Downloading || it == CellState.Installing } &&
+                (openStates.any { it is CellState.WaitingForWifi } || rp == RoutingDataLoader.Phase.WIFI) &&
+                rp != RoutingDataLoader.Phase.LOADING -> MapLoadUi.Kind.WIFI
+            step == LoadStep.PREPARE -> MapLoadUi.Kind.PREPARING
+            step == LoadStep.JOIN -> MapLoadUi.Kind.FINISHING
+            else -> MapLoadUi.Kind.LOADING
+        }
+        val running = kind != MapLoadUi.Kind.FAILED && kind != MapLoadUi.Kind.OFFLINE && kind != MapLoadUi.Kind.WIFI
+        if (running) clock.at(step, now)
+        val pct = bar.next(raw, stepEnd, stepLeftS?.let { it * 1000L }, now, paused = !running)
+        val left = if (running) TimeLeft.seconds(bar.share, clock.elapsed(now), stepLeftS) else null
+        val failed = openStates.filterIsInstance<CellState.Failed>()
+        return MapLoadUi(kind, pct, left,
+            reason = if (kind != MapLoadUi.Kind.FAILED) null else if (!map) RoutingLoads.FAILED_TEXT
+                else if (failed.any { it.retryable }) Txt.s(Res.string.maps_load_failed_retry) else failed.firstOrNull()?.message,
+            retryable = kind == MapLoadUi.Kind.FAILED && (!map || failed.any { it.retryable }),
+            regions = focus.size, bytes = mapBytes + rTotal, routing = routingSeen, regionsDone = focus.size - open.size)
+    }
+
+    /** How long each step of this wait really took until [endMs] – what [StepShares.learn] learns from. */
+    fun durations(endMs: Long): Map<LoadStep, Long> = clock.durations(endMs)
+
+    /** The first [update] showed something (the wait was real, not a map already there). */
+    val started: Boolean get() = clock.started
+
+    private fun prepareFraction(c: CellId, s: CellState, now: Long): Double {
+        val v = when (s) {
             CellState.None, CellState.Requested, is CellState.Queued, is CellState.Building -> {
                 val eta = when (s) { is CellState.Queued -> s.etaS; is CellState.Building -> s.etaS; else -> null }
-                // a new estimate from the server re-anchors; without one the first estimate runs down
-                if (!preparing || (changed && eta != null)) { anchorAt = now; anchorRemainS = (eta ?: defaultBuildS).coerceAtLeast(1).toDouble() }
-                preparing = true
-                val left = (anchorRemainS - (now - anchorAt) / 1000.0).coerceAtLeast(0.0).toInt()
-                MapLoadUi(MapLoadUi.Kind.PREPARING, shown, left)
+                val a = prep.getOrPut(c) { longArrayOf(now, (eta ?: defaultBuildS).toLong(), now) }
+                // a new estimate from the server re-anchors; without one the first runs down
+                if (eta != null && s != last[c]) { a[0] = now; a[1] = eta.toLong() }
+                last[c] = s
+                val gone = (now - a[2]) / 1000.0
+                val left = (a[1] - (now - a[0]) / 1000.0).coerceAtLeast(1.0)
+                (gone / (gone + left)).coerceIn(0.0, 0.99)
             }
-            is CellState.Downloading -> {
-                preparing = false
-                if (s.totalBytes > 0) shown = maxOf(shown, (s.doneBytes * 100 / s.totalBytes).toInt().coerceIn(0, 100))
-                val start = dlAt
-                if (start == null || s.doneBytes < dlBytes) { dlAt = now; dlBytes = s.doneBytes }
-                val dt = (now - (dlAt ?: now)) / 1000.0
-                val rate = if (dt >= 2 && s.doneBytes > dlBytes) (s.doneBytes - dlBytes) / dt else null
-                val left = if (rate != null && s.totalBytes > 0) ((s.totalBytes - s.doneBytes) / rate).toInt() else null
-                MapLoadUi(MapLoadUi.Kind.LOADING, shown, left)
-            }
-            // all bytes are here; the map is joined in – no progress to measure, so no number
-            CellState.Installing -> { preparing = false; shown = 100; MapLoadUi(MapLoadUi.Kind.FINISHING, 100, null) }
-            // downloaded during a tour: on the phone, joined after it – as far as the loading window goes, it is done
-            CellState.Downloaded -> { shown = 100; MapLoadUi(MapLoadUi.Kind.LOADING, 100, 0) }
-            is CellState.Ready -> { shown = 100; MapLoadUi(MapLoadUi.Kind.LOADING, 100, 0) }
-            is CellState.Offline -> MapLoadUi(MapLoadUi.Kind.OFFLINE, shown, null)
-            is CellState.WaitingForWifi -> MapLoadUi(MapLoadUi.Kind.WIFI, shown, null)
-            is CellState.Failed -> MapLoadUi(MapLoadUi.Kind.FAILED, shown, null,
-                reason = if (s.retryable) Txt.s(Res.string.maps_load_failed_retry) else s.message,
-                retryable = s.retryable)
+            is CellState.Offline, is CellState.Failed -> 0.0
+            else -> 1.0
         }
+        return maxOf(prepShown[c] ?: 0.0, v).also { prepShown[c] = it }
+    }
+
+    private fun prepLeftS(c: CellId, s: CellState, now: Long): Int? {
+        if (!(s == CellState.None || s == CellState.Requested || s is CellState.Queued || s is CellState.Building)) return null
+        val a = prep[c] ?: return null
+        return (a[1] - (now - a[0]) / 1000.0).coerceAtLeast(0.0).toInt()
+    }
+
+    private fun measureRate(bytes: Long, now: Long) {
+        if (rateAt < 0 || bytes < rateBytes) { rateAt = now; rateBytes = bytes; return }
+        val dt = (now - rateAt) / 1000.0
+        if (dt < 2) return
+        if (bytes > rateBytes) { val r = (bytes - rateBytes) / dt; rate = rate?.let { it * 0.7 + r * 0.3 } ?: r }
+        rateAt = now; rateBytes = bytes
+    }
+
+    private var speedAt = -1L
+    private var speedBytes = 0L
+
+    /** The phone's join speed from the store's reports (bytes written / s), kept for the next join without reports. */
+    private fun measureJoinSpeed(done: Long, now: Long) {
+        if (speedAt < 0 || done < speedBytes) { speedAt = now; speedBytes = done; return }
+        val dt = (now - speedAt) / 1000.0
+        if (dt < 2 || done <= speedBytes) return
+        joinBytesPerS = (joinBytesPerS * 0.7 + (done - speedBytes) / dt * 0.3).coerceIn(MIN_JOIN_BPS, MAX_JOIN_BPS)
+        speedAt = now; speedBytes = done
+    }
+
+    private fun measureJoin(f: Double, now: Long) {
+        if (joinAt < 0 || f <= 0.0) { joinAt = now; joinDone = f; return }
+        val dt = (now - joinAt) / 1000.0
+        if (dt < 1 || f <= joinDone) return
+        val r = (f - joinDone) / dt
+        joinRate = joinRate?.let { it * 0.7 + r * 0.3 } ?: r
+        joinAt = now; joinDone = f
     }
 
     companion object {
-        /** Assumed preparing time when the server gives no ETA. */
+        /** Assumed preparing time when the server gives no estimate. */
         const val DEFAULT_BUILD_S = 180
+        /** A step is done at this fraction (sums of bytes may miss a few). */
+        const val DONE = 0.999
+
+        /**
+         * This phone's join speed, bytes written per second, measured from the store's reports (start: 20 MB/s – the
+         * field's Galaxy S10 wrote 495 MB in about 20 s); bounded. For a join that cannot report: its time from the map's size.
+         */
+        @Volatile var joinBytesPerS: Double = 20.0 * 1_048_576
+        private const val MIN_JOIN_BPS = 1.0 * 1_048_576
+        private const val MAX_JOIN_BPS = 500.0 * 1_048_576
     }
 }
 
-/**
- * The modal for several regions at once ("N regions · about X MB"): one bar over all of them. Pure, unit-tested.
- */
+/** Sizes of map regions for the question before a tap's download, and for the windows. Pure. */
 object MapLoads {
     /** "2 regions · ≈ 18 MB" (the tap question). */
     fun askText(regions: Int, bytes: Long): String = Txt.p(Res.plurals.maps_ask_text, regions, regions, mb(bytes))
@@ -188,41 +323,6 @@ object MapLoads {
     /** Total size: known sizes, [ESTIMATED_REGION_BYTES] for the rest. */
     fun estimate(cells: Collection<CellId>, states: Map<CellId, CellState>, sizes: Map<CellId, Long>): Long =
         cells.sumOf { knownBytes(states[it], sizes[it]) ?: ESTIMATED_REGION_BYTES }
-
-    /**
-     * One [MapLoadUi] for the regions [focus]: [progress] holds one [MapLoadProgress] per region (kept by the caller),
-     * [sizes] the installed regions' sizes. The % is the bytes downloaded over all regions (a region on the phone
-     * counts in full, one still prepared with 0), never below [held] (the last value shown). The kind is the phase:
-     * LOADING while a region downloads, else PREPARING while the server works on one, else FINISHING (all downloaded,
-     * joined into the map). Null when every region is there.
-     */
-    fun aggregate(
-        focus: Collection<CellId>, states: Map<CellId, CellState>, sizes: Map<CellId, Long>,
-        progress: MutableMap<CellId, MapLoadProgress>, held: Int, now: Long,
-    ): MapLoadUi? {
-        if (focus.isEmpty()) return null
-        fun ready(c: CellId) = states[c] is CellState.Ready || (states[c] == null && c in sizes)
-        val open = focus.filter { !ready(it) }
-        if (open.isEmpty()) return null
-        val per = open.map { c -> progress.getOrPut(c) { MapLoadProgress() }.update(states[c] ?: CellState.Requested, now) }
-        val total = focus.size
-        val bytes = estimate(focus, states, sizes)
-        fun size(c: CellId) = knownBytes(states[c], sizes[c]) ?: ESTIMATED_REGION_BYTES
-        val got = focus.sumOf { c -> if (ready(c)) size(c) else size(c) * per[open.indexOf(c)].percent / 100 }
-        val pct = maxOf(held, if (bytes > 0) (got * 100 / bytes).toInt() else 0).coerceIn(0, 100)
-        val there = total - open.size
-        val kinds = per.map { it.kind }
-        val left = per.mapNotNull { it.secondsLeft }.maxOrNull()
-        return when {
-            kinds.all { it == MapLoadUi.Kind.FAILED } ->
-                per.first().copy(percent = pct, regions = total, bytes = bytes, retryable = per.any { it.retryable }, regionsDone = there)
-            MapLoadUi.Kind.OFFLINE in kinds -> MapLoadUi(MapLoadUi.Kind.OFFLINE, pct, null, regions = total, bytes = bytes, regionsDone = there)
-            MapLoadUi.Kind.LOADING in kinds -> MapLoadUi(MapLoadUi.Kind.LOADING, pct, left, regions = total, bytes = bytes, regionsDone = there)
-            MapLoadUi.Kind.PREPARING in kinds -> MapLoadUi(MapLoadUi.Kind.PREPARING, pct, left, regions = total, bytes = bytes, regionsDone = there)
-            MapLoadUi.Kind.FINISHING in kinds -> MapLoadUi(MapLoadUi.Kind.FINISHING, pct, null, regions = total, bytes = bytes, regionsDone = there)
-            else -> MapLoadUi(MapLoadUi.Kind.WIFI, pct, null, regions = total, bytes = bytes, regionsDone = there)
-        }
-    }
 }
 
 /**
@@ -287,9 +387,10 @@ class MapLoadCallbacks(
     val onLoadOnMobile: () -> Unit = {},
 )
 
+
 /**
- * The modal over the map. [ui] null = nothing to wait for. No flash (owner rule): it appears only when the wait lasts
- * ≥ 1 s, a title stays ≥ 2.5 s (the bar keeps moving), a tap answers at once ([NoFlash]).
+ * The window over the map. [ui] null = nothing to wait for. No flash (owner rule): it appears only when the wait lasts
+ * ≥ 1 s, a step shows ≥ 2.5 s (the bar keeps moving), a tap answers at once ([NoFlash]).
  */
 @Composable
 fun MapLoadModal(ui: MapLoadUi?, cb: MapLoadCallbacks) {
@@ -299,53 +400,21 @@ fun MapLoadModal(ui: MapLoadUi?, cb: MapLoadCallbacks) {
     val kind = rememberNoFlash(ui?.kind, gate) ?: return
     val shown = (ui ?: lastRef[0])?.copy(kind = kind) ?: return
     fun acted(f: () -> Unit): () -> Unit = { gate.userActed(android.os.SystemClock.uptimeMillis()); f() }
-    androidx.compose.ui.window.Dialog(onDismissRequest = {},
-        properties = androidx.compose.ui.window.DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)) {
-        MapLoadPanel(shown, MapLoadCallbacks(acted(cb.onCancel), acted(cb.onRetry), acted(cb.onClose), acted(cb.onLoadOnMobile)))
-    }
+    val c = MapLoadCallbacks(acted(cb.onCancel), acted(cb.onRetry), acted(cb.onClose), acted(cb.onLoadOnMobile))
+    WaitWindowDialog(shown.window, mapLoadButtons(shown, c))
 }
 
-/** The modal's content (also used by the screenshot tests, which cannot show a Dialog window). */
+/** The window's content (also used by the screenshot tests, which cannot show a Dialog window). */
 @Composable
-fun MapLoadPanel(ui: MapLoadUi, cb: MapLoadCallbacks) {
-    val variant = MaterialTheme.colorScheme.onSurfaceVariant
-    Surface(shape = OnPathShapes.Card, color = MaterialTheme.colorScheme.surface,
-        modifier = Modifier.fillMaxWidth().warmShadow(OnPathShadow.HIGH, OnPathShapes.Card)) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            val (icon, tint) = when (ui.kind) {
-                MapLoadUi.Kind.FAILED -> Icons.Outlined.Warning to OnPathColors.Warn
-                MapLoadUi.Kind.OFFLINE -> Icons.Outlined.CloudOff to variant
-                else -> Icons.Outlined.CloudDownload to OnPathColors.Green
-            }
-            Icon(icon, null, tint = tint, modifier = Modifier.size(32.dp))
-            Text(ui.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(ui.totals, style = MaterialTheme.typography.bodyMedium, color = variant)
-            if (ui.kind != MapLoadUi.Kind.FAILED) {
-                // the download: the real bytes with their number; preparing / finishing: the bar runs, no number
-                if (ui.hasPercent) Row(verticalAlignment = Alignment.CenterVertically) {
-                    LinearProgressIndicator(progress = { ui.percent / 100f },
-                        color = if (ui.paused) variant else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f).clip(CircleShape))
-                    Text("${ui.percent} %", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium,
-                        modifier = Modifier.padding(start = 12.dp))
-                } else LinearProgressIndicator(color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp).clip(CircleShape))
-            }
-            ui.line?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = variant) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                if (ui.kind == MapLoadUi.Kind.FAILED) {
-                    TextButton(onClick = cb.onClose, modifier = Modifier.heightIn(min = 48.dp)) { Text(str(Res.string.common_close)) }
-                    if (ui.retryable) TextButton(onClick = cb.onRetry, modifier = Modifier.heightIn(min = 48.dp)) { Text(str(Res.string.common_try_again)) }
-                } else {
-                    TextButton(onClick = cb.onCancel, modifier = Modifier.heightIn(min = 48.dp)) { Text(str(Res.string.common_cancel)) }
-                    if (ui.kind == MapLoadUi.Kind.WIFI) TextButton(onClick = cb.onLoadOnMobile, modifier = Modifier.heightIn(min = 48.dp)) {
-                        Text(MapLoadUi.LOAD_ON_MOBILE)
-                    }
-                }
-            }
-        }
-    }
-}
+fun MapLoadPanel(ui: MapLoadUi, cb: MapLoadCallbacks) = WaitWindowView(ui.window, mapLoadButtons(ui, cb))
+
+/** Cancel (+ "Load now over mobile data" while it waits for Wi-Fi); failed: Close (+ Try again). */
+@Composable
+private fun mapLoadButtons(ui: MapLoadUi, cb: MapLoadCallbacks): List<WaitButton> = if (ui.kind == MapLoadUi.Kind.FAILED)
+    listOfNotNull(WaitButton(str(Res.string.common_close), cb.onClose),
+        if (ui.retryable) WaitButton(str(Res.string.common_try_again), cb.onRetry) else null)
+else listOfNotNull(WaitButton(str(Res.string.common_cancel), cb.onCancel),
+    if (ui.kind == MapLoadUi.Kind.WIFI) WaitButton(MapLoadUi.LOAD_ON_MOBILE, cb.onLoadOnMobile) else null)
 
 /** A tap on the world map where there is no detailed map: never a silent download from a tap (owner). */
 @Composable

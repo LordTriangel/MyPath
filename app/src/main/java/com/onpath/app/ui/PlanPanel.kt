@@ -119,8 +119,6 @@ class PlanCallbacks(
     val onHighlight: (GeoPoint?) -> Unit = {},
     /** The sheet is being dragged (true) / let go (false) – map regions wait to join meanwhile. */
     val onSheetDrag: (Boolean) -> Unit = {},
-    /** "Cancel" next to the routing bar (only while a route takes a while). */
-    val onCancelRouting: () -> Unit = {},
     /** "Plan anyway" / "Calculate" of the not-routed notice. */
     val onPlanAnyway: () -> Unit = {},
     /** "Show" of the unreachable-point line: the map moves to the missing piece. */
@@ -201,12 +199,6 @@ data class PlanUi(
     val tour: TourState? = null,
     /** Rows of the Points section (full sheet), see PlanPoints.rows. */
     val points: List<PlanPointRow> = emptyList(),
-    /** The route has been calculating for a while: show "Calculating route… Cancel". */
-    val routingSlow: Boolean = false,
-    /** Legs done / legs to route while calculating (PlanStatus.calculating) – the wait card's text; null = unknown. */
-    val routeProgress: Pair<Int, Int>? = null,
-    /** The wait bar's share 0..1 (legs done + the running leg's search, [WaitBar]); null = the running bar. */
-    val routeShare: Float? = null,
     /** The plan is left without a route on purpose (Cancel with nothing to take back): notice + "Plan anyway". */
     val notRouted: NotRouted? = null,
     /** A plan point the route does not reach (PlanGaps.text): one red line + "Show", while it holds. */
@@ -400,17 +392,7 @@ private fun ColumnScope.PlanBody(sheet: StepSheetScope, ui: PlanUi, cb: PlanCall
 private fun SummaryLines(ui: PlanUi, cb: PlanCallbacks) {
     val route = ui.route
     PlanHead(ui, cb)
-    if (ui.routing && ui.routingSlow) {
-        // a long calculation can be stopped (the last change is taken back)
-        Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(PlanStatus.calculating(ui.routeProgress), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                RoutingBar(ui.routeShare, Modifier.fillMaxWidth().padding(top = 4.dp).height(3.dp).clip(CircleShape))
-            }
-            androidx.compose.material3.TextButton(onClick = cb.onCancelRouting) { Text(str(Res.string.common_cancel)) }
-        }
-    }
+    // a long calculation: the wait window over the map (form A, owner 2026-11-19 – progress/RouteWait.kt) with Cancel
     if (!ui.routing && route == null && ui.pointCount >= 2 && ui.notRouted != null) NotRoutedBar(ui.notRouted, cb.onPlanAnyway)
     // route state, one line per kind: ERROR, WARNING, INFO
     val loadingNotice = RoutingDataNotice.isNotice(ui.error)
@@ -463,10 +445,10 @@ private fun PlanHead(ui: PlanUi, cb: PlanCallbacks) {
             }
         }
     }
-    // the hairline under the plan row; while a route is calculated the bar runs in its place (same 7 dp – nothing moves)
+    // the hairline under the plan row; while a route is calculated the bar runs in its place (same 7 dp – nothing moves);
+    // its number is the wait window's when it takes a while (progress/RouteWait.kt)
     if (ui.pointCount >= 1) Box(Modifier.fillMaxWidth().padding(top = 3.dp, bottom = 1.dp).height(3.dp), contentAlignment = Alignment.Center) {
-        if (PlanCalculating.barInHairline(ui.routing, ui.routingSlow))
-            RoutingBar(ui.routeShare, Modifier.fillMaxWidth().height(3.dp).clip(CircleShape))
+        if (ui.routing) RoutingBar(Modifier.fillMaxWidth().height(3.dp).clip(CircleShape))
         else HorizontalDivider(thickness = 1.dp, color = OnPathColors.PlanAccent.copy(alpha = 0.18f))
     }
     val route = ui.route
@@ -502,13 +484,11 @@ private fun factsOneLine(route: PlannedRoute): Boolean {
 
 /**
  * While a route is calculated the sheet keeps its height (owner 2026-11-06, Pixel: on Reverse / Round trip the sheet went
- * down and up): what is there stays, faded and not touchable; the bar runs in the plan row's hairline. Only the slow case
- * (text + Cancel, after seconds) takes room of its own.
+ * down and up): what is there stays, faded and not touchable; the bar runs in the plan row's hairline. The slow case
+ * (after seconds) is the wait window over the map – the sheet takes no room for it.
  */
 object PlanCalculating {
     const val FADED = 0.4f
-    /** The bar sits in the hairline's place – unless the slow line (with its own bar) shows. */
-    fun barInHairline(routing: Boolean, slow: Boolean): Boolean = routing && !slow
 }
 
 /** Faded and not touchable while a route is calculated ([PlanCalculating]); the layout stays the same. */
@@ -646,19 +626,11 @@ private fun GoButton(ui: PlanUi, cb: PlanCallbacks) {
     }
 }
 
-/**
- * The bar while a route is calculated (owner 2026-11-05): [share] = legs done + the running leg's search ([WaitBar]) –
- * it moves within one long leg too. Without a share (not known yet, the search stands, every leg routed) the bar runs –
- * never a bar that stands (owner 2026-11-18).
- */
+/** The bar in the plan row's hairline while a route is calculated: it runs (the number is the wait window's). */
 @Composable
-private fun RoutingBar(share: Float?, modifier: Modifier) {
+private fun RoutingBar(modifier: Modifier) {
     // planning is blue (owner's colour rule 2026-11-06) – not the walnut base colour
-    val c = OnPathColors.ActionEdit; val t = OnPathColors.ActionEdit.copy(alpha = 0.18f)
-    when {
-        share != null -> LinearProgressIndicator(progress = { share }, modifier = modifier, color = c, trackColor = t)
-        else -> LinearProgressIndicator(modifier, color = c, trackColor = t)
-    }
+    LinearProgressIndicator(modifier, color = OnPathColors.ActionEdit, trackColor = OnPathColors.ActionEdit.copy(alpha = 0.18f))
 }
 
 /** The large profile of the profile step. */

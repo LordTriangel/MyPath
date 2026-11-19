@@ -54,6 +54,8 @@ data class OfflineMapsUi(
     val clearAllBlocked: String? = null,
     /** What the last Clean up / Clear all removed – a plain line on the page until it is left ([OfflineResult]). */
     val result: String? = null,
+    /** Something loads: the action's ONE percent (form B, the sign beside the map's number); null = nothing loads. */
+    val action: Int? = null,
 )
 
 /** The result line of Clean up / Clear all: on the page, not a message box on the map. */
@@ -107,7 +109,12 @@ class OfflineMapsCallbacks(
     val onCleanUpCancel: () -> Unit = {},
     /** "Clear all", after the second confirmation. */
     val onClearAll: () -> Unit = {},
+    /** The sign of what loads tapped: its details (the same sheet as on the map). */
+    val onLoads: () -> Unit = {},
 )
+
+/** At this font scale and above the waiting line's Cancel all gets its own row. */
+const val OFFLINE_LARGE_FONT = 1.5f
 
 /** Settings → Offline maps: installed areas, total size, delete (asked in the page), Wi-Fi only, update now. */
 @Composable
@@ -123,6 +130,8 @@ fun OfflineMapsSection(ui: OfflineMapsUi, cb: OfflineMapsCallbacks, initialConfi
             // no intro: the page shows what is there
             if (!ui.available) Text(str(Res.string.maps_not_available), style = small, color = variant)
             ui.result?.let { Text(it, style = body, fontWeight = FontWeight.Medium) }
+            // what loads (form B, owner 2026-11-19): the same sign and number as beside the map, tap → its details
+            ui.action?.let { com.onpath.app.ui.progress.BesideSign(it, cb.onLoads, Modifier.align(Alignment.End)) }
             if (ui.areas.isEmpty()) Text(str(Res.string.maps_no_areas), style = body)
             ui.areas.forEach { a ->
                 HorizontalDivider(Modifier.padding(vertical = 2.dp))
@@ -149,11 +158,18 @@ fun OfflineMapsSection(ui: OfflineMapsUi, cb: OfflineMapsCallbacks, initialConfi
             val w = ui.waiting
             if (w != null) {
                 HorizontalDivider(Modifier.padding(vertical = 2.dp))
-                Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(w.line, style = small, modifier = Modifier.weight(1f))
+                val cancelAll: @Composable () -> Unit = {
                     TextButton(onClick = cb.onCancelAll, modifier = Modifier.heightIn(min = 48.dp)) {
-                        Text(str(Res.string.common_cancel_all), color = OnPathColors.Bad, fontWeight = FontWeight.SemiBold)
+                        Text(str(Res.string.common_cancel_all), color = OnPathColors.Bad, fontWeight = FontWeight.SemiBold, softWrap = false)
                     }
+                }
+                // the line with Cancel all beside it; at a large font the button on its own row (right) – no word broken
+                if (androidx.compose.ui.platform.LocalDensity.current.fontScale >= OFFLINE_LARGE_FONT) {
+                    Text(w.line, style = small, modifier = Modifier.padding(top = 8.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { cancelAll() }
+                } else Row(Modifier.fillMaxWidth().heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(w.line, style = small, modifier = Modifier.weight(1f))
+                    cancelAll()
                 }
             } else if (ui.loading > 0) Text(plural(Res.plurals.maps_more_loading, ui.loading, ui.loading),
                 style = small, color = variant)

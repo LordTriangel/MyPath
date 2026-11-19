@@ -59,6 +59,10 @@
     <string name="plan_calculating">Route wird berechnet…</string>
     <string name="plan_calculating_leg">Abschnitt %1$d von %2$d wird berechnet…</string>
     <string name="plan_finishing">Route wird geprüft…</string>
+    <string name="wait_title_route">Route wird berechnet</string>
+    <string name="wait_step_check">prüfen</string>
+    <string name="wait_step_checking">wird geprüft</string>
+    <string name="wait_leg">Abschnitt %1$d</string>
     <string name="plan_progress_km">%1$s von %2$s km · %3$s</string>
     <string name="plan_hint_first_point_question">Wohin soll’s gehen?</string>
     <string name="plan_hint_first_point">Halte dein Ziel auf der Karte gedrückt – oder such es oben in der Suchleiste.</string>

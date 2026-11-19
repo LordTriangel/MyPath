@@ -1,52 +1,33 @@
 package com.onpath.app.ui
 
 import com.onpath.strings.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.LocationSearching
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material.icons.outlined.Warning
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.runtime.getValue
 import com.onpath.app.cells.CellId
 import com.onpath.app.cells.CellState
+import com.onpath.app.cells.MapCells
+import com.onpath.app.data.RoutingDataLoader
+import com.onpath.app.domain.ActionPercent
+import com.onpath.app.domain.CellProgress
+import com.onpath.app.domain.StepShares
+import com.onpath.app.ui.progress.BesideDetails
+import com.onpath.app.ui.progress.BesideRow
+import com.onpath.app.ui.progress.BesideSign
 
 /**
- * What loads in the background right now (owner: downloads must be visible and stoppable): map regions along
- * the plan's route, the map ahead on a tour, newer versions, routing data – anything the user is not waiting for in the
- * big loading modal. [percent] = the real bytes downloaded of everything loading since the chip appeared (never
- * backwards), shown only while bytes flow ([phase] LOADING); while areas are prepared on the server or the downloaded
- * data is joined in, the chip's ring spins and the details say what happens – no number that stands (owner 2026-11-18).
+ * What loads in the background right now (owner: downloads must be visible and stoppable) – form B, "ich kann
+ * weitermachen" (owner 2026-11-19): map regions along the plan's route or a multi-day tour, the map ahead on a tour,
+ * newer versions, routing data – anything the user is not waiting for in the wait window. [percent] = ONE number over
+ * the whole action, every load of it together ([ActionPercent], each by its steps' learned shares), never back – the
+ * sign, its details and the notification say the same.
  */
 data class BackgroundDownloadUi(
     /** Map regions loading (never called "cells" on screen). */
@@ -55,6 +36,7 @@ data class BackgroundDownloadUi(
     val routingParts: Int,
     /** Bytes of everything loading, as far as known. */
     val bytes: Long,
+    /** 0..100 over the whole action. */
     val percent: Int,
     /** Of [regions]: newer versions of areas the user already has (they replace the current map once loaded). */
     val newer: Int = 0,
@@ -62,146 +44,82 @@ data class BackgroundDownloadUi(
     val newerEtaMin: Int? = null,
     /** What loads, by name ("around Bad Waldsee", "along your route to …"), most important first. */
     val groups: List<LoadGroup> = emptyList(),
-    /** What happens now: LOADING while something downloads, else PREPARING (server) before FINISHING (joined in). */
-    val phase: LoadPhase = LoadPhase.LOADING,
+    /** One line per load of the action with where it stands – the finished ones too ("fertig"). */
+    val rows: List<BesideRow> = emptyList(),
 ) {
-    /** The chip's name ("Bad Waldsee") and how many other names load ("+1"). */
-    val chip: Pair<String, Int> get() = LoadNames.chip(groups)
-
-    /**
-     * A percent to show: bytes flow and some are here. Else (areas still being prepared on the server, the downloaded
-     * map being joined in) the chip's ring spins and no number is shown.
-     */
-    val hasPercent: Boolean get() = phase == LoadPhase.LOADING && percent > 0
-
-    /** "34 % done" while it downloads, else what happens ("being prepared", "almost ready"). */
-    val doneText: String get() = if (hasPercent) Txt.s(Res.string.maps_bg_done, percent) else phase.text
-
-    /** "Bad Waldsee +1 · 34 %" – what the chip says (accessibility, tests); without a percent yet only the names. */
-    val chipText: String get() = chip.let { (n, more) -> n + (if (more > 0) " +$more" else "") + (if (hasPercent) " · $percent %" else "") }
-
-    /** "Loading newer map" when only newer versions load (the strip is the one indicator for them). */
-    val title: String get() = Txt.s(if (regions > 0 && newer >= regions && routingParts == 0) Res.string.maps_bg_title_newer
-        else Res.string.maps_bg_title)
-
-    /** Details line about the newer versions, null when none loads. */
-    val newerLine: String? get() = if (newer <= 0) null else
-        newerEtaMin?.let { Txt.s(Res.string.maps_bg_newer_eta, newer, it) } ?: Txt.s(Res.string.maps_bg_newer, newer)
-
-    /** "3 areas · 24 MB · 40 %" (the strip); "24 MB · 40 %" when only the route planning part of the map loads (never named). */
-    val line: String get() {
-        val what = if (regions > 0) Txt.p(Res.plurals.maps_areas_count, regions, regions) else null
-        return listOfNotNull(what, if (bytes > 0) "${mb(bytes)} MB" else null, if (hasPercent) "$percent %" else phase.text).joinToString(" · ")
-    }
+    /** The details' notes: when a newer map is ready, "The maps you have stay". */
+    val notes: List<String> get() = listOfNotNull(
+        newerEtaMin?.takeIf { newer > 0 }?.let { Txt.s(Res.string.maps_bg_newer_ready, it) },
+        Txt.s(Res.string.maps_bg_maps_stay))
 }
 
 /**
- * Progress of one background loading session, pure: items (map regions, routing parts) seen since the session began
- * count as done once they leave; the session ends when nothing loads. Unit-tested.
+ * Progress of one background loading action, pure: its loads ([ActionPercent.Item]) seen since the action began count
+ * as done once they leave; the action ends when nothing loads. The names seen stay as lines ("fertig") until then.
+ * Unit-tested.
  */
-class BackgroundProgress {
-    private val items = LinkedHashMap<String, LongArray>() // key → [done, total]
-    private var held = 0
+class BackgroundProgress(private val action: ActionPercent = BackgroundAction.shared) {
+    private val seen = LinkedHashMap<String, BesideRow>()
 
-    /** One item loading now: [done] of [total] bytes downloaded (total 0 = unknown, counted with an estimate), in [phase]. */
-    data class Item(val key: String, val done: Long, val total: Long, val phase: LoadPhase = LoadPhase.LOADING)
-
-    fun update(active: List<Item>, regions: Int, routingParts: Int, newer: Int = 0, newerEtaMin: Int? = null,
+    fun update(active: List<ActionPercent.Item>, regions: Int, routingParts: Int, newer: Int = 0, newerEtaMin: Int? = null,
                groups: List<LoadGroup> = emptyList()): BackgroundDownloadUi? {
-        if (active.isEmpty()) { items.clear(); held = 0; return null }
-        val now = active.associateBy { it.key }
-        for ((k, v) in items) if (k !in now) v[0] = v[1] // finished (or dropped): full
-        for (i in active) {
-            val t = if (i.total > 0) i.total else ESTIMATE_BYTES
-            val v = items.getOrPut(i.key) { LongArray(2) }
-            v[0] = maxOf(v[0].coerceAtMost(t), i.done.coerceAtMost(t)); v[1] = t
-        }
-        val total = items.values.sumOf { it[1] }
-        val done = items.values.sumOf { it[0] }
-        val pct = if (total <= 0) 0 else (done * 100 / total).toInt().coerceIn(0, 100)
-        held = maxOf(held, pct)
-        val phases = active.map { it.phase }
-        val phase = when {
-            LoadPhase.LOADING in phases -> LoadPhase.LOADING
-            phases.all { it == LoadPhase.FINISHING } -> LoadPhase.FINISHING
-            else -> LoadPhase.PREPARING
-        }
-        return BackgroundDownloadUi(regions, routingParts, active.sumOf { it.total }, held, newer, newerEtaMin, groups, phase)
+        val pct = action.update(active)
+        if (pct == null) { seen.clear(); return null }
+        val now = groups.associateBy { it.name }
+        for (k in seen.keys.toList()) if (k !in now) seen[k] = BesideRow(k, Txt.s(Res.string.maps_phase_done))
+        for ((k, g) in now) seen[k] = BesideRow(k, g.phase.text)
+        return BackgroundDownloadUi(regions, routingParts, active.sumOf { it.weight }, pct, newer, newerEtaMin, groups, seen.values.toList())
     }
 
     companion object {
         /** A region or part of unknown size (server not asked yet). */
-        const val ESTIMATE_BYTES = 10L * 1_048_576
+        const val ESTIMATE_BYTES = ActionPercent.UNKNOWN_WEIGHT
 
         /** A map region in one of these states is loading (asked, built, downloaded or joined right now). */
         fun loading(s: CellState): Boolean = s == CellState.Requested || s is CellState.Queued || s is CellState.Building ||
             s is CellState.Downloading || s == CellState.Installing
 
         /**
-         * The background items of the cell [states] (those in [waitedFor] are the modal's, not the chip's). An
-         * [installed] area only asked for a newer version ([CellState.Requested]: the server has not answered) is no
-         * loading yet. Only downloaded bytes count; an area still prepared on the server has none and says so by its
-         * phase (the chip spins) – no time-based guess.
+         * The background loads of the cell [states] (those in [waitedFor] are the wait window's, not the sign's): each
+         * where it stands over its own steps ([CellProgress], the learned [shares]; [joining] = the pieces in of the areas
+         * joined now). An [installed] area only asked for a newer version ([CellState.Requested]: the server has not
+         * answered) is no loading yet.
          */
         fun cellItems(
-            states: Map<CellId, CellState>, waitedFor: Set<CellId>, installed: Set<CellId> = emptySet(), size: (CellId) -> Long?,
-        ): List<Item> {
-            val items = states.filter { (c, s) -> c !in waitedFor && loading(s) && !(c in installed && s == CellState.Requested) }
-            return items.map { (c, s) ->
-                val d = s as? CellState.Downloading
-                val total = d?.totalBytes?.takeIf { it > 0 } ?: size(c) ?: 0L
-                val done = when {
-                    d != null -> d.doneBytes
-                    s == CellState.Installing -> if (total > 0) total else ESTIMATE_BYTES // every byte is here
-                    else -> 0L
-                }
-                val phase = when (s) {
-                    is CellState.Downloading -> LoadPhase.LOADING
-                    CellState.Installing -> LoadPhase.FINISHING
-                    else -> LoadPhase.PREPARING
-                }
-                Item("cell:${c.id}", done, total, phase)
+            states: Map<CellId, CellState>, waitedFor: Set<CellId>, installed: Set<CellId> = emptySet(),
+            shares: StepShares = StepShares.DEFAULT, joining: MapCells.Joining? = null, size: (CellId) -> Long?,
+        ): List<ActionPercent.Item> =
+            states.filter { (c, s) -> c !in waitedFor && loading(s) && !(c in installed && s == CellState.Requested) }.map { (c, s) ->
+                val total = (s as? CellState.Downloading)?.totalBytes?.takeIf { it > 0 } ?: size(c) ?: 0L
+                ActionPercent.Item("cell:${c.id}", total, CellProgress.fraction(s, shares, joining?.takeIf { c in it.cells }?.fraction ?: 0.0))
             }
+
+        /** Routing data loading: its bytes, then the rewrite of its file – the download and join steps' shares. */
+        fun routingItem(r: RoutingDataLoader.Status, shares: StepShares = StepShares.DEFAULT): ActionPercent.Item {
+            val d = shares.download / (shares.download + shares.join)
+            val bytes = if (r.totalBytes > 0) (r.doneBytes.toDouble() / r.totalBytes).coerceIn(0.0, 1.0) else 0.0
+            return ActionPercent.Item("routing", r.totalBytes, if (r.writing) d + (1 - d) * r.written else d * bytes)
         }
     }
 }
 
+/** The one action of the app: the sign beside the map and the notification feed the same, so they say the same number. */
+object BackgroundAction {
+    val shared = ActionPercent()
+}
+
 /**
- * Small light blue chip "◔ Bad Waldsee · 34 %" in the tag look (owner 2026-10-31: `TagContainer` / `TagInk`, like the
- * route tags) with a small progress ring in front – determinate with the percent, spinning while nothing has a percent
- * yet ([BackgroundDownloadUi.hasPercent]: an area still being prepared). Plan: under the ☰ button; Navigate: under the
- * status card. The name is cut with "…" at about half the screen width, "+N" (more names) and the % always show. The
- * pill looks small; the tap target is ≥ 48 dp. Tap → the details sheet ([BackgroundDownloadSheet]).
+ * The sign beside the map (form B): a ring and the action's percent, nothing else (owner 2026-11-19). Plan: under the ☰
+ * button; Navigate: under the status card; Settings → Offline maps. Tap → the details ([BackgroundDownloadSheet]).
  */
 @Composable
-fun BackgroundDownloadChip(ui: BackgroundDownloadUi, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val (name, more) = ui.chip
-    val text = str(Res.string.maps_bg_chip_cd, ui.chipText)
-    val maxW = (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp * 0.5f).dp
-    Box(modifier.heightIn(min = 48.dp).clickable(role = Role.Button, onClickLabel = str(Res.string.maps_bg_chip_click), onClick = onClick)
-        .semantics { contentDescription = text }, contentAlignment = Alignment.Center) {
-        Surface(shape = OnPathShapes.Pill, color = OnPathColors.TagContainer, contentColor = OnPathColors.TagInk, modifier = Modifier.warmShadow(OnPathShadow.LOW, OnPathShapes.Pill)) {
-            Row(Modifier.widthIn(max = maxW).padding(start = 7.dp, end = 10.dp, top = 5.dp, bottom = 5.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                // the ring as tall as the text (grows with the phone's font size)
-                val ring = Modifier.size(with(androidx.compose.ui.platform.LocalDensity.current) { MaterialTheme.typography.labelMedium.fontSize.toDp() })
-                val track = OnPathColors.TagInk.copy(alpha = 0.18f)
-                if (ui.hasPercent) CircularProgressIndicator(progress = { ui.percent / 100f }, modifier = ring, color = OnPathColors.TagInk,
-                    trackColor = track, strokeWidth = 2.dp, gapSize = 0.dp)
-                else CircularProgressIndicator(ring, color = OnPathColors.TagInk, trackColor = track, strokeWidth = 2.dp)
-                Spacer(Modifier.width(6.dp))
-                Text(name, color = OnPathColors.TagInk, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium,
-                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                Text((if (more > 0) " +$more" else "") + (if (ui.hasPercent) " · ${ui.percent} %" else ""), color = OnPathColors.TagInk,
-                    style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-            }
-        }
-    }
-}
+fun BackgroundDownloadChip(ui: BackgroundDownloadUi, onClick: () -> Unit, modifier: Modifier = Modifier) =
+    BesideSign(ui.percent, onClick, modifier)
 
 /**
- * Tap on the chip: what loads, and "Cancel all" (same as Settings → Offline maps; installed maps stay) – a bottom sheet
- * (owner 2026-10-31: the details of a state are a sheet, dialogs only for decisions). Drag down or Close closes it.
+ * Tap on the sign: the ONE bar of the action, what loads (one line each, the finished ones "fertig"), and "Cancel all"
+ * (same as Settings → Offline maps; installed maps stay) – a bottom sheet (owner 2026-10-31: the details of a state are a
+ * sheet, dialogs only for decisions). Drag down or Close closes it.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -211,37 +129,10 @@ fun BackgroundDownloadSheet(ui: BackgroundDownloadUi, onCancelAll: () -> Unit, o
     }
 }
 
-/** The sheet's content: title, one line per name, the total, "Your maps stay", Cancel all (red) · Close. */
-@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+/** The sheet's content (also drawn by the screenshot tests). */
 @Composable
-fun BackgroundDownloadDetailsContent(ui: BackgroundDownloadUi, onCancelAll: () -> Unit, onClose: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 16.dp, bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(str(Res.string.maps_bg_dialog_title), style = MaterialTheme.typography.titleLarge, color = OnPathColors.Ink,
-            modifier = Modifier.padding(end = 8.dp, bottom = 4.dp))
-        if (ui.groups.isNotEmpty()) {
-            // one line per name: "Along your route to Gasthof Taser Alm (2 areas) · 24 MB · loading"
-            ui.groups.forEach { Text(it.line, style = MaterialTheme.typography.bodyLarge, color = OnPathColors.Ink) }
-            if (ui.newer > 0) ui.newerEtaMin?.let {
-                Text(str(Res.string.maps_bg_newer_ready, it), style = MaterialTheme.typography.bodyMedium, color = OnPathColors.InkMuted)
-            }
-        } else {
-            val fresh = ui.regions - ui.newer
-            if (fresh > 0) Text(plural(Res.plurals.maps_bg_fresh, fresh, fresh), style = MaterialTheme.typography.bodyLarge)
-            ui.newerLine?.let { Text(it, style = MaterialTheme.typography.bodyLarge) }
-        }
-        Text(listOfNotNull(if (ui.bytes > 0) str(Res.string.maps_bg_total, mb(ui.bytes)) else null, ui.doneText).joinToString(" · "),
-            style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = OnPathColors.Ink)
-        Text(str(Res.string.maps_bg_maps_stay), style = MaterialTheme.typography.bodyMedium, color = OnPathColors.InkMuted)
-        // the two buttons wrap (right-aligned) when they do not fit side by side – never a word broken in a button
-        androidx.compose.foundation.layout.FlowRow(Modifier.fillMaxWidth().padding(top = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)) {
-            TextButton(onClick = onCancelAll, modifier = Modifier.heightIn(min = 48.dp)) {
-                Text(str(Res.string.common_cancel_all), color = OnPathColors.Bad, fontWeight = FontWeight.SemiBold, softWrap = false)
-            }
-            TextButton(onClick = onClose, modifier = Modifier.heightIn(min = 48.dp)) { Text(str(Res.string.common_close), softWrap = false) }
-        }
-    }
-}
+fun BackgroundDownloadDetailsContent(ui: BackgroundDownloadUi, onCancelAll: () -> Unit, onClose: () -> Unit) =
+    BesideDetails(str(Res.string.maps_bg_dialog_title), ui.percent, ui.rows, ui.notes, onCancelAll, onClose)
 
 /** The strip appears only after a background download has run this long (owner: 2 s is too hectic). */
 const val BACKGROUND_SHOW_DELAY_MS = 10_000L

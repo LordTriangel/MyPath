@@ -1025,7 +1025,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /**
      * The wait bar's share 0..1 (owner 2026-11-05: it moves within one long leg too): legs done + the running leg's
      * search ([com.onpath.app.routing.BRouterEngine.searchProgress]) over the legs to route, never back ([WaitBar]);
-     * null = nothing to measure now – not known yet, the share stands, every leg is routed: the bar runs.
+     * null = not known yet, or every leg routed (the wait window then checks the route, [com.onpath.app.domain.RouteShares]).
      */
     var routeShare: Float?
         get() = planRun.routeShare
@@ -2196,7 +2196,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     delay(WAIT_POLL_MS)
                     val t = planThread.get() ?: continue
                     val legs = routeProgress ?: continue
-                    val share = bar.next(legs.first, legs.second, (engine as? com.onpath.app.routing.BRouterEngine)?.searchProgress(t), bar.now())
+                    val share = bar.next(legs.first, legs.second, (engine as? com.onpath.app.routing.BRouterEngine)?.searchProgress(t))
                     withContext(Dispatchers.Main) { if (routeRun.isCurrent(gen) && routing) routeShare = share }
                 }
             }
@@ -2217,7 +2217,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     r.getOrNull()?.gaps?.firstOrNull()?.let { g -> reach = findReach(g, act, level, cancel) }
                 }
             }
-            slow.cancel(); poll.cancel(); routeShare = null // the result is worked out: the bar runs, never stands full
+            slow.cancel(); poll.cancel(); routeShare = null // every leg routed: the wait window checks the route (RouteShares)
             // the corridor work of a result off the main thread
             val post = result.getOrNull()?.let { r -> withContext(Dispatchers.Default) { mapData.postRoute(r.route, pts, act) } }
             val back = routeEvent(RouteRun.Event.Returned(gen, isActive))

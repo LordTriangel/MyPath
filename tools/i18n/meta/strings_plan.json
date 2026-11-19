@@ -1396,5 +1396,29 @@
     "priority": 1,
     "confidence": "sicher",
     "max": 20
+  },
+  "wait_title_route": {
+    "area": "Route wait window",
+    "context": "Wait window (form A) title while a route is calculated",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_step_check": {
+    "area": "Route wait window",
+    "context": "Wait window step row after the sections, not started yet: the route is checked (times, warnings)",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_step_checking": {
+    "area": "Route wait window",
+    "context": "Wait window step row, running: the route is checked",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "wait_leg": {
+    "area": "Route wait window",
+    "context": "Wait window step row: a section of the route when its points have no names",
+    "priority": 2,
+    "confidence": "sicher"
   }
 }

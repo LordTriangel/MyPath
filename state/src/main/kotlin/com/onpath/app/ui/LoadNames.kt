@@ -57,12 +57,14 @@ data class LoadGroup(
     val bytes: Long,
     val phase: LoadPhase,
 ) {
-    /** "Along your route to Gasthof Taser Alm (2 areas) · 24 MB · loading" */
-    val line: String get() {
+    /** "Along your route to Gasthof Taser Alm (2 areas)" – the line's name in the details of form B. */
+    val name: String get() {
         val cap = label.replaceFirstChar { it.uppercase() }
-        val head = if (areas > 1) Txt.s(Res.string.maps_group_areas, cap, areas) else cap
-        return listOfNotNull(head, if (bytes > 0) "${mb(bytes)} MB" else null, phase.text).joinToString(" · ")
+        return if (areas > 1) Txt.s(Res.string.maps_group_areas, cap, areas) else cap
     }
+
+    /** "Along your route to Gasthof Taser Alm (2 areas) · 24 MB · loading" */
+    val line: String get() = listOfNotNull(name, if (bytes > 0) "${mb(bytes)} MB" else null, phase.text).joinToString(" · ")
 }
 
 object LoadNames {

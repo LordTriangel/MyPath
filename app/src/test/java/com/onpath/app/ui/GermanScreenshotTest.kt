@@ -51,8 +51,6 @@ class GermanScreenshotTest {
     @Test fun navigateActivitySheetHikeLevels() = shots.navigateActivitySheetHikeLevels()
     @Test fun planRoundTripOn() = shots.planRoundTripOn()
     @Test fun planOutAndBack() = shots.planOutAndBack()
-    @Test fun planRoutingSlowProgress() = shots.planRoutingSlowProgress()
-    @Test fun planRoutingSlowOneLeg() = shots.planRoutingSlowOneLeg()
     @Test fun planWholeRoute() = shots.planWholeRoute()
     @Test fun planTapHoldHint() = shots.planTapHoldHint()
     @Test fun planMapControlTip() = shots.planMapControlTip()

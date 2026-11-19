@@ -88,37 +88,21 @@ object PlanStatus {
 }
 
 /**
- * The wait bar of one plan run (owner 2026-11-05: it must move within one long leg too, never back): legs done plus the
- * running leg's search share (`BRouterEngine.searchProgress`, null = not known) over the legs to
- * route. Keeps the highest value it gave – a new search inside the same leg (a retry) or a leg from the cache never
- * moves it back.
- *
- * It never stands (owner 2026-11-18: „bleibt dann bei 98 % stehen – da denkt jeder, es hängt sich auf“): [next] gives
- * null = "show the running bar" when the share has not moved for [STALL_MS] (the search is at the goal but not done, a
- * second search runs, the track is built) and when every leg is routed (the result is worked out). It is a share
- * again as soon as it moves. One per run; not thread-safe (one poller).
+ * The legs' part of one plan run's wait (owner 2026-11-05: it must move within one long leg too, never back): legs done
+ * plus the running leg's search share (`BRouterEngine.searchProgress`, null = not known) over the legs to route, 0..1.
+ * Keeps the highest value it gave – a new search inside the same leg (a retry) or a leg from the cache never moves it
+ * back; every leg routed = 1. That it never stands either (owner 2026-11-18) is the wait window's ONE bar ([OneBar]):
+ * it creeps on by time while this stands, inside the leg's share, and „prüfen“ follows as its own step
+ * ([RouteShares]). One per run; not thread-safe (one poller).
  */
 class WaitBar {
     private var last = 0f
-    private var movedAt = -1L
 
-    /** The bar's share 0..1 at [nowMs] (any steady clock), or null = no measurable progress now: the bar runs. */
-    fun next(done: Int, total: Int, leg: Double?, nowMs: Long): Float? {
+    /** The legs' share 0..1, or null = nothing to measure (no legs to route). */
+    fun next(done: Int, total: Int, leg: Double?): Float? {
         if (total <= 0) return null
-        if (done >= total) return null
-        val v = ((done.coerceIn(0, total) + (leg ?: 0.0).coerceIn(0.0, 1.0)) / total).toFloat().coerceIn(0f, 1f)
-        if (movedAt < 0) movedAt = nowMs
-        if (v > last + MOVE) { last = v; movedAt = nowMs }
-        return if (nowMs - movedAt >= STALL_MS) null else last
-    }
-
-    /** The steady clock for [next] (ms). */
-    fun now(): Long = System.nanoTime() / 1_000_000
-
-    companion object {
-        /** No visible movement for this long: the running bar instead of a standing one. */
-        const val STALL_MS = 3_000L
-        /** A step smaller than this is not seen on the bar (about 1 dp). */
-        const val MOVE = 0.003f
+        val v = ((done.coerceIn(0, total) + (if (done >= total) 0.0 else (leg ?: 0.0).coerceIn(0.0, 1.0))) / total).toFloat()
+        last = maxOf(last, v.coerceIn(0f, 1f))
+        return last
     }
 }

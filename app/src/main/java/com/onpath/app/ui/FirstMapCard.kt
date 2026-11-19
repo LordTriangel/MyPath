@@ -9,19 +9,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.CloudDownload
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -33,19 +28,16 @@ import com.onpath.app.cells.CellState
 import com.onpath.app.cells.CellWhy
 
 /**
- * The first-map card (owner 2026-11-08, sketch A2): after the phone setup the map for here may still be loading – or
- * cannot load without network. An ANZEIGE card on the map beside the activity button (docs/design/ui-style.md): no
- * button, goes by itself when the map is there. While it shows, the grey offline pill, the "Overview only" pill and the
- * download chip say nothing of their own (they would say the same).
+ * The first map of the user's area (owner 2026-11-08, sketch A2; since 2026-11-19 „ich muss warten“ = form A): after the
+ * phone setup the map for here may still be loading – then the wait window shows ([MapLoadModal], its content was this
+ * card's) – or it cannot load without network: then this small ANZEIGE card on the map beside the activity button
+ * (docs/design/ui-style.md) – no button, goes by itself when the map is there. While it shows, the grey offline pill,
+ * the "Overview only" pill and the sign beside say nothing of their own (they would say the same).
  */
 object FirstMapCard {
     sealed interface Ui {
-        /**
-         * [percent] = the real bytes downloaded, only while an area downloads; null = no measurable progress – the
-         * server prepares it ([phase] PREPARING) or the downloaded map is joined in (FINISHING): the bar moves without a
-         * value and the line says what happens (owner 2026-11-18: no number that stands).
-         */
-        data class Loading(val percent: Int?, val bytes: Long, val phase: LoadPhase = LoadPhase.LOADING) : Ui
+        /** The map for here loads: the wait window shows it ([waits]). */
+        data object Loading : Ui
         data object Offline : Ui
     }
 
@@ -70,75 +62,37 @@ object FirstMapCard {
         if (going.isEmpty()) return null // all failed: the HINWEIS box with Try again
         if (going.all { s[it] is CellState.Offline }) return Ui.Offline
         if (going.all { s[it] is CellState.WaitingForWifi || s[it] is CellState.Offline }) return null // the Wi-Fi question / note
-        val bytes = MapLoads.estimate(job.cells, states, sizes)
-        val done = job.cells.sumOf { c ->
-            when (val x = s[c]!!) {
-                is CellState.Downloading -> x.doneBytes
-                else -> if (ready(x) || x == CellState.Installing) MapLoads.knownBytes(states[c], sizes[c]) ?: MapLoads.ESTIMATED_REGION_BYTES else 0L
-            }
-        }
-        val phase = when {
-            going.any { s[it] is CellState.Downloading } -> LoadPhase.LOADING
-            going.all { s[it] == CellState.Installing } -> LoadPhase.FINISHING
-            else -> LoadPhase.PREPARING
-        }
-        val percent = if (phase != LoadPhase.LOADING || done <= 0 || bytes <= 0) null else (done * 100 / bytes).toInt().coerceIn(0, 100)
-        return Ui.Loading(percent, bytes, phase)
+        return Ui.Loading
     }
+
+    /** The wait window waits for [job] – the first map of the area loads ([of] = [Ui.Loading]; the setup is the window's caller's). */
+    fun waits(job: CellJob, states: Map<CellId, CellState>, sizes: Map<CellId, Long>, viewWithoutDetail: Boolean, available: Boolean): Boolean =
+        of(job, states, sizes, viewWithoutDetail, setupOpen = false, plan = true, available = available) == Ui.Loading
 }
 
-/** At this font scale and above the bar and "34 %" share one line and the MB go (the card stays clear of the plan sheet). */
+/** At this font scale and above the card may be wider (no map controls beside it then). */
 const val FIRST_MAP_CARD_LARGE_FONT = 1.5f
 
-/**
- * The card: cloud icon (20 dp), the title, under it the thin bar and "34 % · ca. 18 MB" while it downloads – before
- * (the server prepares it) and after (joined into the map) the bar runs and the line says "wird vorbereitet" / "fast
- * fertig", no number (offline: "Lädt, sobald du online bist"). At a large font ([FIRST_MAP_CARD_LARGE_FONT]) the title is set smaller, bar and "34 %" share one line, no MB.
- */
+/** The card while the first map cannot load (offline): cloud crossed, "No map yet", "Loads once you're online". */
 @Composable
 fun FirstMapCardView(ui: FirstMapCard.Ui, modifier: Modifier = Modifier) {
+    if (ui != FirstMapCard.Ui.Offline) return
     val large = LocalDensity.current.fontScale >= FIRST_MAP_CARD_LARGE_FONT
-    val loading = ui as? FirstMapCard.Ui.Loading
-    val title = str(if (loading != null) Res.string.maps_first_loading else Res.string.maps_first_offline)
-    val detail = when {
-        loading == null -> str(Res.string.maps_first_offline_line)
-        // no number without measurable progress: what happens instead ("being prepared", "almost ready")
-        loading.percent == null -> loading.phase.text
-        large -> "${loading.percent} %"
-        else -> str(Res.string.maps_first_progress, loading.percent, mb(loading.bytes))
-    }
-    // over the map: paper (owner 2026-11-06); narrow at normal font, wider at a large font (no map controls there then)
+    val title = str(Res.string.maps_first_offline)
+    val detail = str(Res.string.maps_first_offline_line)
+    // over the map: paper (owner 2026-11-06); narrow at normal font, wider at a large font
     Surface(shape = OnPathShapes.Card, color = OnPathColors.Paper.copy(alpha = 0.97f),
         modifier = modifier.widthIn(max = if (large) 320.dp else 220.dp)
             .semantics(mergeDescendants = true) { contentDescription = "$title. $detail" }
             .warmShadow(OnPathShadow.LOW, OnPathShapes.Card)) {
         Row(Modifier.padding(start = 12.dp, end = 14.dp, top = if (large) 6.dp else 10.dp, bottom = if (large) 6.dp else 10.dp)) {
-            Icon(if (loading != null) Icons.Outlined.CloudDownload else Icons.Outlined.CloudOff, null,
-                tint = if (loading != null) OnPathColors.Green else OnPathColors.InkMuted,
-                modifier = Modifier.padding(top = 1.dp).size(20.dp))
+            Icon(Icons.Outlined.CloudOff, null, tint = OnPathColors.InkMuted, modifier = Modifier.padding(top = 1.dp).size(20.dp))
             Spacer(Modifier.width(10.dp))
             Column(verticalArrangement = Arrangement.spacedBy(if (large) 2.dp else 6.dp)) {
                 Text(title, style = if (large) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold, color = OnPathColors.Ink)
-                when {
-                    loading == null -> Text(detail, style = MaterialTheme.typography.bodySmall, color = OnPathColors.InkMuted)
-                    large -> Row(verticalAlignment = Alignment.CenterVertically) {
-                        FirstMapBar(loading.percent, Modifier.weight(1f))
-                        Text(detail, style = MaterialTheme.typography.bodySmall, color = OnPathColors.InkMuted,
-                            modifier = Modifier.padding(start = 8.dp))
-                    }
-                    else -> {
-                        FirstMapBar(loading.percent, Modifier.width(150.dp))
-                        Text(detail, style = MaterialTheme.typography.bodySmall, color = OnPathColors.InkMuted)
-                    }
-                }
+                Text(detail, style = MaterialTheme.typography.bodySmall, color = OnPathColors.InkMuted)
             }
         }
     }
-}
-
-@Composable
-private fun FirstMapBar(percent: Int?, modifier: Modifier) {
-    if (percent == null) LinearProgressIndicator(modifier = modifier.clip(CircleShape), color = MaterialTheme.colorScheme.primary)
-    else LinearProgressIndicator(progress = { percent / 100f }, color = MaterialTheme.colorScheme.primary, modifier = modifier.clip(CircleShape))
 }

@@ -2,11 +2,10 @@ package com.onpath.app.cells
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** The loading notification's numbers: which states still load, and one overall percent. */
+/** The loading notification: which states still load, and the action's one number. */
 class MapLoadServiceTest {
     @Test fun whatCountsAsLoading() {
         assertTrue(MapLoadService.loading(CellState.Requested))
@@ -17,15 +16,9 @@ class MapLoadServiceTest {
         assertFalse(MapLoadService.loading(CellState.Offline("no connection")))
     }
 
-    /** The number is the real bytes of what downloads now; no number while nothing downloads ([com.onpath.app.ui.PercentStallTest]). */
-    @Test fun percentOnlyWhileItDownloads() {
-        assertNull(MapLoadService.percent(listOf(CellState.Ready("v1"))))
-        assertNull("prepared on the server: the bar runs", MapLoadService.percent(listOf(CellState.Requested)))
-        assertEquals(50, MapLoadService.percent(listOf(CellState.Downloading(50, 100))))
-        assertEquals(50, MapLoadService.percent(listOf(CellState.Requested, CellState.Downloading(50, 100), CellState.Ready("v1"))))
-        assertEquals(100, MapLoadService.percent(listOf(CellState.Downloading(100, 100))))
-        assertNull("joined into the map: no 99 % that stands", MapLoadService.percent(listOf(CellState.Installing)))
-        assertTrue(MapLoadService.finishing(listOf(CellState.Installing, CellState.Ready("v1"))))
-        assertFalse(MapLoadService.finishing(listOf(CellState.Installing, CellState.Queued(1, 60))))
+    /** The notification says the sign's number (one action, [com.onpath.app.ui.BackgroundAction]) – "loading 34 %". */
+    @Test fun theNotificationSaysTheActionsNumber() {
+        assertEquals("loading 34 % – you can put the phone aside", MapLoadService.text(34))
+        assertEquals("Preparing – you can put the phone aside", MapLoadService.text(null))
     }
 }

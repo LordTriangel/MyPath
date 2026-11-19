@@ -28,7 +28,7 @@
       "web": [
         "web/app/src/main.ts"
       ],
-      "blob": "d28cbb6e040f086adbcea92cac82a02844d13736"
+      "blob": "9b22768c8abbd0ffa2633d9341f14bb0d8cfe120"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/search/SearchSession.kt",
@@ -232,7 +232,7 @@
         "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt",
         "web/app/src/plans.ts"
       ],
-      "blob": "bdeed5fa62c17cf79b50fa36c2d735e7db0e1e8f"
+      "blob": "ddefa56809ed0401d55059a762968c4b08532fb4"
     },
     {
       "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddSlice.kt",
@@ -325,7 +325,7 @@
       "web": [
         "web/app/src/cells.ts"
       ],
-      "blob": "ef47fcf9e8f14bcfd748ce8f19084bfd476ce1d9"
+      "blob": "ab07505fa1bc0e3237e68451e7f8d0e12f4d9251"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/CellCard.kt",
@@ -677,7 +677,7 @@
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/cells/CellStore.kt": {
-      "blob": "ef47fcf9e8f14bcfd748ce8f19084bfd476ce1d9",
+      "blob": "ab07505fa1bc0e3237e68451e7f8d0e12f4d9251",
       "perf": [
         "* Kept in memory per store folder for the whole process ([cache]): a complete generation never changes after its",
         "val snap = cache[key]?.takeIf { it.epoch == e0 }",
@@ -703,7 +703,7 @@
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/cells/MapCells.kt": {
-      "blob": "752c34a753d86e1cb3c4a4d8d5927d65aff24462",
+      "blob": "59a71121e8bfb3493989ac93aeb2f1832d605d42",
       "perf": [
         "private val backgroundPollMs: Long = BACKGROUND_POLL_MS,",
         "private val batchMs: Long = BATCH_MS,",
@@ -713,6 +713,7 @@
         "* background) – at most every [BACKGROUND_POLL_MS].",
         "val answer = cells.chunked(MAX_PER_CALL).map { a.status(it.map { c -> c.id }) }",
         "// storage not ready: the request waits in memory and is asked again once the store is read ([start])",
+        "// wake the worker – it sleeps up to IDLE_MS when nothing was allowed (found 2026-11-19, flaky test)",
         "* [PACKAGE_CHECK_MS] is asked for again (the server answers \"ready\" with the same version when nothing is newer).",
         "val want = CellId.packagesFor(cells).filter { p -> have[p]?.let { t - it.installedAt > PACKAGE_CHECK_MS } ?: true }",
         "* server's pace like cells being built, not after [IDLE_MS].",
@@ -749,7 +750,7 @@
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/cells/PmTiles.kt": {
-      "blob": "375eb8d6d6409c7a18c5bb49f79f85e93c0d29df",
+      "blob": "caefe57a28fab0dc5a99b59eab844a76e1037cf7",
       "perf": [
         "const val HEADER_SIZE = 127",
         "const val ROOT_LIMIT = 16_384 - HEADER_SIZE",
@@ -1048,12 +1049,9 @@
       ]
     },
     "core/src/main/kotlin/com/onpath/app/domain/PlanStatus.kt": {
-      "blob": "d28cbb6e040f086adbcea92cac82a02844d13736",
+      "blob": "9b22768c8abbd0ffa2633d9341f14bb0d8cfe120",
       "perf": [
-        "* route. Keeps the highest value it gave – a new search inside the same leg (a retry) or a leg from the cache never",
-        "* null = \"show the running bar\" when the share has not moved for [STALL_MS] (the search is at the goal but not done, a",
-        "return if (nowMs - movedAt >= STALL_MS) null else last",
-        "const val STALL_MS = 3_000L"
+        "* Keeps the highest value it gave – a new search inside the same leg (a retry) or a leg from the cache never moves it"
       ]
     },
     "core/src/main/kotlin/com/onpath/app/domain/PointsDeleteGuard.kt": {
@@ -1967,7 +1965,7 @@
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/routing/Rd5Parts.kt": {
-      "blob": "b7ec78d4b0a0439e5adc700d340e002bd16c0711",
+      "blob": "d3d1df16fc99ce6f9ae3eb228bd0445a98f7e2db",
       "perf": [
         "const val INDEX_BYTES = 200",
         "const val CORRIDOR_MARGIN_M = OfflineCorridor.MAX_M",
@@ -3106,6 +3104,28 @@
     "core/src/main/kotlin/com/onpath/app/recording/RecordingClient.kt": {
       "blob": "c589c060b8dbd754b50cc33826a94da31c35a1c1",
       "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/WaitProgress.kt": {
+      "blob": "9038c9555c1504b3610a98e8ce801d1e52bee4ec",
+      "perf": [
+        "if (ran.size < 2 || sum < MIN_LEARN_MS) return this",
+        "const val MIN_LEARN_MS = 2_000L",
+        "* the same share, the check its learned share ([check], start [DEFAULT_CHECK], kept inside [MIN_CHECK]..[MAX_CHECK]).",
+        "const val MAX_CHECK = 0.40",
+        "if (legsMs + checkMs < StepShares.MIN_LEARN_MS || checkMs <= 0) return bounded(check)",
+        "fun bounded(check: Double): Double = if (check.isNaN()) DEFAULT_CHECK else check.coerceIn(MIN_CHECK, MAX_CHECK)",
+        "* [DEFAULT_TAU_MS]. A step that takes much longer than its share (the number would stand at its end) borrows from the",
+        "* rest of the bar, slowly ([STALL_MS] after the number last moved, at a pace that slows the longer the wait is) – never",
+        "if (dt > 0 && (next * 100).toInt() <= lastPct && nowMs - pctAt >= STALL_MS) {",
+        "val tau = (stepLeftMs ?: DEFAULT_TAU_MS).coerceIn(MIN_TAU_MS, MAX_TAU_MS).toDouble()",
+        "val slow = maxOf(DEFAULT_TAU_MS, 2 * (nowMs - firstMs)).toDouble()",
+        "const val DEFAULT_TAU_MS = 30_000L",
+        "const val MIN_TAU_MS = 3_000L",
+        "const val MAX_TAU_MS = 30 * 60_000L",
+        "const val STALL_MS = 2_000L",
+        "const val MIN_ELAPSED_MS = 3_000L",
+        "val pace = if (share >= MIN_SHARE && elapsedMs >= MIN_ELAPSED_MS) (elapsedMs / 1000.0 * (1 - share) / share).toInt() else null"
+      ]
     }
   }
 }
