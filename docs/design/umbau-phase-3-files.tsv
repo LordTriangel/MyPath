@@ -368,7 +368,7 @@ core/src/test/kotlin/com/onpath/app/plansync/StuckOutboxTest.kt	core/test	plansy
 core/src/test/kotlin/com/onpath/app/plansync/SyncPollTest.kt	core/test	plansync	138	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	10	0	0	0	0		
 core/src/test/kotlin/com/onpath/app/plansync/SyncedRoutingTest.kt	core/test	plansync	24	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0		
 core/src/test/kotlin/com/onpath/app/poi/PinnedPoiKindsTest.kt	core/test	poi	53	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
-core/src/test/kotlin/com/onpath/app/poi/PoiFilterTest.kt	core/test	poi	37	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/poi/PoiFilterTest.kt	core/test	poi	23	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	
 core/src/test/kotlin/com/onpath/app/recording/ArrivalInServiceTest.kt	core/test	recording	44	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	0	0		
 core/src/test/kotlin/com/onpath/app/recording/DemoPathTest.kt	core/test	recording	122	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	14	0	0	2	0		
 core/src/test/kotlin/com/onpath/app/recording/GpsWatchdogTest.kt	core/test	recording	37	1	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	3	0	0	2	0		
@@ -422,7 +422,7 @@ core/src/test/kotlin/com/onpath/app/routing/TrackToPlanTest.kt	core/test	routing
 core/src/test/kotlin/com/onpath/app/routing/TurnDetectorTest.kt	core/test	routing	130	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	2	0	11	0	0	2	0		
 core/src/test/kotlin/com/onpath/app/routing/WaypointInsertionTest.kt	core/test	routing	133	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	16	0	0	0	0		
 core/src/test/kotlin/com/onpath/app/routing/WaypointSnapTest.kt	core/test	routing	106	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	10	0	0	0	0		
-core/src/test/kotlin/com/onpath/app/search/SearchTextTest.kt	core/test	search	52	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
+core/src/test/kotlin/com/onpath/app/search/SearchTextRulesTest.kt	core/test	search	84	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	5	0	0	0	0		
 core/src/test/kotlin/com/onpath/app/search/SharedPlaceLookupTest.kt	core/test	search	218	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	17	0	0	0	0		
 core/src/test/kotlin/com/onpath/app/search/SharedPlaceResolveTest.kt	core/test	search	72	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	5	0	1	1	0		
 core/src/test/kotlin/com/onpath/app/search/SharedPlaceTest.kt	core/test	search	226	2	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	35	0	0	3	0		
