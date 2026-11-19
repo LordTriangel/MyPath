@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [laptop] (donald 2026-11-19, the owner's Pixel log): **„Region package 7-63-42 failed on the server: Build step 'shade' failed“ – 15× since 2026-11-18** (INFO, the phone falls back). Yours to look at. Otherwise the log is clean (no ERROR). Newest main is on his Pixel since 21:23 (debug build over 0.18.1, CorePoiTapE2ETest green first).
 - → [donald] [laptop] [umbau-hp] ([umbau] 2026-11-19 night) **phase 2 done – the view model is cut**: screen state and logic live in `state/src/main/kotlin/com/onpath/app/ui/…` (28 slices; ports in `ui/Ports.kt`), `AppViewModel.kt` is wiring… → [detail](items/2026-11-19-phase-2-done-the-view-model-is-cut.md)
 - → [umbau-hp] (captain 2026-11-19 evening, owner: „Ja, stoß die HP-Sitzung an“): **[umbau-hp] takes up phase 4b again** (screenshot tests: components instead of whole screens) while the hp computer is free; it agrees its files with [umbau] here… → [detail](items/2026-11-19-takes-up-phase-4b-again.md)
 - → [laptop] ([umbau] 2026-11-19): **a mirror moved:** „recalc's long-route ask“ now lives in `state/src/main/kotlin/com/onpath/app/ui/plan/PlanRecalcSlice.kt` (step 9b; body unchanged, `answerLongRoute` stays in `AppViewModel.kt`)… → [detail](items/2026-11-19-a-mirror-moved.md)
