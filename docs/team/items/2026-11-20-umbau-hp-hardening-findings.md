@@ -31,6 +31,16 @@ answers · cards / „Mehr“ / pictures), each finding checked by the lead befo
 5. **„Mehr“ pause times**: 12 new edge tests (`TourReviewTest`, `RouteMoreTest`: a stop at the very start / end, stepped stops,
    a recording gap, odd timestamps, midnight / summer-time change in four zones) – no bug found; two proven red by breaking the code.
 
+6. **Planner wait window** (07b07800, `web/app/src/loadoverlay.ts`, `main.ts`; robust-smoke step 10, each check red first):
+   a failed / too slow / stopped route closed the window as a success (the 100 % flash before the error line, learned shares
+   from a run that did not finish); a `#p=` link with no engine left the window open for good; after Abbrechen the stopped
+   run's late report restarted the wait unseen, its answer showed a red "planning failed" line, and a new route got no
+   window while another job was open. Fresh review: correct, push. Verified on a fresh engine build: robust-smoke 50/50
+   three times, share-smoke, phonelink-smoke. One new check was flaky as first written (a tiles-only wait writes the default
+   shares by itself) – it now ignores untouched defaults. **Not deployed – the laptop's step.**
+   Known, left: a replan the app starts by itself after Abbrechen (undo / activity back) can bring the window back when
+   another job is still open and the replan takes over a second – the same as when no job is open.
+
 ## Second round (all clean)
 - `TourEdits` (edits of a running tour) line by line against v0.18.1, every host adapter of the new slices in `AppViewModel`,
   the initialisation order by hand: faithful, no finding.
@@ -53,9 +63,6 @@ answers · cards / „Mehr“ / pictures), each finding checked by the lead befo
     reopening My routes (fix 1).
 
 ## Open (in work or noted)
-- Planner wait window: the three defects are confirmed with failing smoke steps and fixed on a branch (a failed / stopped
-  route closed the window as a success and taught the shares; a shared link with no engine left the window open; a late
-  report after Abbrechen restarted the wait unseen) – smoke run + fresh review in work, pushed only if both are clean.
 - Noted for [umbau], after the release: nothing pins the real host adapters in `AppViewModel` for `TourSession`, `TourEdits`,
   `PlanRecalcSlice`, `TourEndSlice` (the flow tests use their own fakes) – a source-text test like `RoutesWiringTest`.
 - Noted, no fix tonight: L5's service half is guarded by source-text tests only (no test drives `RecordingService`);

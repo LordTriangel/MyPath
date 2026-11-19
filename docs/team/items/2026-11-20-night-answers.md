@@ -44,3 +44,6 @@ One line each: `- Q … → A … (role, time)`. The owner reads this in the mor
 - Q A test that pins the view model's host adapters (nothing does today) – tonight? → A no: the adapters were read one by one and are right; the test is a note for umbau after the release (umbau-hp)
 
 - 00:15 captain: donald takes the release word only from the owner himself (fair) – it readies 0.18.2 to the last step tonight, the owner says „veröffentlichen“ to donald in the morning; donald was idle, woken with the next step (captain)
+- Q The planner's wait-window fixes: push tonight or leave for the laptop? → A pushed (not deployed): each defect has a red-first smoke step, a fresh review said push, the smoke ran green three times on a fresh engine build; the laptop was told first in the backlog and had not been in those lines. The deploy stays the laptop's (umbau-hp)
+- Q A new smoke check failed in 1 of 2 runs although the fix held – keep it strict? → A no: it now ignores untouched default values; a flaky check in the release night's run costs more than it guards (umbau-hp)
+
