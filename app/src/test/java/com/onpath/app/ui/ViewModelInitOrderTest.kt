@@ -101,7 +101,11 @@ class ViewModelInitOrderTest {
         // The walk over-approximates (a whole port object, not the one method that is called; a coroutine's Main part). Named
         // exceptions, each with why it is safe: `notices` – the start-up check says its note only inside withContext(Main), which
         // runs after the constructor; `pairing` – read by a host object's method that no construction-time code calls.
+        // One EDGE, not a name: the walk skips the single line of `routesHost.syncMarkSeen` (it reads `syncDriver`, declared below the
+        // inits): only `openTour` calls it (a tap in My routes) and no init reaches `openTour` – asserted per init below.
         val notReachedAtConstruction = setOf("notices", "pairing")
+        val skippedEdge = "override fun syncMarkSeen(t: Tour) = this@AppViewModel.syncMarkSeen(t)"
+        assertTrue("the skipped edge exists", lines.any { it.trim() == skippedEdge })
         val late = mutableListOf<String>()
         lines.indices.filter { lines[it] == "    init {" }.forEach { initAt ->
             val seen = HashSet<String>()
@@ -109,13 +113,14 @@ class ViewModelInitOrderTest {
             val used = HashSet<String>()
             while (queue.isNotEmpty()) {
                 val r = queue.removeFirst()
-                for (i in r) for (m in ident.findAll(lines[i].substringBefore("//"))) {
+                for (i in r) for (m in ident.findAll(lines[i].substringBefore("//").takeUnless { it.trim() == skippedEdge } ?: "")) {
                     val n = m.groupValues[1]
                     used += n
                     if (n in funs && seen.add("f$n")) funs[n]!!.forEach { queue += it }
                     if (n in propRange && seen.add("p$n")) queue += propRange[n]!!
                 }
             }
+            assertTrue("no init reaches openTour (init at line ${initAt + 1})", "fopenTour" !in seen)
             props.filter { (n, at) -> at > initAt && n in used && n !in notReachedAtConstruction }
                 .forEach { (n, at) -> late += "$n (line ${at + 1}) reachable from init at line ${initAt + 1}" }
         }

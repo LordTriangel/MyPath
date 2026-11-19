@@ -87,15 +87,20 @@ class SavePathsTest {
         assertTrue(vm.contains("fun followShownDuringTour() = unlessUnsaved("))
         assertFalse(vm.contains("ReplaceAsk") || vm.contains("replaceUnsavedAsk") || vm.contains("replaceAsk"))
         assertTrue(body("fun clearPlan() {").contains("keepAsDraft(\"cleared\")"))
-        // every way a plan is replaced: a route opened, a plan link, a track made a plan
-        assertTrue(vm.split("keepAsDraft(\"replaced by").size - 1 >= 3)
+        // every way a plan is replaced: a route opened, a track made a plan (a plan GPX, a fitted track) – RoutesSlice (piece 13; the
+        // flows RoutesFlowTest show the draft is there when the plan changes) – and a plan link (still the view model's)
+        val routesSlice = com.onpath.app.testkit.sourceFile("ui/routes/RoutesSlice.kt").readText()
+        assertEquals(3, routesSlice.split("keepAsDraft(\"replaced by").size - 1)
+        assertTrue(vm.split("keepAsDraft(\"replaced by").size - 1 >= 1)
     }
 
     /** Making a plan of a track still replaces the plan in one Undo step (after the question above). */
     @Test fun planFromATrackIsOneUndoStep() {
         // a plan GPX's own points, else TrackToPlan in planFromLine (shared with the round-trip suggestions' „Übernehmen“)
-        assertTrue(body("private fun planFromShownNow() {").contains("change { clear(); addAll(pts) }"))
-        assertTrue(body("private fun planFromLine(").contains("change { clear(); addAll(r.points) }"))
+        // (moved to RoutesSlice, piece 13: one `host.change` = the view model's `change`, one Undo step – RoutesWiringTest pins the host)
+        val slice = com.onpath.app.testkit.sourceFile("ui/routes/RoutesSlice.kt").readText()
+        assertTrue(slice.substringAfter("private fun planFromShownNow() {").substringBefore("\n    }\n").contains("host.change { clear(); addAll(pts) }"))
+        assertTrue(slice.substringAfter("fun planFromLine(").substringBefore("\n    }\n").contains("host.change { clear(); addAll(r.points) }"))
     }
 
     /**

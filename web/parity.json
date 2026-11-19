@@ -194,8 +194,18 @@
       "blob": "f82d95a4a48b5f4d8f5af68958471d39f7072a1b"
     },
     {
+      "app": "state/src/main/kotlin/com/onpath/app/ui/routes/RoutesSlice.kt",
+      "what": "planFromShown / planFromLine: a track made a plan (an exported plan GPX comes back with its own points, pins and names; else TrackToPlan fits our router to the line) – gpximport.ts / WebImport / WebApi (moved here from AppViewModel, rebuild phase 2 piece 13); the rest of the slice (My routes' list read again, open a route or tour, the shown track, Delete into the bin) is the phone's – the planner's bin is recent.ts",
+      "web": [
+        "web/app/src/gpximport.ts",
+        "web/engine/src/main/kotlin/com/onpath/web/WebImport.kt",
+        "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt"
+      ],
+      "blob": "c6c97f50264fc0d7a6adcf09af9bd221fb015410"
+    },
+    {
       "app": "app/src/main/java/com/onpath/app/ui/AppViewModel.kt",
-      "what": "recalc long-route ask / answerLongRoute / cancelRun; importGpx (its note is the shared GpxData.skippedNote), planFromShown; addPlace; poiAsNewDestination (appends while planning – PlaceAddMenu.keepsOldGoal; the planner has no tour, main.ts placeAsNewDestination); suggestName; pinnedPoiKinds / refreshPinnedKinds; holdOnMap (F-PLAN-15: on the line / new goal / stop at once, else the hold menu – PlaceAddMenu.planningHold, the engine's WebApi.holdOnMap; a round trip by the zone) and placeMenu while planning = PlaceAddMenu.planningMenu (WebApi.placeMenu); holdAsStop / holdAsNewDestination (main.ts holdAddMenu); keepPlaces / placesChanged = the kept-places sync (keptplaces.ts / sync.ts); the done tours' Ø speed is not in the planner (no recorded tours)",
+      "what": "recalc long-route ask / answerLongRoute / cancelRun; importGpx (its note is the shared GpxData.skippedNote); addPlace; poiAsNewDestination (appends while planning – PlaceAddMenu.keepsOldGoal; the planner has no tour, main.ts placeAsNewDestination); suggestName; pinnedPoiKinds / refreshPinnedKinds; holdOnMap (F-PLAN-15: on the line / new goal / stop at once, else the hold menu – PlaceAddMenu.planningHold, the engine's WebApi.holdOnMap; a round trip by the zone) and placeMenu while planning = PlaceAddMenu.planningMenu (WebApi.placeMenu); holdAsStop / holdAsNewDestination (main.ts holdAddMenu); keepPlaces / placesChanged = the kept-places sync (keptplaces.ts / sync.ts); the done tours' Ø speed is not in the planner (no recorded tours)",
       "web": [
         "web/app/src/main.ts",
         "web/app/src/longroute.ts",
@@ -205,7 +215,7 @@
         "web/app/src/plans.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "4e6959bb0fec92514d1cda5ba23e7cc3522c7157"
+      "blob": "8b5bf5c7ada340f4d2c10ec26709cc8b8d7dab17"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",

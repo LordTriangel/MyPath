@@ -15,8 +15,11 @@ class BackgroundRoutingRuleTest {
     @Test fun backgroundWorkHasItsOwnThread() {
         val sync = vm.substringAfter("private fun routeSyncedPlans").substringBefore("\n    }\n")
         assertTrue(sync.contains("withContext(backgroundRouting)"))
-        val fit = vm.substringAfter("TrackToPlan.fit(").let { vm.substringBefore("TrackToPlan.fit(").takeLast(400) }
-        assertTrue(fit.contains("withContext(backgroundRouting)"))
+        // "Plan a route from it" / a track made a plan: planFromLine moved to RoutesSlice (piece 13); the flow
+        // `RoutesFlowTest.aDoneTourWithNoPlanBecomesAPlanThroughTheRouterOnTheBackgroundThread` runs it on the held background thread
+        val slice = com.onpath.app.testkit.sourceFile("ui/routes/RoutesSlice.kt").readText()
+        assertTrue("anchor", slice.contains("TrackToPlan.fit("))
+        assertTrue(slice.substringBefore("TrackToPlan.fit(").takeLast(400).contains("withContext(planRoute.threads.background)"))
         // the user's plan and the tour's position → ahead stay on the interactive thread
         assertEquals(2, Regex("withContext\\(routingDispatcher\\)").findAll(vm).count())
         // field bug 2026-11-07 (tour 207): the activity check's row request has its own thread – six 15 s checks on the
