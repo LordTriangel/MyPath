@@ -1,6 +1,5 @@
 package com.onpath.app.recording
 
-import com.onpath.app.debug.enumOrNull
 import com.onpath.app.routing.Activity
 
 /**
@@ -16,7 +15,7 @@ class RecordedActivity(var activity: Activity = Activity.HIKE, var sac: Int = 2)
      * stored level). Returns false – nothing changed – for a missing or unknown name.
      */
     fun switchTo(name: String?, level: Int): Boolean {
-        val a = enumOrNull<Activity>(name, "recording") ?: return false
+        val a = Activity.entries.firstOrNull { it.name == name } ?: return false // the service reports the unknown name
         activity = a
         if (level in 1..5) sac = level
         return true
