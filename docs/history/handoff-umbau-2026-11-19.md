@@ -47,6 +47,11 @@ a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines fo
 - **Helpers get `docs/design/umbau-phase-2-brief.md`** + the piece's row. Running now: piece 4 (`SettingsSlice`, lane C) and piece 8 (`PlanRoute` I, lane A). Merge serially; the second rebases. Per merge: lower `MAX_LINES` to the new line count yourself.
 - Review prompt that works (Opus): compare each moved body old vs new via script, list every difference that is not a stated substitution; the store / host adapters' arguments; „which tests stay green if production breaks“; every old pin and what carries it now; `@Test` counts per module.
 
+## State 2026-11-19 ~17:00
+- On main: phase 2 pieces 1–4 and 8 (4342d6673), `MAX_LINES` 5,298. Running: piece 5 (`MapViewSlice`, branch `worktree-agent-ac61e54146d4400f3`, reviewed MERGE, helper closes lows L1–L4; at merge: rebase onto main, re-hash the `AppViewModel` parity blob, cap = new line count, run `CorePlanE2ETest` on a `ci/` ref) and piece 9 (`recalc`, HIGH risk, lane A; its brief asks for a split if entangled).
+- Next after them: lane C piece 6 / 7, lane B piece 13 (Routes I), lane A piece 10 (PlanEdit, after 9). Pieces 16–19 (tour) one at a time with `CoreFieldE2ETest` between; no release between them and the owner's Pixel tour (his answer is still open – assume yes).
+- Review lessons now in every helper prompt: fakes record state at call time (order), fakes check the thread, old pins re-pointed with anchors that must be found, adapters get source pins, no rule twice.
+
 ## Open, in this order
 1. **Tag `umbau-phase-0`:** needs one green full E2E run of main: push main's head to `ci/umbau-p0`, then
    `tools/ci/e2e_github.sh --ref ci/umbau-p0 --wait` (no `--tests`; a comma list of tests runs only the first). Red today
