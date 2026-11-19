@@ -1,0 +1,113 @@
+// Form B (owner 2026-11-19: „ich kann weitermachen“ – „B: einfach nur Prozent, muss aber passen für die gesamte Aktion“):
+// the app's BesideSign / BesideDetails (ui/progress/BesideSign.kt, mirrored – web/parity.json). One small sign beside the
+// map that covers nothing – a ring and ONE percent over the whole action (every map area the server prepares in the
+// background together: the engine's WebSign on the app's ActionPercent), no names, no words. Tap → the details: the
+// title, the ONE bar, what loads (one line each), Cancel all (red) · Close. In the planner the background loads are the
+// map areas along a computed route and around the own position (areas.ts); the routing data fetched around the map view
+// ahead of a first plan stays silent (nobody waits for it, as before).
+import { t } from './i18n';
+import { signTick, signSeed } from './waitengine';
+
+export interface BesideAreas {
+  /** "id<TAB>state<TAB>progress<TAB>eta" per area of the background action. */
+  lines: string;
+  /** The details' rows: "Map area 2 · being prepared – 40 %". */
+  rows: string[];
+  /** Cancel all: the page stops waiting for them (the map still appears when it is there). */
+  cancel: () => void;
+}
+
+export class BesideSign {
+  private el: HTMLButtonElement;
+  private details: HTMLElement | null = null;
+  private now: BesideAreas | null = null;
+  private timer = 0;
+  private percent = -1;
+
+  constructor(host: HTMLElement) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.id = 'besidesign';
+    b.className = 'besidesign';
+    b.hidden = true;
+    b.innerHTML = '<svg viewBox="0 0 20 20" aria-hidden="true"><circle class="track" cx="10" cy="10" r="8"/><circle class="arc" cx="10" cy="10" r="8"/></svg><span class="pct"></span>';
+    b.onclick = () => this.open();
+    host.append(b);
+    this.el = b;
+  }
+
+  /** The window (form A) closed while these loads go on: the sign goes on from [percent], never below. */
+  seed(percent: number) { signSeed(percent); }
+
+  /** What loads in the background now (null = nothing: the sign goes). */
+  set(a: BesideAreas | null) {
+    this.now = a;
+    if (a && !this.timer) this.timer = window.setInterval(() => this.tick(), 1000);
+    this.tick();
+  }
+
+  /** The percent shown (−1 = no sign) – for the tests. */
+  get shown() { return this.el.hidden ? -1 : this.percent; }
+
+  private tick() {
+    const a = this.now;
+    const p = a ? signTick(performance.now(), a.lines) : signTick(performance.now(), '');
+    if (!a || p === -1) {
+      clearInterval(this.timer); this.timer = 0;
+      this.el.hidden = true; this.percent = -1; this.close();
+      return;
+    }
+    // no engine for the number (it did not load): the sign without a number would say nothing – the ring alone turns
+    this.percent = Math.max(this.percent, p < 0 ? 0 : p);
+    this.el.hidden = false;
+    this.place();
+    const label = p < 0 ? '' : `${this.percent} %`;
+    this.el.querySelector('.pct')!.textContent = label;
+    this.el.classList.toggle('spin', p < 0);
+    this.el.style.setProperty('--p', String(this.percent / 100));
+    this.el.setAttribute('aria-label', t('maps_bg_chip_cd', label || '…'));
+    this.el.title = t('maps_bg_chip_click');
+    if (this.details) this.fill(this.details);
+  }
+
+  /** Under the top bar at the right (the app: under the ☰ button), and under the map strip where it reaches that far. */
+  private place() {
+    const host = this.el.parentElement?.getBoundingClientRect();
+    if (!host) return;
+    const bar = document.getElementById('topbar')?.getBoundingClientRect();
+    const sign = this.el.getBoundingClientRect();
+    let top = (bar?.bottom ?? host.top) + 8;
+    const notes = document.getElementById('mapnotes');
+    if (notes && !notes.hidden) {
+      const r = notes.getBoundingClientRect();
+      if (r.height > 0 && r.right > host.right - 12 - Math.max(sign.width, 90) && r.bottom + 8 > top) top = r.bottom + 8;
+    }
+    this.el.parentElement!.style.setProperty('--beside-top', `${Math.round(top - host.top)}px`);
+  }
+
+  private open() {
+    if (this.details) { this.close(); return; }
+    const d = document.createElement('div');
+    d.className = 'besidedetails';
+    d.setAttribute('role', 'dialog');
+    d.innerHTML = '<div class="bdtitle"></div><div class="bdprog"><div class="bdbar"><i></i></div><span class="pct"></span></div>'
+      + '<ul class="bdrows"></ul><div class="bdbuttons"><button type="button" class="bdcancel"></button><button type="button" class="bdclose"></button></div>';
+    d.querySelector<HTMLButtonElement>('.bdcancel')!.onclick = () => { const a = this.now; this.close(); a?.cancel(); this.set(null); };
+    d.querySelector<HTMLButtonElement>('.bdclose')!.onclick = () => this.close();
+    this.el.after(d);
+    this.details = d;
+    this.fill(d);
+  }
+
+  private fill(d: HTMLElement) {
+    d.querySelector('.bdtitle')!.textContent = t('maps_bg_dialog_title');
+    d.querySelector<HTMLElement>('.bdbar i')!.style.width = `${Math.max(0, this.percent)}%`;
+    d.querySelector('.bdprog .pct')!.textContent = `${Math.max(0, this.percent)} %`;
+    const ul = d.querySelector('.bdrows')!;
+    ul.replaceChildren(...(this.now?.rows ?? []).map((r) => Object.assign(document.createElement('li'), { textContent: r })));
+    d.querySelector('.bdcancel')!.textContent = t('common_cancel_all');
+    d.querySelector('.bdclose')!.textContent = t('common_close');
+  }
+
+  private close() { this.details?.remove(); this.details = null; }
+}

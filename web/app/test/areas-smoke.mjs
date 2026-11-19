@@ -4,12 +4,14 @@
 //    package, solid magenta, Munich) stay visible at zoom 11–15; the strip says that the detailed map is not available
 //    on the web yet. Nothing hangs. (C: a page opened on a spot without cells says "Overview only – set a point here …" and orders nothing.)
 // B. Key + a fake doorman behind the host's real proxy (web/host/src/maps.js): Locate → "Finding your position…" →
-//    the own area is requested once (reason point) → the strip shows the app's texts ("Preparing map for this area –
-//    about 5 min", "Your position · waiting – about 5 min", then "being prepared – 40 %") → ready: current.json appears
-//    in the store, the page reloads the cell sources (requests go to the new version folder) and the strip closes.
+//    the own area is requested once (reason point) → the wait window (form A, owner 2026-11-19) says it with the app's
+//    words: "Map for your area", one bar with its percent, the row "being prepared", "about 5 minutes left"; the doorman's
+//    40 % moves the bar → ready: current.json appears in the store, the page reloads the cell sources (requests go to
+//    the new version folder) and the window closes by itself.
 // C. Location denied → a red line that says how to allow it.
-// D. Planning: the sheet says "Loading the routing engine…"; the load overlay "Loading the map for your area · 45 %" (routing data)
-//    and "Calculating the route…" with a spinner.
+// D. Planning: the sheet says "Loading the routing engine…"; the wait window "Map for your area · 45 %" (routing data)
+//    and "Calculating the route · 80 %" – one bar, a percent all the way.
+// E. The map areas along a loaded route load beside the map: the sign (form B) – one percent, tap → details, Cancel all.
 // Usage: node test/areas-smoke.mjs [segmentsDir]
 import fs from 'node:fs';
 import os from 'node:os';
@@ -41,21 +43,22 @@ async function open(ctxOpts, at, serverOpts) {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, ...ctxOpts });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => errors.push(String(e)));
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); if (process.env.DEBUG_AREAS && !/404/.test(m.text())) console.log('console', m.text().slice(0, 200)); });
   await page.addInitScript(() => {
-    window.__statusLog = [];
+    window.__statusLog = []; window.__winLog = []; window.__beside = [];
     addEventListener('DOMContentLoaded', () => new MutationObserver(() => {
       const s = document.getElementById('status');
       if (s?.textContent) window.__statusLog.push((s.classList.contains('busy') ? '[busy] ' : '') + s.textContent);
-      // the route's wait is the box in the middle of the map (owner 2026-11-02): spinner + text + Cancel
-      const c = document.querySelector('#msgcards .msgcard.busy .msgtitle');
-      if (c?.textContent && window.__statusLog.at(-1) !== '[busy] ' + c.textContent) window.__statusLog.push('[busy] ' + c.textContent);
-      // the map of a new area loading: the load overlay with its percent (owner 2026-11-13)
-      const o = document.querySelector('#mapnotes .mapnote.load');
-      // the calculation's running card has no percent (c11e4e72): its title alone
-      const op = o?.querySelector('.pct')?.textContent;
-      const ot = o && `[busy] ${o.querySelector('.title')?.textContent}${op ? ` · ${op}` : ''}`;
+      // the wait window (form A, owner 2026-11-19): its title and its percent – the map of a new place and the route
+      const o = document.getElementById('waitwin');
+      // one message at a time: no map note beside the wait window (owner 2026-11-19 – „Nur Übersicht …“ while that map loads)
+      const note = [...document.querySelectorAll('#mapnotes .mapnote')].find((n) => n.getClientRects().length && getComputedStyle(n).display !== 'none');
+      if (o && note && window.__beside.length < 5) window.__beside.push(note.textContent);
+      const ot = o && `[busy] ${o.querySelector('.wwtitle')?.textContent} · ${o.querySelector('.wwpct')?.textContent}`;
       if (ot && window.__statusLog.at(-1) !== ot) window.__statusLog.push(ot);
+      if (!o && window.__statusLog.length && window.__statusLog.at(-1) !== '[gone]' && window.__statusLog.at(-1).includes(' %')) window.__statusLog.push('[gone]');
+      const rows = o && [...o.querySelectorAll('.wwsteps li')].map((l) => l.className + ':' + l.textContent).join(', ') + ' | ' + o.querySelector('.wwline')?.textContent;
+      if (rows && window.__winLog.at(-1) !== rows) window.__winLog.push(rows);
     }).observe(document.body, { subtree: true, childList: true, characterData: true }));
   });
   await page.goto(url + 'index.html?waitMs=0&at=' + at); // waitMs=0: the route's wait box at once (no 1 s delay)
@@ -122,14 +125,27 @@ const magenta = ([r, g, b]) => r - g > 50 && b - g > 40;
   const { page, ctx, server, log } = await open({ geolocation: { ...MUNICH, accuracy: 20 }, permissions: ['geolocation'] }, '11.16,46.67,12',
     { maps: (req) => { if (req.method === 'POST') ids.push(req.headers.get('x-onpath-browser')); return handleMaps(req, { MAP_KEY: 'k', DOORMAN: doorman }); } });
   await page.click('#locate');
-  check(await waitStrip(page, 'Preparing map for this area – about 5 min', 15_000), `the own area is requested: "${(await strip(page)).split('\n')[0]}"`);
-  check((await strip(page)).includes('Your position · waiting – about 5 min'), 'row: Your position · waiting – about 5 min (the app\'s texts)');
+  const win = () => page.evaluate(() => { const w = document.getElementById('waitwin'); return w ? { title: w.querySelector('.wwtitle').textContent, pct: +w.dataset.pct,
+    rows: [...w.querySelectorAll('.wwsteps li')].map((l) => l.className + ':' + l.textContent), line: w.querySelector('.wwline').textContent } : null; });
+  const came = await page.waitForFunction(() => !!document.getElementById('waitwin') && document.querySelectorAll('#waitwin .wwsteps li').length > 0, null, { timeout: 30_000 }).then(() => true, () => false);
+  const w1 = await win();
+  check(came && w1?.title === 'Map for your area' && w1.rows[0] === 'now:being prepared', `the own area is requested: the wait window ${JSON.stringify(w1)}`);
+  check(!(await strip(page)).includes('Preparing map'), 'one wait: no strip line beside the window');
+  const left = await page.waitForFunction(() => /minutes? left/.test(document.querySelector('#waitwin .wwline')?.textContent ?? ''), null, { timeout: 10_000 }).then(() => true, () => false);
+  check(left, `the time left from the server's estimate ("${(await win())?.line}")`);
   check(asked.length === 1 && asked[0].reason === 'point' && asked[0].cells.join() === CELL && asked[0].formats.join() === '2',
     `one request through the proxy: ${JSON.stringify(asked)}`);
   check(ids.length === 1 && /^[0-9a-f]{32}$/.test(ids[0] ?? ''), `the request carries the browser's random id (quotas): ${ids[0]}`);
-  check(await waitStrip(page, 'being prepared – 40 %, about 2 min', 15_000), 'polling: "being prepared – 40 %, about 2 min"');
-  const gone = await page.waitForFunction(() => document.getElementById('mapnotes').hidden, null, { timeout: 20_000 }).then(() => true, () => false);
-  check(gone, 'ready: the strip closes by itself (no "done" message)');
+  const p0 = (await win())?.pct ?? 0;
+  const moved = await page.waitForFunction((a) => +(document.getElementById('waitwin')?.dataset.pct ?? 0) > a, p0, { timeout: 15_000 }).then(() => true, () => false);
+  check(moved, `polling: the doorman's 40 % moves the bar (from ${p0} %)`);
+  const gone = await page.waitForFunction(() => !document.getElementById('waitwin') && document.getElementById('mapnotes').hidden, null, { timeout: 20_000 }).then(() => true, () => false);
+  check(gone, 'ready: the window closes by itself (no "done" message)');
+  // the window of the own area (the last one – the page's first map may have had its own before)
+  const all = await page.evaluate(() => window.__statusLog);
+  const lastWin = all.slice(all.lastIndexOf('[gone]', all.length - 2) + 1);
+  const pcts = lastWin.map((x) => /· (\d+) %$/.exec(x)?.[1]).filter(Boolean).map(Number);
+  check(pcts.length > 1 && pcts.every((v, i) => !i || v >= pcts[i - 1]) && pcts.at(-1) === 100, `never back, 100 at the end (${pcts.join(' ')})`);
   await idle(page);
   check(log.some((u) => u.includes(`/data/cells/f2/10/${cellX}/${cellY}/web-test-s7/`)), 'ready: the page reloads the cell sources and reads the new version in place');
   await page.evaluate(() => window.__map.jumpTo({ center: [11.6, 48.15], zoom: 14 })); // moves and rests inside the same area again
@@ -180,9 +196,62 @@ const magenta = ([r, g, b]) => r - g > 50 && b - g > 40;
   await page.waitForFunction(() => document.querySelector('#summary .big'), null, { timeout: 120_000 });
   const seen = await page.evaluate(() => window.__statusLog);
   check(seen.includes('[busy] Loading the routing engine…'), 'engine start: "Loading the routing engine…" with a spinner');
-  check(seen.some((t) => /^\[busy\] Loading the map for your area · \d+\s?%$/.test(t)), `routing data: the overlay with a percent ("${seen.find((t) => t.includes('%')) ?? 'not seen'}")`);
-  check(seen.some((t) => /^\[busy\] Calculating the route…( · \d+\s?%)?$/.test(t)), `routing: "Calculating the route…" (the app's plan_calculating) – the overlay's last phase or the wait box (${JSON.stringify(seen.filter((t) => !t.includes('Loading')).slice(0, 6))})`);
-  check(!(await page.evaluate(() => document.getElementById('status').classList.contains('busy') || !!document.querySelector('#msgcards .msgcard.busy'))), 'after the plan: no spinner left');
+  const beside = await page.evaluate(() => window.__beside);
+  check(beside.length === 0, `no map note while the wait window shows – it comes back after if still true (${JSON.stringify(beside)})`);
+  // the routing data from this test server comes in a moment: the window may first show at its route step already
+  check(seen.some((t) => /^\[busy\] (Map for your area|Calculating the route) · \d+ %$/.test(t)), `the plan's wait: the window with a percent ("${seen.find((t) => t.includes('%')) ?? 'not seen'}")`);
+  console.log(`(the window's rows: ${(await page.evaluate(() => window.__winLog)).slice(0, 6).join(' ; ')})`);
+  const lastWin = seen.slice(seen.lastIndexOf('[gone]', seen.length - 2) + 1);
+  const pcts = lastWin.map((x) => /· (\d+) %$/.exec(x)?.[1]).filter(Boolean).map(Number);
+  check(pcts.every((v, i) => !i || v >= pcts[i - 1]), `the window's percent never goes back (${pcts.join(' ')})`);
+  check(seen.filter((t) => / %$/.test(t)).every((t) => /^\[busy\] (Map for your area|Calculating the route) · \d+ %$/.test(t)),
+    `one window: the map's title, then the route's – a percent all the way (${JSON.stringify([...new Set(seen.filter((t) => t.includes('%')).map((t) => t.replace(/ · \d+ %/, '')))])})`);
+  await page.waitForFunction(() => !document.getElementById('waitwin'), null, { timeout: 10_000 }).catch(() => {});
+  check(!(await page.evaluate(() => document.getElementById('status').classList.contains('busy') || !!document.getElementById('waitwin'))), 'after the plan: no spinner, no window left');
+  await ctx.close(); server.close();
+}
+
+// ---- E: the map areas along a loaded route (T4) load beside the map (form B, owner 2026-11-19 „B: einfach nur
+//      Prozent, muss aber passen für die gesamte Aktion“) while the view has its map: one small sign – a ring and ONE
+//      percent over all of them, never back – no window over the map; tap → the details (title, the bar, what loads, Cancel all · Close); Cancel all
+//      takes the sign away ----
+{
+  const doorman = { fetch: async (req) => {
+    const u = new URL(req.url);
+    const ids = u.pathname === '/v1/cells/request' ? (await req.json()).cells : u.searchParams.get('ids').split(',');
+    calls++;
+    return Response.json({ cells: ids.map((id) => ({ id, state: 'building', step: 'base', progress: Math.min(0.9, 0.1 * calls), eta_s: 240 })), poll_s: 1 });
+  } };
+  let calls = 0;
+  const { page, ctx, server } = await open({}, '11.14,46.67,9', { maps: (req) => handleMaps(req, { MAP_KEY: 'k', DOORMAN: doorman }) });
+  // a loaded plan of four points (more than three new at once: only the route's areas are asked for, like the app)
+  const code = await page.evaluate(() => window.__engine.encode({ points: [[46.6700, 11.1600], [46.6773, 11.1302], [46.6400, 11.1500], [46.6879, 11.1111]],
+    activity: 'BIKE_TOURING', sac: 2, pinned: [], names: {}, title: null }));
+  await page.evaluate((c) => { location.hash = 'p=' + c; }, code);
+  // the route's fit zooms in where no detailed map is yet: the user then waits for it (form A, the app's
+  // MapLoadWait – a job while the view has no detailed map); zoomed out the view has its map – A turns into B by itself
+  await page.waitForFunction(() => window.__state.plan && document.body.dataset.planning !== '1', null, { timeout: 120_000 });
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => window.__map.jumpTo({ zoom: 9 }));
+  const came = await page.waitForFunction(() => window.__wait.beside() >= 0, null, { timeout: 60_000 }).then(() => true, () => false);
+  const pcts = [];
+  for (let k = 0; k < 12; k++) { pcts.push(await page.evaluate(() => window.__wait.beside())); await page.waitForTimeout(1000); } // the page polls every 5 s at the most
+  const sign = await page.evaluate(() => { const b = document.getElementById('besidesign'), r = b.getBoundingClientRect(), m = document.getElementById('map').getBoundingClientRect();
+    return { text: b.textContent, label: b.getAttribute('aria-label'), w: r.width, h: r.height, inMap: r.left >= m.left && r.right <= m.right && r.top >= m.top && r.bottom <= m.bottom }; });
+  check(came && /^\d{1,3} %$/.test(sign.text) && sign.inMap, `the route's areas: the sign beside the map – a ring and one percent (${JSON.stringify(sign)})`);
+  check(pcts.every((v, i) => !i || v >= pcts[i - 1]) && pcts.at(-1) > pcts[0], `its percent moves on, never back (${pcts.join(' ')})`);
+  check(!(await page.evaluate(() => !!document.getElementById('waitwin'))) && !(await strip(page)).includes('Preparing'), 'no window and no strip line for them (they load beside)');
+  if (process.env.SHOTS) await page.screenshot({ path: process.env.SHOTS + '-sign.png' });
+  await page.click('#besidesign');
+  const d = await page.evaluate(() => { const x = document.querySelector('.besidedetails'); return x && { title: x.querySelector('.bdtitle').textContent,
+    rows: [...x.querySelectorAll('.bdrows li')].map((l) => l.textContent), pct: x.querySelector('.pct').textContent,
+    buttons: [...x.querySelectorAll('button')].map((b) => b.textContent) }; });
+  if (process.env.SHOTS) await page.screenshot({ path: process.env.SHOTS + '-details.png' });
+  check(!!d && d.title === 'Loading in the background' && d.rows.length > 0 && /^\d+ %$/.test(d.pct) && d.buttons.join() === 'Cancel all,Close',
+    `tap: the details – title, the bar, what loads, Cancel all · Close (${JSON.stringify(d)})`);
+  await page.click('.besidedetails .bdcancel');
+  check(await page.waitForFunction(() => window.__wait.beside() < 0 && !document.querySelector('.besidedetails'), null, { timeout: 5_000 }).then(() => true, () => false),
+    'Cancel all: the sign goes');
   await ctx.close(); server.close();
 }
 

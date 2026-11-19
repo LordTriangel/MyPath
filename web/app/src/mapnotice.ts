@@ -12,33 +12,18 @@ export interface Notice {
   lines?: string[];
   /** × to hide (aria label); hiding calls [onClose]. */
   close?: { label: string; onClose: () => void };
-  /** The load overlay (loadoverlay.ts): 0..100 and its text ("45 %") – a bar under the title. */
-  progress?: number;
-  progressText?: string;
-  /** The route calculation (the router says no fraction): a running bar, no number – [progress] stays the last percent. */
-  running?: boolean;
-  /** One text button (the route's Cancel). */
-  action?: { label: string; act: () => void };
 }
 
 /**
- * Slots in their order on screen: the load overlay, the position, a cell whose map fails, then the map areas. While the
- * load overlay shows it is the one wait: the other busy lines step back; otherwise only the first busy line shows, and
- * only when it is the page's one wait (onewait.ts, body[data-wait="strip"]; owner 2026-11-13 – one wait at a time).
+ * Slots in their order on screen: the position, a cell whose map fails, then the map areas. While the wait window
+ * (loadoverlay.ts) shows it is the one message: every line steps back ([cover]) – the busy ones and the notes too
+ * („Nur Übersicht – setze hier einen Punkt …“ while that very map loads would contradict it; owner: overlapping
+ * messages are a bug) – and comes back afterwards only if it is still true (its slot is still set). Otherwise only the
+ * first busy line shows, and only when it is the page's one wait (onewait.ts, body[data-wait="strip"]; owner
+ * 2026-11-13 – one wait at a time).
  */
-const ORDER = ['load', 'locate', 'loading', 'cells', 'areas'] as const;
+const ORDER = ['locate', 'loading', 'cells', 'areas'] as const;
 export type Slot = (typeof ORDER)[number];
-
-/**
- * A running bar's stripe (the route calculation, owner 2026-11-18: never a bar that looks frozen): [el] moves by the
- * page's clock, not from its own start – the card and the wait box are drawn anew while they wait (each second, each
- * new number), and a stripe that began again each time would jump back.
- */
-export function runStripe(el: HTMLElement) {
-  const ms = matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 4000 : 1400;
-  el.style.animationDuration = `${ms}ms`;
-  el.style.animationDelay = `-${Math.round(performance.now() % ms)}ms`;
-}
 
 export class MapNotices {
   private shown = new Map<Slot, Notice>();
@@ -52,20 +37,24 @@ export class MapNotices {
 
   get(slot: Slot): Notice | undefined { return this.shown.get(slot); }
 
+  /** The wait window shows: every line steps back (the window is the one message over the map). */
+  cover(on: boolean) { if (on !== this.covered) { this.covered = on; this.render(); } }
+  private covered = false;
+
   private render() {
     this.box.replaceChildren();
-    const load = this.shown.has('load');
+    const load = this.covered;
     let count = 0;
     for (const slot of ORDER) {
       const n = this.shown.get(slot);
-      if (!n || (load && slot !== 'load' && n.kind === 'busy')) continue;
+      if (!n || load) continue;
       count++;
       const el = document.createElement('div');
-      el.className = `mapnote ${n.kind}` + (slot === 'load' ? ' load' : '');
+      el.className = `mapnote ${n.kind}`;
       el.dataset.slot = slot;
       const head = document.createElement('div');
       head.className = 'head';
-      if (n.kind === 'busy' && n.progress == null) head.append(Object.assign(document.createElement('span'), { className: 'spinner', ariaHidden: 'true' }));
+      if (n.kind === 'busy') head.append(Object.assign(document.createElement('span'), { className: 'spinner', ariaHidden: 'true' }));
       if (n.kind === 'error') head.append(Object.assign(document.createElement('span'), { className: 'warn', textContent: '⚠', ariaHidden: 'true' }));
       head.append(Object.assign(document.createElement('span'), { className: 'title', textContent: n.title }));
       if (n.close) {
@@ -76,32 +65,10 @@ export class MapNotices {
         head.append(x);
       }
       el.append(head);
-      if (n.progress != null) {
-        el.dataset.pct = String(n.progress);
-        const row = document.createElement('div');
-        row.className = 'progress';
-        const bar = document.createElement('div');
-        bar.className = n.running ? 'bar running' : 'bar';
-        bar.setAttribute('role', 'progressbar');
-        bar.setAttribute('aria-valuemin', '0'); bar.setAttribute('aria-valuemax', '100');
-        if (!n.running) bar.setAttribute('aria-valuenow', String(n.progress)); // running: no value = indeterminate
-        const fill = document.createElement('i');
-        if (n.running) runStripe(fill); else fill.style.width = `${n.progress}%`;
-        bar.append(fill);
-        row.append(bar);
-        if (!n.running) row.append(Object.assign(document.createElement('span'), { className: 'pct', textContent: n.progressText ?? `${n.progress} %` }));
-        el.append(row);
-      }
       for (const l of n.lines ?? []) el.append(Object.assign(document.createElement('div'), { className: 'line', textContent: l }));
-      if (n.action) {
-        const a = n.action;
-        const b = Object.assign(document.createElement('button'), { className: 'act', textContent: a.label });
-        b.onclick = () => a.act();
-        el.append(b);
-      }
       this.box.append(el);
     }
     this.box.hidden = count === 0;
-    this.onBusy([...this.shown].some(([slot, n]) => slot !== 'load' && n.kind === 'busy') && !load);
+    this.onBusy([...this.shown].some(([, n]) => n.kind === 'busy') && !load);
   }
 }

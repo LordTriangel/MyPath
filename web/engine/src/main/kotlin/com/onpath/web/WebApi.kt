@@ -281,11 +281,10 @@ object Engine {
             // own, in Plan, with no tour running
             val before = lastResultFor(wps)?.takeIf { (it.activity != act || it.sac != sac) &&
                 RouteWarnings.saysChanged(own = true, inPlan = true, touring = false) }
-            // the wait box: the km routed of the plan's length (WebPlanProgress, owner 2026-11-18) and the app's
-            // PlanStatus text "Calculating section 2 of 5…" (two or more legs) – as JSON, each time a leg is done
-            val km = progressSink?.let { WebPlanProgress(wps, act, sac, legCache) }
+            // the wait window (WebWait, owner 2026-11-19 „Route berechnet ist auch A“): the legs the router works on are its
+            // steps – each time a leg is done, {"done":2,"total":5} (the app's RouteWait reads the same Planner report)
             val planner = Planner(engine(), null, askAtLimit = rounds >= 1, rounds = rounds.coerceAtLeast(1), legs = legCache,
-                progress = { done, total -> if (km != null) progressSink?.invoke(km.json(done, total)) })
+                progress = { done, total -> progressSink?.invoke("{\"done\":$done,\"total\":$total}") })
             val res = try {
                 PlanResult.plan(planner, wps, act, sac, parseIndices(pinned), nm.filterValues { it.isNotBlank() }.keys,
                     WebPace.factors(act))
@@ -1086,3 +1085,11 @@ external fun planProgress(text: String)
 
 fun main() {}
 
+// ---- the wait window (form A) and the sign beside (form B): WebWait.kt, the page's second engine (waitengine.ts) ----
+@JSExport fun waitStart(shares: String, check: String, part: String) = WebWait.start(shares, check, part)
+@JSExport fun waitTick(now: Double, areas: String, dlDone: Double, dlTotal: Double, map: Boolean, routing: Boolean, join: Double,
+                       routeDone: Int, routeTotal: Int, checking: Boolean, names: String, points: Int, paused: Boolean): String =
+    WebWait.tick(now, areas, dlDone, dlTotal, map, routing, join, routeDone, routeTotal, checking, names, points, paused)
+@JSExport fun waitEnd(now: Double, finished: Boolean): String = WebWait.end(now, finished)
+@JSExport fun signTick(now: Double, areas: String): Int = WebSign.tick(now, areas)
+@JSExport fun signSeed(percent: Int) = WebSign.seed(percent)

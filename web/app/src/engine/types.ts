@@ -88,10 +88,8 @@ export interface EngineReply { id: number; ok: boolean; result?: RouteResult; pl
 /** What a plan waits for: the routing data under it ([bytes] still to download when it started, [done] of them
  * received so far – sizes from the rd5 files' index), then the router. */
 export type Progress = { phase: 'download'; bytes: number; done: number } | { phase: 'route' }
-  /** the legs the router works on: the engine's own text ("Leg 2 of 5 is being calculated…", PlanStatus.calculating;
-   * empty for one leg; TrackToPlan: "37 %") and, for a plan, the metres of the legs routed of the plan's length
-   * (WebPlanProgress: routed legs real, the rest estimated) */
-  | { phase: 'legs'; text: string; doneM?: number; totalM?: number };
+  /** A plan: [done] of [total] legs to route (the wait window's steps); a GPX track's fit: [text] "37 %". */
+  | { phase: 'legs'; text: string; done?: number; total?: number };
 
 /** One row of the Points list (the app's PlanPoints.rows). */
 export interface PointRow { i: number; role: 'START' | 'STOP' | 'GOAL'; name: string; legM: number | null; approx: boolean; loop: boolean;

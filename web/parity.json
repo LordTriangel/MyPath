@@ -530,6 +530,53 @@
         "web/app/src/sync.ts"
       ],
       "blob": "9d2168e49df3a475023755c08caf10afc4ac3704"
+    },
+    {
+      "app": "app/src/main/java/com/onpath/app/ui/MapLoad.kt",
+      "what": "the wait window for the map of a place (form A, owner 2026-11-19): MapLoadUi's steps and words („vorbereitet · lädt Karte + Routendaten · einfügen“, wait_* / maps_phase_*), MapWait's measurement per step (prepare = the server's time left, download = bytes, join), the ONE bar (OneBar), when it shows and closes, Cancel – the planner's WebWait.kt (map part) + loadoverlay.ts; MapLoadWait.waits (own point / search, or a view without detailed map) – areas.ts show()",
+      "web": [
+        "web/engine/src/main/kotlin/com/onpath/web/WebWait.kt",
+        "web/app/src/loadoverlay.ts",
+        "web/app/src/areas.ts"
+      ],
+      "blob": "b202038204528fb5c641498c6a2ec80616fd7cb9"
+    },
+    {
+      "app": "app/src/main/java/com/onpath/app/ui/progress/WaitWindow.kt",
+      "what": "form A's look: sign + title, the ONE bar with its number beside it, at most 3 step rows (✓ done, ● now, ○ later), the time left / why it waits, Cancel; paused = grey bar – loadoverlay.ts draw(), style.css .waitwin",
+      "web": [
+        "web/app/src/loadoverlay.ts",
+        "web/app/src/style.css"
+      ],
+      "blob": "1bf5cae50727817b39568c62c46b212e0fff7f58"
+    },
+    {
+      "app": "app/src/main/java/com/onpath/app/ui/progress/RouteWait.kt",
+      "what": "the route's wait (form A): the legs the router works on + „prüfen“ as steps, their shares (RouteShares), the check's time learned at the end, the legs' names „A → B“ (legLabels), the window after a slow second – WebWait.kt (route part), loadoverlay.ts plan(), main.ts planRun",
+      "web": [
+        "web/engine/src/main/kotlin/com/onpath/web/WebWait.kt",
+        "web/app/src/loadoverlay.ts",
+        "web/app/src/main.ts"
+      ],
+      "blob": "ab1d0a1c1b5d75d109f33d1b5d0b00149f9c0919"
+    },
+    {
+      "app": "app/src/main/java/com/onpath/app/ui/progress/BesideSign.kt",
+      "what": "form B: the small sign (a ring + ONE percent over the whole action, ActionPercent), tap → the details (title, the bar, one line per load, Cancel all red · Close) – besidesign.ts, WebWait.kt WebSign, style.css .besidesign",
+      "web": [
+        "web/app/src/besidesign.ts",
+        "web/engine/src/main/kotlin/com/onpath/web/WebWait.kt",
+        "web/app/src/style.css"
+      ],
+      "blob": "292e64b59c756f08c7370f434c44704422d93124"
+    },
+    {
+      "app": "app/src/main/java/com/onpath/app/data/ProgressMemory.kt",
+      "what": "the learned shares of the wait window kept per phone (map steps „v1:…“, the route's check „r1:…“), defaults on failure, reported – progressmemory.ts (localStorage, per browser; the planner's route part „p1:…“ too)",
+      "web": [
+        "web/app/src/progressmemory.ts"
+      ],
+      "blob": "5fbc73f485970ea350384d7c9d5631d2230c836c"
     }
   ],
   "watch": [
@@ -617,11 +664,6 @@
       "app": "tools/make_style.py",
       "why": "map style (the web copies the generated style)",
       "blob": "e9cf1ef140e9ada87cab2eb66032eca9c253cfd6"
-    },
-    {
-      "app": "app/src/main/java/com/onpath/app/ui/MapLoad.kt",
-      "why": "the loading modal's texts and when it closes (web: the map strip, areas.ts)",
-      "blob": "f041cce0af794490a4716c3863be925621f3cf37"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/cells/CellApi.kt",

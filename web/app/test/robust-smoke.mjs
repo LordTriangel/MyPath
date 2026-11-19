@@ -2,7 +2,7 @@
 // shows the app's grey "Map loads when online" line (no "Planning failed: TypeError…") and the next plan downloads
 // again; (2) an unsaved route comes back when the planner is opened again without #p= (bookmark / typed address);
 // (3) no developer line ("Routing engine ready (N ms)") without ?debug; (4) a browser without WasmGC gets the
-// "too old" page instead of a planner that cannot plan; (9) a long plan's calculation never looks frozen.
+// "too old" page instead of a planner that cannot plan; (9) a long plan's wait window never looks frozen.
 // Usage: node test/robust-smoke.mjs [segmentsDir]
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -187,8 +187,8 @@ check(/Not saved/.test(saveLine) && !/quota|DOMException/i.test(saveLine), `Save
 await ctx.close();
 check(errors.length === 0, `no page error (${errors.join(' | ')})`);
 
-// ---- 7: the route's wait (owner 2026-11-02): after ~1 s a box in the middle of the map – spinner, text, Cancel; while the map of a
-//      new area loads it is the load overlay instead (owner 2026-11-13): a bar, the text, Cancel ----
+// ---- 7: the route's wait (owner 2026-11-02; 2026-11-19 one design, form A): after ~1 s – at once with the map of a
+//      new place – ONE window in the middle of the free map: title, one bar with its percent, at most 3 step rows, Cancel ----
 {
   const c = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   // a slow routing-data server, so the plan takes a few seconds
@@ -198,27 +198,26 @@ check(errors.length === 0, `no page error (${errors.join(' | ')})`);
   await p.goto(url + 'index.html#p=' + CODE);
   await p.waitForFunction(() => document.body.dataset.engine === 'ready', null, { timeout: 120_000 });
   const t0 = Date.now();
-  const box = await p.waitForSelector('#msgcards .msgcard.busy, #mapnotes .mapnote.load:has(button.act)', { timeout: 30_000 }).then(() => true, () => false);
+  const box = await p.waitForSelector('#waitwin .wwcancel', { timeout: 30_000 }).then(() => true, () => false);
   const at = Date.now() - t0;
-  const card = box ? await p.evaluate(() => { const c = document.querySelector('#msgcards .msgcard.busy, #mapnotes .mapnote.load:has(button.act)'), r = c.getBoundingClientRect(),
+  const card = box ? await p.evaluate(() => { const c = document.getElementById('waitwin'), r = c.getBoundingClientRect(),
     sheet = document.getElementById('sheet').getBoundingClientRect();
-    return { text: c.textContent, spin: !!c.querySelector(".msgspin, .bar"), cx: r.left + r.width / 2, sheetRight: sheet.right, w: innerWidth,
-      clock: document.getElementById('status').classList.contains('busy') }; }) : null;
-  // the load card names its phase: the map's tiles, a map area being prepared (maps_card_preparing), the route
-  check(box && card.spin && /Cancel/.test(card.text) && /Calculating the route|Loading the map|Preparing map/.test(card.text),
-    `the wait box: spinner, "${card?.text}", Cancel`);
+    return { text: c.textContent, bar: !!c.querySelector('.wwbar > i'), pct: c.querySelector('.wwpct').textContent, rows: c.querySelectorAll('.wwsteps li').length,
+      cx: r.left + r.width / 2, sheetRight: sheet.right, w: innerWidth, clock: document.getElementById('status').classList.contains('busy') }; }) : null;
+  check(box && card.bar && /^\d+ %$/.test(card.pct) && card.rows <= 3 && /Cancel/.test(card.text) && /Calculating the route|Map for your area/.test(card.text),
+    `the wait window: title, bar, "${card?.pct}", ${card?.rows} rows, Cancel ("${card?.text}")`);
   check(box && card.cx > card.sheetRight && !card.clock, 'in the free map beside the sheet; no small spinner in the sheet');
-  await p.click('#msgcards .msgcard.busy .msgbtn, #mapnotes .mapnote.load button.act');
-  await p.waitForFunction(() => !document.querySelector('#msgcards .msgcard.busy, #mapnotes .mapnote.load') && document.body.dataset.planning !== '1', null, { timeout: 5_000 }).catch(() => {});
+  await p.click('#waitwin .wwcancel');
+  await p.waitForFunction(() => !document.getElementById('waitwin') && document.body.dataset.planning !== '1', null, { timeout: 5_000 }).catch(() => {});
   const after = await p.evaluate(() => ({ pts: window.__state.points.length, plan: !!window.__state.plan, line: document.getElementById('summary').textContent,
     btn: document.getElementById('planAnyway')?.textContent }));
   check(after.pts === 2 && !after.plan && /calculation stopped/.test(after.line) && after.btn === 'Calculate',
     `Cancel: the points stay, "Route not calculated – calculation stopped." + Calculate (${JSON.stringify(after)})`);
   await p.click('#planAnyway');
   await p.waitForFunction(() => document.querySelector('#summary .big') && document.body.dataset.planning !== '1', null, { timeout: 120_000 }).catch(() => {});
-  await p.waitForFunction(() => !document.querySelector('#msgcards .msgcard.busy, #mapnotes .mapnote.load'), null, { timeout: 15_000 }).catch(() => {});
-  check(await p.evaluate(() => !!window.__state.plan && !document.querySelector('#msgcards .msgcard.busy, #mapnotes .mapnote.load')), 'Calculate: the route comes, the box is gone');
-  console.log(`(the box came after ${at} ms)`);
+  await p.waitForFunction(() => !document.getElementById('waitwin'), null, { timeout: 15_000 }).catch(() => {});
+  check(await p.evaluate(() => !!window.__state.plan && !document.getElementById('waitwin')), 'Calculate: the route comes, the window is gone');
+  console.log(`(the window came after ${at} ms)`);
   await c.close();
 }
 
@@ -254,28 +253,29 @@ check(errors.length === 0, `no page error (${errors.join(' | ')})`);
   await c.close();
 }
 
-// ---- 9: a long plan's calculation (owner 2026-11-18, Neuss → München: „98 % sehr lange – hängt das?“) – after the
-//      downloads the load card leaves its percent: the engine's line („Calculating section 2 of 3…“), the km routed of
-//      the plan's length and the clock („3 of 9 km · 0:07“, as the wait box – mehrtage), a running bar (moving, no
-//      number), after ~10 s the calm line „A long tour can take a few minutes.“; never a card that stands still, never
-//      the wait box over it, Cancel still stops it. Then the same wait without downloads (the wait box): its km bar
-//      with a running stripe and the calm line. A slow router: ?slowRoute (worker.ts hold – the worker blocked like
-//      BRouter on a long plan, before it routes and at each section) ----
+// ---- 9: a long plan's wait (owner 2026-11-18, Neuss → München: „98 % sehr lange – hängt das?“; 2026-11-19: one design,
+//      form A „A, aber nie mehr als 3 Häkchen“) – the map of a new place (its routing data) and the route are steps of ONE
+//      window: one bar 0–100 with its number all the way (the calculation too), never back, never standing (no number
+//      longer than 10 s – the app's PercentStallTest – unless it says „taking a bit longer…“), at most 3 rows (the legs
+//      move along: „Section 1 · Section 2 · Section 3 · check“), one wait only, Cancel stops it. Then the same wait without
+//      downloads: the window again, the route's title, its legs as steps. A slow router: ?slowRoute (worker.ts hold –
+//      the worker blocked like BRouter on a long plan, before it routes and at each section) ----
 {
   const c = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-  // slow routing data, so the card comes up (the calculation alone only joins a card that is up)
+  // slow routing data, so the window comes up with the map's step first
   await c.route('**/segments/**', async (r) => { await new Promise((res) => setTimeout(res, 1500)); return r.continue(); });
-  // no map area being prepared (the route's areas, T4): its busy strip would bring the card for the later plans too
+  // no map area being prepared (the route's areas, T4): its sign beside the map is no wait, but keep the run plain
   await c.route('**/maps/v1/**', (r) => r.fulfill({ status: 503, body: '' }));
   await c.addInitScript(() => {
     window.__card = [];
     setInterval(() => {
-      const el = document.querySelector('#mapnotes .mapnote.load');
+      const el = document.getElementById('waitwin');
       const box = document.querySelector('#msgcards .msgcard[data-id="routing"]');
+      const strip = [...document.querySelectorAll('#mapnotes .mapnote.busy')].some((n) => n.getClientRects().length && getComputedStyle(n).display !== 'none');
       const last = window.__card.at(-1);
-      const now = el ? { pct: Number(el.dataset.pct), running: !!el.querySelector('.bar.running'), num: el.querySelector('.pct')?.textContent ?? '',
-        title: el.querySelector('.title')?.textContent ?? '', lines: [...el.querySelectorAll('.line')].map((l) => l.textContent).join(' | '),
-        box: !!box && box.getBoundingClientRect().height > 0 && getComputedStyle(box).visibility !== 'hidden' && getComputedStyle(box).display !== 'none' } : null;
+      const now = el ? { pct: Number(el.dataset.pct), num: el.querySelector('.wwpct')?.textContent ?? '', title: el.querySelector('.wwtitle')?.textContent ?? '',
+        rows: [...el.querySelectorAll('.wwsteps li')].map((l) => l.className + ':' + l.querySelector('.lab').textContent),
+        line: el.querySelector('.wwline')?.textContent ?? '', other: !!box || strip } : null;
       const key = JSON.stringify(now);
       if (!last || last.key !== key) window.__card.push({ key, t: performance.now(), ...(now ?? { gone: true }) });
     }, 50);
@@ -289,99 +289,53 @@ check(errors.length === 0, `no page error (${errors.join(' | ')})`);
     activity: 'BIKE_TOURING', sac: 2, pinned: [], names: {}, title: null }));
   await p.goto(url + 'index.html?slowRoute=3500#p=' + code);
   await p.waitForFunction(() => document.body.dataset.engine === 'ready', null, { timeout: 120_000 });
-  // the calm line comes ~10 s into the calculation (the router held 3.5 s before it routes and at each section)
-  const hint = await p.waitForFunction(() => /few minutes/.test(document.querySelector('#mapnotes .mapnote.load')?.textContent ?? ''), null, { timeout: 60_000 })
-    .then(() => true, () => false);
-  // the stripe moves (sampled twice) and keeps its place when the card is drawn anew each second
-  const stripeX = () => p.evaluate(() => { const i = document.querySelector('#mapnotes .mapnote.load .bar.running > i'), b = i?.parentElement.getBoundingClientRect();
-    return i ? { x: Math.round(i.getBoundingClientRect().left - b.left), anim: getComputedStyle(i).animationName } : null; });
-  const s1 = await stripeX(); await p.waitForTimeout(300); const s2 = await stripeX();
+  // the router held 3.5 s before it routes and at each of its three sections: wait for the third (Cancel before the
+  // plan's time limit asks „Weiter warten?“)
+  const third = await p.waitForFunction(() => window.__card.some((x) => x.rows?.some((r) => /^now:Section 3/.test(r))), null, { timeout: 60_000 }).then(() => true, () => false);
+  await p.waitForTimeout(1000);
   const { log, now } = await p.evaluate(() => ({ log: window.__card, now: performance.now() }));
   const open = log.filter((x) => !x.gone);
-  const calc = open.filter((x) => x.running);
-  console.log('(the card: ' + open.map((x) => `${Math.round(x.t)} ${x.running ? 'run' : x.num} ${x.title}${x.lines ? ' / ' + x.lines : ''}`).join(' ; ') + ')');
-  check(open.some((x) => !x.running && /^\d{1,3}\s?%$/.test(x.num)), 'long plan: the downloads show their percent');
-  check(calc.length > 0 && calc.every((x) => x.num === '' && /Calculating/.test(x.title)),
-    `long plan: then the calculation – its line, the running bar, no percent (${[...new Set(calc.map((x) => x.title))].join(' · ')})`);
-  const sections = [...new Set(calc.map((x) => x.title.match(/section (\d) of 3/)?.[1]).filter(Boolean))];
-  check(sections.length >= 2, `long plan: the section counter advances (${sections.join(' → ')})`);
-  const re = /^(\d+) of (\d+) km · (\d+):(\d\d)$/;
-  const kms = calc.map((x) => re.exec(x.lines.split(' | ')[0])).filter(Boolean).map((m) => ({ done: +m[1], total: +m[2], s: +m[3] * 60 + +m[4] }));
-  check(kms.length > 0 && kms.every((k, i) => !i || (k.done >= kms[i - 1].done && k.s >= kms[i - 1].s)),
-    `long plan: the card shows the km routed and the clock, never back (${kms.map((k) => `${k.done}/${k.total}·${k.s}`).join(' ')})`);
-  check(new Set(kms.map((k) => k.s)).size >= 5, `long plan: the card's clock ticks (${[...new Set(kms.map((k) => k.s))].join(',')})`);
+  console.log('(the window: ' + open.map((x) => `${Math.round(x.t)} ${x.num} ${x.title} [${x.rows.join(', ')}] ${x.line}`).join(' ; ') + ')');
+  check(open.length > 0 && open.every((x) => /^\d{1,3} %$/.test(x.num)), 'long plan: a percent all the way – the downloads and the calculation');
+  check(open.some((x) => /Map for your area/.test(x.title)) && open.some((x) => /Calculating the route/.test(x.title)),
+    `long plan: the map's step, then the route's – one window (${[...new Set(open.map((x) => x.title))].join(' → ')})`);
+  check(open.every((x) => x.rows.length <= 3), `long plan: never more than 3 rows (${Math.max(...open.map((x) => x.rows.length))})`);
+  const sections = [...new Set(open.flatMap((x) => x.rows).map((r) => r.match(/^now:Section (\d)$/)?.[1]).filter(Boolean))];
+  check(sections.length >= 2 && third && open.some((x) => x.rows.includes('later:check')), `long plan: the legs move along as steps, the check after them (${sections.join(' → ')})`);
   check(open.every((x, i) => i === 0 || x.pct >= open[i - 1].pct), `long plan: the percent never goes back (${open.map((x) => x.pct).join(' ')})`);
-  // never a card that stands still: a percent changes (or the card goes over to the calculation) within 6 s; the
-  // calculation's card changes within 1.5 s (its clock)
-  const held = log.filter((x, i) => {
-    if (x.gone) return false;
+  // never standing: no number longer than 10 s, unless the window says it takes longer
+  const held = open.filter((x, i) => {
+    if (i > 0 && open[i - 1].pct === x.pct) return false;
     let j = i + 1;
-    // before the router's first number (the data stored, the router starting) only its stripe moves (checked below)
-    if (x.running) { if (!x.lines) return false; while (j < log.length && log[j].key === x.key) j++; return (log[j]?.t ?? now) - x.t > 1500; }
-    const pctSame = (y) => !y.gone && !y.running && y.pct === x.pct;
-    if (i > 0 && pctSame(log[i - 1])) return false;
-    while (j < log.length && pctSame(log[j])) j++;
-    return (log[j]?.t ?? now) - x.t > 6000;
+    while (j < log.length && !log[j].gone && log[j].pct === x.pct) j++;
+    const until = log[j]?.t ?? now;
+    return until - x.t > 10_000 && !log.slice(i, j).some((y) => /longer/.test(y.line ?? ''));
   });
-  check(held.length === 0, `long plan: the card never stands still (${held.map((x) => (x.running ? 'run ' : x.num + ' ') + x.title).join(' | ')})`);
-  check(hint, 'long plan: after ~10 s the calm line „A long tour can take a few minutes.“');
-  check(s1 && s2 && s1.anim === 'loadrun' && s1.x !== s2.x, `long plan: the running bar moves (${JSON.stringify([s1, s2])})`);
-  check(open.every((x) => !x.box), 'long plan: one wait – no wait box over or beside the card');
+  check(held.length === 0, `long plan: the number never stands (${held.map((x) => x.num + ' ' + x.title).join(' | ')})`);
+  check(open.some((x) => /seconds? left|minutes? left|longer/.test(x.line)), `long plan: the time left once it can be estimated (${[...new Set(open.map((x) => x.line))].join(' · ')})`);
+  check(open.every((x) => !x.other), 'long plan: one wait – no wait box, no busy strip beside the window');
   // Cancel still stops the calculation (the worker is stopped – client.ts dropPlans)
-  await p.click('#mapnotes .mapnote.load button.act').catch(() => {});
-  await p.waitForFunction(() => !document.querySelector('#mapnotes .mapnote.load') && document.body.dataset.planning !== '1', null, { timeout: 10_000 }).catch(() => {});
-  const after = await p.evaluate(() => ({ plan: !!window.__state.plan, line: document.getElementById('summary').textContent, card: !!document.querySelector('#mapnotes .mapnote.load') }));
-  check(!after.plan && !after.card && /calculation stopped/.test(after.line), `long plan: Cancel in the card stops the calculation (${JSON.stringify(after).slice(0, 160)})`);
+  await p.click('#waitwin .wwcancel').catch(() => {});
+  await p.waitForFunction(() => !document.getElementById('waitwin') && /calculation stopped/.test(document.getElementById('summary').textContent), null, { timeout: 10_000 }).catch(() => {});
+  const after = await p.evaluate(() => ({ plan: !!window.__state.plan, line: document.getElementById('summary').textContent, card: !!document.getElementById('waitwin') }));
+  check(!after.plan && !after.card && /calculation stopped/.test(after.line), `long plan: Cancel in the window stops the calculation (${JSON.stringify(after).slice(0, 160)})`);
 
-  // the same wait once the routing data is here (no card): the wait box – its km bar, a running stripe, the calm line.
-  // Cancel stopped the worker (its downloads went with it): Calculate fetches them again; then Reverse plans the same
-  // points on the data that is now here
-  // what the page showed from here on, for the failure message (CI 2026-11-19: no wait box at all, only there)
-  await p.evaluate(() => {
-    window.__waits = []; const t0 = performance.now();
-    window.__waitsTimer = setInterval(() => {
-      const box = document.querySelector('#msgcards .msgcard'), card = document.querySelector('#mapnotes .mapnote.load');
-      const now = `${box ? 'box[' + box.dataset.id + ']:' + (box.querySelector('.msgtitle')?.textContent ?? '') + '/' + (box.querySelector('.msgprogline')?.textContent ?? '') : 'no box'}`
-        + ` | ${card ? 'card:' + (card.querySelector('.title')?.textContent ?? '') + '/' + (card.dataset.pct ?? '') : 'no card'}`
-        + ` | planning=${document.body.dataset.planning ?? ''} wait=${document.body.dataset.wait ?? ''} plan=${!!window.__state.plan}`;
-      if (window.__waits.at(-1)?.s !== now) window.__waits.push({ t: Math.round(performance.now() - t0), s: now });
-    }, 100);
-  });
-  const steps = [];
-  steps.push('planAnyway ' + await p.waitForSelector('#planAnyway', { timeout: 10_000 }).then(() => 'there', () => 'missing'));
-  await p.click('#planAnyway', { timeout: 10_000 }).catch((e) => steps.push('planAnyway click failed: ' + String(e).slice(0, 80)));
-  steps.push('route ' + await p.waitForFunction(() => window.__state.plan && document.body.dataset.planning !== '1' && !document.querySelector('#mapnotes .mapnote.load'), null, { timeout: 120_000 })
-    .then(() => 'in', () => 'not in after 120 s'));
-  // the map at rest first: tiles still loading (the route's fit, a slow GPU – CI's software renderer) open the load card,
-  // and the calculation then rightly joins the card instead of the box (one wait at a time). A card that still came
-  // for the tiles: once more, at rest again
-  let boxHint = false;
-  for (let k = 0; k < 3 && !boxHint; k++) {
-    await p.waitForTimeout(1000); // the route's fit starts 500 ms after the plan
-    steps.push('map ' + await p.waitForFunction(() => !window.__map.isMoving() && window.__map.areTilesLoaded() && !document.querySelector('#mapnotes .mapnote.load')
-      && document.body.dataset.planning !== '1', null, { timeout: 60_000 }).then(() => 'at rest', () => 'not at rest after 60 s'));
-    steps.push('reverse ' + await p.evaluate(() => (document.getElementById('reverse')?.disabled ? 'disabled' : 'enabled')));
-    const from = await p.evaluate(() => window.__waits.length);
-    await p.click('#reverse', { timeout: 10_000 }).catch((e) => steps.push('reverse click failed: ' + String(e).slice(0, 80)));
-    steps.push('plan ' + await p.waitForFunction(() => document.body.dataset.planning === '1', null, { timeout: 10_000, polling: 50 }).then(() => 'started', () => 'not started in 10 s'));
-    boxHint = await p.waitForFunction(() => /few minutes/.test(document.querySelector('#msgcards .msgcard[data-id="routing"] .msgproghint')?.textContent ?? '')
-      || document.body.dataset.planning !== '1', null, { timeout: 60_000, polling: 100 })
-      .then(() => p.evaluate(() => /few minutes/.test(document.querySelector('#msgcards .msgcard[data-id="routing"] .msgproghint')?.textContent ?? '')), () => false);
-    const tilesCard = await p.evaluate((n) => window.__waits.slice(n).some((w) => /card:Loading the map/.test(w.s)), from);
-    steps.push(`attempt ${k + 1}: ${boxHint ? 'box with the calm line' : tilesCard ? 'the tiles brought the card' : 'no box'}`);
-    if (!boxHint && !tilesCard) break; // not the tiles: a real failure
-    if (!boxHint) await p.waitForFunction(() => document.body.dataset.planning !== '1', null, { timeout: 60_000 }).catch(() => {});
-  }
-  const wb = await p.evaluate(() => { const b = document.querySelector('#msgcards .msgcard[data-id="routing"]');
-    const s = b?.querySelector('.msgbar.running b'); const r = s?.getBoundingClientRect(), t = b?.querySelector('.msgproghint')?.getBoundingClientRect(),
-      l = b?.querySelector('.msgprogline')?.getBoundingClientRect();
-    return b ? { line: b.querySelector('.msgprogline').textContent, anim: s ? getComputedStyle(s).animationName : '', w: Math.round(r?.width ?? 0),
-      apart: !!t && !!l && t.top >= l.bottom - 1, card: !!document.querySelector('#mapnotes .mapnote.load') } : null; });
-  const waits = await p.evaluate(() => { clearInterval(window.__waitsTimer); return window.__waits; });
-  const okBox = boxHint && wb && /^\d+ of \d+ km · \d+:\d\d$/.test(wb.line) && wb.anim === 'loadrun' && wb.w > 0 && wb.apart && !wb.card;
-  check(okBox, `long plan without downloads: the wait box – km and clock, a running stripe, the calm line under it (${JSON.stringify(wb)})`);
-  if (!okBox) console.log(`(steps: ${steps.join('; ')}\n page: ${waits.map((w) => w.t + ' ' + w.s).join('\n       ')})`);
-  await p.click('#msgcards .msgcard[data-id="routing"] .msgbtn').catch(() => {});
+  // the same wait once the routing data is here: Calculate fetches it again (Cancel stopped the worker), then Reverse
+  // plans the same points on the data that is now here – the window comes for the route alone (after its second)
+  await p.click('#planAnyway', { timeout: 10_000 }).catch(() => {});
+  await p.waitForFunction(() => window.__state.plan && document.body.dataset.planning !== '1', null, { timeout: 120_000 }).catch(() => {});
+  await p.waitForFunction(() => !window.__map.isMoving() && !document.getElementById('waitwin'), null, { timeout: 60_000 }).catch(() => {});
+  await p.waitForTimeout(1000);
+  const from = await p.evaluate(() => window.__card.length);
+  await p.click('#reverse', { timeout: 10_000 }).catch(() => {});
+  const came = await p.waitForFunction(() => /Calculating the route/.test(document.querySelector('#waitwin .wwtitle')?.textContent ?? ''), null, { timeout: 30_000 }).then(() => true, () => false);
+  await p.waitForTimeout(4000);
+  const second = (await p.evaluate((n) => window.__card.slice(n), from)).filter((x) => !x.gone);
+  check(came && second.every((x) => /^\d{1,3} %$/.test(x.num) && x.rows.length <= 3) && second.some((x) => x.rows.some((r) => /Section/.test(r))),
+    `without downloads: the route's window – its percent, its legs as steps (${second.slice(-3).map((x) => `${x.num} [${x.rows.join(', ')}]`).join(' ; ')})`);
+  check(second.every((x, i) => i === 0 || x.pct >= second[i - 1].pct) && new Set(second.map((x) => x.pct)).size > 1,
+    `without downloads: the percent moves, never back (${second.map((x) => x.pct).join(' ')})`);
+  await p.click('#waitwin .wwcancel').catch(() => {});
   await p.waitForFunction(() => document.body.dataset.planning !== '1', null, { timeout: 10_000 }).catch(() => {});
   check(errs.length === 0, `long plan: no page error (${errs.join(' | ')})`);
   await c.close();

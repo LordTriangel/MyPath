@@ -4,7 +4,6 @@
 // One box at a time (the app's Messages.pick: a question first, then the oldest); the others wait and come next.
 // ANZEIGE (a state shown in place) is no box – lines in the sheet, the map strip.
 
-import { runStripe } from './mapnotice';
 
 export type MessageKind = 'frage' | 'hinweis' | 'hinweis-warn' | 'hinweis-error';
 export interface MessageButton { label: string; act: () => void }
@@ -23,48 +22,12 @@ export interface Message {
   tone?: 'edit' | 'neutral';
   /** Where the box's centre goes (page pixels) instead of 12 px under the top bar – e.g. the middle of the free map. */
   at?: () => { x: number; y: number };
-  /** A wait's progress under the title (owner 2026-11-18): a thin bar filled to [share] (0..1) and a [line]. */
-  progress?: WaitProgress;
-}
-export interface WaitProgress {
-  share: number;
-  line: string;
-  /** The work goes on without a new number (a long leg, the route put together): a stripe runs over the bar. */
-  running?: boolean;
-  /** A calm line under it once the wait took a while („A long tour can take a few minutes.“ – loadoverlay HINT_MS). */
-  hint?: string;
 }
 
-/** Elapsed time as m:ss (h:mm:ss from an hour) – the wait's clock that shows it is alive. */
+/** Elapsed time as m:ss (h:mm:ss from an hour) – a wait's clock that shows it is alive (the GPX fit's box). */
 export function elapsed(ms: number): string {
   const s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = String(s % 60).padStart(2, '0');
   return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
-}
-
-/**
- * The progress of message [id] changed: kept for the next draw, and on screen updated in place – the box is not built
- * anew each second (a click on its Cancel must never fall between two boxes).
- */
-export function setProgress(id: string, p: WaitProgress) {
-  const m = waiting.find((x) => x.id === id);
-  if (!m) return;
-  const had = !!m.progress;
-  m.progress = p;
-  const card = host?.querySelector<HTMLElement>(`.msgcard[data-id="${id}"]`);
-  if (!card) return;
-  if (!had || !card.querySelector('.msgprog')) { draw(); return; }
-  fillProgress(card.querySelector<HTMLElement>('.msgprog')!, p);
-}
-
-function fillProgress(el: HTMLElement, p: WaitProgress) {
-  el.querySelector<HTMLElement>('.msgbar i')!.style.width = `${(Math.min(1, Math.max(0, p.share)) * 100).toFixed(1)}%`;
-  const bar = el.querySelector<HTMLElement>('.msgbar')!;
-  if (!!p.running !== bar.classList.contains('running')) {
-    bar.classList.toggle('running', !!p.running);
-    if (p.running) runStripe(bar.querySelector<HTMLElement>('b')!);
-  }
-  el.querySelector<HTMLElement>('.msgprogline')!.textContent = p.line;
-  el.querySelector<HTMLElement>('.msgproghint')!.textContent = p.hint ?? '';
 }
 
 const waiting: Message[] = [];
@@ -126,13 +89,6 @@ function draw() {
   title.append(m.title);
   text.append(title);
   if (m.detail) text.append(Object.assign(document.createElement('div'), { className: 'msgdetail', textContent: m.detail }));
-  if (m.progress) {
-    const pr = document.createElement('div');
-    pr.className = 'msgprog';
-    pr.innerHTML = '<div class="msgbar" role="presentation"><i></i><b></b></div><div class="msgprogline"></div><div class="msgproghint"></div>';
-    fillProgress(pr, m.progress);
-    text.append(pr);
-  }
   const row = document.createElement('div');
   row.className = 'msgbuttons';
   m.buttons.forEach((b, k) => {

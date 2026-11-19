@@ -126,7 +126,7 @@ export class MapAreas {
   private request(ids: string[], reason: Reason, why: Why, own: string | null) {
     const fresh = ids.filter((id) => !this.states.has(id));
     if (!fresh.length) return;
-    if (!this.job || this.job.ids.every((id) => this.done(id))) { this.job = { why, own, ids: [] }; this.hidden = false; }
+    if (!this.job || this.job.ids.every((id) => this.done(id))) { this.job = { why, own, ids: [] }; this.hidden = false; this.handedOver = false; }
     for (const id of fresh) { this.job.ids.push(id); this.states.set(id, { s: 'requested' }); }
     if (!this.job.own && own) { this.job.own = own; this.job.why = why; }
     if (!this.available || this.quota) { this.show(); return; }
@@ -214,26 +214,34 @@ export class MapAreas {
     for (let i = 0; i < watch.length; i += 12) this.send('status', watch.slice(i, i + 12));
   }
 
-  /** The strip (mirror of CellCards.build). */
+  /**
+   * The strip (mirror of CellCards.build) for what is said in place (failed, offline, quota, overview only); areas the
+   * server prepares are a wait (the app's MapLoadWait.waits: the user's own point / search / position, or a job while
+   * the view has no detailed map – form A, the wait window, loadoverlay.ts) or a load beside the map (along the route:
+   * form B, the sign, besidesign.ts).
+   */
   private show() {
     const n = this.build();
-    this.notices.set('areas', n);
-    this.onBuild?.(n?.kind === 'busy' ? { ...this.buildProgress(), notice: n } : null);
+    const busy = n?.kind === 'busy';
+    this.notices.set('areas', busy ? null : n);
+    const job = this.job;
+    const open = busy && job ? job.ids.filter((id) => !this.done(id) || this.states.get(id)?.s === 'ready') : [];
+    const lines = open.map((id) => {
+      const x = this.states.get(id)!;
+      return `${id}\t${x.s}\t${x.s === 'building' ? x.progress : x.s === 'ready' ? 1 : 0}\t${(x.s === 'queued' || x.s === 'building') && x.eta != null ? x.eta : -1}`;
+    });
+    const wait = busy && !!job && (job.own != null || (this.centreAbsent && job.why !== 'here')) && !this.handedOver;
+    this.onWait?.(wait ? lines.map((l) => { const [id, state, progress, eta] = l.split('\t'); return { id, state, progress: Number(progress), eta: Number(eta) >= 0 ? Number(eta) : undefined }; }) : []);
+    this.onBackground?.(busy && !wait ? { lines: lines.join('\n'), rows: [n!.title, ...(n!.lines ?? [])], cancel: () => { this.hidden = true; this.show(); } } : null);
   }
 
-  /** The load overlay (loadoverlay.ts) shows a busy strip as its top phase, with the doorman's own progress. */
-  onBuild: ((b: { done: number; total: number; notice: Notice } | null) => void) | null = null;
-
-  /** Areas of the open job: each 0..1 – ready (or failed: nobody waits for it) 1, being prepared its progress, else 0. */
-  private buildProgress() {
-    const ids = this.job?.ids ?? [];
-    let done = 0;
-    for (const id of ids) {
-      const x = this.states.get(id);
-      done += !x ? 0 : x.s === 'ready' || x.s === 'failed' ? 1 : x.s === 'building' ? Math.min(1, Math.max(0, x.progress)) : 0;
-    }
-    return { done, total: ids.length };
-  }
+  /** The wait window (form A) takes the areas the user waits for; [] = none. */
+  onWait: ((areas: { id: string; state: string; progress: number; eta?: number }[]) => void) | null = null;
+  /** The sign beside the map (form B) takes the areas loading in the background; null = none. */
+  onBackground: ((b: { lines: string; rows: string[]; cancel: () => void } | null) => void) | null = null;
+  /** The window's Cancel: the job's areas load on beside the map (form B) until they are there. */
+  private handedOver = false;
+  handOver() { this.handedOver = true; this.show(); }
 
   build(): Notice | null {
     const close = { label: t('web_hide_loading'), onClose: () => { this.hidden = true; } };

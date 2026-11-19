@@ -34,13 +34,15 @@ import { keepRecent, afterSaved, takePlace, renameRecentIf, startUp as zuletztSt
 import { MapContentPanel } from './mapcontent';
 import { sortable } from './sortable';
 import { longRouteOk, allowLongRoute, cancelCamera, notRoutedTexts, setNotRouted, type Before } from './longroute';
-import { post, dismiss, onShown, setProgress, elapsed, type WaitProgress } from './msgcard';
+import { post, dismiss, onShown } from './msgcard';
 import { OneWait } from './onewait';
 import { setupGpxImport } from './gpximport';
 import { overviewStyle, followCover, followPackages } from './overview';
 import { PlanGapsLayer } from './plangaps';
 import { MapNotices } from './mapnotice';
-import { LoadOverlay, watchTiles, BUILD_UNITS, CALC_UNITS, ENGINE_UNITS, HINT_MS, LINK_UNITS, type JobLook } from './loadoverlay';
+import { LoadOverlay, watchTiles, ENGINE_UNITS, LINK_UNITS, type PlanIn } from './loadoverlay';
+import { BesideSign } from './besidesign';
+import { loadWaitEngine, waitEngineReady } from './waitengine';
 import { MapAreas, type MapTexts } from './areas';
 import { t, tp, lang, languages, switchLanguage, number, distance, locale } from './i18n';
 import { appHint } from './apphint';
@@ -479,34 +481,41 @@ function showCellTrouble() {
 }
 if (useCells) { cells.onChange = showCellTrouble; map.on('moveend', showCellTrouble); }
 (window as unknown as { __areas: MapAreas | null }).__areas = areas; // for the browser tests
-// The load overlay (loadoverlay.ts, owner 2026-11-13): while the map of a new area loads – its tiles, a link's or a
-// plan's routing data, a map area being prepared – one card at the top of the map with a percent and a bar; the route
-// calculation is its last phase. It is then the only wait: the strip's other spinners, the route's wait box, the
-// sheet's wait line and the engine's status line step back (body[data-loadover], style.css).
-const percentFormat = new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 });
-const overlay = new LoadOverlay(notices, 400, (on) => {
+// The wait window (form A, loadoverlay.ts – owner 2026-11-13 / 2026-11-19 „ich muss warten“): while the map of a new
+// place loads – its tiles, a map area the server prepares for the user's point, a link's or a plan's routing data – and
+// while a route is calculated: ONE window over the map, one bar over all steps, at most 3 rows, Cancel. It is then the
+// only wait: the strip's other spinners, the sheet's wait line and the engine's status line step back (onewait.ts).
+// Background loads (map areas along the route) are the sign beside the map instead (form B, besidesign.ts).
+/** A route alone brings the wait window only after this long (a fast route shows nothing – the app's slow route). */
+const WAIT_CARD_MS = Number(params.get('waitMs') ?? 1000); // ?waitMs=0: the browser tests see every wait
+const beside = new BesideSign($('stage'));
+const overlay = new LoadOverlay(400, WAIT_CARD_MS, (on) => {
   document.body.dataset.loadover = on ? '1' : '';
-  if (on) dismiss('routing'); // the wait box's text and Cancel are in the card now
+  notices.cover(on);
   waits.set('load', on);
-}, (f) => percentFormat.format(f));
-// the card is due (its 400 ms delay runs) while two other waits want to show: it comes at once and carries them
+}, () => { const m = mapMiddle(), st = $('stage').getBoundingClientRect(), bar = $('topbar').getBoundingClientRect(), sh = $('sheet').getBoundingClientRect();
+  return { ...m, top: bar.bottom, bottom: phoneWidth() ? Math.min(sh.top, st.bottom) : st.bottom }; },
+(pct) => { beside.seed(pct); areas?.handOver(); });
+// the window is due (its delay runs) while two other waits want to show: it comes at once and carries them
 waits.loadDue = () => overlay.due;
 waits.loadNow = () => overlay.showNow();
 overlay.onDue = () => waits.decide();
-const loadLook = (): JobLook => ({ title: t('maps_load_loading'), prio: 1, opens: true });
-const cancelLook = () => ({ label: t('common_cancel'), act: () => { cancelRouting(); } });
-// tiles alone bring the card up only once the map rests (as the strip did: a pan shows no card while it moves)
-watchTiles(map, overlay, () => ({ ...loadLook(), opens: !map.isMoving() }));
-overlay.job('engine', 0, ENGINE_UNITS, { title: t('maps_load_loading'), prio: 1, opens: false });
+// tiles alone bring the window up only for the page's first map (the app's „first map of your area“), once the map
+// rests; later they stream in where the user looks and only join a window that is up for a place's map or a route –
+// a window over the map's middle for every pan would stand between the user and the map
+let firstMap = true;
+map.once('idle', () => { firstMap = false; });
+watchTiles(map, overlay, () => firstMap && !map.isMoving());
+overlay.job('engine', 0, ENGINE_UNITS, 'engine', false);
 ready.then(() => overlay.finish('engine'), () => overlay.remove('engine'));
+// the window's own engine (waitengine.ts): a second instance of the Wasm engine on this thread, once the first is in
+ready.then(() => loadWaitEngine(base, lang));
+(window as unknown as { __wait: unknown }).__wait = { ready: waitEngineReady, now: () => overlay.now, beside: () => beside.shown }; // for the browser tests
 // a shared link: its routing data is not known before the engine read the link – a share of the bar until then
-if (/[#&?]p=/.test(location.href)) overlay.job('link', 0, LINK_UNITS, loadLook());
+if (/[#&?]p=/.test(location.href)) overlay.job('link', 0, LINK_UNITS, 'routing');
 if (areas) {
-  areas.onBuild = (b) => {
-    if (!b || !b.total) { overlay.remove('build'); return; }
-    overlay.job('build', b.done * BUILD_UNITS, b.total * BUILD_UNITS,
-      { title: b.notice.title, lines: b.notice.lines, close: b.notice.close, prio: 3, opens: true });
-  };
+  areas.onWait = (list) => overlay.areas(list);
+  areas.onBackground = (b) => beside.set(b);
 }
 map.on('movestart', (e) => { if ((e as { originalEvent?: unknown }).originalEvent) lastMapTouch = performance.now(); }); // a pan / zoom by the user
 // any press on the map counts as touched (the app's lastMapTouchMs): a point being set stops the first route's fit
@@ -1476,22 +1485,16 @@ async function restoreDraft() {
 }
 
 // ---- planning ----
-/** The wait box shows only after this long (a fast route shows nothing). */
-const WAIT_CARD_MS = Number(params.get('waitMs') ?? 1000); // ?waitMs=0: the browser tests see every wait
 /** Planning or not – also for the page's tests (body[data-planning]); off takes the wait box away. */
 function setPlanning(on: boolean) {
   state.planning = on;
   document.body.dataset.planning = on ? '1' : '';
-  if (!on) { dismiss('routing'); linkOpened(); overlay.finish('route'); overlay.finish('calc'); }
+  if (!on) { linkOpened(); overlay.finish('route'); overlay.plan(null); }
   sheetWait();
 }
 /** The sheet's wait line („Calculating the route…“) wants to show while a plan runs (onewait.ts decides whether it does). */
 function sheetWait() {
   waits.set('sheet', state.planning && !!document.querySelector('#summary .subline.waitline'));
-}
-/** The wait box in the middle of the free map (beside / above the sheet), with Cancel – the app's onCancelRouting. */
-function waitCard(text: string, progress?: WaitProgress) {
-  post({ id: 'routing', kind: 'hinweis', busy: true, tone: 'edit', title: text, progress, buttons: [{ label: t('common_cancel'), act: cancelRouting }], at: mapMiddle });
 }
 function mapMiddle() {
   const st = $('stage').getBoundingClientRect(), sh = $('sheet').getBoundingClientRect(), bar = $('topbar').getBoundingClientRect();
@@ -1586,62 +1589,29 @@ async function planRun(rounds: number) {
   setPlanning(true);
   render();
   newPointsAsked();
-  // the wait (owner 2026-11-02: "man guckt auf den Bildschirm und nichts passiert"): after about a second one box in the
-  // middle of the map – spinner, the routing data download (the app's "Loading the map for your area · about 9 MB",
-  // map-cells.md §19.8), then "Calculating the route…", and Cancel; a fast route shows nothing (no flash)
-  // While the map of a new area loads (its routing data here, its tiles, a map area being prepared) the load overlay
-  // says it with a percent and takes this wait over as its last phase (owner 2026-11-13) – one wait at a time.
-  let wait = t('plan_calculating');
-  // the route's progress (owner 2026-11-18, München–Venedig): a thin bar by the km of the legs routed of the plan's
-  // length and "210 of 564 km · 0:42" – the bar moves when a leg is done (nothing invented), the clock each second
-  const t0 = performance.now();
-  let km: { doneM: number; totalM: number } | null = null;
-  const kmLine = () => km && km.totalM > 0 ? t('plan_progress_km', String(Math.round(km.doneM / 1000)), String(Math.round(km.totalM / 1000)), elapsed(performance.now() - t0)) : null;
-  // a long route (owner 2026-11-18, Neuss → München: „98 % sehr lange – hängt das?“): within a leg and while the legs
-  // are put together the router says nothing – a running stripe shows it works, after HINT_MS the app's calm line
-  const hint = () => performance.now() - t0 >= HINT_MS ? t('plan_from_track_busy_text') : undefined;
-  const progressNow = (): WaitProgress | undefined => { const line = kmLine();
-    return line ? { share: km!.doneM / km!.totalM, line, running: true, hint: hint() } : undefined; };
-  // the load card's last phase: running (no percent), the engine's line, the km and the clock (loadoverlay.ts)
-  const calcLook = (title: string): JobLook => { const line = kmLine();
-    return { title, prio: 0, opens: false, action: cancelLook(), running: true, hint: t('plan_from_track_busy_text'), lines: line ? [line] : undefined }; };
-  const calcDone = () => km && km.totalM > 0 ? Math.round((km.doneM / km.totalM) * CALC_UNITS) : 0;
-  overlay.job('calc', 0, CALC_UNITS, calcLook(wait));
-  const show = () => {
-    if (id !== state.latest || !state.planning) return;
-    if (overlay.shown) { dismiss('routing'); return; }
-    if (linkOpening && phoneWidth()) return; // a link on a phone: never a box over its route – the sheet's line says it
-    waitCard(wait, progressNow());
-  };
-  let shown = false;
-  const waitTimer = setTimeout(() => { shown = true; show(); }, WAIT_CARD_MS);
-  const clock = setInterval(() => {
-    if (id !== state.latest || !state.planning) return;
-    const p = progressNow();
-    if (p) setProgress('routing', p);
-    if (km && overlay.isOpen('calc')) overlay.job('calc', calcDone(), CALC_UNITS, calcLook(wait)); // the card's clock
-  }, 1000);
+  // the wait (owner 2026-11-02: "man guckt auf den Bildschirm und nichts passiert"; 2026-11-19 „Route berechnet ist auch
+  // A“): the wait window (loadoverlay.ts) – after about a second for a route alone, at once with the map of a new place
+  // (its routing data here): the routing data's bytes, then its legs and „prüfen“ as steps of ONE bar, and Cancel (the
+  // app's cancelRouting); a fast route shows nothing (no flash)
+  let run: PlanIn = { done: 0, total: 0, checking: false, join: null, names: namesText(), points: state.points.length, known: false };
+  overlay.plan(run, () => { cancelRouting(); });
   const routed = state.points;
   const r = await engine.plan(routed, state.activity, state.sac, sharedPlan().pinned, (pr) => {
     if (id !== state.latest) return;
+    run = { ...run, known: true };
     if (pr.phase === 'download') {
       // the routing data: bytes received of the bytes needed (sizes from the files' index – worker.ts ensureParts)
-      km = null;
       overlay.remove('link');
-      overlay.job('route', pr.done, pr.bytes, { ...loadLook(), action: cancelLook() });
+      overlay.job('route', pr.done, pr.bytes, 'routing');
+      run = { ...run, join: 0 };
     } else {
       overlay.finish('route');
-      if (pr.phase === 'legs') {
-        if (pr.totalM != null && pr.doneM != null) km = { doneM: pr.doneM, totalM: pr.totalM };
-        overlay.job('calc', calcDone(), CALC_UNITS, calcLook(pr.text || t('plan_calculating')));
-      }
+      // 'route': the data is written into the engine's files (the join step) until the router reports its first leg
+      if (pr.phase === 'route') run = { ...run, join: run.join != null ? 0.5 : null };
+      if (pr.phase === 'legs') run = { ...run, join: null, done: pr.done ?? 0, total: pr.total ?? 0, checking: (pr.total ?? 0) > 0 && (pr.done ?? 0) >= (pr.total ?? 0) };
     }
-    wait = pr.phase === 'download' ? `${t('maps_load_loading')} · ${t('maps_about_mb', Math.max(1, Math.round(pr.bytes / 1e6)))}`
-      : pr.phase === 'legs' && pr.text ? pr.text : t('plan_calculating');
-    if (shown) show();
+    if (id === state.latest && state.planning) overlay.plan(run);
   }, namesText(), rounds);
-  clearTimeout(waitTimer);
-  clearInterval(clock);
   if (id !== state.latest) return; // a newer request supersedes this one (or Cancel dropped it)
   setPlanning(false);
   if (r.ok && r.plan?.slow) { askSlowPlan(r.plan.slow); render(); return; }

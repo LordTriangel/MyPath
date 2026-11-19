@@ -572,12 +572,13 @@ the blue dot and no word why. "When there are waits, the user must know why … 
 | --- | --- | --- |
 | Engine start | sheet status line, spinner | Loading the routing engine… |
 | Locate | map strip, spinner | Finding your position… (after 20 s: Still finding your position – …); denied: red "Location is not allowed for this page. To allow it, click the icon left of the address, turn on Location, then click Locate again." (the next click asks again); off: red "Your position is not available – …" |
-| Map tiles still loading 400 ms after the map stopped | **load overlay (§27)**, percent, until loaded | Loading the map for your area (`maps_load_loading`) |
-| Routing data for a plan | **load overlay (§27)**, percent (bytes received of the bytes needed) | Loading the map for your area (`maps_load_loading`; until 2026-11-13 „· about 10 MB“, `maps_about_mb`, in the wait box) |
-| Routing | sheet subline + status line, spinner | Calculating the route… (`plan_calculating`) |
+| The page's first map: tiles still loading 400 ms after the map stopped | **wait window (§27, form A)**, one bar + percent, until loaded | Map for your area (`wait_title_map`), row „loading map“ |
+| Routing data for a plan | **wait window (§27, form A)**, the bytes as its load step | Map for your area, rows „loading map + routing data · add to the map · Section 1“ |
+| Routing | **wait window (§27, form A)** after a second (at once after the routing data), the legs + „check“ as steps; the sheet subline while no window | Calculating the route (`wait_title_route`), „Section 2“ / „Algund → Meran“, „checking“ |
 | "Go here" waiting for the position | status line, spinner | Finding your position… |
 | Spot without detailed map, zoom ≥ 10 | map strip, grey | Overview only – the detailed map for this area is asked for when the map rests here. |
-| Map area being built | **load overlay (§27)**, the doorman's percent | the app's strip: "Preparing map for this area – about 5 min", rows "Your position · waiting – about 5 min" / "being prepared – 40 %, about 2 min", "2 more areas · waiting", × = hide (keeps loading) |
+| Map area being built for the user's point / search / position, or while the view has no detailed map | **wait window (§27, form A)**, its prepare step by the doorman's progress and time left | Map for your area, rows „being prepared · load“, „about 5 minutes left“ |
+| Map areas along a route while the view has its map | **the sign beside the map (§27, form B)**: a ring + one percent; tap → details | details: „Loading in the background“, the bar, the strip's lines ("Preparing map for this area – about 5 min", "Map area 1 · being prepared – 40 %"), Cancel all · Close |
 | Map server down / offline | map strip, grey | "Map server not reachable – trying again." / "No detailed map – loads when online" |
 | Build failed | map strip, red | the doorman's reason, or "Map for this area failed" |
 | No key on the host | map strip, grey | The detailed map for this area is not available on the web yet – the overview map is shown. |
@@ -1035,6 +1036,28 @@ Also (owner 2026-11-07, app f37793d0 `RouteWarnings.saysChanged`): the user's ow
 „New route for … – check it“ – in the planner the change is always the user's own, so the line never shows.
 
 ## 27. The load overlay – the map of a new place loading, in percent (laptop, 2026-11-13)
+**Replaced 2026-11-19 by the app's progress design** (owner: „wir haben den Fortschritt nun an unterschiedlichen Stellen
+und Formen … vereinheitlichen“; „A, aber nie mehr als 3 Häkchen; B: einfach nur Prozent, muss aber passen für die
+gesamte Aktion“ – `docs/items/2026-11-19-progress-design-on-main.md`). **Form A, the wait window** (`loadoverlay.ts`, the
+app's `ui/progress/WaitWindow.kt` + `MapLoad.kt` MapWait + `RouteWait.kt`, mirrored): one window over the free map's middle,
+always the same – sign + title, ONE bar 0–100 with its number over all steps, at most 3 step rows with ticks, the time
+left („about 20 seconds left“, „taking a bit longer…“ when a step overruns), Cancel. A new place's map, its routing data
+and the route calculation are steps of ONE window: prepare (a map area the server builds: its progress / time left) ·
+load (map tiles, routing data, the engine – by bytes) · add to the map (the routing data written into the engine, only
+with routing data) · the legs the router works on · check. The math is the app's shared code (core
+`domain/WaitProgress.kt`: OneBar, StepShares, RouteShares, WaitSteps, TimeLeft, PrepareProgress) in `WebWait.kt`, run by a
+second instance of the Wasm engine on the page's thread (`waitengine.ts` – the routing worker is blocked while BRouter
+routes); the shares are learned per browser (`progressmemory.ts`, localStorage, bounded, defaults on failure). Tiles
+alone bring the window only for the page's first map; later they only join a window that is up. A plan brings it after
+a second (`?waitMs`), at once once routing data comes; a map area the user waits for (own point / search / position, or
+the view without detailed map – the app's MapLoadWait) after 400 ms. Cancel stops a route (the app's cancelRouting);
+map areas that load on go on beside the map (form B). The interim pieces are gone: the running stripe without a number,
+the calm line after 10 s, the km line „210 of 564 km · 0:42“ (WebPlanProgress), the route's wait box. **Form B, the sign
+beside the map** (`besidesign.ts`, the app's `BesideSign.kt`): map areas along a route while the view has its map – a
+small pill under the top bar at the right, a ring + ONE percent over all of them (`WebSign`: ActionPercent), tap → the
+details (title, the bar, the strip's lines, Cancel all · Close). The routing data fetched around the view ahead of a
+first plan stays silent (nobody waits for it). The rest of this section is the history of the interim form.
+
 Owner 2026-11-13: „Das wird der Normalfall sein: man ist im Urlaub und plant für einen neuen Ort, sucht ihn – oder bekommt
 einen Link von einem Freund und war da noch nie. Die Meldung, dass die Karte noch geladen wird, sollte als Overlay
 erscheinen, mit einer prozentualen Fortschrittsangabe.“

@@ -421,25 +421,61 @@ dialog.pair .check b { letter-spacing: .08em; }
 .mapnote .line { font-size: 12px; color: var(--muted); margin: 2px 0 0 22px; }
 .mapnote .x, .mapnote button, .mapnote a { pointer-events: auto; }  /* clicks on the strip's text reach the map below */
 .mapnote .x { flex: none; border: none; background: none; color: var(--muted); font-size: 18px; line-height: 1; padding: 0 2px; margin: -2px -4px 0 0; }
-/* the load overlay (loadoverlay.ts, owner 2026-11-13): one calm card – the line, a bar and the percent, Cancel while routing */
-.mapnote.load { padding: 12px 14px; font-size: 15px; box-shadow: 0 4px 16px var(--shadow); }
-.mapnote.load .title { font-weight: 600; }
-.mapnote.load .progress { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
-.mapnote.load .bar { flex: 1; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
-.mapnote.load .bar > i { display: block; height: 100%; border-radius: 3px; background: var(--plan); transition: width .25s ease-out; }
-.mapnote.load .pct { flex: none; min-width: 3.2em; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
-.mapnote.load .line { margin-left: 0; }
-.mapnote.load .act { display: block; margin: 8px 0 -4px auto; border: none; background: none; color: var(--green-fg, var(--plan)); font: inherit; font-size: 14px;
-  font-weight: 600; padding: 4px 2px; cursor: pointer; }
-/* the route calculation (the router says no fraction, owner 2026-11-18): a running bar – a stripe that keeps moving, no
-   number; its speed and phase are set by runStripe (mapnotice.ts), so a card drawn anew does not jump back */
-.mapnote.load .bar.running > i { width: 35%; transition: none; animation: loadrun 1.4s linear infinite; }
-@keyframes loadrun { from { transform: translateX(-100%); } to { transform: translateX(290%); } }
-@media (prefers-reduced-motion: reduce) { .mapnote.load .bar > i { transition: none; } }
+/* the wait window (form A, loadoverlay.ts – the app's WaitWindowView, owner 2026-11-19): one card over the free map's
+   middle – sign + title, ONE bar with its number, at most 3 step rows with ticks, the time left beside Cancel */
+.waitwin { position: fixed; z-index: 16; transform: translate(-50%, -50%); width: min(360px, calc(100vw - 32px)); box-sizing: border-box;
+  padding: 18px 12px 6px 20px; background: var(--paper); border-radius: var(--r-card); box-shadow: var(--shadow-high); color: var(--fg); }
+.waitwin.done { pointer-events: none; }
+.waitwin .wwhead { display: flex; align-items: center; gap: 10px; padding-right: 8px; }
+.waitwin .wwsign { flex: none; width: 24px; height: 24px; color: var(--go); } .waitwin .wwsign svg { width: 24px; height: 24px; display: block; }
+.waitwin.paused .wwsign { color: var(--muted); }
+.waitwin .wwtitle { font-size: 16px; font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+.waitwin .wwprog { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding-right: 8px; }
+.waitwin .wwbar { flex: 1; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.waitwin .wwbar > i { display: block; height: 100%; width: 0; border-radius: 2px; background: var(--green); transition: width .45s linear; }
+.waitwin.paused .wwbar > i { background: var(--muted); }
+.waitwin .wwpct { flex: none; min-width: 3.4em; text-align: right; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.waitwin .wwsteps { list-style: none; margin: 12px 0 0; padding: 0 8px 0 0; display: flex; flex-direction: column; gap: 4px; }
+.waitwin .wwsteps li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--muted); min-width: 0; }
+.waitwin .wwsteps li .lab { min-width: 0; overflow-wrap: anywhere; }
+.waitwin .wwsteps li.later { opacity: .75; }
+.waitwin .wwsteps li.now { color: var(--fg); font-weight: 600; }
+.waitwin .wwsteps .mark { flex: none; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+  color: var(--go); font-weight: 700; font-size: 14px; line-height: 1; }
+.waitwin .wwsteps li.now .mark::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--go); }
+.waitwin .wwsteps li.later .mark::before { content: ''; width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--muted) 50%, transparent); box-sizing: border-box; }
+.waitwin .wwfoot { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.waitwin .wwline { flex: 1; min-width: 0; font-size: 14px; color: var(--muted); }
+.waitwin .wwcancel { flex: none; min-height: 48px; padding: 0 12px; border: 0; border-radius: 24px; background: transparent; color: var(--green);
+  font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.waitwin .wwcancel:hover { background: var(--paper-deep); }
+@media (prefers-reduced-motion: reduce) { .waitwin .wwbar > i { transition: none; } }
+/* the sign beside the map (form B, besidesign.ts – the app's BesideSign): a small pill, a ring and ONE percent; covers nothing */
+.besidesign { position: absolute; z-index: 6; right: 12px; top: var(--beside-top, 72px); display: inline-flex; align-items: center; gap: 7px;
+  min-height: 32px; padding: 5px 12px 5px 6px; border: 0; border-radius: 999px; background: var(--tag-bg); color: var(--tag-fg);
+  font: inherit; font-size: 12px; font-weight: 600; box-shadow: var(--shadow-low); cursor: pointer; }
+.besidesign::before { content: ''; position: absolute; inset: -8px 0; } /* the tap target ≥ 48 px, the pill looks small */
+.besidesign[hidden] { display: none; }
+.besidesign svg { width: 18px; height: 18px; transform: rotate(-90deg); }
+.besidesign circle { fill: none; stroke-width: 2.4; } .besidesign .track { stroke: color-mix(in srgb, var(--tag-fg) 18%, transparent); }
+.besidesign .arc { stroke: var(--tag-fg); stroke-dasharray: 50.27; stroke-dashoffset: calc(50.27 * (1 - var(--p, 0))); transition: stroke-dashoffset .4s; }
+.besidesign.spin svg { animation: spin 1.2s linear infinite; } .besidesign.spin .arc { stroke-dashoffset: 37.7; }
+.besidesign .pct { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.besidedetails { position: absolute; z-index: 7; right: 12px; top: calc(var(--beside-top, 72px) + 44px); width: min(340px, calc(100% - 24px)); box-sizing: border-box;
+  padding: 16px 12px 6px 20px; background: var(--paper); border-radius: var(--r-card); box-shadow: var(--shadow-high); color: var(--fg); }
+.besidedetails .bdtitle { font-size: 18px; font-weight: 600; padding-right: 8px; }
+.besidedetails .bdprog { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-right: 8px; }
+.besidedetails .bdbar { flex: 1; height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.besidedetails .bdbar > i { display: block; height: 100%; background: var(--green); }
+.besidedetails .pct { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.besidedetails .bdrows { list-style: none; margin: 12px 0 0; padding: 0 8px 0 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.besidedetails .bdrows li:not(:first-child) { color: var(--muted); }
+.besidedetails .bdbuttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; margin-top: 6px; }
+.besidedetails button { min-height: 48px; padding: 0 12px; border: 0; border-radius: 24px; background: transparent; color: var(--green); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.besidedetails .bdcancel { color: var(--error); }
 /* one wait at a time (onewait.ts, owner 2026-11-13): body[data-wait] names the one that shows – the others step back */
-body[data-wait]:not([data-wait=""]):not([data-wait="box"]) #msgcards .msgcard[data-id="routing"],
-body[data-wait]:not([data-wait=""]):not([data-wait="strip"]) #mapnotes .mapnote.busy:not(.load),
-#mapnotes .mapnote.busy:not(.load) ~ .mapnote.busy:not(.load),
+body[data-wait]:not([data-wait=""]):not([data-wait="strip"]) #mapnotes .mapnote.busy,
+#mapnotes .mapnote.busy ~ .mapnote.busy,
 body[data-wait]:not([data-wait=""]):not([data-wait="sheet"]) #summary .subline.waitline,
 body[data-wait]:not([data-wait=""]):not([data-wait="status"]) #status.busy { display: none; }
 .spinner { flex: none; width: 10px; height: 10px; margin-top: 3px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--plan);
@@ -617,18 +653,6 @@ dialog.phone .phonemore .textbtn { padding-left: 0; }
 .msgtext { flex: 1 1 220px; min-width: 0; }
 .msgtitle { font-size: 16px; font-weight: 700; color: #243C31; }
 .msgdetail { font-size: 14px; color: #4A4F4A; margin-top: 2px; }
-/* a wait's progress (owner 2026-11-18): a thin bar by the km routed, the line "210 of 564 km · 0:42" under it */
-.msgprog { margin-top: 8px; }
-.msgbar { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
-.msgbar i { display: block; height: 100%; width: 0; background: var(--plan); transition: width .4s ease; }
-.msgprogline { font-size: 14px; color: #4A4F4A; margin-top: 4px; font-variant-numeric: tabular-nums; }
-/* the route still working without a new km (a long leg, the route put together): a soft stripe runs over the bar */
-.msgbar { position: relative; }
-.msgbar b { display: none; position: absolute; top: 0; left: 0; height: 100%; width: 30%;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--plan) 55%, transparent), transparent); }
-.msgbar.running b { display: block; animation: loadrun 1.4s linear infinite; }
-.msgproghint { font-size: 13px; color: #4A4F4A; margin-top: 2px; }
-.msgproghint:empty { display: none; }
 .msgbuttons { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-left: auto; }
 .msgcard:not(.one) .msgbuttons { flex-basis: 100%; }
 .msgbtn { min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px; background: transparent; color: var(--green);

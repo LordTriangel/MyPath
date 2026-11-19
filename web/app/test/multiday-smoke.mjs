@@ -217,8 +217,8 @@ async function run(lang, viewport, shotPrefix) {
   await waitView(() => window.__days.lastView?.ends.filter((e) => e.kind === 'OVERNIGHT').length === 1, 'undo of the point\'s night');
   await settled();
 
-  // 12 · a far point in a multi-day tour (owner 2026-11-18): no „This route is very long“ question; the wait box shows
-  // the km routed of the plan's length and the time, ticking; Cancel takes the point back
+  // 12 · a far point in a multi-day tour (owner 2026-11-18): no „This route is very long“ question; the wait window
+  // (form A, owner 2026-11-19) shows ONE bar 0–100 over the legs, never back, at most 3 rows, and Cancel; undo takes the point back
   const before = await pins();
   const last = await page.evaluate(() => window.__state.points.at(-1));
   let far = null;
@@ -229,29 +229,31 @@ async function run(lang, viewport, shotPrefix) {
     if (JSON.parse(ask).ask) { far = [last[0] + d, last[1]]; break; }
   }
   check(!!far, 'a far point a normal plan would be asked about');
-  await page.evaluate(() => { window.__progSeen = []; new MutationObserver(() => { const l = document.querySelector('#msgcards .msgprogline');
-    if (l && window.__progSeen.at(-1) !== l.textContent) window.__progSeen.push(l.textContent); }).observe(document.body, { subtree: true, childList: true, characterData: true }); });
+  await page.evaluate(() => { window.__progSeen = []; new MutationObserver(() => { const w = document.getElementById('waitwin');
+    // each window its own session (the last wait's full bar may still show for a moment when the next begins)
+    if (w && !w.dataset.sess) w.dataset.sess = String((window.__wwSess = (window.__wwSess ?? 0) + 1));
+    const s = w && `${w.dataset.pct}|${w.querySelectorAll('.wwsteps li').length}|${w.dataset.sess}`;
+    if (s && window.__progSeen.at(-1) !== s) window.__progSeen.push(s); }).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true }); });
   await page.evaluate(([la, lo]) => window.__map.jumpTo({ center: [lo, (la + window.__state.points[0][0]) / 2], zoom: 6.5 }), far);
   await page.waitForFunction(() => !window.__map.isMoving(), null, { timeout: 10_000 }).catch(() => {});
   await clickLngLat(far[1], far[0]);
-  await page.waitForSelector('dialog.longroute, .holdaddpopup button, #msgcards .msgprogline', { timeout: 30_000 }).catch(() => {});
+  await page.waitForSelector('dialog.longroute, .holdaddpopup button, #waitwin', { timeout: 30_000 }).catch(() => {});
   if (await page.locator('.holdaddpopup').count()) await page.click('.holdaddpopup button:first-of-type');
-  await page.waitForSelector('dialog.longroute, #msgcards .msgprogline', { timeout: 60_000 }).catch(() => {});
+  await page.waitForSelector('dialog.longroute, #waitwin', { timeout: 60_000 }).catch(() => {});
   check(!(await page.$('dialog.longroute')), 'a far point in a multi-day tour: no long-route question');
   const t0 = Date.now();
   if (viewport.width > 700) await shot('5-wait-box');
-  check(await page.locator('#msgcards .msgcard[data-id="routing"] .msgbar i').count() === 1, 'the wait box: a thin progress bar');
-  check(await page.locator('#msgcards .msgcard[data-id="routing"] button', { hasText: lang === 'de' ? 'Abbrechen' : 'Cancel' }).count() === 1, 'the wait box keeps Cancel');
+  check(await page.locator('#waitwin .wwbar i').count() === 1, 'the wait window: one bar');
+  check(await page.locator('#waitwin .wwcancel', { hasText: lang === 'de' ? 'Abbrechen' : 'Cancel' }).count() === 1, 'the wait window keeps Cancel');
   await settled();
   const waited = Date.now() - t0;
-  // what the box said while it waited: every line "N of M km · m:ss", km never back, the clock running
-  const seen = await page.evaluate(() => window.__progSeen);
-  console.log('progress lines seen:', seen.slice(0, 8).join(' | '), `(${waited} ms)`);
-  const re = lang === 'de' ? /^(\d+) von (\d+) km · (\d+):(\d\d)$/ : /^(\d+) of (\d+) km · (\d+):(\d\d)$/;
-  const parsed = seen.map((s) => re.exec(s)).filter(Boolean).map((m) => ({ done: +m[1], total: +m[2], s: +m[3] * 60 + +m[4] }));
-  check(seen.length > 0 && parsed.length === seen.length, `the wait box: km routed of the plan's length and the time ("${seen[0]}")`);
-  check(parsed.every((p, k) => !k || (p.done >= parsed[k - 1].done && p.s >= parsed[k - 1].s)), 'km and clock never go back');
-  check(waited < 1500 || new Set(parsed.map((p) => p.s)).size > 1, `the clock ticks while it waits (${parsed.map((p) => p.s).join(',')})`);
+  // what the window said while it waited: its percent never back, never more than 3 rows, moving while it waits
+  const seen = (await page.evaluate(() => window.__progSeen)).map((s) => s.split('|').map(Number));
+  console.log('wait window seen (percent|rows|window):', seen.slice(0, 12).map((x) => x.join('|')).join(' '), `(${waited} ms)`);
+  check(seen.length > 0, 'the wait window showed');
+  check(seen.every(([p, , w], k) => !k || w !== seen[k - 1][2] || p >= seen[k - 1][0]), 'its percent never goes back (within one window)');
+  check(seen.every(([, r]) => r <= 3), 'never more than 3 step rows');
+  check(waited < 3000 || new Set(seen.map(([p]) => p)).size > 1, `the percent moves while it waits (${seen.map(([p]) => p).join(',')})`);
   // back as before: undo the far point
   await page.evaluate(() => document.getElementById('undo').click());
   await page.waitForFunction((n) => document.querySelectorAll('.pin').length === n, before, { timeout: 30_000 }).catch(() => {});

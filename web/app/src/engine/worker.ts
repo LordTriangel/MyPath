@@ -464,8 +464,7 @@ self.onmessage = async (ev: MessageEvent<EngineRequest>) => {
       } finally { gp.onpathPlanProgress = undefined; }
       return;
     }
-    // the plan's legs kept in the browser (a reopened tour, a reload): read before routing – they count as done at once
-    // in the wait box's km (WebPlanProgress asks the engine's leg cache, which reads them)
+    // the plan's legs kept in the browser (a reopened tour, a reload): read before routing – the router then skips them
     const tl = performance.now();
     const legsRead = req.type === 'plan' ? await legsIn(e, req.points, req.activity, req.sac) : 0;
     const legsMs = performance.now() - tl;
@@ -473,12 +472,12 @@ self.onmessage = async (ev: MessageEvent<EngineRequest>) => {
     const t1 = performance.now();
     e.writeParts(); // new parts into the local rd5 files (once per plan, not per part)
     const storeMs = performance.now() - t1;
-    // the engine's progress while it plans (WebApi planProgress → WebPlanProgress JSON): the app's PlanStatus text
-    // "Leg 2 of 5 is being calculated…" (null for one leg) and the metres routed of the plan's length
+    // the engine's progress while it plans (WebApi planProgress): the legs routed of the legs to route – the wait
+    // window's steps (WebWait, the app's RouteWait)
     const g = globalThis as unknown as { onpathPlanProgress?: (text: string) => void };
     g.onpathPlanProgress = req.type === 'plan' ? (text) => {
-      const j = JSON.parse(text) as { text: string | null; doneM: number; totalM: number };
-      reply({ id: req.id, ok: true, progress: { phase: 'legs', text: j.text ?? '', doneM: j.doneM, totalM: j.totalM } });
+      const j = JSON.parse(text) as { done: number; total: number };
+      reply({ id: req.id, ok: true, progress: { phase: 'legs', text: '', done: j.done, total: j.total } });
       hold();
     } : undefined;
     let json: string;
