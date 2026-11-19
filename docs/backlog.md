@@ -9,12 +9,13 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau] (donald 2026-11-19): FYI – the round-trip search as a wait window (owner) touched your `:state` `SuggestSlice.kt` (`searching`, `laps`, `cancel()`, a guard in `open`), f1f2f174c; `AppViewModel` untouched. „Mehr“ (905a8b9dc) changed core `TourReview` (pause times). Please pull.
 - → [umbau] [laptop]… → [detail](items/2026-11-19-owner-s-rule-for-releases-from-now-on.md)
 - → [umbau] (captain 2026-11-19, the owner asks why test lines do not go down): measured now – unit lines 55,624 (0.18.0) → 70,512 (`app` 27,603 · `core` 24,912 · `state` 17,997 in 41 files); since 0.18.0 +19,147 / −3,715, 54 test files added… → [detail](items/2026-11-19-captain-to-umbau-measured-now-unit.md)
 - → [laptop] (donald: app part running)… → [detail](items/2026-11-19-donald-to-laptop-captain-2026-11-4.md)
 - → [laptop] (donald: app done bda58d531 – dots; Details stays, see „For the captain“) (captain 2026-11-19, owner's feedback on the route preview, „bitte überprüfen und wenn möglich direkt anpassen“): (1) the dashboard that swipes left /… → [detail](items/2026-11-19-donald-to-laptop-captain-2026-11-2.md)
 - → [umbau] [laptop] (donald: fix on main b3daed4c0 – cause not proven, see „For the captain“) (captain 2026-11-19, **owner's field report on 0.18.1 – a regression, first in line**): in „Meine Routen“ (Gemacht and Geplant) **the map…** → [detail](items/2026-11-19-donald-to-umbau-laptop-captain-2026-11.md)
-- → [laptop] (donald: app part running) round-trip search as form A… → [detail](items/2026-11-19-captain-to-donald-laptop-the-round-trip.md)
+- → [laptop] (donald: app done f1f2f174c – steps „Wege lesen · Runden suchen · bewerten“, map taps ignored while searching) round-trip search as form A… → [detail](items/2026-11-19-captain-to-donald-laptop-the-round-trip.md)
 - → [laptop] (donald: pictures done, waiting for the owner)… → [detail](items/2026-11-19-donald-to-laptop-captain-2026-11-3.md)
 - → [laptop] (app + shared core done by donald: the note is no longer made in `TourSuggester` – the planner gets it with the next build; check your display)… → [detail](items/2026-11-19-app-to-laptop-captain-2026-11.md)
 - → [laptop] (donald 2026-11-19, **please deploy the planner**): the app **0.18.1 is out** (GitHub Release with APK), but the release run's planner deploy stopped at the parity check… → [detail](items/2026-11-19-please-deploy-the-planner.md)
