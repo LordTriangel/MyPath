@@ -191,7 +191,7 @@
         "web/app/src/main.ts",
         "web/app/src/longroute.ts"
       ],
-      "blob": "f82d95a4a48b5f4d8f5af68958471d39f7072a1b"
+      "blob": "5260af0cde29ae8ee68776e88f60912738295107"
     },
     {
       "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlanRecalcSlice.kt",
@@ -200,7 +200,7 @@
         "web/app/src/main.ts",
         "web/app/src/longroute.ts"
       ],
-      "blob": "c694c55271d9cfd4ffe518c6e98816654b18ce8d"
+      "blob": "20dc4af8c1130b8a11becfb525cd8d636c59ae1b"
     },
     {
       "app": "state/src/main/kotlin/com/onpath/app/ui/routes/RoutesSlice.kt",
