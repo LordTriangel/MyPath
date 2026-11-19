@@ -186,7 +186,6 @@ object SuggestText {
     // --- the run's notes (suggest.py)
     fun noteMapUpdating() = Txt.s(Res.string.suggest_note_map_updating)
     fun noteStartMoved(metres: Int) = Txt.s(Res.string.suggest_note_start_moved, metres.toString())
-    fun noteAccess(km: Double) = Txt.s(Res.string.suggest_note_access, num(km))
     fun noteSteep(upTo: Int, least: Int) = Txt.s(Res.string.suggest_note_steep, upTo.toString(), least.toString())
     fun noteNone() = Txt.s(Res.string.suggest_note_none)
     fun noteLessAscent() = Txt.s(Res.string.suggest_note_less_ascent)

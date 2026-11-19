@@ -1,7 +1,6 @@
 {
   "suggest_note_map_updating": {"area": "Tour suggestions · card (not shown yet, stage 3c)", "context": "run note: a map cell in reach has no suggest file, or one older than content 2 (no aims)", "priority": 1, "confidence": "sicher"},
   "suggest_note_start_moved": {"area": "Tour suggestions · card (not shown yet, stage 3c)", "context": "run note: the start was on an isolated way; %1$s = metres to the nearest connected way", "priority": 2, "confidence": "sicher"},
-  "suggest_note_access": {"area": "Tour suggestions · card (not shown yet, stage 3c)", "context": "run note: the unavoidable way out through town; %1$s = km (decimal comma in German)", "priority": 2, "confidence": "sicher"},
   "suggest_note_steep": {"area": "Tour suggestions · card (not shown yet, stage 3c)", "context": "run note: nothing stays below the wished maximum climb; %1$s = wished maximum m, %2$s = the least found, m", "priority": 2, "confidence": "sicher"},
   "suggest_note_none": {"area": "Tour suggestions · card (not shown yet, stage 3c)", "context": "run note: no loop at all", "priority": 1, "confidence": "sicher"},
   "suggest_note_less_ascent": {"area": "Tour suggestions · card (not shown yet, stage 3c)", "context": "run note: every card climbs less than the wished minimum", "priority": 2, "confidence": "sicher"},

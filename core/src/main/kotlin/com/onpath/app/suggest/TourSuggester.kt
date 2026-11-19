@@ -70,9 +70,8 @@ object TourSuggester {
         lap("facts")
         val search = NetSearch(net, F.ln)
         var P = Place(net, F, ch, S, start, land, search)
-        if (P.access >= 0.1 * ch.targetM) {
-            notes.add(SuggestText.noteAccess(SuggestGeo.pyRound(P.access / 1000.0, 1)))
-        }
+        // the way out through town still counts nothing in the rating (Place.access), but it is no note any more
+        // (owner 2026-11-19: „Sowas brauchen wir nicht anzeigen. Das verwirrt den Nutzer nur und nimmt Platz weg“)
         lap("place")
         var cands = Generate(P, S).pool()
         if (cands.isEmpty() && P.steep.isNotEmpty() && ch.up[1] < ch.usualUp) {  // nothing below the wished ascent: flatter ways

@@ -2,7 +2,6 @@
 <resources>
     <string name="suggest_note_map_updating">Die Karte wird hier gerade aktualisiert – für einen Teil der Umgebung fehlen die Daten für Vorschläge noch.</string>
     <string name="suggest_note_start_moved">Der Startpunkt lag auf einem Weg ohne Anschluss – die Runden beginnen %1$s m weiter am nächsten Weg.</string>
-    <string name="suggest_note_access">Von hier sind es etwa %1$s km durch den Ort bis ins Grüne. Dieser Weg hinaus und zurück ist bei jeder Runde gleich und zählt bei der Bewertung nicht mit.</string>
     <string name="suggest_note_steep">Unter %1$s Höhenmetern gibt es von hier in dieser Zeit keine Runde – gezeigt sind die flachsten (ab etwa %2$s m).</string>
     <string name="suggest_note_none">Von hier ließ sich keine passende Runde finden.</string>
     <string name="suggest_note_less_ascent">So viele Höhenmeter sind in dieser Zeit von hier aus nicht zu finden – die Vorschläge haben weniger.</string>
