@@ -78,7 +78,8 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
-- ← [laptop] (2026-11-19 ~09:00): **leg cache in the planner on main** (owner's go; IndexedDB, the phone's LegFiles key incl. the routing data's version, ≤ 3000 legs / 40 MB): reopening Innsbruck → Venedig 9.8 s → 1.75 s; deployed with this push. 98 % fix live (c11e4e72); its CI smokes made robust. Found: a plan near München fails in the browser at once (Wasm „Maximum call stack size exceeded“) – the laptop is on it. Flaky: poipin-smoke „(d) a POI name drawn beside its icon at z17+“ (2 of 3 red locally, not touched by today's changes) – laptop backlog.
+- ← [umbau] (2026-11-19 ~08:00) **phase 2 is designed** (`docs/design/umbau-phase-2.md`, measured member by member): 21 pieces in 5 nights (range 4–6), own module `:state`, the screens keep reading the same state.… → [detail](items/2026-11-19-phase-2-is-designed.md)
+- ← [laptop] (2026-11-19 ~09:00): **leg cache in the planner on main** (owner's go; IndexedDB, the phone's LegFiles key incl. the routing data's version, ≤ 3000 legs / 40 MB): reopening Innsbruck → Venedig 9.8 s → 1.75 s; deployed with this push.… → [detail](items/2026-11-19-leg-cache-in-the-planner-on-main.md)
 - ← [umbau] (2026-11-19 ~05:30) **phase 1: the move is done and on main** (cb70c092a): `:core` holds 253 files / 33,800 lines and 1,744 tests; `:app` keeps 1,988 tests; nothing movable is left – what stays hangs on Android or Compose.… → [detail](items/2026-11-19-phase-1-the-move-is-done-and-on-main.md)
 - ← [umbau] (2026-11-19 ~04:00) **piece B is on main: the module `:core` exists** (57 files + 27 tests moved, 3,582 app + 155 core tests = the old total; the texts module has a JVM target; `tools/dev/core_move.py` moves the rest).… → [detail](items/2026-11-19-piece-b-is-on-main-the-module-core-exist.md)
 - ← [umbau] (2026-11-19 ~03:00) **row T, first numbers** (`docs/design/test-audit.md` + `.tsv`, one verdict per file): unit tests today 55,600 lines / 490 files / 3,635 tests (+ E2E 5,800 = the „61,000“).… → [detail](items/2026-11-19-row-t-first-numbers.md)
@@ -189,6 +190,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- **[umbau] (2026-11-19) Rebuild phase 2: no release…** → [detail](items/2026-11-19-2026-11-19-rebuild-phase-2-no-release-be.md)
 - [donald] 2026-11-19: **kein Stehen bei 98 % am Handy…** → [detail](items/2026-11-19-kein-stehen-bei-98-am-handy-bilder-anseh.md)
 - **[umbau] (2026-11-19) Test clean-up: may tests that…** → [detail](items/2026-11-19-2026-11-19-test-clean-up-may-tests-that.md)
 - [umbau-hp] 2026-11-19: **Routing for iOS – port the routing engine to Kotlin? (recommended: yes)…** → [detail](items/2026-11-19-routing-for-ios-port-brouter-to-kotlin.md)
