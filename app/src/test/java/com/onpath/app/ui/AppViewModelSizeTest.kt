@@ -25,6 +25,6 @@ class AppViewModelSizeTest {
          * imports out → 5,792. Cleanup piece 5: the service's Intents → recording/RecordingClient, the followed route's
          * files → navigation/FollowStore → 5,760.
          */
-        const val MAX_LINES = 5_760
+        const val MAX_LINES = 5_752
     }
 }

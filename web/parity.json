@@ -470,9 +470,14 @@
       "blob": "a2155713c9b5e2283f7a2b7db81034f5c488f8c5"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/Notices.kt",
-      "why": "message rules",
-      "blob": "6034ac12dfc9d5376c179dd09315d2be91f61a26"
+      "app": "state/src/main/kotlin/com/onpath/app/ui/NoticeTypes.kt",
+      "why": "message rules (which message goes where)",
+      "blob": "c94783a779c8611d347063c6ba1782e137be90fa"
+    },
+    {
+      "app": "state/src/main/kotlin/com/onpath/app/ui/NoticeBoard.kt",
+      "why": "message rules (say / sayError / sayInfo)",
+      "blob": "8ec32994377f88ea908f071a31703e8f41e040ef"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/RouteSpotsList.kt",
