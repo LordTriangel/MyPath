@@ -32,7 +32,7 @@ import java.util.Locale
  * at font 2.0: title + four lines + OK on its own row, over the map and the scale bar) and
  * [MessageCardLargeFontTest.planPairHint] (the tallest box at 2.0). Unit tests of the rules: [MessagePlacementTest] (the
  * 12 dp under the top element, one box composable), [MessagesTest] (one box at a time, the edge colours),
- * [MapNoticeTest] (which map state is a box, which the quiet pill) and [CellCardsTest].
+ * [MapLoadFlowTest] (which map state is a box, which the quiet pill; the card texts).
  *
  * Replaces whole-screen pictures of: updateBanner, cellCardMobileQuestion, cellCardWifiOnlyWaiting, cellCardFailed,
  * cellCardNotAvailable (English), planPairedNote, planUnpairedNote (German) and, at the font 2.0, planPairedNote,
