@@ -20,7 +20,7 @@
         "web/app/src/menus.ts",
         "web/app/src/search.ts"
       ],
-      "blob": "36dbe49f9a39e9dfa8df76824cc20c61fccab9e7"
+      "blob": "032d364f15e395ef6cb3e71326b8b17adb64f811"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/domain/PlanStatus.kt",
@@ -71,7 +71,7 @@
         "web/app/src/position.ts",
         "web/app/src/main.ts"
       ],
-      "blob": "ebb7c58c030538af710cd11c43ea50ef38759fb2"
+      "blob": "809b3cae57c22182d07d59f060a9c3b3069c96a7"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/recording/GpsStatus.kt",
@@ -259,7 +259,7 @@
         "web/app/src/main.ts",
         "web/app/src/sortable.ts"
       ],
-      "blob": "e44231289894461b09788538d6dc70ddd17ae988"
+      "blob": "797b6b718bc3678c9ff5efff3a9a52b1918c524a"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/debug/Problems.kt",
@@ -518,7 +518,7 @@
         "web/app/src/style.css",
         "web/engine/src/main/kotlin/com/onpath/web/WebKept.kt"
       ],
-      "blob": "5b0e98909b44474022ff92a5e2c3501ef71e8a93"
+      "blob": "fa19103191507e689efad5716cf734e29446ce0b"
     },
     {
       "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceMenusSlice.kt",
