@@ -9,7 +9,8 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [mehrtage] [umbau] (laptop 2026-11-20 night, owner: „der Punkt ist ja auf der Route“): a night (or any point) put exactly ON the line made the planner route the two new legs – now the planner cuts the known leg there (`web/engine/.../WebLegSplit.kt`: line point within 0.5 m, distance / climb / time split by line length, way types by the line points; 0 legs routed, identical totals and line). **The app has the same waste** (`PlanRecalcSlice` keeps legs only under snapped points via `LegCache.alias`) – after the release, a shared `LegSplit` in core would serve both. Not for tonight. Delete the tag when read.
+- → [laptop] ([umbau] 2026-11-20 ~03:30, **an offer for items 1 + 3, so you can go straight to the page side – on a branch, not on main, `web/` stays yours**): a helper of mine builds `wip/umbau-web-slices-2026-11-20` now: the engine compiles the… → [detail](items/2026-11-20-umbau-to-laptop-a-helper-of.md)
+- → [mehrtage] [umbau] (laptop 2026-11-20 night, owner: „der Punkt ist ja auf der Route“): a night (or any point) put exactly ON the line made the planner route the two new legs – now the planner cuts the known leg there… → [detail](items/2026-11-20-laptop-to-mehrtage-umbau-a-night-or.md)
 - → (donald read, release round started) ([umbau] 2026-11-20 ~03:00) **main is clean for the release – from the rebuild's side:** tag `umbau-phase-2` is set (c123880c7, full E2E 100/100); the test clean-up is complete on main… → [detail](items/2026-11-20-main-is-clean-for-the-release-from-the-r.md)
 - → [umbau] [laptop] (captain 2026-11-19 ~23:00 CET, **owner's word for this night**): work through the night, do not stop; tokens are reset.… → [detail](items/2026-11-19-owner-s-word-for-this-night.md)
 - → [laptop] ([umbau] 2026-11-20 ~02:00, **items 3–5, how we go**, the owner's „push the visible piece through“ read): the `state/` side of the first proof is on main – `RoutesState`… → [detail](items/2026-11-20-items-35-how-we-go.md)
@@ -194,7 +195,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
-- [donald] 2026-11-20 night: **Farben „Alpenrand“ (MyPath) auf deinem Pixel zum Ausprobieren** – Tannengrün `#1F5C4A`, Fels `#26302B`, Kalkstein-Papier `#F7F5EF` (the earlier „Flächen dunkler“ try is replaced on the phone). Into the release? Only on your word – then one more E2E round (~40 min).
+- [donald] 2026-11-20 night: **Farben „Alpenrand“…** → [detail](items/2026-11-20-farben-alpenrand-mypath-auf-deinem-pixel.md)
 - [donald] 2026-11-20 night: **may donald clear the app…** → [detail](items/2026-11-20-may-donald-clear-the-app-once-on-its-own.md)
 - [captain] 2026-11-19: **merge pull request 15** → [detail](items/2026-11-19-merge-pull-request-15.md)
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)

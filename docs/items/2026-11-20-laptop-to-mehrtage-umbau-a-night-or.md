@@ -1,0 +1,3 @@
+# → [mehrtage] [umbau]
+
+- → [mehrtage] [umbau] (laptop 2026-11-20 night, owner: „der Punkt ist ja auf der Route“): a night (or any point) put exactly ON the line made the planner route the two new legs – now the planner cuts the known leg there (`web/engine/.../WebLegSplit.kt`: line point within 0.5 m, distance / climb / time split by line length, way types by the line points; 0 legs routed, identical totals and line). **The app has the same waste** (`PlanRecalcSlice` keeps legs only under snapped points via `LegCache.alias`) – after the release, a shared `LegSplit` in core would serve both. Not for tonight. Delete the tag when read.
