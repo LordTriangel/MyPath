@@ -219,11 +219,11 @@
         "web/app/src/main.ts",
         "web/app/src/longroute.ts"
       ],
-      "blob": "8e0fc3c99a4d94811e500a31596e823ece4e90f4"
+      "blob": "1718ca4db125fa305973cd69b3780f244e62060b"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/AppViewModel.kt",
-      "what": "recalc long-route ask / answerLongRoute; addPlace; poiAsNewDestination (appends while planning – PlaceAddMenu.keepsOldGoal; the planner has no tour, main.ts placeAsNewDestination); suggestName; pinnedPoiKinds / refreshPinnedKinds; holdOnMap (F-PLAN-15: on the line / new goal / stop at once, else the hold menu – PlaceAddMenu.planningHold, the engine's WebApi.holdOnMap; a round trip by the zone) and placeMenu while planning = PlaceAddMenu.planningMenu (WebApi.placeMenu); holdAsStop / holdAsNewDestination (main.ts holdAddMenu); keepPlaces / placesChanged = the kept-places sync (keptplaces.ts / sync.ts); the done tours' Ø speed is not in the planner (no recorded tours)",
+      "what": "recalc long-route ask / answerLongRoute; pinnedPoiKinds / refreshPinnedKinds; placeMenu while planning = PlaceAddMenu.planningMenu (WebApi.placeMenu); keepPlaces / placesChanged = the kept-places sync (keptplaces.ts / sync.ts); the done tours' Ø speed is not in the planner (no recorded tours)",
       "web": [
         "web/app/src/main.ts",
         "web/app/src/longroute.ts",
@@ -233,7 +233,17 @@
         "web/app/src/plans.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "7f0a89b26f829c50270903a7edfecb8d99217e91"
+      "blob": "c426be1b983ac71117c7d4be32e702397ac90da9"
+    },
+    {
+      "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddSlice.kt",
+      "what": "addPlace; poiAsNewDestination (appends while planning – PlaceAddMenu.keepsOldGoal; the planner has no tour, main.ts placeAsNewDestination); holdOnMap (F-PLAN-15: on the line / new goal / stop at once, else the hold menu – PlaceAddMenu.planningHold, the engine's WebApi.holdOnMap; a round trip by the zone); holdAsStop / holdAsNewDestination (main.ts holdAddMenu) – moved here from AppViewModel, rebuild phase 2 piece 11; the measuring of the hold on the paths (HoldPaths on the hold's router thread) and the tour hooks (a place added during a tour is a stop between, \"Go here\" from my location, the followed plan) are the phone's: the planner has no router thread and no tour",
+      "web": [
+        "web/app/src/main.ts",
+        "web/app/src/poipin.ts",
+        "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt"
+      ],
+      "blob": "ab0536e28f9ee6dbc3293057c968dae8bde6424c"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",

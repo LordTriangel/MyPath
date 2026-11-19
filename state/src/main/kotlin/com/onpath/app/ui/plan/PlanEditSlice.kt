@@ -168,7 +168,8 @@ class PlanEditSlice(
         host.recalc()
     }
 
-    private fun set(list: List<GeoPoint>) = change { clear(); addAll(list) }
+    /** The plan becomes [list] in one undoable step ([change]). */
+    fun set(list: List<GeoPoint>) = change { clear(); addAll(list) }
 
     /** Plan point [index] deleted (map menu, search card): a round trip stays closed, as in the Points list. */
     fun removePoint(index: Int) {

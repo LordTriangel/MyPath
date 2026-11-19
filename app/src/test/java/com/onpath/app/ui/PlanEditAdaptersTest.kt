@@ -21,11 +21,11 @@ class PlanEditAdaptersTest {
     @Test fun theHostAnswersFromTheViewModelsOwnMembers() {
         assertTrue("the planEdit block was found", host.length > 1500 && host.contains("object : com.onpath.app.ui.plan.PlanEditHost"))
         listOf(
-            "override fun cancelHoldMeasure(why: String) = this@AppViewModel.cancelHoldMeasure(why)",
+            "override fun cancelHoldMeasure(why: String) = placeAdd.cancelHoldMeasure(why)",
             "override fun stopFollowingWhenMapTurns() { if (mode == AppMode.PLAN && headingUp && followMe) followMe = false }",
             "override fun closePointMenu(why: String) = this@AppViewModel.closePointMenu(why)",
-            "override fun clearFirstPointMenu() { firstPointMenu = null }",
-            "override fun clearHoldAddMenu() { holdAddMenu = null }",
+            "override fun clearFirstPointMenu() { placeAdd.firstPointMenu = null }",
+            "override fun clearHoldAddMenu() { placeAdd.holdAddMenu = null }",
             "override fun clearHighlight() { highlight = null }",
             "override fun removePin(why: String) = this@AppViewModel.removePin(why)",
             "override fun menuAction(what: String): Int? = this@AppViewModel.menuAction(what)",
@@ -87,11 +87,13 @@ class PlanEditAdaptersTest {
             "private val nearbyNames: Map<GeoPoint, String> get() = planEdit.nearbyNames",
         ).forEach { assertTrue("forwarder: $it", vm.contains("    $it\n")) }
         // the state holders that moved are read and written through the slice
-        for (state in listOf("planSize", "pinTaken", "routeBackAsk", "routeDetailsOpen"))
+        for (state in listOf("planSize", "routeBackAsk", "routeDetailsOpen"))
             assertTrue("$state forwards", vm.contains("get() = planEdit.$state\n"))
-        for (state in listOf("planSize", "pinTaken", "routeDetailsOpen"))
+        for (state in listOf("planSize", "routeDetailsOpen"))
             assertTrue("$state forwards its writes", vm.contains("set(v) { planEdit.$state = v }"))
         assertTrue(vm.contains("private set(v) { planEdit.routeBackAsk = v }"))
+        // pinTaken is the add slice's to write (piece 11) and the edit slice's to keep: the view model no longer holds it
+        assertTrue("no pinTaken forwarder", !vm.contains("pinTaken"))
     }
 
     @Test fun theEditingFunctionsAreNotInTheViewModelAnyMore() {

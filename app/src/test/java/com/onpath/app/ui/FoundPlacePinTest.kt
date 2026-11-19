@@ -20,6 +20,7 @@ import java.io.File
 class FoundPlacePinTest {
     private fun src(f: String) = sourceFile(f).readText()
     private val vm = src("ui/AppViewModel.kt")
+    private val placeAdd = src("ui/plan/PlaceAddSlice.kt")
     private val overlays = src("ui/MapOverlays.kt")
     private fun body(s: String, start: String) = s.substringAfter(start).substringBefore("\n    }\n")
 
@@ -60,7 +61,10 @@ class FoundPlacePinTest {
         val remove = body(vm, "    fun removePin(why: String) {") // the function itself (the planEdit host has an override of the same name)
         assertTrue(remove, remove.contains("searchMark = null"))
         // adding the place and a new search pick replace it on their own
-        assertTrue(body(vm, "fun addPoiPoint(").contains("takePin(poi.lat, poi.lon)"))
+        // (the add lives in PlaceAddSlice now, rebuild phase 2 piece 11; PlaceAddFlowTest.aFoundPlacePinGoesIntoThePlan… shows the pin go)
+        val addPoi = "    fun addPoiPoint(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) {"
+        assertTrue("the slice's addPoiPoint was found", placeAdd.contains(addPoi))
+        assertTrue(body(placeAdd, addPoi).contains("val pin = host.takePin(poi.lat, poi.lon)"))
         assertTrue(src("ui/SearchFlow.kt").substringAfter("fun pickSearchResult(").substringBefore("\n    }\n").contains("searchMark = p"))
     }
 

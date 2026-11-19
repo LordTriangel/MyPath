@@ -52,11 +52,13 @@ class FarDestinationTest {
 
     /** The ViewModel wiring: every add from the pin remembers it (Cancel / a newer edit: PlanEditFlowTest). */
     @Test fun cancelOfARunShowsThePinOfTheAddItTookBack() {
-        val vm = src("ui/AppViewModel.kt")
-        for (f in listOf("fun addPoiPoint(", "fun poiFromMyLocation(", "private fun addPoiWith(", "fun addPlace(")) {
-            val b = body(vm, f)
-            assertTrue("$f takes the pin", b.contains("takePin("))
-            assertTrue("$f remembers it", b.contains("pinTaken = pin?.let { TakenPin(it, p) }"))
+        // the adds live in PlaceAddSlice (rebuild phase 2 piece 11); PlaceAddFlowTest shows each remember the pin AFTER its change
+        val slice = src("ui/plan/PlaceAddSlice.kt")
+        for (f in listOf("    fun addPoiPoint(", "    fun poiFromMyLocation(", "    private fun addPoiWith(", "    fun addPlace(")) {
+            assertTrue("$f found", slice.contains(f))
+            val b = body(slice, f)
+            assertTrue("$f takes the pin", b.contains("host.takePin("))
+            assertTrue("$f remembers it", b.contains("planEdit.pinTaken = pin?.let { TakenPin(it, p) }"))
         }
         // Cancel asks TakenPin.back (once, a newer search pick wins) and a newer edit / the user's Undo forgets the pin:
         // PlanEditFlowTest.cancelBringsTheFoundPlacesPinBackWhenTheAddIsTakenBackAndNewerThingsWin,
