@@ -23,6 +23,8 @@ object PmTiles {
     const val HEADER_SIZE = 127
     /** The spec keeps header + root directory within the first 16 KiB (readers fetch that in one request). */
     const val ROOT_LIMIT = 16_384 - HEADER_SIZE
+    /** [merge] reports the bytes written about this often (4 MB: a few times a second on a phone). */
+    const val WRITTEN_STEP = 4L * 1_048_576
 
     const val COMPRESSION_NONE = 1
     const val COMPRESSION_GZIP = 2
@@ -155,9 +157,11 @@ object PmTiles {
      * clustered). Inputs whose tile type or compression differ from the first usable one throw
      * [IncompatibleException] (mixing PNG and WebP terrain, or format 1 and 2, would break the map). Returns null and
      * writes nothing when no tile is kept. [bounds] = [west, south, east, north] for the header (null = from tiles).
-     * The caller writes to a temp path and renames (crash safety).
+     * The caller writes to a temp path and renames (crash safety). [written]: the tile bytes written so far, about every
+     * [WRITTEN_STEP] bytes and once at the end (the join-in reports how far it is – owner 2026-11-19).
      */
-    fun merge(inputs: List<Input>, out: File, bounds: DoubleArray? = null, metadataJson: String? = null): Result? {
+    fun merge(inputs: List<Input>, out: File, bounds: DoubleArray? = null, metadataJson: String? = null,
+              written: (Long) -> Unit = {}): Result? {
         val readers = ArrayList<Reader>()
         try {
             for (i in inputs) readers += Reader(i.file)
@@ -221,7 +225,12 @@ object PmTiles {
             out.parentFile?.mkdirs()
             FileOutputStream(out).use { fo ->
                 fo.write(header.bytes()); fo.write(root); fo.write(meta); fo.write(leaves)
-                for ((idx, srcOff, len) in copies) readers[idx].copyTo(srcOff, len, fo)
+                var w = 0L; var told = 0L
+                for ((idx, srcOff, len) in copies) {
+                    readers[idx].copyTo(srcOff, len, fo); w += len
+                    if (w - told >= WRITTEN_STEP) { written(w); told = w }
+                }
+                written(w)
                 fo.flush(); fo.fd.sync()
             }
             return Result(chosen.size.toLong(), out.length(), minZ, maxZ, perInput.toList())

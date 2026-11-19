@@ -229,9 +229,10 @@ object Rd5Parts {
     /**
      * Writes an rd5 at [dest] holding [parts] (index → source) with the remote layout [src] / [srcTail]; atomic: a temp
      * file next to it, synced, sizes checked, then renamed over [dest] – never a broken file in place (BRouter may have
-     * the old one open; it keeps reading the old inode).
+     * the old one open; it keeps reading the old inode). [written]: the part bytes written so far of all, after each
+     * part (owner 2026-11-19: the rewrite reports how far it is).
      */
-    fun write(dest: File, src: Index, srcTail: ByteArray, parts: Map<Int, PartSource>) {
+    fun write(dest: File, src: Index, srcTail: ByteArray, parts: Map<Int, PartSource>, written: (Long, Long) -> Unit = { _, _ -> }) {
         val present = parts.keys.filter { src.size(it) > 0 }.toSortedSet()
         val index = buildIndex(src, present)
         val tail = buildTail(src, srcTail, index)
@@ -240,11 +241,15 @@ object Rd5Parts {
         try {
             FileOutputStream(tmp).use { out ->
                 out.write(index)
+                val all = present.sumOf { src.size(it) }
+                var w = 0L
+                written(0, all)
                 for (i in present) {
                     val before = out.channel.position()
                     parts.getValue(i).copyTo(out)
                     val got = out.channel.position() - before
                     if (got != src.size(i)) throw java.io.IOException("part $i of ${dest.name}: $got bytes instead of ${src.size(i)}")
+                    w += got; written(w, all)
                 }
                 out.write(tail)
                 out.fd.sync()

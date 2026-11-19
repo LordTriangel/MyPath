@@ -226,9 +226,14 @@ class CellStore(
      * Writes a new generation: the current cells minus [remove], plus / replaced by [add], joined with the region
      * package. Returns it (it is current from now on). Throws [StoreException] with a plain message (not enough space,
      * a broken file) – the previous generation then stays current and nothing changed.
+     *
+     * [progress] (owner 2026-11-19: the join-in reports how far it is – before, nothing was reported and the number stood):
+     * the bytes of the pieces that are in of all to write – every map layer, the POIs, the POI tiles – as they are
+     * written (each layer about every [PmTiles.WRITTEN_STEP]), (done, total); total once more at the end.
      */
     @Synchronized
-    fun apply(add: List<Download> = emptyList(), remove: Set<CellId> = emptySet(), now: Long = System.currentTimeMillis()): Generation {
+    fun apply(add: List<Download> = emptyList(), remove: Set<CellId> = emptySet(), now: Long = System.currentTimeMillis(),
+              progress: (Long, Long) -> Unit = { _, _ -> }): Generation {
         val t0 = System.currentTimeMillis()
         // the data folder must be readable: unreadable (storage not ready after a phone restart) it looks empty, and a
         // generation written now would hold only [add] – and the clean-up after it would delete the real ones
@@ -268,6 +273,13 @@ class CellStore(
                 (cur?.dir?.let { File(it, PoiTiles.FILE).length() } ?: 0L) + add.sumOf { File(it.dir, POIS).length() } + MARGIN
             val free = freeSpace(storeDir)
             if (free < need) throw StoreException(Txt.s(Res.string.maps_err_store_space, need / MB, free / MB))
+            // the pieces' bytes: what [need] counts without the margin; [inPieces] = the pieces that are in
+            val work = (need - MARGIN).coerceAtLeast(1L)
+            var inPieces = 0L
+            fun tell(d: Long) = try { progress((inPieces + d).coerceAtMost(work), work) } catch (e: Exception) {
+                Problems.warn("cells", "Join progress not reported", e) // the join itself goes on
+            }
+            tell(0)
             val bytes = HashMap<CellId, MutableMap<String, Long>>()
             val files = LinkedHashMap<String, Long>()
             for (n in LAYERS) {
@@ -290,8 +302,10 @@ class CellStore(
                 if (inputs.isEmpty()) continue
                 val out = File(tmp, n)
                 val bounds = boundsOf(allIds, inputs.zip(owners).filter { it.second == null && it.first.file.parentFile == dataDir }.map { it.first.file })
-                val r = try { PmTiles.merge(inputs, out, bounds, mergedMetadata(inputs.map { it.file })) }
+                val piece = inputs.sumOf { it.file.length() }
+                val r = try { PmTiles.merge(inputs, out, bounds, mergedMetadata(inputs.map { it.file })) { w -> tell(minOf(w, piece)) } }
                 catch (e: PmTiles.IncompatibleException) { throw StoreException(Txt.s(Res.string.maps_err_store_incompatible), IOException(n, e)) }
+                inPieces += piece; tell(0)
                 if (r == null) continue
                 files[n] = PmTiles.verify(out).let { out.length() }
                 r.bytesPerInput.forEachIndexed { i, b -> owners[i]?.let { c -> bytes.getOrPut(c) { HashMap() }[n] = b } }
@@ -314,6 +328,7 @@ class CellStore(
                     files[POIS] = out.length()
                     r.bytesPerInput.forEachIndexed { i, b -> owners[i]?.let { c -> bytes.getOrPut(c) { HashMap() }[POIS] = b } }
                 }
+                inPieces += inputs.sumOf { it.file.length() }; tell(0)
             }
             // POIs as vector tiles (PoiTiles): kept cells' tiles copied from the previous generation, the rest encoded
             // here. Robust first: a failure leaves the map with the GeoJSON POIs (style fallback), never without a map.
@@ -328,6 +343,7 @@ class CellStore(
                 Problems.error("cells", "Map POIs could not be prepared as tiles; drawn the old way (more memory)", e)
                 true
             }
+            inPieces = work; tell(0)
             val cells = kept + add.map { d ->
                 InstalledCell(d.manifest.cell, d.manifest.version, d.manifest.built, d.manifest.format,
                     bytes[d.manifest.cell].orEmpty(), addressFileOf(d)?.length() ?: 0L, now, d.manifest.wayclass,

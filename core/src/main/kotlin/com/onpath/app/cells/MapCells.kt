@@ -161,6 +161,17 @@ class MapCells(
     /** Installed region packages (map-cells.md §20) – diagnostics; the map style gets their boxes ([packageAreas]). */
     val packages: StateFlow<List<CellStore.InstalledCell>> = _packages
 
+    /**
+     * The areas being joined into the map now ([CellState.Installing]) and how far: the bytes of the pieces in / of all
+     * ([CellStore.apply]'s progress, owner 2026-11-19). Null while nothing is written (an area waits for the others of
+     * its batch, or no join runs). The UI reads it as the join step's own progress.
+     */
+    data class Joining(val cells: Set<CellId>, val done: Long, val total: Long) {
+        val fraction: Double get() = if (total <= 0) 0.0 else (done.toDouble() / total).coerceIn(0.0, 1.0)
+    }
+    private val _joining = MutableStateFlow<Joining?>(null)
+    val joining: StateFlow<Joining?> = _joining
+
     private val _generation = MutableStateFlow(0)
     /** Store generation; changes when the map files changed → reload the map style (and the search index). */
     val generation: StateFlow<Int> = _generation
@@ -726,7 +737,10 @@ class MapCells(
     private fun applyDownloads(add: List<CellStore.Download>): Pair<CellStore.Generation, List<CellStore.Download>>? {
         var rest = add
         while (rest.isNotEmpty()) {
-            try { return store.apply(add = rest) to rest } catch (e: CellStore.ReuseException) {
+            val joiningNow = rest.map { it.manifest.cell }.toSet()
+            try {
+                return store.apply(add = rest) { d, t -> _joining.value = Joining(joiningNow, d, t) } to rest
+            } catch (e: CellStore.ReuseException) {
                 val bad = rest.filter { it.manifest.cell in e.cells }
                 if (bad.isEmpty()) throw e
                 rest = rest - bad.toSet()
@@ -745,6 +759,8 @@ class MapCells(
                 val (updates, others) = again.partition { askedAs[it] == CellReason.UPDATE }
                 if (updates.isNotEmpty()) request(updates, CellReason.UPDATE, ownPoint = true) // the user's Update: as [outdated] cells are asked
                 if (others.isNotEmpty()) request(others, CellReason.REFRESH, ownPoint = false)
+            } finally {
+                _joining.value = null
             }
         }
         return null

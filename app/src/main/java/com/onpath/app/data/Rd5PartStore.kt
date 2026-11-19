@@ -298,6 +298,13 @@ class Rd5PartStore(
      * Gets [parts] onto the phone (see the class rules). [onProgress] (bytesDone, bytesTotal) over all parts to load.
      * Returns the parts that were missing and are here now. Throws with a plain message; staged parts stay.
      */
+    /**
+     * While a download's parts are written into their rd5 ([install]): the bytes written of all, else null – the
+     * loading window's join step (owner 2026-11-19: the rewrite reports how far it is).
+     */
+    @Volatile var writing: Pair<Long, Long>? = null
+        private set
+
     @Synchronized fun download(parts: Collection<Part>, onProgress: (Long, Long) -> Unit = { _, _ -> }, cancelled: () -> Boolean = { false }): List<Part> {
         val miss = missing(parts)
         var plans = plan(parts)
@@ -378,11 +385,11 @@ class Rd5PartStore(
         val fetchedAt = before?.takeIf { p.keep.isNotEmpty() }?.fetchedAt ?: now()
         rewriting[p.tile] = arrayOf(before)
         try {
-            Rd5Parts.write(dest, r.index, r.tail, sources)
+            Rd5Parts.write(dest, r.index, r.tail, sources) { w, all -> writing = w to all }
             afterRd5Written()
             dest.setLastModified(fetchedAt)
             writeSidecar(p.tile, p.record, r, fetchedAt, dest.length())
-        } finally { stateCache.remove(p.tile); rewriting.remove(p.tile); changes.incrementAndGet() }
+        } finally { writing = null; stateCache.remove(p.tile); rewriting.remove(p.tile); changes.incrementAndGet() }
         for (i in p.fetch) staged(p.tile, r, i).delete()
         File(dir, ".${p.tile}.part").delete() // a half whole-file download ([SegmentDownloader], up to ~200 MB)
     }

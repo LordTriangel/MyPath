@@ -96,10 +96,12 @@ class RoutingDataLoader(
     data class Status(
         val names: List<String>, val phase: Phase, val doneBytes: Long, val totalBytes: Long, val bytesPerSecond: Double?,
         /**
-         * The running batch is downloaded and is written into its routing file now (a big file: up to minutes, nothing
-         * to measure) – the UI says so and shows no % (owner 2026-11-18: no number that stands at 99).
+         * The running batch is downloaded and is written into its routing file now (a big file: up to minutes) – the
+         * wait window's join step ("fast fertig").
          */
         val writing: Boolean = false,
+        /** While [writing]: how far the rewrite is, 0..1 (the bytes written – [Rd5PartStore.writing]); 0 = not reported yet. */
+        val written: Double = 0.0,
     ) {
         /** The real bytes downloaded, 0..100. */
         val percent: Int get() = if (totalBytes <= 0) 0 else (doneBytes * 100 / totalBytes).toInt().coerceIn(0, 100)
@@ -136,7 +138,9 @@ class RoutingDataLoader(
         val p = phase ?: return null
         val open = wanted.toList()
         if (open.isEmpty()) return null
-        Status(open, p, open.sumOf { done[it] ?: partSize(it) }, open.sumOf { sizeOf(it) }, rate, writing = writing && p == Phase.LOADING)
+        val w = writing && p == Phase.LOADING
+        val written = if (!w) 0.0 else store.writing?.let { (d, t) -> if (t > 0) (d.toDouble() / t).coerceIn(0.0, 1.0) else 0.0 } ?: 0.0
+        Status(open, p, open.sumOf { done[it] ?: partSize(it) }, open.sumOf { sizeOf(it) }, rate, writing = w, written = written)
     }
 
     val loading: Boolean get() = status?.phase == Phase.LOADING
