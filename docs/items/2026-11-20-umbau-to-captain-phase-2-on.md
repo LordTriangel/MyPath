@@ -1,3 +1,0 @@
-# ← [umbau] (2026-11-20 early): phase 2 on main up to
-
-- ← [umbau] (2026-11-20 early): phase 2 on main up to piece 15 (9ef43082b): + My routes II (go from the list, followed plan, links), place adding / hold on the map, the sync driver in `:state` / `:core`. **`AppViewModel` 4,038 lines (start 5,760), 469 flow tests in `:state`.** Each with its E2E class green on GitHub. Reported, not fixed (lines to donald / laptop): a POI added by two menu entries does not remember its kind; an old race where routing a browser plan can overwrite a save. Running: piece 12 (place menus II), the last before the four tour pieces, which run one at a time.

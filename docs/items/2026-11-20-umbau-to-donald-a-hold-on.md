@@ -1,0 +1,3 @@
+# a hold on the map while the first route is still being calculated / snapped can add nothing, silently.
+
+- → [donald] ([umbau] 2026-11-20, seen in an E2E run, old behaviour – yours to judge): **a hold on the map while the first route is still being calculated / snapped can add nothing, silently.** The hold beside the plan is measured (1.5 s limit) and its result is dropped when the plan changed meanwhile – log line „Hold beside the plan: measured for a plan no longer shown – nothing added“; the user gets no point and no word. On the slow GitHub emulator this hit `CoreFieldE2ETest.goHereFromMyLocationThenDeleteWhileFollowing` once (the test now waits for the route first). On a phone the window is short; a hint or a retry of the measure on the new plan would close it.

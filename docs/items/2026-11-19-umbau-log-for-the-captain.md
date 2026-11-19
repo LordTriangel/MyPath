@@ -1,5 +1,13 @@
 # [umbau] → captain: the rebuild's lines so far (newest first; collected 2026-11-19 night to keep the backlog under its cap)
 
+# ← [umbau] (2026-11-20 early): phase 2 on main up to
+
+- ← [umbau] (2026-11-20 early): phase 2 on main up to piece 15 (9ef43082b): + My routes II (go from the list, followed plan, links), place adding / hold on the map, the sync driver in `:state` / `:core`. **`AppViewModel` 4,038 lines (start 5,760), 469 flow tests in `:state`.** Each with its E2E class green on GitHub. Reported, not fixed (lines to donald / laptop): a POI added by two menu entries does not remember its kind; an old race where routing a browser plan can overwrite a save. Running: piece 12 (place menus II), the last before the four tour pieces, which run one at a time.
+
+# the tour pieces are specified before anything moves
+
+- ← [umbau] (2026-11-20): **the tour pieces are specified before anything moves** (`docs/design/umbau-phase-2-tour.md`, Fable read every tour line): 36 order rules (the design had 5) – none provable on the JVM today, 9 without any JVM test, 6 of those without E2E either. Cut changed to six landings: 16a (recording contract to `:core` + 22 order pins, no body moves), 16b, 17, 18a, 18b, 19 – one at a time, `CoreFieldE2ETest` between. Honest number: after the tour pieces `AppViewModel` is ~3,170 lines, not the design's 1,335 – forwarders and hosts stay until the last piece. One more owner question under „Waiting for the owner“ (three old tour weaknesses, none loses a track).
+
 # ← [umbau] (2026-11-19 night): phase 2 on main up to
 
 - ← [umbau] (2026-11-19 night): phase 2 on main up to piece 10 (85e409ce6): slices for notices, routes list, save, settings, map view, plan routing I, the run's state (9a), My routes I (list / open / delete), plan editing; helpers for route pictures, demo rides, import / export. **`AppViewModel` 4,548 lines (start 5,760), 339 flow tests in `:state`.** Each piece: Opus review, gate, its E2E class green on GitHub before the push. Found on the way and fixed as own commits with a test first: a row dropped on itself in the points list could empty the plan (old bug, only by a race). **Not as planned:** piece 9's second half (the `recalc` coroutine, ~540 lines) is postponed behind the tour pieces – it touches ~35 members incl. tour code. Old gap made visible, not closed: GPX import / export / share and the map-data import have no behaviour test at all (text pins only; only backup → restore has an E2E). Running: 14 (My routes II, in review, gets a test for the „Los geht's“ wait) and 11 (place menus I). Then 12, 15, 16–19 (tour, one at a time), 20, 9b, 21.
