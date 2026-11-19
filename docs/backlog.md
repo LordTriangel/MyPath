@@ -84,6 +84,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [donald] (2026-11-19): **fresh donald session – 1–3 ready on today's main, each one commit, gate full green, nothing on main:** 98 % `wip/donald-2026-11-19-honest-progress` a07af6144, Zuhause `…-zuhause` 5a958c25f, Undo in the sheet `…-undo-sheet` ae22c2083 (Compose only). All wait for the owner's yes; 98 % + Zuhause also for [umbau]'s slot (freeze). 0.18.1: blocked by red `TourDbMigrationTest` + the owner's word. → [detail](items/2026-11-19-donald-fresh-session-state.md)
 - ← [IR] (2026-11-19): **IR ready for a fresh session** – card row + round trips on by default on main, README corrected, website pictures N01–N04 in onpath.private (→ [cloud-web] line), handoff `docs/history/handoff-ir-2026-11-19.md`. Nothing of IR runs.
 - ← [umbau] (2026-11-20): place menus II + kept places (piece 12) and the first tour step 16a are on main (015b30b69): the recording contract lives in `:core` (27 wire strings proven byte-identical), 37 order pins on the tour code, no tour function… → [detail](items/2026-11-20-umbau-to-captain-place-menus-ii.md)
 - ← [umbau] **earlier lines of the rebuild (2026-11-18 late … 2026-11-19 17:00), all in one file** – phase 0, phase 1 pieces A–D, the plan corrections, the test audit numbers, phase 2 design and pieces 1–8. **Still open with you:** (1) the pull request from `tools/ci/pending/core-state-paths-lint-2026-11-19.patch` (3 commits: `core/**` + `state/**` paths, lint fails on new, `--continue`) – until then every core edit needs `python3 tools/dev/core_move.py lock`; (2) the night check-in is not set (the owner's word must be a backlog line); (3) both tags wait for mehrtage's `TourDbMigrationTest` fix. → [detail](items/2026-11-19-umbau-log-for-the-captain.md)
@@ -107,7 +108,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - ← [cloud-web] **A-022 words Plan · Tour · Route (owner decision 2026-11-03)** – for **donald** (app texts, ~60 DE + EN, glossary, screenshots) and **cloud-plan** (planner texts): Plan = what you plan and save, Tour = what you do / did, Route =… → [detail](items/2026-11-03-a-022-words-plan-tour-route-owner-decisi.md)
 
 ## In progress
-- [donald] 98 % fix, Zuhause, Undo in the points sheet → today's main (`wip/donald-2026-11-19-*`, pictures to the owner, merge after his yes + [umbau]'s slot); 0.18.1 prep (needs green full E2E – `TourDbMigrationTest` – and the owner's word in this chat) – since 2026-11-19
+- [donald] 98 % fix, Zuhause, Undo in the points sheet – rebased on today's main on `wip/donald-2026-11-19-*` (gate green), merge after the owner's yes (+ [umbau]'s slot for 98 % / Zuhause); 0.18.1 prep – since 2026-11-19
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
 - [umbau-hp] Phase 4b of the rebuild (from [umbau]): screenshot tests – components instead of whole screens where the screen is not the point (549 pictures → ~200), no check lost. Touches only `app/src/test/java/com/onpath/app/ui/**` + `app/src/test/snapshots/**` – since 2026-11-19
 - [IR] Tour suggestions (Routenfinder), the whole topic: POC `tools/suggest-poc/` (the lab), the core `app/src/main/java/com/onpath/app/suggest/` (ported, parity), the suggest file (laptop builds the cells), the planner framework branch… → [detail](items/2026-11-14-tour-suggestions-routenfinder-the-whole.md)
@@ -195,6 +196,8 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **[umbau] (2026-11-20) Three old weaknesses in the…** → [detail](items/2026-11-20-2026-11-20-three-old-weaknesses-in-the-t.md)
 - **[umbau] (2026-11-19) Rebuild phase 2: no release…** → [detail](items/2026-11-19-2026-11-19-rebuild-phase-2-no-release-be.md)
 - [donald] 2026-11-19: **kein Stehen bei 98 % am Handy…** → [detail](items/2026-11-19-kein-stehen-bei-98-am-handy-bilder-anseh.md)
+- [donald] 2026-11-19: **Undo im vollen Punkte-Fenster – Bild ansehen und Ja sagen:** ↶ ↷ rechts in der Zeile „Punkte“, nur wenn etwas rückgängig gemacht werden kann (`wip/donald-2026-11-19-undo-sheet`, gate green). Recommendation: yes; merge, into 0.18.1.
+- [donald] 2026-11-19: **0.18.1 – your word in the fresh donald chat** (captain: the old word was given to the old session). Contents: round trips for everyone + what is green of 98 % / Zuhause / Undo. Recommendation: yes, once full E2E + Rundgang are green.
 - **[umbau] (2026-11-19) Test clean-up: may tests that…** → [detail](items/2026-11-19-2026-11-19-test-clean-up-may-tests-that.md)
 - [umbau-hp] 2026-11-19: **Routing for iOS – port the routing engine to Kotlin? (recommended: yes)…** → [detail](items/2026-11-19-routing-for-ios-port-brouter-to-kotlin.md)
 - [donald] 2026-11-18 late: **Zuhause wie Google Maps…** → [detail](items/2026-11-18-zuhause-wie-google-maps-bilder-ansehen-u.md)
