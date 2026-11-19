@@ -74,7 +74,7 @@ interface TourSessionHost {
  * tour it meets the same world as before) and the mode flip comes after `recalc()` (risk 2: the initial mode is Plan).
  *
  * Latent bugs kept as they were: L2 (the start-up check: a failing `findActiveRecording` never sets `startModeKnown`), L4 (a failed
- * start can show two boxes), and (fixed 2026-11-19) L1: each pass of the `startFailed` and `state` collectors is guarded – a throw is reported and the collector goes on.
+ * start can show two boxes), and (fixed 2026-11-19) L1: each pass of the `startFailed` and `state` collectors is guarded – a throw is reported and the collector goes on (a failed activity switch is repeated by the next state, at most [MAX_SYNC_RETRIES] times in a row).
  */
 class TourSession(
     private val plan: PlanDocument,
@@ -179,7 +179,18 @@ class TourSession(
             recording.startFailed.collect { why ->
                 // L1 (fixed 2026-11-19): one pass is guarded – a throw is reported and the collector lives for the next failed start
                 try {
-                    if (why != null) { recording.startFailedSeen(); sayError(why, NoticePlace.BACKGROUND); if (mode == AppMode.NAVIGATE) enter(AppMode.PLAN) }
+                    if (why != null) {
+                        recording.startFailedSeen()
+                        // saying the reason fails: reported, and the mode step below still runs (never Navigate with no recording)
+                        try {
+                            sayError(why, NoticePlace.BACKGROUND)
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Throwable) {
+                            Problems.error("app", "Saying why the recording could not start failed; the mode step still runs", e)
+                        }
+                        if (mode == AppMode.NAVIGATE) enter(AppMode.PLAN)
+                    }
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
@@ -191,6 +202,7 @@ class TourSession(
         scope.launchSafe("app", "start-up work") {
             var saveFailedShown = false
             var recordingSeen: Long? = null
+            var syncRetries = 0 // resets of the activity mark in a row (a pass that ends without a throw sets it back to 0)
             recording.state.collect { st ->
                 // L1 (fixed 2026-11-19): one pass is guarded – a throw is reported, the next state repeats the work
                 try {
@@ -202,17 +214,22 @@ class TourSession(
                         recordingSeen = st?.tourId
                     }
                     if (st?.saveFailed == true && !saveFailedShown) {
-                        saveFailedShown = true
                         sayError(Txt.s(Res.string.msg_track_save_failing), NoticePlace.BACKGROUND)
+                        saveFailedShown = true // after the call: a say that throws is tried again with the next state
                     } else if (st?.saveFailed == false) saveFailedShown = false
                     tour.onArrived(st?.arrived == true)
-                    val n = st?.nav ?: run { follow.navActivitySeen = null; return@collect }
+                    val n = st?.nav ?: run { follow.navActivitySeen = null; syncRetries = 0; return@collect }
                     if (n.version != follow.navVersion) { follow.navVersion = n.version; if (followLine != n.line) follow.followLine = n.line }
                     follow.syncNavActivity(n.session)
+                    syncRetries = 0
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Throwable) {
                     Problems.error("app", "State pass of the recording-state collector failed; the collector goes on", e)
+                    // syncNavActivity marks the activity as seen BEFORE it switches: a throw in the switch would never be tried
+                    // again (same activity in every later state). Forget the mark so the next state repeats it – at most
+                    // MAX_SYNC_RETRIES times in a row, so a throw that comes every time does not replan with every service tick.
+                    if (syncRetries < MAX_SYNC_RETRIES) { syncRetries++; follow.navActivitySeen = null }
                 }
             }
         }
@@ -346,3 +363,6 @@ class TourSession(
     /** OK on "No way to the route found – recording continues". */
     fun leadFailedOk(questionId: Int) = recording.leadFailedOk(questionId)
 }
+
+/** How often in a row a failed activity switch of the state collector is repeated by the next state (then quiet until a pass succeeds). */
+internal const val MAX_SYNC_RETRIES = 3

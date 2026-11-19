@@ -360,7 +360,7 @@ class TourWiringTest {
         )) assertEquals("gone from the view model: $gone", 0, count(vm, gone))
         // the state collector of piece 19 is the session's: it reads / writes the follow slice directly
         val session = sourceFile("ui/tour/TourSession.kt").readText()
-        assertTrue(session.contains("val n = st?.nav ?: run { follow.navActivitySeen = null; return@collect }"))
+        assertTrue(session.contains("val n = st?.nav ?: run { follow.navActivitySeen = null; syncRetries = 0; return@collect }"))
         assertTrue(session.contains("if (n.version != follow.navVersion) { follow.navVersion = n.version; if (followLine != n.line) follow.followLine = n.line }"))
         assertTrue(session.contains("follow.syncNavActivity(n.session)"))
         // what is left of the old block in the view model is nothing but forwards: no file write, no plan copy, no token

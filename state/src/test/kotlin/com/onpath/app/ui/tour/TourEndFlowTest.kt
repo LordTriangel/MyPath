@@ -117,6 +117,8 @@ class TourEndFlowTest {
 
     private val rows = JdbcTourRows(db) { name -> assertIo("TourRows.$name") }
     private var failGetTour = false
+    private var throwOnName = false
+    private var throwOnRefresh = false
     private var failSegments = false
     private val tours = object : ToursStore {
         override fun getTour(id: Long): Tour? { assertIo("tours.getTour"); if (failGetTour) throw java.sql.SQLException("unreadable"); return db.getTour(id) }
@@ -161,8 +163,8 @@ class TourEndFlowTest {
         override val activity: Activity get() = hostActivity
         override fun activityOrNull(name: String?): Activity? = Activity.entries.firstOrNull { it.name == name }
         override fun tourTimes(t: Tour): TourTimes? { assertIo("host.tourTimes"); tourTimesCalls++; log += "tourTimes(${t.id}) io"; return moving }
-        override fun nameRecordedTour(t: Tour) { assertMain("nameRecordedTour"); log += "nameRecordedTour(${t.id}) [${snap()} box=${ctl.finishedTour?.id}]" }
-        override fun refreshTours() { assertMain("refreshTours"); log += "refreshTours [${snap()} box=${ctl.finishedTour?.id} short=${ctl.shortBinned?.id}]" }
+        override fun nameRecordedTour(t: Tour) { assertMain("nameRecordedTour"); if (throwOnName) throw IllegalStateException("naming broke"); log += "nameRecordedTour(${t.id}) [${snap()} box=${ctl.finishedTour?.id}]" }
+        override fun refreshTours() { assertMain("refreshTours"); if (throwOnRefresh) { throwOnRefresh = false; throw IllegalStateException("refresh broke") }; log += "refreshTours [${snap()} box=${ctl.finishedTour?.id} short=${ctl.shortBinned?.id}]" }
         override fun clearFollow() { assertMain("clearFollow"); log += "clearFollow [${snap()}]" }
         override fun enterMode(m: AppMode) {
             assertMain("enterMode")
@@ -252,6 +254,7 @@ class TourEndFlowTest {
         assertNull(ctl.shortBinned)
         assertTrue(client.sent.isEmpty())
         assertTrue(problems.traced("tour").any { it == "Tour ended: back to the start – the plan (3 points) goes the \"Neu planen\" way" })
+        assertTrue("nothing reported in app (the guards stay quiet on the success path)", problems.none("app"))
     }
 
     /** Rule 7 / 10: Löschen chosen → the saved box closed, then the bin write, whose backup is told once; no box, nothing said. */
@@ -269,6 +272,7 @@ class TourEndFlowTest {
         assertEquals(listOf("tourChanged($hike) io [box=null]"), log.filter { it.startsWith("tourChanged") })
         assertNull(ctl.finishedTour); assertNull(ctl.shortBinned)
         assertEquals("nothing said", emptyList<Triple<String, NoticeKind, NoticePlace>>(), said)
+        assertTrue("nothing reported in app", problems.none("app"))
         assertEquals("the rest of the end still ran, in order", listOf("refreshTours", "clearFollow", "demoEndedWithTour", "enterMode(PLAN)", "clearPlan", "endGuidanceFlag", "kickThumbs"),
             log.filter { !it.startsWith("tourChanged") && !it.startsWith("send") }.map { it.substringBefore(" [").substringBefore(" ") })
     }
@@ -410,6 +414,7 @@ class TourEndFlowTest {
      * (no box; the list, the follow, the mode, the plan as always) and the collector lives for the next end.
      */
     @Test fun aFailedReadAtATourEndIsReportedLeavesNavigateAndTheNextEndIsStillHandled() {
+        ctl.showFinished(tour(shortTour), null) // an older saved box is open: the not-found branch closes it
         failGetTour = true
         touring(hike)
         ui { slice.start() }
@@ -417,7 +422,8 @@ class TourEndFlowTest {
         stepIo()
         assertNull("finishedSeen was said", client.finished.value)
         assertTrue("reported", problems.said("app").any { it.contains("Tour end") && it.contains("reading tour") })
-        assertNull("no box for a tour that could not be read", ctl.finishedTour)
+        assertNull("no box for a tour that could not be read; the old box is closed", ctl.finishedTour)
+        assertNull("a tour is never binned on a failed read", tour(hike).deletedMs)
         assertTrue("the list is read again", log.any { it.startsWith("refreshTours") })
         assertTrue("the line goes", log.any { it.startsWith("clearFollow") })
         assertTrue("back in Plan", log.any { it.startsWith("enterMode(PLAN)") })
@@ -432,6 +438,47 @@ class TourEndFlowTest {
         assertTrue(log.any { it.startsWith("tourTimes($busTour)") })
         assertTrue(log.any { it.startsWith("refreshTours") })
         assertTrue(log.any { it.startsWith("enterMode(PLAN)") })
+        assertEquals("the second end reported nothing more", 1, problems.said("app").count { it.contains("Tour end") })
+    }
+
+    private fun count(prefix: String) = log.count { it.startsWith(prefix) }
+
+    /** (a) The pass throws after the outcome (naming): the pass catch runs the tail – once. */
+    @Test fun aThrowInTheSavedBranchRunsTheTailExactlyOnce() {
+        throwOnName = true
+        touring(hike)
+        ui { slice.start() }
+        client.finish(hike)
+        stepIo()
+        assertEquals(1, count("enterMode(PLAN)"))
+        assertEquals(1, count("clearPlan"))
+        assertEquals(1, count("refreshTours"))
+        assertTrue(problems.said("app").any { it.contains("one pass of the finished collector failed") })
+    }
+
+    /** (b) A tail step throws once: the others still run, each once; the report names the step. */
+    @Test fun aThrowingTailStepIsReportedAndTheRestRunsOnce() {
+        throwOnRefresh = true
+        touring(hike)
+        ui { slice.start() }
+        client.finish(hike)
+        stepIo()
+        assertEquals(1, count("enterMode(PLAN)"))
+        assertEquals(1, count("clearPlan"))
+        assertEquals(1, count("clearFollow"))
+        assertTrue(problems.said("app").any { it.contains("refreshing the list") })
+    }
+
+    /** A cancelled scope is not an error: nothing reported, nothing of the end runs. */
+    @Test fun aCancelledEndIsNotReportedAndNotRun() {
+        touring(hike)
+        ui { slice.start() }
+        client.finish(hike)
+        scope.cancel()
+        stepIo()
+        assertTrue("no report", problems.none("app"))
+        assertTrue(problems.said("app").none { it.contains("Tour end") || it.contains("reading tour") })
+        assertTrue("no end work", log.none { it.startsWith("enterMode") || it.startsWith("clearPlan") })
     }
 
     /** The collector's first pass: an end the service already published is handled when the slice starts (a re-created screen). */

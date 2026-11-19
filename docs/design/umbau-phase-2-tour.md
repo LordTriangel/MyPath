@@ -569,7 +569,7 @@ report); `RecState` turns out to be referenced by reflection / a manifest (not f
 - Considered and dropped: 18a before 17 (so that the end's flow test has a real `clearFollow`) – the split proof of
   §6.1 item 7 is enough, and the end first keeps the inside-out order.
 - Realistic lines: §0. The view model is ≈ 3,170 lines after 19 (+ what piece 12 changes); the big drop is piece 21.
-- After 19: the latent bugs L1, L2 and L5 are worth a piece each – a failing flow test first (cheap then), the fix
+- After 19: the latent bugs L2 and L5 are worth a piece each (L1 is fixed, 2026-11-19) – a failing flow test first (cheap then), the fix
   after. They are not part of the move.
 
 ### 6.4 Not verified

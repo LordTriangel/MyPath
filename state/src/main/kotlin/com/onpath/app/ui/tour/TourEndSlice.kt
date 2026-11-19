@@ -77,7 +77,7 @@ interface TourEndHost {
  * It talks to the service only through [recording] (the ONE client of the view model: `finishedSeen`, `takeFinishedParts`,
  * and through the controller `stop` / `continueTour`). The tour database is written through [rows] / [tours] on `io`, the
  * backup is told through [host] on the thread the old code told it. The follow state, the mode and the plan are the host's
- * (pieces 18a / 19). The tour paper's rules 7–12, 26–28, 32, 35 hold here; L1 (the unguarded reads in the collector) is fixed (2026-11-19); the latent bug L8 (`saveUnfinished`'s unguarded `updateStats`) are kept as they were.
+ * (pieces 18a / 19). The tour paper's rules 7–12, 26–28, 32, 35 hold here; L1 (the unguarded reads in the collector) is fixed (2026-11-19); the latent bug L8 (`saveUnfinished`'s unguarded `updateStats`) is kept as it was.
  *
  * [start] launches the `finished` collector: the view model calls it exactly where the collector was launched in its big
  * `init` (paper risk 1: on `Main.immediate` its first pass runs inline during construction).
@@ -109,14 +109,13 @@ class TourEndSlice(
             recording.finished.collect { id ->
                 if (id != null) {
                     recording.finishedSeen()
-                    var tailStarted = false
                     try {
-                        handleFinished(id) { tailStarted = true }
+                        handleFinished(id)
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Throwable) {
                         Problems.error("app", "Tour end of tour $id: one pass of the finished collector failed; the collector goes on", e)
-                        if (!tailStarted) endTail()
+                        endTail() // the throw came before the tail (every step of the tail is guarded itself): it runs once
                     }
                 }
             }
@@ -133,7 +132,7 @@ class TourEndSlice(
         fallback
     }
 
-    private suspend fun handleFinished(id: Long, onTail: () -> Unit) {
+    private suspend fun handleFinished(id: Long) {
         // a read that fails is a tour not found (reported): the branch below that already exists
         val done = guarded("reading tour $id", null as Tour?) { withContext(io) { tours.getTour(id) } }
         // Löschen chosen → the bin; else a short recording (owner 2026-11-12: never got away from its start,
@@ -159,7 +158,6 @@ class TourEndSlice(
                 parts.forEach { p -> guarded("reading part $p", null as Tour?) { withContext(io) { tours.getTour(p) } }?.let { host.nameRecordedTour(it) } }
             }
         }
-        onTail()
         endTail()
     }
 

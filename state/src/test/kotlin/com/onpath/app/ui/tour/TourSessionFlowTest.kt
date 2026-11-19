@@ -242,12 +242,14 @@ class TourSessionFlowTest {
         override fun invalidateSplits() { edits.splitRequests.invalidate() }
         /** `AdoptBaseline` is what `syncNavActivity` says: the line already followed, the history and the arrival box at that moment. */
         override fun routeEvent(e: RouteRun.Event) {
+            if (e == RouteRun.Event.AdoptBaseline) switchCalls++
             if (throwInSync) throw IllegalStateException("the route run broke")
             log += "routeEvent($e) [line=${ids(follow.followLine?.filter { it in letters })} v=${follow.navVersion} arrival=${ctl.arrivalAsk} history=${history.find(plan.points.toList()) != null}]"
         }
         override fun tourChanged(id: Long) = Unit
     }
     private var throwInSync = false
+    private var switchCalls = 0
 
     private val editsHost = object : TourEditsHost {
         override val route: PlannedRoute? get() = routeNow
@@ -987,13 +989,15 @@ class TourSessionFlowTest {
         assertEquals("Plan stays Plan, `enter` did not run", emptyList<String>(), log)
     }
 
-    /** L1 shape in the `startFailed` collector (fixed 2026-11-19): a throw while saying the reason is reported; the next failed start is still said. */
+    /** L1 shape in the `startFailed` collector (also: the mode step after the say) (fixed 2026-11-19): a throw while saying the reason is reported; the next failed start is still said. */
     @Test fun aThrowWhileSayingAFailedStartIsReportedAndTheNextOneIsStillSaid() {
         create()
         ui { session.start() }
         stepIo()
+        ui { session.enter(AppMode.NAVIGATE) }
         client.fail("say breaks")
-        assertTrue("reported", problems.said("app").any { it.contains("startFailed") && it.contains("pass") })
+        assertTrue("reported", problems.said("app").any { it.contains("Saying why the recording could not start failed") })
+        assertEquals("the mode step still ran: not left in Navigate with no recording", AppMode.PLAN, session.mode)
         client.fail("next")
         assertEquals(listOf("next"), said.map { it.first })
     }
@@ -1101,6 +1105,34 @@ class TourSessionFlowTest {
         throwInSync = false
         client.publish(recState(tour7, arrived = true))
         assertTrue("the collector lives: the arrival is seen", ctl.arrivalAsk)
+    }
+
+    private fun bikeState(): RecState {
+        val s = files.load().session!!.copy(activity = Activity.BIKE_TOURING)
+        return recState(tour7).copy(nav = NavState(s.active, s.version, null, null, null, null, s, 0.0))
+    }
+
+    /** A failed activity switch is repeated by the next state (the same activity again): the mark "seen" is forgotten after the throw. */
+    @Test fun aFailedActivitySwitchIsDoneByTheNextStateWithTheSameActivity() {
+        runningTour()
+        ui { session.start() }
+        throwInSync = true
+        client.publish(bikeState())
+        assertEquals(1, switchCalls)
+        throwInSync = false
+        client.publish(bikeState().copy(elapsedS = 61L)) // same nav, same activity
+        assertEquals("the switch was tried again and done", 2, switchCalls)
+        assertEquals("adopted", 1, log.count { it.startsWith("routeEvent(${RouteRun.Event.AdoptBaseline})") })
+    }
+
+    /** A throw every time: three repeats, then quiet; every try reported. */
+    @Test fun aSwitchThatAlwaysFailsIsRepeatedThreeTimesThenLeftQuiet() {
+        runningTour()
+        ui { session.start() }
+        throwInSync = true
+        repeat(8) { i -> client.publish(bikeState().copy(elapsedS = 61L + i)) }
+        assertEquals("the first try and exactly 3 repeats", 4, switchCalls)
+        assertTrue("reported (equal messages are folded by Problems)", problems.said("app").any { it.contains("State pass") })
     }
 
     // ======================================================================================================================
