@@ -5,6 +5,16 @@ Start sentence: „Du bist die Einheit **umbau** (OnPath) auf donald. Lies `docs
 „For the roles“ line of 2026-11-18 (owner's go) – each piece own worktree, `gate --full`, fresh Opus review, then main;
 a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines for the captain under „For the captain“.
 
+## State 2026-11-19 later (after tour piece 17 – NEWEST, read this first)
+- On main: phase 2 pieces 1–8, 9a, 10–15, tour 16a, 16b (b6964cf14), **17 `TourEndSlice` (35cfa9685)**. `AppViewModel.kt` 3,543 lines (`MAX_LINES = 3_543`). `TourOrderPinsTest` 21 pins left.
+- **18a (`TourFollow`) is with a Sonnet helper** (own worktree, based on 35cfa9685). Then 18b, 19, 20, 9b, 21; then the three tour weaknesses L1/L2/L5 (owner: fix all three, each its own small piece, failing test first); „phase 2 done“ line.
+- Pull request 14 is merged: `core/**` + `state/**` paths, lint fails on new findings, `--continue`. The lock file, its test and `core_move.py lock` are gone (b6e2e5c34) – a helper based on an older state may still bring `web/engine/core-shared.lock` back: drop it at the merge.
+- Owner's answers (via captain): decision-pin tests may be folded into their feature's flow test (the decision goes into the flow test's comment); tour pieces are released as usual; 5b (routing engine in Kotlin) is a go → [umbau-hp] builds it after the `umbau-phase-3` tag (line is in the backlog; write there when the tag is set).
+- Tags `umbau-phase-0/1/2`: still none. `TourDbMigrationTest`, the hold-measure E2E and `OverviewSwipeE2ETest` were fixed by donald; needed now: one green full E2E on main (`tools/ci/e2e_github.sh --wait`, no `--tests`) and a green Web planner run – the planner is red on main on four mirrors (`MapOverlays`, `MapFooter`, `PointsSection`, `SearchScreen`; laptop's / donald's). At the phase 1 tag delete `docs/design/umbau-phase-1.md`.
+- E2E class names need the package: `com.onpath.app.e2e.CoreFieldE2ETest` (a wrong name fails the run in minutes).
+- Review lesson of 17 (in the 18a brief): for every order of two writes a flow must read the effect back; for every asserted „X is null“ the test must have set X before. A helper keeps re-sending its report → `TaskStop` after the cherry-pick.
+- Merge with a moved main: `git rebase origin/main`; `web/parity.json` conflicts by hand (keep both entries), then `node web/parity/check.mjs --update app/src/main/java/com/onpath/app/ui/AppViewModel.kt <new shared files>`; cap = `wc -l`; gate --full; app + androidTest compile; `-p web/engine test generateWasmGC -Pkotlin.incremental=false`.
+
 ## Done (on main)
 - **Phase 0:** E2E nightly + 4 emulators (pull request 13); backlog slim + cap in the gate (`tools/dev/backlog_slim.py`,
   cap 40,000, target 20,000 once read role lines are deleted); core-features index; 350k handoff rule; 0b sleeps →
