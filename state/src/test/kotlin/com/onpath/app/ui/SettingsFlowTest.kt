@@ -47,8 +47,10 @@ class SettingsFlowTest {
         var files: List<File> = emptyList()
         var filesFail = false
         var fp = "r1-abcdef123456"
-        override fun rd5Files(): List<File> { if (filesFail) throw java.io.IOException("storage gone"); return files }
-        override fun fingerprint() = fp
+        /** The blocking reads must run on the io thread: false = called on the caller's. */
+        var onIo: () -> Boolean = { true }
+        override fun rd5Files(): List<File> { check(onIo()) { "rd5Files on the caller's thread" }; if (filesFail) throw java.io.IOException("storage gone"); return files }
+        override fun fingerprint(): String { check(onIo()) { "fingerprint on the caller's thread" }; return fp }
     }
 
     /** The preferences with a record of each write (the real store writes one preference per call). */
@@ -68,6 +70,8 @@ class SettingsFlowTest {
 
     private inner class App(val io: CoroutineDispatcher = Dispatchers.Unconfined) {
         val log = ArrayList<String>()
+        /** What the preferences and the slice held at the moment the host was called (the new value must be there already). */
+        val storedAtCall = ArrayList<String>()
         var mapShown = true
         var recordingRunning = false
         lateinit var slice: SettingsSlice
@@ -76,10 +80,10 @@ class SettingsFlowTest {
             override val planMapShown: Boolean get() = mapShown
             override fun clearOfflineResult() { log += "offline result cleared" }
             override fun syncEndedSeen() { log += "sync ended seen" }
-            override fun mapsWifiOnly(on: Boolean) { log += "wifi only $on" }
-            override fun retime() { log += "retime" }
+            override fun retime() { log += "retime"; storedAtCall += "retime:" + prefs.inner.settings.hikePace + "/" + prefs.inner.settings.bikePace + "/" + slice.settings.hikePace }
             override val tourRecording: Boolean get() = recordingRunning
-            override fun recordingSettingsChanged() { log += "recording told" }
+            override fun recordingSettingsChanged() { log += "recording told"; storedAtCall += "recording:" + prefs.inner.settings.contours + "/" + slice.settings.contours }
+            override fun mapsWifiOnly(on: Boolean) { log += "wifi only $on"; storedAtCall += "wifi:" + prefs.inner.settings.mapsWifiOnly + "/" + slice.settings.mapsWifiOnly }
         }
         init { slice = SettingsSlice(board, prefs, host, CoroutineScope(Job() + Dispatchers.Unconfined), io) { now } }
     }
@@ -126,8 +130,15 @@ class SettingsFlowTest {
         val app = App()
         app.slice.openSettings(SettingsPage.OFFLINE_MAPS)
         assertTrue("opening the offline maps page keeps its result", "offline result cleared" !in app.log)
+        app.slice.settingsPage = SettingsPage.OFFLINE_MAPS
+        assertTrue("the page again keeps it", "offline result cleared" !in app.log)
         app.slice.settingsPage = SettingsPage.MAP
-        assertEquals(listOf("offline result cleared"), app.log)
+        assertEquals("another page clears it", 1, app.log.count { it == "offline result cleared" })
+        app.slice.settingsPage = SettingsPage.ABOUT
+        assertEquals("a change between two OTHER pages clears it too", 2, app.log.count { it == "offline result cleared" })
+        app.slice.settingsPage = SettingsPage.OFFLINE_MAPS
+        app.slice.settingsPage = null
+        assertEquals("back to the list clears it", 3, app.log.count { it == "offline result cleared" })
     }
 
     @Test fun theSyncPageMarksTheEndedMessageSeen() {
@@ -158,6 +169,7 @@ class SettingsFlowTest {
         app.slice.updateSettings(app.slice.settings.copy(mapsWifiOnly = true))
         assertTrue(prefs.inner.settings.mapsWifiOnly); assertTrue(app.slice.settings.mapsWifiOnly)
         assertEquals(listOf("wifi only true"), app.log)
+        assertEquals("stored before the cells are told", listOf("wifi:true/true"), app.storedAtCall)
         assertEquals(1, prefs.log.count { it == "settings" })
     }
 
@@ -173,6 +185,7 @@ class SettingsFlowTest {
         assertTrue("no pace change: no re-timing", "retime" !in app.log)
         app.slice.updateSettings(app.slice.settings.copy(hikePace = Pace.FIT))
         assertEquals(1, app.log.count { it == "retime" })
+        assertEquals("the new pace is stored and in the slice when the times are worked out again", "retime:FIT/AVERAGE/FIT", app.storedAtCall.last { it.startsWith("retime") })
         app.slice.updateSettings(app.slice.settings.copy(bikePace = Pace.RELAXED))
         assertEquals(2, app.log.count { it == "retime" })
         app.slice.updateSettings(app.slice.settings)
@@ -186,6 +199,7 @@ class SettingsFlowTest {
         app.recordingRunning = true
         app.slice.updateSettings(app.slice.settings.copy(contours = true))
         assertEquals(1, app.log.count { it == "recording told" })
+        assertEquals("the service reads the new settings: stored first", "recording:true/true", app.storedAtCall.last { it.startsWith("recording") })
     }
 
     @Test fun theAppsOwnChangeStoresTheSettingsAndNothingElse() {
@@ -219,9 +233,10 @@ class SettingsFlowTest {
     @Test fun aPhoneThatStuttersSwitchesReliefOffOnceByItselfAndSaysSo() {
         flushTally()
         val app = App()
-        app.slice.mapGestureMeasured(ReliefAuto.Kind.PAN, gesture(100, 90))
-        assertTrue("one gesture is not enough", app.slice.settings.hillshade)
-        app.slice.mapGestureMeasured(ReliefAuto.Kind.ZOOM, gesture(100, 90))
+        repeat(ReliefAuto.WINDOW) { app.slice.mapGestureMeasured(ReliefAuto.Kind.PAN, gesture(100, 20)) }
+        assertTrue("clearly below the limit (20 % of the frames): relief stays", app.slice.settings.hillshade)
+        assertEquals(ReliefAuto.State(), prefs.inner.reliefAuto)
+        repeat(ReliefAuto.WINDOW) { app.slice.mapGestureMeasured(ReliefAuto.Kind.ZOOM, gesture(100, 45)) }
         assertFalse("relief goes off", app.slice.settings.hillshade)
         assertFalse("stored", prefs.inner.settings.hillshade)
         assertTrue("the app's switch: marked, but not as the user's", prefs.inner.reliefAuto.autoOff && !prefs.inner.reliefAuto.byUser)
@@ -282,7 +297,9 @@ class SettingsFlowTest {
 
     @Test fun theRoutingInfoIsReadOnEnteringDiagnosticsOnTheIoThreadAndOnlyThen() {
         val io = ManualExecutor("io"); val main = ManualExecutor("main")
-        val app = App(io.asCoroutineDispatcher())
+        var inIo = false
+        prefs.inner.onIo = { inIo }
+        val app = App(java.util.concurrent.Executor { r -> io.execute { inIo = true; try { r.run() } finally { inIo = false } } }.asCoroutineDispatcher())
         app.slice.openSettings(SettingsPage.MAP)
         assertEquals(0, io.size)
         app.slice.settingsPage = SettingsPage.DIAGNOSTICS
@@ -296,15 +313,18 @@ class SettingsFlowTest {
         main.runAll()
     }
 
-    @Test fun theRoutingInfoNamesTheDataFilesAndAnUnreadableOneHasNoDate() {
+    @Test fun theRoutingInfoNamesTheDataFilesAndAnUnreadableOneHasNoDateAndIsReported() {
         val dir = java.nio.file.Files.createTempDirectory("rd5").toFile()
         try {
-            val f = File(dir, "E10_N45.rd5"); f.writeBytes(ByteArray(10))
-            prefs.inner.files = listOf(f)
+            val short = File(dir, "E10_N45.rd5"); short.writeBytes(ByteArray(10))
+            val locked = File(dir, "E5_N45.rd5"); locked.writeBytes(ByteArray(400)); locked.setReadable(false, false)
+            org.junit.Assume.assumeFalse("running as a user who reads everything", locked.canRead())
+            prefs.inner.files = listOf(short, locked)
             val app = App()
             app.slice.openSettings(SettingsPage.DIAGNOSTICS)
-            assertTrue(app.slice.routingInfo!!.endsWith("data E10_N45 –"))
-        } finally { dir.deleteRecursively() }
+            assertTrue(app.slice.routingInfo!!.endsWith("data E10_N45 –, E5_N45 –"))
+            assertTrue("the unreadable file is reported", problems.said("routing").any { "date of routing data E5_N45.rd5 not read" in it })
+        } finally { dir.listFiles()?.forEach { it.setReadable(true, false) }; dir.deleteRecursively() }
     }
 
     @Test fun aFailingReadLeavesNoInfoAndSaysSo() {

@@ -90,7 +90,13 @@ class SettingsSummaryTest {
         assertTrue(DevToolsUnlock.unlocked(7))
         assertFalse(DevToolsUnlock.shown(unlocked = false))
         assertTrue(DevToolsUnlock.shown(unlocked = true))
-        // the slice shows them only after the unlock, whatever the build: SettingsFlowTest.developerToolsAreHiddenUntilUnlockedAndStayUnlocked
+        // the slice shows them only after the unlock (SettingsFlowTest.developerToolsAreHiddenUntilUnlockedAndStayUnlocked); a debug
+        // flag can only come back in :app (no BuildConfig in :state): the forwarder and the store adapter. A missing anchor fails.
+        val vm = java.io.File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+        assertTrue("anchor: val devToolsShown", vm.contains("val devToolsShown"))
+        assertFalse(vm.substringAfter("val devToolsShown").substringBefore("\n").contains("DEBUG"))
+        assertTrue("anchor: the store adapter", vm.contains("override var devToolsUnlocked") && vm.contains("override var diagnosticsSeenMs"))
+        assertFalse(vm.substringAfter("override var devToolsUnlocked").substringBefore("override var diagnosticsSeenMs").contains("DEBUG"))
         // tester review 2026-11-07: Settings hides them unless told otherwise (a caller that forgets the flag shows nothing)
         val screen = java.io.File("src/main/java/com/onpath/app/ui/SettingsScreen.kt").readText()
         assertTrue(screen.contains("    devTools: Boolean = false,\n"))
