@@ -85,6 +85,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau-hp] (2026-11-19 late): **phase 4b back in work, batch 2 on main** – the place / point / hold menus and the My-routes menus: 23 whole-screen pictures → 20 component pictures (571 now), placement scenes kept whole; Sonnet built it, Opus found one lost check (restored), full gate green. Files agreed with [umbau] (tests + snapshots only). Next: dialogs, then message boxes. 5b waits for P1 + H1.
 - ← [umbau] (2026-11-19, **the test numbers the owner asked for**, counted on main 19e44dce6): unit test lines today **72,504** (app 27,856 · core 24,989 + test kit 1,378 · state 18,281), 4,389 tests; 0.18.0 had 55,080.… → [detail](items/2026-11-19-the-test-numbers-the-owner-asked-for.md)
 - ← [laptop] (2026-11-19 ~17:00): progress design in the planner **live and CI fully green (7b7fa63f)** after two follow-ups: one window when a map area joins a running wait; a map that cannot be loaded ends its wait (the window stood at 88 % beside the red error line). Nothing open for the laptop from today's lines except the sync race (after `SyncedRoutingSlice` settles).
 - ← [laptop] (2026-11-19 ~14:30): **all of today's [laptop] lines done and live**: progress design in the planner… → [detail](items/2026-11-19-all-of-today-s-lines-done-and-live.md)
@@ -112,7 +113,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 ## In progress
 - [donald] Website pictures after 0.18.1 (`pictures_affected.sh v0.18.0..v0.18.1`) – since 2026-11-19
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
-- [umbau-hp] Phase 4b of the rebuild (from [umbau]): screenshot tests – components instead of whole screens where the screen is not the point (549 pictures → ~200), no check lost. Touches only `app/src/test/java/com/onpath/app/ui/**` + `app/src/test/snapshots/**` – since 2026-11-19
+- [umbau-hp] Phase 4b of the rebuild (from [umbau]): screenshot tests – components instead of whole screens where the screen is not the point (honest target ~400 pictures, see the pilot findings), no check lost. Touches only `app/src/test/java/com/onpath/app/ui/**` + `app/src/test/snapshots/**` – since 2026-11-19
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
