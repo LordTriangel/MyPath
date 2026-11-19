@@ -35,11 +35,11 @@ class SharedCoreRuleTest {
     }
 
     /**
-     * Shared with the web planner's engine (TeaVM, `web/engine/build.gradle.kts` reads app/web-shared-files.txt – owner: plans
+     * Shared with the web planner's engine (TeaVM, `web/engine/build.gradle.kts` compiles the :core folder + app/web-shared-files.txt – owner: plans
      * and routes identical in browser and app): besides no Android, no reflection and no java.security (TeaVM has
      * neither; hashes use sync/Sha256). The engine build fails on java.security in code it reaches (checked 2026-11-19) but not on reflection (TeaVM accepts
      * Class.forName / getDeclared* at build time) and not at all in a file it does not reach – so this list stays by name.
-     * Add a file here when the web is to compile it.
+     * Add a file here when WebApi reaches it.
      */
     private val webShared = listOf("gpx/PlanGpx.kt", "gpx/GpxWriter.kt", "gpx/SportType.kt", "routing/PlanPoints.kt",
         "routing/PlanEdits.kt", "routing/RoutingFingerprint.kt", "sync/SyncCrypto.kt", "data/RoutingDataNotice.kt",

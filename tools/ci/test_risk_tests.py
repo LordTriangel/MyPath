@@ -90,6 +90,10 @@ class RiskTests(unittest.TestCase):
         self.assertNotIn("recording", a)  # moved out of :app: its filter would match nothing there
     def test_gate_core_dir_is_a_gradle_input(self):
         self.assertNotEqual(self.gate_core(["core/src/test/kotlin/com/onpath/app/suggest/XTest.kt"])["mode"], "skip")
+    def test_gate_engine_stand_ins_and_excludes_are_gradle_inputs(self):
+        for f in ["web/engine/core-excludes.txt", "web/engine/src/main/kotlin/com/onpath/app/debug/Problems.kt"]:
+            self.assertNotEqual(self.gate_core([f])["mode"], "skip", f)
+        self.assertEqual(self.gate_core(["web/engine/src/main/kotlin/com/onpath/web/WebApi.kt"])["mode"], "skip")
 
 
 if __name__ == "__main__":

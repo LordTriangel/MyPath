@@ -40,6 +40,7 @@ function perfLines(rel) {
 /** Every *.kt below a folder (repo-relative, sorted). */
 function walk(rel) {
   const out = [];
+  if (!fs.existsSync(path.join(repo, rel))) return out;
   for (const e of fs.readdirSync(path.join(repo, rel), { withFileTypes: true })) {
     const r = `${rel}/${e.name}`;
     if (e.isDirectory()) out.push(...walk(r));

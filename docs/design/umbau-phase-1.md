@@ -52,9 +52,13 @@ Deleted when phase 1 is tagged (`umbau-phase-1`).
   `tools/ci/risk_tests.py` + `gate.sh` (`:core:test`), `release_check.sh`, the tools under `tools/` that name source
   paths). First move: the 65 files that can move today.
 - **C – the rest in batches** with the tool after A is on main (expect ~160–200 files), tests with them.
-- **D – planner on the module**: `web/engine` compiles `core/src/main/kotlin` as a source folder (plus what is still
-  shared from `:app`), the list shrinks to the app-side files, `SharedFilesRuleTest` + the border test of
-  `SharedCoreRuleTest` go, stand-ins for classes now real in `:core` (`Problems`, `UserText`, `GpsStatus`) go. With the laptop.
+- **D – planner on the module (done 2026-11-19)**: `web/engine` compiles the whole `core/src/main/kotlin` folder minus the
+  files a same-path stand-in replaces (a stand-in without a counterpart fails the build) minus `web/engine/core-excludes.txt`
+  (empty), plus the 11 files still in `:app` (`app/web-shared-files.txt` `[files]`, tests as before). Stand-ins `UserText`,
+  `GpsStatus` and the geojson `Feature` / `Point` went. The `Problems` stand-in stays: the real one needs executors,
+  `java.nio` and `FileDescriptor`, which TeaVM lacks. `SharedFilesRuleTest` stays, because the gate never builds the engine:
+  it checks the import allow-list for the whole compiled set, the stand-in's `Problems` members, the app-side entries and the
+  lock (`web/engine/core-shared.lock`, until web.yml knows `core/**`). `SharedCoreRuleTest`'s android border test went (the module guards it).
 - **E – checkpoint**: unit CI, planner run, full E2E (`tools/ci/e2e_shards.sh`), tag `umbau-phase-1`.
 
 Done when (plan): `:app` builds on `:core`; planner builds from the module; `:core:test` runs without the Android build.

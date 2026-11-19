@@ -1,5 +1,5 @@
 {
-  "about": "Web ⇄ app parity manifest (docs/design/web-planner.md §14). mirrors = app logic the web re-implements (TS or a Kotlin stand-in): CI fails when the app file changed since the mirror was last checked. shared = app files the engine compiles as they are (appFiles + strings + BRouter jars and profiles): changes reach the web by merging main; listed as warnings, perf- / memory-relevant lines called out. watch = app files with plan behaviour the web neither compiles nor mirrors: changes are listed. After checking a change: node web/parity/check.mjs --update (or --update <app path> …).",
+  "about": "Web ⇄ app parity manifest (docs/design/web-planner.md §14). mirrors = app logic the web re-implements in TS: CI fails when the app file changed since the mirror was last checked. shared = every file the engine compiles as it is (the :core folder minus the stand-ins in web/engine/src/main/kotlin and web/engine/core-excludes.txt, the app files in app/web-shared-files.txt, its tests, strings, BRouter jars and profiles): changes reach the web by merging main; listed as warnings, perf- / memory-relevant lines called out. watch = app files with plan behaviour the web neither compiles nor mirrors: changes are listed. After checking a change: node web/parity/check.mjs --update (or --update <app path> …).",
   "mirrors": [
     {
       "app": "app/src/main/java/com/onpath/app/ui/Screens.kt",
@@ -75,9 +75,8 @@
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/recording/GpsStatus.kt",
-      "what": "GpsStatus names (engine stand-in recording/GpsStatus.kt)",
+      "what": "GpsStatus names (the engine compiles the real file; position.ts mirrors them)",
       "web": [
-        "web/engine/src/main/kotlin/com/onpath/app/recording/GpsStatus.kt",
         "web/app/src/position.ts"
       ],
       "blob": "cdb0c3c4cfb30c02ee3b8953ef5b7f63760a6c75"
@@ -196,14 +195,6 @@
         "web/engine/src/main/kotlin/com/onpath/app/debug/Problems.kt"
       ],
       "blob": "826ac41caadaa14966beb023684199ff6412926d"
-    },
-    {
-      "app": "core/src/main/kotlin/com/onpath/app/debug/UserText.kt",
-      "what": "own RoutingException texts shown, else the plain sentence (engine stand-in)",
-      "web": [
-        "web/engine/src/main/kotlin/com/onpath/app/debug/UserText.kt"
-      ],
-      "blob": "d608ad403f31c7f925f9ea7c256faf36a9deb177"
     },
     {
       "app": "app/src/main/java/com/onpath/app/data/DataFiles.kt",

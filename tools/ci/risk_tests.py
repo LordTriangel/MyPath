@@ -39,7 +39,9 @@ ROOT_PKG = ("app/src/main/java/com/onpath/app/", "app/src/test/java/com/onpath/a
 VERSION_ONLY = "app/build.gradle.kts#version"  # gate.sh: the diff of app/build.gradle.kts touches only appVersion
 # Files outside app/ and strings/ that unit tests or the build read (gate: these need a Gradle run)
 GRADLE_INPUTS = ("app/", "core/", "strings/", "gradle/", "build.gradle.kts", "settings.gradle.kts", "gradle.properties",
-                 "gradlew", "keystore/", "tools/sync/", "tools/routing/wayclass/")
+                 "gradlew", "keystore/", "tools/sync/", "tools/routing/wayclass/",
+                 # the planner's stand-ins / excludes decide the set SharedFilesRuleTest locks
+                 "web/engine/core-excludes.txt", "web/engine/src/main/kotlin/com/onpath/app/")
 TOOL_TESTS = {"tools/sync/": "plansync", "tools/routing/wayclass/": "routing"}  # SyncMailboxE2ETest, RouterClassHashTest
 RELEASE_FILES = ("docs/",)  # beside the version line, a release changes only notes / docs
 REPO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
