@@ -151,7 +151,7 @@ android {
         // release (the baseline matches the message, which names the version)
         disable += setOf("GradleDependency", "NewerVersionAvailable", "AndroidGradlePluginVersion")
     }
-    // Test helpers and resources that tests of both modules use live in :core (core/src/testkit/kotlin with Sources.kt,
+    // Test helpers and resources that tests of all three modules use live in :core (core/src/testkit/kotlin with Sources.kt,
     // core/src/test/resources): one home, seen from here as extra source / resource dirs.
     sourceSets.getByName("test") {
         java.srcDir("../core/src/testkit/kotlin")
@@ -229,6 +229,8 @@ dependencies {
     implementation(project(":strings"))
     // the pure Kotlin part (JVM module); same packages as here
     implementation(project(":core"))
+    // the screens' state: slices of the view model (same packages as here, plain JVM, depends on :core)
+    implementation(project(":state"))
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.core:core-ktx:1.15.0")
     // the one interface androidx.core's getUnusedAppRestrictionsStatus returns (Phone setup); no Guava, no Play services
@@ -259,9 +261,9 @@ dependencies {
     androidTestImplementation("androidx.test.uiautomator:uiautomator:2.3.0")
 }
 
-// The release run (:app:testDebugUnitTest --tests …) and CI know only this task: it runs the :core tests first (their own
-// `--tests` filter cannot be given through it – the app's filter would hit nothing there). tools/ci/gate.sh passes
-// -Ponpath.coreTests=explicit and names :core:test with its own filter instead.
+// The release run (:app:testDebugUnitTest --tests …) and CI know only this task: it runs the :core and :state tests first
+// (their own `--tests` filter cannot be given through it – the app's filter would hit nothing there). tools/ci/gate.sh
+// passes -Ponpath.coreTests=explicit (one flag for both modules) and names :core:test / :state:test with their own filters.
 if (findProperty("onpath.coreTests") != "explicit") {
-    tasks.withType<Test>().configureEach { if (name == "testDebugUnitTest") dependsOn(":core:test") }
+    tasks.withType<Test>().configureEach { if (name == "testDebugUnitTest") dependsOn(":core:test", ":state:test") }
 }

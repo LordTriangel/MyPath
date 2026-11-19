@@ -203,10 +203,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // --- screens and mode ---
     // messages (declared before routesOpen / showSettings, whose setters clear their lines) – see [say]
+    /**
+     * The messages the screens show ([NoticeBoard], in `:state`): the red error box, the lines in My routes / Settings, the
+     * quiet map line, the spinner. The names below forward to it. It reads the screens through lambdas, when a message is said.
+     */
+    val notices = NoticeBoard(routesOpen = { routesOpen }, settingsOpen = { showSettings }, mapShown = { mode == AppMode.PLAN && !searchOpen })
     /** The red error box (MessageCard HINWEIS_ERROR: ⚠, red edge, OK) on the screen shown; null = none. Never cleared by itself. */
-    var errorCard by mutableStateOf<String?>(null)
+    var errorCard: String? get() = notices.errorCard; set(v) { notices.errorCard = v }
     /** The line at the top of My routes; goes when My routes is left. */
-    var routesNote by mutableStateOf<Notice?>(null)
+    var routesNote: Notice? get() = notices.routesNote; set(v) { notices.routesNote = v }
     /**
      * A plan or a done tour was tapped in My routes during a tour and is followed now – no question (owner 2026-11-06
      * 22:05, "super verwirrend"): Navigate says "Neuer Plan – deine Aufnahme läuft weiter" at the bottom for a few
@@ -216,7 +221,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun dropNewPlanNote() = tour.dropNewPlanNote()
 
     /** The line at the top of the open Settings page; goes when the page changes or Settings closes. */
-    var settingsNote by mutableStateOf<Notice?>(null)
+    var settingsNote: Notice? get() = notices.settingsNote; set(v) { notices.settingsNote = v }
     /**
      * My routes' state and decisions ([com.onpath.app.ui.routes.RoutesState], audit package 4 stage 3): open, tab, the
      * list, Zuletzt, the "✓ Gerade gespeichert" mark; the database behind a small store. The names below forward to it.
@@ -812,9 +817,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The user drags the map (true) / the map came to rest (false): new map areas are not joined meanwhile. */
     /** The quiet line on the Plan map ([NoticeSurface.MAP_LINE], goes after [MapNote.MS]); [mapNoteTick] restarts its time. */
-    var mapNote by mutableStateOf<Notice?>(null)
-    var mapNoteTick by mutableStateOf(0)
-        private set
+    var mapNote: Notice? get() = notices.mapNote; set(v) { notices.mapNote = v }
+    val mapNoteTick: Int get() = notices.mapNoteTick
 
     /** Relief switched off by the app once / set by hand ([com.onpath.app.map.ReliefAuto]). */
     private var reliefAuto = prefs.reliefAuto
@@ -1206,27 +1210,15 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // --- dialogs / messages ---
-    /**
-     * Says [text] where it belongs (owner: no dark message bar): a line in My routes / the open Settings page where the
-     * user acted ([place]); an error without such a place in the red [errorCard] box (stays until OK); an INFO without a
-     * place only in the problem log. Routing: [NoticeRouting].
-     */
-    fun say(text: String, kind: NoticeKind, place: NoticePlace) {
-        when (NoticeRouting.surface(kind, place, routesOpen, showSettings, mapShown = mode == AppMode.PLAN && !searchOpen)) {
-            NoticeSurface.ROUTES_LINE -> routesNote = Notice(text, kind)
-            NoticeSurface.SETTINGS_LINE -> settingsNote = Notice(text, kind)
-            NoticeSurface.MAP_LINE -> { mapNote = Notice(text, kind); mapNoteTick++ }
-            NoticeSurface.ERROR_CARD -> errorCard = text
-            NoticeSurface.LOG_ONLY -> Problems.trace("ui", "${kind.name} for ${place.name.lowercase()} not shown (place closed): $text")
-        }
-    }
-    fun sayError(text: String, place: NoticePlace) = say(text, NoticeKind.ERROR, place)
-    fun sayInfo(text: String, place: NoticePlace) = say(text, NoticeKind.INFO, place)
+    /** Says [text] where it belongs: a line where the user acted, the red box for an error, else only the log ([NoticeBoard.say]). */
+    fun say(text: String, kind: NoticeKind, place: NoticePlace) = notices.say(text, kind, place)
+    fun sayError(text: String, place: NoticePlace) = notices.sayError(text, place)
+    fun sayInfo(text: String, place: NoticePlace) = notices.sayInfo(text, place)
     /** Settings → Updates, or the update banner on the map. */
     private fun updatePlace() = if (showSettings) NoticePlace.SETTINGS else NoticePlace.MAP
 
     /** Work the user started that takes a moment: a spinner where it was started. */
-    var busy by mutableStateOf<Busy?>(null)
+    var busy: Busy? get() = notices.busy; set(v) { notices.busy = v }
     val unfinished: Tour? get() = tour.unfinished
     /** The track of [unfinished], drawn on the map while its question shows (no service runs then). */
     val unfinishedTrack: List<List<GeoPoint>> get() = tour.unfinishedTrack

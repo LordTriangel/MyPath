@@ -17,11 +17,12 @@ Gate (--gate) – prints shell assignments for gate.sh (same selection, plus):
 - the screenshot check (verifyPaparazziDebug) only when a selected package has screenshot tests (ui/, search/), or
   the snapshots / texts / resources changed, or everything runs.
 
-Two modules (docs/design/umbau-phase-1.md): a package may live in :app (app/src/{main,test}/java/…) and in :core
-(core/src/{main,test}/kotlin/…, plain JVM). A changed file of either selects that package's tests in BOTH modules where
-the package has tests (a --tests filter that matches nothing fails Gradle's task, so a module only gets the patterns of
-packages it has tests for). Release mode prints the :app filters only – :app:testDebugUnitTest runs the whole :core:test
-first (app/build.gradle.kts); the gate names :core:test with its own filter (core_patterns).
+Three modules (docs/design/umbau-phase-1.md, umbau-phase-2.md): a package may live in :app (app/src/{main,test}/java/…),
+in :core and in :state (core|state/src/{main,test}/kotlin/…, plain JVM). A changed file of any selects that package's
+tests in ALL modules where the package has tests (a --tests filter that matches nothing fails Gradle's task, so a module
+only gets the patterns of packages it has tests for). Release mode prints the :app filters only –
+:app:testDebugUnitTest runs the whole :core:test and :state:test first (app/build.gradle.kts); the gate names them with
+their own filters (core_patterns, state_patterns).
 
 Usage: risk_tests.py [--gate] <changed file> …  (one path per argument, relative to the repo root)
 """
@@ -31,14 +32,16 @@ CORE = ["recording", "navigation", "data", "gpx", "backup", "plansync", "sync"]
 FULL_TRIGGERS = (
     "app/build.gradle.kts", "build.gradle.kts", "settings.gradle.kts", "gradle.properties", "gradle/",
     "app/libs/", "app/src/main/assets/brouter/", "strings/build.gradle.kts", "app/src/test/resources/",
-    "core/build.gradle.kts", "core/src/test/resources/", "core/src/testkit/",  # testkit: helpers both modules compile
+    "core/build.gradle.kts", "core/src/test/resources/", "core/src/testkit/",  # testkit: helpers all modules compile
+    "state/build.gradle.kts",
 )
-PKG = re.compile(r"^(?:app/src/(?:main|test)/java|core/src/(?:main|test)/kotlin)/com/onpath/app/([a-z0-9_]+)/")
+PKG = re.compile(r"^(?:app/src/(?:main|test)/java|(?:core|state)/src/(?:main|test)/kotlin)/com/onpath/app/([a-z0-9_]+)/")
 ROOT_PKG = ("app/src/main/java/com/onpath/app/", "app/src/test/java/com/onpath/app/",
-            "core/src/main/kotlin/com/onpath/app/", "core/src/test/kotlin/com/onpath/app/")
+            "core/src/main/kotlin/com/onpath/app/", "core/src/test/kotlin/com/onpath/app/",
+            "state/src/main/kotlin/com/onpath/app/", "state/src/test/kotlin/com/onpath/app/")
 VERSION_ONLY = "app/build.gradle.kts#version"  # gate.sh: the diff of app/build.gradle.kts touches only appVersion
 # Files outside app/ and strings/ that unit tests or the build read (gate: these need a Gradle run)
-GRADLE_INPUTS = ("app/", "core/", "strings/", "gradle/", "build.gradle.kts", "settings.gradle.kts", "gradle.properties",
+GRADLE_INPUTS = ("app/", "core/", "state/", "strings/", "gradle/", "build.gradle.kts", "settings.gradle.kts", "gradle.properties",
                  "gradlew", "keystore/", "tools/sync/", "tools/routing/wayclass/",
                  # the planner's stand-ins / excludes decide the set SharedFilesRuleTest locks
                  "web/engine/core-excludes.txt", "web/engine/src/main/kotlin/com/onpath/app/")
@@ -47,6 +50,7 @@ RELEASE_FILES = ("docs/",)  # beside the version line, a release changes only no
 REPO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 TEST_ROOT = os.path.join(REPO, "app", "src", "test", "java", "com", "onpath", "app")
 CORE_TEST_ROOT = os.path.join(REPO, "core", "src", "test", "kotlin", "com", "onpath", "app")
+STATE_TEST_ROOT = os.path.join(REPO, "state", "src", "test", "kotlin", "com", "onpath", "app")
 
 
 def select(changed):
@@ -139,19 +143,21 @@ def screenshot_packages(root=TEST_ROOT):
     return out
 
 
-def gate(changed, shot_pkgs=None, app_pkgs=None, core_pkgs=None, rule_tests=None):
+def gate(changed, shot_pkgs=None, app_pkgs=None, core_pkgs=None, rule_tests=None, state_pkgs=None):
     """The plan for gate.sh: dict with mode (skip | select | full), patterns (--tests filters, space-separated),
-    core_patterns (the same for :core:test; empty = no core run), paparazzi, python (tools/ci changed: its own tests),
-    release, why. rule_tests = (app has *RuleTest, core has *RuleTest)."""
+    core_patterns / state_patterns (the same for :core:test / :state:test; empty = no run of that module), paparazzi,
+    python (tools/ci changed: its own tests), release, why. rule_tests = (app has *RuleTest, core has, state has)."""
     shot_pkgs = screenshot_packages() if shot_pkgs is None else set(shot_pkgs)
     app_pkgs = app_test_packages() if app_pkgs is None else set(app_pkgs)
     core_pkgs = test_packages(CORE_TEST_ROOT) if core_pkgs is None else set(core_pkgs)
-    app_rules, core_rules = (True, root_rule_tests(CORE_TEST_ROOT)) if rule_tests is None else rule_tests
+    state_pkgs = test_packages(STATE_TEST_ROOT) if state_pkgs is None else set(state_pkgs)
+    app_rules, core_rules, state_rules = ((True, root_rule_tests(CORE_TEST_ROOT), root_rule_tests(STATE_TEST_ROOT))
+                                          if rule_tests is None else rule_tests)
     python = any(f.startswith("tools/ci/") for f in changed)
     relevant = [f for f in changed if f == VERSION_ONLY or f.startswith(GRADLE_INPUTS)]
     release = VERSION_ONLY in changed and all(f == VERSION_ONLY or f.startswith(RELEASE_FILES) or
                                               ("/" not in f and f.endswith(".md")) for f in changed)
-    plan = {"mode": "skip", "patterns": "", "core_patterns": "", "paparazzi": 0, "python": int(python), "release": int(release), "why": ""}
+    plan = {"mode": "skip", "patterns": "", "core_patterns": "", "state_patterns": "", "paparazzi": 0, "python": int(python), "release": int(release), "why": ""}
     if not changed:
         plan["why"] = "no changes against the base"
         return plan
@@ -166,7 +172,9 @@ def gate(changed, shot_pkgs=None, app_pkgs=None, core_pkgs=None, rule_tests=None
         f.startswith(("app/src/test/snapshots/", "strings/", "app/src/main/res/")) for f in relevant)
     patterns = [test_pattern(p) for p in pkgs if p in app_pkgs] + (["*RuleTest"] if app_rules else [])
     core_patterns = [test_pattern(p) for p in pkgs if p in core_pkgs] + (["*RuleTest"] if core_rules else [])
-    plan.update(mode="select", patterns=" ".join(patterns), core_patterns=" ".join(core_patterns), paparazzi=int(shots),
+    state_patterns = [test_pattern(p) for p in pkgs if p in state_pkgs] + (["*RuleTest"] if state_rules else [])
+    plan.update(mode="select", patterns=" ".join(patterns), core_patterns=" ".join(core_patterns),
+                state_patterns=" ".join(state_patterns), paparazzi=int(shots),
                 why="packages: " + " ".join(pkgs))
     return plan
 

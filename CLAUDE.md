@@ -15,7 +15,7 @@ the phone → simple. Requirements with stable IDs: `docs/requirements.md` (new 
 
 ## Build and test
 - `tools/ci/gate.sh` before every push (picks the tests from the changes; the push hook checks it). Other Gradle runs only
-  in a slot: `tools/dev/gradle_slot.sh -- ./gradlew …`. Unit tests run in UTC. A single `:app:testDebugUnitTest` run also runs `:core:test` unless `-Ponpath.coreTests=explicit` is given.
+  in a slot: `tools/dev/gradle_slot.sh -- ./gradlew …`. Unit tests run in UTC. A single `:app:testDebugUnitTest` run also runs `:core:test` and `:state:test` unless `-Ponpath.coreTests=explicit` is given.
 - Emulator and Pixel only through `tools/dev/device.sh emulator|pixel -- <command>`; never a second emulator.
 - Cloud session: `tools/cloud/session_setup.sh` once; E2E on GitHub with `tools/ci/e2e_github.sh --tests <class> --wait`.
 

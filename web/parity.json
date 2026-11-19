@@ -169,7 +169,7 @@
         "web/app/src/plans.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "13c027f1f66b69b903a72c62b9d9c5e4f4e648e1"
+      "blob": "474e7df3132f74172c52337f41e34cb34d862778"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -323,7 +323,7 @@
       "blob": "4b036fb8e916363c705bbb62424338809c899908"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/routes/RoutesState.kt",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/routes/RoutesState.kt",
       "what": "Zuletzt: keepDraft / takePlace (other drafts → recycle bin) / afterSaved / saveDraft / toBin / restore / trimDrafts (one-time); open: Neueste zuerst at each opening (no stored sort – plans.ts openSort)",
       "web": [
         "web/app/src/recent.ts",
@@ -2966,6 +2966,10 @@
     },
     "app/src/main/assets/style/f2/onpath.json": {
       "blob": "1c409cb28ff79aaf7c56578053c9e792a41f66c0",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/data/TourSchema.kt": {
+      "blob": "d44fbc249e1545376802f11faea64f5f978438b4",
       "perf": []
     }
   }

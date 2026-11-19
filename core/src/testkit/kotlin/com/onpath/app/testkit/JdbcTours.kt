@@ -1,7 +1,7 @@
 package com.onpath.app.testkit
 
 import com.onpath.app.data.Tour
-import com.onpath.app.data.TourDb
+import com.onpath.app.data.TourJson
 import com.onpath.app.data.TourKind
 import com.onpath.app.data.TourSchema
 import com.onpath.app.gpx.GpxWaypoint
@@ -11,7 +11,7 @@ import java.sql.DriverManager
 
 /**
  * The tour database on the JVM (sqlite-jdbc, like TourSchemaTest): the app's real tables ([TourSchema.CREATE]) and its
- * real JSON columns ([TourDb.waypointsToJson] …) in memory or in a file, with the handful of statements a recording
+ * real JSON columns ([TourJson.waypointsToJson] …) in memory or in a file, with the handful of statements a recording
  * and My routes need – the same SQL text as `data/TourDb` (which is an Android SQLiteOpenHelper and cannot run here).
  * For slices of the view model / the service that take a small store interface: this is the store behind their fake,
  * so a test sees real rows, real ordering and a real "disk full" ([failWrites]).
@@ -41,13 +41,13 @@ class JdbcTours(path: String = ":memory:") : AutoCloseable {
     /** [TourDb.insertTour]: the tour row and its points in one transaction; returns the id. */
     fun insertTour(kind: TourKind, name: String, activity: String?, sac: Int, segments: List<List<TrackPoint>> = emptyList(),
                    waypoints: List<GpxWaypoint> = emptyList(), state: String = "done", distance: Double = 0.0,
-                   uuid: String = TourDb.newUuid(), createdMs: Long = System.currentTimeMillis(), draft: Boolean = false): Long {
+                   uuid: String = java.util.UUID.randomUUID().toString(), createdMs: Long = System.currentTimeMillis(), draft: Boolean = false): Long {
         write()
         db.autoCommit = false
         try {
             exec("INSERT INTO tours(kind, name, created, uuid, pinned, activity, sac, distance, ascent, descent, duration, state, waypoints, draft, favourite) " +
-                "VALUES (?,?,?,?,?,?,?,?,0,0,0,?,?,?,0)", kind.name, name, createdMs, uuid, TourDb.pinnedToJson(emptySet()), activity, sac,
-                distance, state, TourDb.waypointsToJson(waypoints), if (draft) 1 else 0)
+                "VALUES (?,?,?,?,?,?,?,?,0,0,0,?,?,?,0)", kind.name, name, createdMs, uuid, TourJson.pinnedToJson(emptySet()), activity, sac,
+                distance, state, TourJson.waypointsToJson(waypoints), if (draft) 1 else 0)
             val id = db.createStatement().use { s -> s.executeQuery("SELECT last_insert_rowid()").use { r -> r.next(); r.getLong(1) } }
             var seq = 0
             segments.forEachIndexed { seg, pts -> pts.forEach { point(id, seq++, seg, it, null) } }
@@ -96,8 +96,8 @@ class JdbcTours(path: String = ":memory:") : AutoCloseable {
                     createdMs = r.getLong("created"), activity = r.getString("activity"), sac = r.getInt("sac"),
                     distanceM = r.getDouble("distance"), ascentM = r.getDouble("ascent"), descentM = r.getDouble("descent"),
                     durationS = r.getDouble("duration"), state = r.getString("state") ?: "done",
-                    waypoints = TourDb.jsonToWaypoints(r.getString("waypoints")), uuid = r.getString("uuid") ?: "",
-                    pinned = TourDb.jsonToPinned(r.getString("pinned")),
+                    waypoints = TourJson.jsonToWaypoints(r.getString("waypoints")), uuid = r.getString("uuid") ?: "",
+                    pinned = TourJson.jsonToPinned(r.getString("pinned")),
                     deletedMs = r.getLong("deleted_at").takeIf { !r.wasNull() },
                     draft = r.getInt("draft") == 1, hasPlan = r.getInt("has_plan") == 1,
                     difficulty = r.getString("difficulty"), favourite = r.getInt("favourite") == 1,

@@ -14,7 +14,7 @@
 # no `./gradlew --stop` afterwards.
 #
 # Usage: tools/ci/gate.sh [--full] [--base REF] [--no-ci-skip] [--dry-run] [-- extra Gradle args/tasks]
-#   --full        everything: all unit tests of all modules (:app, :core, :strings) + the screenshot check
+#   --full        everything: all unit tests of all modules (:app, :core, :state, :strings) + the screenshot check
 #   --base REF    compare with REF instead of origin/main (the merge base is used)
 #   --no-ci-skip  a release runs its selected tests even when CI is green
 #   --dry-run     print what would run, run nothing
@@ -113,12 +113,14 @@ fi
 case "$mode" in
   full) TASKS=(testDebugUnitTest verifyPaparazziDebug) ;;
   select)
-    # :app:testDebugUnitTest would run the whole :core:test first (release.yml relies on it): the gate names :core:test
-    # with its own filter and switches that dependency off. A module without a test for the packages gets no task.
+    # :app:testDebugUnitTest would run the whole :core:test and :state:test first (release.yml relies on it): the gate
+    # names them with their own filters and switches that dependency off (one flag for both). A module without a test
+    # for the packages gets no task.
     TASKS=(-Ponpath.coreTests=explicit)
     set -f
     if [ -n "$patterns" ]; then TASKS+=(:app:testDebugUnitTest); for p in $patterns; do TASKS+=(--tests "$p"); done; fi
     if [ -n "$core_patterns" ]; then TASKS+=(:core:test); for p in $core_patterns; do TASKS+=(--tests "$p"); done; fi
+    if [ -n "$state_patterns" ]; then TASKS+=(:state:test); for p in $state_patterns; do TASKS+=(--tests "$p"); done; fi
     set +f
     [ "$paparazzi" = 1 ] && TASKS+=(:app:verifyPaparazziDebug)
     TASKS+=(:strings:testDebugUnitTest) ;;
@@ -163,6 +165,7 @@ gradle_slot_release
 count_tests() { cat "$@" 2>/dev/null | grep -o '<testsuite [^>]*tests="[0-9]*"' | grep -o 'tests="[0-9]*"' | tr -dc '0-9\n' | awk '{s+=$1} END {print s+0}'; }
 n=$(count_tests app/build/test-results/testDebugUnitTest/*.xml)
 nc=$(count_tests core/build/test-results/test/*.xml)
-echo "gate: $([ "$rc" = 0 ] && echo PASSED || echo FAILED) · $mode · $n app tests + $nc core tests · screenshots $([ "$paparazzi" = 1 ] && echo checked || echo skipped) · Gradle ${G} s, lock wait ${WAIT} s, total $(( $(date +%s) - T0 )) s"
+ns=$(count_tests state/build/test-results/test/*.xml)
+echo "gate: $([ "$rc" = 0 ] && echo PASSED || echo FAILED) · $mode · $n app + $nc core + $ns state tests · screenshots $([ "$paparazzi" = 1 ] && echo checked || echo skipped) · Gradle ${G} s, lock wait ${WAIT} s, total $(( $(date +%s) - T0 )) s"
 [ "$grc" != 0 ] && [ -n "$(ls -A app/build/paparazzi/failures/* 2>/dev/null)" ] && echo "gate: screenshot differences in app/build/paparazzi/failures/"
 exit $rc

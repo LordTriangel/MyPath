@@ -188,7 +188,7 @@ class RecentPlansTest {
         val id = saved("Feierabendrunde", 51.0, 51.1)
         val old = db.getTour(id)!!; val line = db.loadSegments(id)
         // the route is updated in place first (the view model's overwrite) – here: other points
-        db.exec("UPDATE tours SET waypoints=? WHERE id=?", com.onpath.app.data.TourDb.waypointsToJson(listOf(GpxWaypoint(53.0, 7.0, null), GpxWaypoint(53.1, 7.0, null))), id)
+        db.exec("UPDATE tours SET waypoints=? WHERE id=?", com.onpath.app.data.TourJson.waypointsToJson(listOf(GpxWaypoint(53.0, 7.0, null), GpxWaypoint(53.1, 7.0, null))), id)
         recent().keepReplaced(old, line)
         val kept = drafts().single()
         assertEquals("Feierabendrunde", kept.name)

@@ -56,8 +56,10 @@ class RiskTests(unittest.TestCase):
     # :core (core/src/{main,test}/kotlin): a package may live in both modules; a filter only goes to a module with tests
     APP = set(r.CORE) | {"ui", "search", "routing", "map", "suggest"}
     CORE = {"suggest", "sync", "domain"}
-    def gate_core(self, files, core=None, rules=(True, True)):
-        return r.gate(files, self.SHOTS, self.APP, self.CORE if core is None else core, rules)
+    STATE = {"ui"}
+    def gate_core(self, files, core=None, rules=(True, True), state=None, state_rules=True):
+        return r.gate(files, self.SHOTS, self.APP, self.CORE if core is None else core, tuple(rules)[:2] + (state_rules,),
+                      self.STATE if state is None else state)
     def test_core_file_selects_its_package(self):
         self.assertIn("suggest", r.select(["core/src/main/kotlin/com/onpath/app/suggest/X.kt"]))
         self.assertIn("suggest", r.select(["core/src/test/kotlin/com/onpath/app/suggest/XTest.kt"]))
@@ -84,6 +86,27 @@ class RiskTests(unittest.TestCase):
     def test_gate_no_core_tests_no_core_patterns(self):
         g = self.gate_core(["app/src/main/java/com/onpath/app/map/X.kt"], core=set(), rules=(True, False))
         self.assertEqual(g["core_patterns"], "")
+    # :state (state/src/{main,test}/kotlin): the third module of the same scheme (docs/design/umbau-phase-2.md)
+    def test_state_file_selects_its_package_and_runs_state_and_app_tests(self):
+        f = "state/src/main/kotlin/com/onpath/app/ui/routes/RoutesState.kt"
+        self.assertIn("ui", r.select([f]))
+        self.assertIn("ui", r.select(["state/src/test/kotlin/com/onpath/app/ui/routes/RecentPlansTest.kt"]))
+        g = self.gate_core([f])
+        self.assertEqual(g["mode"], "select")
+        self.assertIn("com.onpath.app.ui.*", g["state_patterns"].split())
+        self.assertIn("com.onpath.app.ui.*", g["patterns"].split())
+        self.assertIn("*RuleTest", g["state_patterns"].split())
+    def test_state_root_package_build_and_web_list(self):
+        self.assertIsNone(r.select(["state/src/main/kotlin/com/onpath/app/Z.kt"]))
+        self.assertIsNone(r.select(["state/build.gradle.kts"]))
+        self.assertEqual(self.gate_core(["state/build.gradle.kts"])["mode"], "full")
+        # web-ready.txt is read by WebReadyRuleTest: a Gradle input
+        self.assertNotEqual(self.gate_core(["state/web-ready.txt"])["mode"], "skip")
+    def test_gate_state_gets_filters_only_for_packages_with_state_tests(self):
+        g = self.gate_core(["core/src/main/kotlin/com/onpath/app/suggest/X.kt"])
+        self.assertNotIn("com.onpath.app.suggest.*", g["state_patterns"].split())  # no state test there
+        g = self.gate_core(["app/src/main/java/com/onpath/app/map/X.kt"], state=set(), state_rules=False)
+        self.assertEqual(g["state_patterns"], "")
     def test_release_args_only_for_packages_with_app_tests(self):
         a = r.gradle_args(["core/src/main/kotlin/com/onpath/app/suggest/X.kt"], {"suggest", "data"})
         self.assertIn("com.onpath.app.suggest.*", a)
