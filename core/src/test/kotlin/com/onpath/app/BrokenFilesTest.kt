@@ -26,9 +26,10 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import java.io.File
-import java.nio.file.Files
 
 /**
  * Safety net for every stored file of the `:core` packages that the app reads at start: a missing, empty, cut,
@@ -40,7 +41,9 @@ import java.nio.file.Files
  * Replaces BrokenBackupIndexTest, BrokenCellFilesTest, BrokenProblemsFileTest and BrokenTimesFilesTest (audit group G01).
  */
 class BrokenFilesTest {
-    private fun dir(): File = Files.createTempDirectory("broken").toFile()
+    @get:Rule val tmp = TemporaryFolder()
+
+    private fun dir(): File = tmp.newFolder()
 
     /** A fresh folder with a fresh, empty problem log. */
     private fun fresh(): File = dir().also { Problems.init(it); Problems.clear() }
@@ -52,8 +55,10 @@ class BrokenFilesTest {
 
     @Test fun everyBrokenStoredFileIsSurvived() {
         val t = BrokenRows()
-        backupIndex(t); cellFiles(t); problemsFiles(t); timesFiles(t)
-        assertTrue("the table is not empty", t.size > 60)
+        t.group("backup-index.json", 11) { backupIndex(t) }
+        t.group("cell files", 25) { cellFiles(t) }
+        t.group("problems.json + event log", 19) { problemsFiles(t) }
+        t.group("time files", 28) { timesFiles(t) }
         t.runAll()
     }
 

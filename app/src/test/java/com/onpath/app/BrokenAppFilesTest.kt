@@ -48,10 +48,11 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.io.InputStream
-import java.nio.file.Files
 import kotlin.random.Random
 
 /**
@@ -67,7 +68,9 @@ import kotlin.random.Random
  * lost or binned) is its own named test below.
  */
 class BrokenAppFilesTest {
-    private fun dir(): File = Files.createTempDirectory("broken-app").toFile()
+    @get:Rule val tmp = TemporaryFolder()
+
+    private fun dir(): File = tmp.newFolder()
 
     @Before fun reset() { Problems.init(dir()); Problems.clear() }
 
@@ -85,8 +88,12 @@ class BrokenAppFilesTest {
 
     @Test fun everyBrokenStoredFileIsSurvived() {
         val t = BrokenRows()
-        followFile(t); planPrefs(t); routingFiles(t); smallFiles(t); tourJson(t); syncFiles(t)
-        assertTrue("the table is not empty", t.size > 250)
+        t.group("follow.json + preferences", 12) { followFile(t) }
+        t.group("plan preferences", 46) { planPrefs(t) }
+        t.group("routing files", 21) { routingFiles(t) }
+        t.group("small files", 39) { smallFiles(t) }
+        t.group("tour JSON", 34) { tourJson(t) }
+        t.group("sync files", 100) { syncFiles(t) }
         t.runAll()
     }
 
@@ -311,7 +318,7 @@ class BrokenAppFilesTest {
         fun placeSetup(): Triple<File, File, Pair<String, String>> {
             val root = dir()
             val cacheDir = File(root, "cache").apply { mkdirs() }
-            val base = File(root, "base.pmtiles").apply { writeBytes(ByteArray(300) { 7 }) } // not a PMTiles file: no places, no throw
+            val base = File(root, "base.pmtiles").apply { writeBytes(ByteArray(300) { 7 }); setLastModified(1_700_000_000_000L) } // not a PMTiles file: no places, no throw
             assertTrue(OfflineIndex.baseMapPlaces(base, cacheDir).isEmpty())
             val cacheKey = "${base.length()}:${base.lastModified()}"
             val line = OfflineIndex.cacheLine(com.onpath.app.search.BaseMapPlaces.Item("Meran", listOf("Merano"), "place", "town", 46.67, 11.16, 325))
@@ -487,6 +494,10 @@ class BrokenAppFilesTest {
 
     private fun syncFiles(t: BrokenRows) {
         val texts = goodSync(dir())
+        t.row("sync/", "the set-up writes every file of files/sync/ and NAMES lists them all") {
+            val d = dir(); goodSync(d)
+            assertEquals("a file in files/sync/ that NAMES does not list (or the reverse): add it to the table", NAMES.toSet(), d.list()!!.toSet())
+        }
         for (name in NAMES) for ((what, bytes) in brokenSync(texts.getValue(name))) t.row("sync/$name", what) {
             Problems.init(dir()); Problems.clear()
             val d = dir() // the good folder copied (plain copies: the app's own writes sync to disk and are slow)
