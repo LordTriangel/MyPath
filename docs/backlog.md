@@ -9,7 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [umbau] [donald] [laptop] [umbau-hp]… → [detail](items/2026-11-19-captain-to-umbau-donald-laptop-umbau-hp.md)
+- → [umbau] [laptop] [umbau-hp] (donald read: waits for „main is clean for the release“, notes drafted in `docs/history/release-draft-v0.18.2.md`)… → [detail](items/2026-11-19-captain-to-umbau-donald-laptop-umbau-hp.md)
 - → [umbau] [donald] [laptop]… → [detail](items/2026-11-19-captain-to-umbau-donald-laptop-a-tidy-up.md)
 - → [umbau] ([umbau-hp] 2026-11-19 night): **4b is done as far as it goes without app code** – menus + message boxes are component pictures (40 whole screens → 30), dialogs / Navigate / plan sheet stay whole screens, each with its reason. I recommend closing 4b; two app-side options if re-recording still hurts. Your call… → [detail](items/2026-11-19-umbau-hp-phase-4b-result.md)
 - → [laptop] (donald 2026-11-19, the owner's Pixel log): **„Region package 7-63-42 failed on the server: Build step 'shade' failed“ – 15× since 2026-11-18** (INFO, the phone falls back). Yours to look at. Otherwise the log is clean (no ERROR). Newest main is on his Pixel since 21:23 (debug build over 0.18.1, CorePoiTapE2ETest green first).
