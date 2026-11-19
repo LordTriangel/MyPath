@@ -45,8 +45,13 @@ object WebSearch {
 
     private fun categoryOf(name: String): SearchKinds.Category? = SearchKinds.Category.entries.firstOrNull { it.name == name }
 
-    /** The six search chips (the app's SearchKinds.Category, labels in the page's language): JSON [[name, label], …]. */
-    fun categories(): String = SearchKinds.Category.entries.joinToString(",", "[", "]") { "[" + s(it.name) + "," + s(it.label) + "]" }
+    /**
+     * The six search chips (the app's SearchKinds.Category, labels in the page's language): JSON [[name, label, [kind, …]], …]
+     * – the kinds let the page filter the rows on screen at once on a chip tap, before the engine answers.
+     */
+    fun categories(): String = SearchKinds.Category.entries.joinToString(",", "[", "]") { c ->
+        "[" + s(c.name) + "," + s(c.label) + "," + c.kinds.joinToString(",", "[", "]") { s(it) } + "]"
+    }
 
     /** The search closed (or the text and chip emptied): the next one starts afresh, as the app's inactive search. */
     fun reset() { shown = null; shownFor = null; lastOnline = emptyList(); lastOffline = emptyList(); lastQuery = null }

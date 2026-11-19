@@ -39,7 +39,12 @@ const titles = async () => page.$$eval('#results .hit b', (b) => b.map((x) => x.
 // search runs (the first one indexes the map areas, > 1 s on a slow machine): wait until the engine answered THIS text
 await page.evaluate(() => {
   const engine = window.__engine, search = engine.search.bind(engine);
-  engine.search = async (text, ...rest) => { const hits = await search(text, ...rest); window.__searched = text; return hits; };
+  // window.__searchDelay (ms): a slow engine answer (a busy worker, a map area still being indexed) – the chip must show anyway
+  engine.search = async (text, ...rest) => {
+    const hits = await search(text, ...rest);
+    if (window.__searchDelay) await new Promise((ok) => setTimeout(ok, window.__searchDelay));
+    window.__searched = text; return hits;
+  };
 });
 const searchFor = async (t) => {
   await page.fill('#q', t);
@@ -88,6 +93,32 @@ if (process.env.ONLINE !== '1') {
   const k = await kinds();
   console.log('München, chip off →', await titles(), k);
   check(k.includes('train') && k.includes('place') && k.length >= 8, `the chip unpicked: every kind again (${k.join(', ')})`);
+  // a slow engine answer (3 s) – no „dead chip“: within 100 ms of the tap the chip is on and only place / street /
+  // address rows show; unpicked, within 100 ms every row shows again
+  await page.evaluate(() => { window.__searchDelay = 3000; });
+  const tap = () => page.evaluate(async () => {
+    const sel = '#results .searchchips .chip[data-cat="PLACES"]';
+    document.querySelector(sel).click();
+    await new Promise((ok) => setTimeout(ok, 100));
+    const chip = document.querySelector(sel), rows = [...document.querySelectorAll('#results .hit')];
+    return { on: chip.classList.contains('on') && chip.getAttribute('aria-pressed') === 'true',
+      busy: document.querySelector('#results').getAttribute('aria-busy') === 'true', all: rows.length,
+      shown: rows.filter((r) => r.offsetParent !== null).map((r) => r.dataset.kind) };
+  });
+  let now = await tap();
+  console.log('slow engine, „Places“ tapped, 100 ms later →', now);
+  check(now.on && now.busy, `a slow engine: the chip is on at once, the list busy (on ${now.on}, busy ${now.busy})`);
+  check(now.shown.length > 0 && now.shown.every((x) => ['place', 'street', 'address'].includes(x)) && now.all > now.shown.length,
+    `a slow engine: within 100 ms only places / streets / addresses show (${now.shown.join(', ')} of ${now.all})`);
+  now = await tap();
+  console.log('slow engine, „Places“ unpicked, 100 ms later →', now);
+  check(!now.on && now.shown.length === now.all && now.shown.includes('train'), `a slow engine: unpicked, every row shows again at once (${now.shown.join(', ')})`);
+  await page.evaluate(() => { window.__searchDelay = 0; });
+  await page.waitForTimeout(6000); // the delayed answer (3 s), then Photon (350 ms + 0.8 s)
+  const answered = await page.evaluate(() => ({ busy: document.querySelector('#results').getAttribute('aria-busy') === 'true',
+    kinds: [...document.querySelectorAll('#results .hit')].map((r) => r.dataset.kind), hidden: [...document.querySelectorAll('#results .hit')].filter((r) => r.offsetParent === null).length }));
+  console.log('slow engine answered →', answered);
+  check(!answered.busy && answered.hidden === 0 && answered.kinds.includes('train'), `the engine's answer replaces the list: not busy, every kind, nothing hidden (${answered.kinds.join(', ')})`);
   await places('with the full list on screen');
   await page.click('#results .searchchips .chip[data-cat="PLACES"]');
   await page.fill('#q', '');

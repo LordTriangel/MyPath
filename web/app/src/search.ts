@@ -98,17 +98,33 @@ export function setupSearch(host: SearchHost, box: HTMLElement, card: HTMLElemen
   };
   /** The chip picked (the app's SearchKinds.Category name), '' = none; the six chips with their labels from the engine. */
   let category = '';
-  let chips: [string, string][] | null = null;
-  const loadChips = async () => { chips ??= JSON.parse(await host.engine.call('searchCategories')) as [string, string][]; return chips; };
+  /** [name, label, kinds] – the kinds are the app's SearchKinds.Category.kinds. */
+  let chips: [string, string, string[]][] | null = null;
+  const loadChips = async () => { chips ??= JSON.parse(await host.engine.call('searchCategories')) as [string, string, string[]][]; return chips; };
   /** The app's chip row (Orte · Essen · Sehenswert · Wasser · Bahn · Parken): one scrolling row, a click picks / unpicks. */
   const chipRow = () => `<div class="searchchips" role="toolbar">${(chips ?? []).map(([k, label]) =>
     `<button class="chip${k === category ? ' on' : ''}" data-cat="${k}" aria-pressed="${k === category}">${esc(label)}</button>`).join('')}</div>`;
+  /**
+   * A chip tap shows at once, before the engine answers (owner's bug 2026-11-19 „München“ + „Orte“: a slow answer left
+   * the chip looking dead): the chip lights up (the app's FilterChip selected = ui.category) and the rows on screen are
+   * filtered by their kind; unpicked, they all show again. The engine's answer then replaces the list.
+   */
+  const showChip = () => {
+    results.querySelectorAll<HTMLButtonElement>('.searchchips .chip').forEach((c) => {
+      const on = c.dataset.cat === category;
+      c.classList.toggle('on', on); c.setAttribute('aria-pressed', String(on));
+    });
+    const kinds = chips?.find(([k]) => k === category)?.[2];
+    results.querySelectorAll<HTMLElement>('.hit[data-kind]').forEach((r) => {
+      r.style.display = kinds && !kinds.includes(r.dataset.kind!) ? 'none' : '';
+    });
+  };
   const wireChips = () => results.querySelectorAll<HTMLButtonElement>('.searchchips .chip').forEach((b) => {
-    b.onclick = (e) => { e.stopPropagation(); category = category === b.dataset.cat ? '' : b.dataset.cat!; run(); q.focus(); };
+    b.onclick = (e) => { e.stopPropagation(); category = category === b.dataset.cat ? '' : b.dataset.cat!; showChip(); run(); q.focus(); };
   });
 
   const render = (hits: Hit[], note: string) => {
-    results.hidden = false;
+    results.hidden = false; results.removeAttribute('aria-busy');
     results.innerHTML = chipRow() + (hits.length ? hits.map((h, i) => `
       <button class="hit" data-i="${i}" data-kind="${esc(h.kind)}">
         <span class="glyph" style="background:${h.color}">${esc(h.glyph)}</span>
@@ -151,7 +167,7 @@ export function setupSearch(host: SearchHost, box: HTMLElement, card: HTMLElemen
       html += s.recent.map((h) => compactRow(add(h), `<span class="sign"${h.shared ? ` title="${esc(t('search_recent_shared'))}"` : ''}>${icon(h.shared ? 'share' : 'history')}</span>`,
         h.title, h.subtitle)).join('');
     }
-    results.hidden = false;
+    results.hidden = false; results.removeAttribute('aria-busy');
     results.innerHTML = chipRow() + (html ? `<div class="startlists">${html}</div>` : `<div class="muted pad">${esc(t('web_search_type'))}</div>`);
     results.querySelectorAll<HTMLButtonElement>('.hit.compact').forEach((b) => { b.onclick = () => pickRow(rows[Number(b.dataset.k)]); });
     const again = () => { q.focus(); void renderStart(++gen); };
@@ -171,6 +187,8 @@ export function setupSearch(host: SearchHost, box: HTMLElement, card: HTMLElemen
     await loadChips();
     // nothing typed, no chip: the next search starts afresh (the app's inactive search); the chips stay to pick from
     if (!text.trim() && !category) { void host.engine.call('searchReset'); if (my === gen && document.activeElement === q) await renderStart(my); else results.hidden = true; return; }
+    // the engine is asked: the list on screen is busy until its answer (the chip already shows, showChip)
+    if (!results.hidden) results.setAttribute('aria-busy', 'true');
     const c = host.map.getCenter();
     await host.engine.searchAreas(await host.areas());
     const offline = await host.engine.search(text, c.lat, c.lng, host.route(), category);
