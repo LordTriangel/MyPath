@@ -31,7 +31,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.onpath.app.data.Format
-import com.onpath.app.navigation.ActivityFit
 import com.onpath.app.navigation.NavText
 import com.onpath.app.routing.Activity
 import kotlin.math.abs

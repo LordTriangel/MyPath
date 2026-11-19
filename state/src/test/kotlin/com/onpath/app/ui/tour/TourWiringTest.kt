@@ -103,9 +103,24 @@ class TourWiringTest {
         assertFalse(slice.contains("init {"))
         assertFalse(slice.contains(".collect"))
         assertFalse(slice.contains("snapshotFlow"))
-        // every launch is inside startCheck / a choice (a user action), never in a property initialiser
+        // every launchSafe is inside startCheck / a choice (a user action), never in a property initialiser
         assertEquals(4, count(slice, "scope.launchSafe("))
         assertEquals(1, count(slice.substringAfter("private fun startCheck(").substringBefore("\n    }\n"), "scope.launchSafe("))
+    }
+
+    /**
+     * Rule 1: no suspension between the proposal file and its command (the flows cannot see a plain `launch` or a
+     * `withContext` of the inline test scope; this is what P4's noSuspensionBetween said). From the start of the write's
+     * line to the command there is no `launch` and no `withContext(`.
+     */
+    @Test fun noSuspensionBetweenTheProposalFileAndItsCommand() {
+        val body = slice.substringAfter("private fun applySwitch(").substringBefore("\n    }\n")
+        val a = body.indexOf("follow.propose(")
+        val b = body.indexOf("recording.proposeSwitch(")
+        assertEquals(1, count(body, "follow.propose(")); assertEquals(1, count(body, "recording.proposeSwitch("))
+        assertTrue("both anchors found, the file first", a >= 0 && b > a)
+        val between = body.substring(body.lastIndexOf('\n', a) + 1, b)
+        for (bad in listOf("launch", "withContext(")) assertFalse("`$bad` between the proposal write and its command", between.contains(bad))
     }
 
     /** Declared where its readers are (no work at construction, so any place after its constructor arguments); the init blocks never touch it. */

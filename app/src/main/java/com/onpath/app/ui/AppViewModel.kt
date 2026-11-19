@@ -1304,7 +1304,6 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // slice (declared at `activity` above), closed in [onCleared] where they always were.
     private val routingDispatcher get() = planRoute.threads.routing
     private val backgroundRouting get() = planRoute.threads.background
-    private val checkRouting get() = planRoute.threads.check
     private var engine: RoutingEngine?
         get() = planRoute.engine
         set(v) { planRoute.engine = v }
