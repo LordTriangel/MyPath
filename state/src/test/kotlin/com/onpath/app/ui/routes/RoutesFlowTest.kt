@@ -1194,10 +1194,10 @@ class RoutesFlowTest {
         assertEquals(3, app.planRoute.sac)
     }
 
-    @Test fun aSavedRouteInTheBinIsNotTheSourceEither() {
+    @Test fun aDraftUnderZuletztIsNotTheSourceEither() {
         val app = App()
         val saved = planned("Alm")
-        db.setDeleted(saved.id, 5L)
+        db.setDraft(saved.id, true)
         val t = recordedWithPlan(app, planCopy(name = "Alm", source = saved.uuid, line = seg(a, b, c)))
         app.go.planFollowedPlan(t); app.settle()
         assertEquals("loaded from the copy", -1L, app.plan.savedId)
