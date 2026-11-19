@@ -19,12 +19,7 @@ import java.io.File
  */
 class FoundPlacePinTest {
     private fun src(f: String) = sourceFile(f).readText()
-    private val vm = src("ui/AppViewModel.kt")
-    private val placeAdd = src("ui/plan/PlaceAddSlice.kt")
-    /** The pin menu, closing the menus and the pin's removal live here (rebuild phase 2 piece 12; PlaceMenusFlowTest runs them). */
-    private val menus = src("ui/plan/PlaceMenusSlice.kt")
     private val overlays = src("ui/MapOverlays.kt")
-    private fun body(s: String, start: String) = s.substringAfter(start).substringBefore("\n    }\n")
 
     /** Rule 2: "Nadel entfernen" is the last line of the pin's menu only – a map POI's menu has none. */
     @Test fun thePinsMenuEndsWithRemovePin() {
@@ -45,31 +40,25 @@ class FoundPlacePinTest {
             .contains("<string name=\"plan_remove_pin\">Nadel entfernen</string>"))
     }
 
-    /** Rule 1: the chip opens the same menu a hold on the pin opens. */
+    /**
+     * Rule 1: the chip opens the same menu a hold on the pin opens. The screen's lines stay a pin; the slice's openPinMenu is
+     * PlaceMenusFlowTest.theChipOpensTheMenuOfThePinAndRemovingThePinTakesTheMarkAndThePickedPlace (test clean-up G09, 2026-11-19).
+     */
     @Test fun theChipOpensThePinsMenu() {
         val host = overlays.substringAfter("fun MapOverlayHost(").substringBefore("\n}\n")
         assertTrue(host, host.contains("PinChip(m.title(), onClick = vm.placeMenus::openPinMenu)"))
-        assertTrue("the slice's openPinMenu was found", menus.contains("    fun openPinMenu() {"))
-        val open = body(menus, "    fun openPinMenu() {")
-        assertTrue(open, open.contains("openPoiMenu(m.toPoi())"))
         // the hold on the pin (its head too) opens the POI menu as before
         assertTrue(src("ui/MapHost.kt").contains("com.onpath.app.map.CandidateMarker.hit((screen.x - s.x) / dp, (screen.y - s.y) / dp)"))
     }
 
-    /** Rule 3: what removes the pin – and that a tap elsewhere does not. */
+    /**
+     * Rule 3: what removes the pin – and that a tap elsewhere does not. As flows (test clean-up G09, 2026-11-19): closing a menu keeps
+     * the pin = PlaceMenusFlowTest.closingTheMenusStopsARunningMeasureAndForgetsItsRowsButKeepsThePin; "Nadel entfernen" =
+     * .theChipOpensTheMenuOfThePinAndRemovingThePinTakesTheMarkAndThePickedPlace; Clear = .clearingThePlanTakesThePinThroughTheEditsHost…
+     * (+ PlanEditFlowTest.clearKeepsThePlan…); adding the place = PlaceAddFlowTest.aPlaceMenuAddsTheHut…Pinned…. A new search pick
+     * replaces the pin on its own: the search flow's line stays a pin.
+     */
     @Test fun thePinGoesOnlyByTheOwnersFourWays() {
-        assertTrue("the slice's closeMapOverlays was found", menus.contains("    fun closeMapOverlays(why: String = \"closed\") {"))
-        val close = body(menus, "    fun closeMapOverlays(why: String = \"closed\") {")
-        assertFalse("closing a menu keeps the pin: $close", close.contains("searchMark = null"))
-        // Clear removes the pin (after the plan went and the menus closed): PlanEditFlowTest.clearKeepsThePlanForZuletztFirstThenEmptiesInOneUndoStepAndNeverAsks
-        assertTrue("the slice's removePin was found", menus.contains("    fun removePin(why: String) {"))
-        val remove = body(menus, "    fun removePin(why: String) {")
-        assertTrue(remove, remove.contains("host.searchMark = null"))
-        // adding the place and a new search pick replace it on their own
-        // (the add lives in PlaceAddSlice now, rebuild phase 2 piece 11; PlaceAddFlowTest.aFoundPlacePinGoesIntoThePlan… shows the pin go)
-        val addPoi = "    fun addPoiPoint(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) {"
-        assertTrue("the slice's addPoiPoint was found", placeAdd.contains(addPoi))
-        assertTrue(body(placeAdd, addPoi).contains("val pin = host.takePin(poi.lat, poi.lon)"))
         assertTrue(src("ui/SearchFlow.kt").substringAfter("fun pickSearchResult(").substringBefore("\n    }\n").contains("searchMark = p"))
     }
 

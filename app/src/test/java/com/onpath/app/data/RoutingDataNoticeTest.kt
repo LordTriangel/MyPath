@@ -1,35 +1,19 @@
 package com.onpath.app.data
 
 import com.onpath.app.routing.BRouterEngine
-import com.onpath.strings.*
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Locale
 
 /**
- * The plan's routing-data notice after its move out of RoutingDataLoader.kt (shared with the web planner): the same
- * answer as the old code for every input, in English and German.
+ * The plan's routing-data notice (shared with the web planner), in English and German: a missing tile or a router message about
+ * missing data becomes the plain notice (loading now / loads when online); every other error passes through. (Test clean-up G09,
+ * 2026-11-19: explicit expectations instead of the comparison with a frozen copy of the code from before the move to core.)
  */
 class RoutingDataNoticeTest {
-    /** The code as it was in RoutingDataLoader.kt before the move (frozen). */
-    private object Old {
-        val LOADING: String get() = Txt.s(Res.string.maps_routing_loading)
-        val NOT_YET: String get() = Txt.s(Res.string.maps_routing_not_yet)
-        fun text(loading: Boolean): String = if (loading) LOADING else NOT_YET
-        fun isNotice(s: String?): Boolean = s == LOADING || s == NOT_YET
-        fun forRoute(error: String?, missing: Boolean, loading: Boolean): String? = when {
-            missing -> text(loading)
-            error != null && (error.contains("No routing data") || error.contains(BRouterEngine.NO_DATA) ||
-                error.contains(".rd5")) -> text(loading)
-            else -> error
-        }
-    }
-
-    private val errors: List<String?> get() = listOf(null, "", "No route found.", "No routing data for this area.",
-        "Leg 1→2: ${BRouterEngine.NO_DATA}", "missing E10_N45.rd5 in /storage/x/segments", "Keine Routingdaten",
-        RoutingDataNotice.LOADING, RoutingDataNotice.NOT_YET, "Route too long")
-
     private fun inBoth(block: () -> Unit) {
         val before = Locale.getDefault()
         try {
@@ -37,16 +21,34 @@ class RoutingDataNoticeTest {
         } finally { Locale.setDefault(before) }
     }
 
-    @Test fun sameAsBefore() = inBoth {
-        assertEquals(Old.LOADING, RoutingDataNotice.LOADING)
-        assertEquals(Old.NOT_YET, RoutingDataNotice.NOT_YET)
+    /** Every input of the old comparison: 10 errors x missing x loading x 2 locales; `true` = the notice, `false` = the error as it is. */
+    private val errors: List<Pair<String?, Boolean>> get() = listOf(
+        null to false, "" to false, "No route found." to false,
+        "No routing data for this area." to true,
+        "Leg 1→2: ${BRouterEngine.NO_DATA}" to true,
+        "missing E10_N45.rd5 in /storage/x/segments" to true,
+        "Keine Routingdaten" to false,
+        RoutingDataNotice.LOADING to false, RoutingDataNotice.NOT_YET to false,
+        "Route too long" to false)
+
+    @Test fun missingDataOrTheRoutersWordForItIsTheNoticeEverythingElsePassesThrough() = inBoth {
         for (loading in listOf(true, false)) {
-            assertEquals(Old.text(loading), RoutingDataNotice.text(loading))
-            for (missing in listOf(true, false)) for (e in errors) {
-                assertEquals("$e/$missing/$loading", Old.forRoute(e, missing, loading), RoutingDataNotice.forRoute(e, missing, loading))
+            val notice = if (loading) RoutingDataNotice.LOADING else RoutingDataNotice.NOT_YET
+            assertEquals(notice, RoutingDataNotice.text(loading))
+            for ((e, router) in errors) {
+                // a tile under the route is not on the phone: the notice, whatever the router said
+                assertEquals("$e/missing/$loading", notice, RoutingDataNotice.forRoute(e, missing = true, loading = loading))
+                // the router's own sentence (English, the app's language, a file name, inside a longer message): the notice; else the error as it is
+                assertEquals("$e/$loading", if (router) notice else e, RoutingDataNotice.forRoute(e, missing = false, loading = loading))
             }
         }
-        for (e in errors) assertEquals(e, Old.isNotice(e), RoutingDataNotice.isNotice(e))
+    }
+
+    @Test fun onlyTheTwoNoticeTextsAreNotices() = inBoth {
+        for ((e, _) in errors) assertEquals("$e", e == RoutingDataNotice.LOADING || e == RoutingDataNotice.NOT_YET, RoutingDataNotice.isNotice(e))
+        assertTrue(RoutingDataNotice.isNotice(RoutingDataNotice.LOADING))
+        assertTrue(RoutingDataNotice.isNotice(RoutingDataNotice.NOT_YET))
+        assertFalse(RoutingDataNotice.isNotice(null))
     }
 
     @Test fun kindAndKeys() = inBoth {
