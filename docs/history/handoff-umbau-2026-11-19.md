@@ -1,7 +1,7 @@
 # Handoff [umbau] – 2026-11-19 ~03:00 (the rebuild, `docs/design/architecture-plan-2026-11.md`)
 
 Start sentence: „Du bist die Einheit **umbau** (OnPath) auf donald. Lies `docs/roles/start.md`, `docs/owner-preferences.md`,
-`docs/design/architecture-plan-2026-11.md`, `docs/design/umbau-phase-1.md` und diese Datei.“ Rules of the job: the top
+`docs/design/architecture-plan-2026-11.md`, `docs/design/umbau-phase-2.md`, `docs/design/umbau-phase-2-tour.md` und diese Datei.“ Rules of the job: the top
 „For the roles“ line of 2026-11-18 (owner's go) – each piece own worktree, `gate --full`, fresh Opus review, then main;
 a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines for the captain under „For the captain“.
 
@@ -10,7 +10,7 @@ a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines fo
 - **18a (`TourFollow`) is with a Sonnet helper** (own worktree, based on 35cfa9685). Then 18b, 19, 20, 9b, 21; then the three tour weaknesses L1/L2/L5 (owner: fix all three, each its own small piece, failing test first); „phase 2 done“ line.
 - Pull request 14 is merged: `core/**` + `state/**` paths, lint fails on new findings, `--continue`. The lock file, its test and `core_move.py lock` are gone (b6e2e5c34) – a helper based on an older state may still bring `web/engine/core-shared.lock` back: drop it at the merge.
 - Owner's answers (via captain): decision-pin tests may be folded into their feature's flow test (the decision goes into the flow test's comment); tour pieces are released as usual; 5b (routing engine in Kotlin) is a go → [umbau-hp] builds it after the `umbau-phase-3` tag (line is in the backlog; write there when the tag is set).
-- Tags `umbau-phase-0/1/2`: still none. `TourDbMigrationTest`, the hold-measure E2E and `OverviewSwipeE2ETest` were fixed by donald; needed now: one green full E2E on main (`tools/ci/e2e_github.sh --wait`, no `--tests`) and a green Web planner run – the planner is red on main on four mirrors (`MapOverlays`, `MapFooter`, `PointsSection`, `SearchScreen`; laptop's / donald's). At the phase 1 tag delete `docs/design/umbau-phase-1.md`.
+- **Tags `umbau-phase-0` and `umbau-phase-1` are set on 45293f12f** (unit green on b6e2e5c34, full E2E 99/99 on 6b71c9677, planner green on 45293f12f; docs/parity stamps only between them). `umbau-phase-1.md` is deleted. `umbau-phase-2` after piece 21 + the three checks.
 - E2E class names need the package: `com.onpath.app.e2e.CoreFieldE2ETest` (a wrong name fails the run in minutes).
 - Review lesson of 17 (in the 18a brief): for every order of two writes a flow must read the effect back; for every asserted „X is null“ the test must have set X before. A helper keeps re-sending its report → `TaskStop` after the cherry-pick.
 - Merge with a moved main: `git rebase origin/main`; `web/parity.json` conflicts by hand (keep both entries), then `node web/parity/check.mjs --update app/src/main/java/com/onpath/app/ui/AppViewModel.kt <new shared files>`; cap = `wc -l`; gate --full; app + androidTest compile; `-p web/engine test generateWasmGC -Pkotlin.incremental=false`.

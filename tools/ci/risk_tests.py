@@ -17,7 +17,7 @@ Gate (--gate) – prints shell assignments for gate.sh (same selection, plus):
 - the screenshot check (verifyPaparazziDebug) only when a selected package has screenshot tests (ui/, search/), or
   the snapshots / texts / resources changed, or everything runs.
 
-Three modules (docs/design/umbau-phase-1.md, umbau-phase-2.md): a package may live in :app (app/src/{main,test}/java/…),
+Three modules (docs/design/umbau-phase-2.md): a package may live in :app (app/src/{main,test}/java/…),
 in :core and in :state (core|state/src/{main,test}/kotlin/…, plain JVM). A changed file of any selects that package's
 tests in ALL modules where the package has tests (a --tests filter that matches nothing fails Gradle's task, so a module
 only gets the patterns of packages it has tests for). Release mode prints the :app filters only –

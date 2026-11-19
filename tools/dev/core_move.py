@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""core_move.py – moves pure Kotlin from :app to :core (docs/design/umbau-phase-1.md, piece B). stdlib only.
+"""core_move.py – moves pure Kotlin from :app to :core (rebuild phase 1, tag umbau-phase-1). stdlib only.
 
   core_move.py plan  [--only pkg,pkg] [--files a/B.kt,c/D.kt] [--all-pure] [--no-tests]   print the closed set that can move, the blocked
                                                                                 candidates with their first reason, the tests
