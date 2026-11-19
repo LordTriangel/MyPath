@@ -36,6 +36,12 @@ a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines fo
 - `web/engine/gradle.properties` (heap) added after CI's jvm job went out of memory; check the planner run of 1c3c128 / later is green.
 - Known gate gap (old): a `:core` change outside `domain/` does not run the `:state` flow tests in select mode (unit.yml's full run does).
 
+## State 2026-11-19 ~12:00
+- Phase 2 piece 2 on main (fe4e02117), `MAX_LINES` 5,723. Stayed in `:app` against the design: `SettingsSummary`, `RoutingLoads` (need Android / Composable-file types), `RouteRowActions`. DROP list of the design is too optimistic (1 of 20 deleted). Reviewer follow-up idea (not done): `SuggestSlice.run`'s inner catch could show FAILED for non-VM errors.
+- Piece 3 (`SaveSlice`) helper running; review must check: bodies verbatim (`--color-moved`), same thread / order of DB writes, the JDBC fake's SQL equals `TourDb`'s, break proofs real, the `AppViewModel` parity mirror follows `requestSave`; then run ONE E2E class that saves on GitHub (`tools/ci/e2e_github.sh --ref ci/umbau-p2-3 --tests <class> --wait`) before the push.
+- Pending CI patch has 3 commits now (core paths + lint, state paths, `--continue`); local branch `umbau-workflow2`.
+- The planner lock bites as designed: after ANY edit of a core file or a core test the planner compiles → `python3 tools/dev/core_move.py lock`.
+
 ## Open, in this order
 1. **Tag `umbau-phase-0`:** needs one green full E2E run of main: push main's head to `ci/umbau-p0`, then
    `tools/ci/e2e_github.sh --ref ci/umbau-p0 --wait` (no `--tests`; a comma list of tests runs only the first). Red today
