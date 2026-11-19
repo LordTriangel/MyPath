@@ -1,5 +1,7 @@
 # Rebuild phase 3: core off the JVM ([umbau], 2026-11-19)
 
+> **Decisions (2026-11-19).** The owner chose the **small version** („Small version“, asked in [umbau]'s chat): rules, routes, plans, tours and texts become platform-free; `cells/`, net, backup and the rd5 files stay JVM-only for now (the minimal phase 3 of this document, ≈ 3 nights). Module path: staged, as recommended here. Still to decide before the pieces that need it start: texts (T0 recommended), JSON (own port of Android's `org.json` needs a licence notice = pull request; or kotlinx.serialization-json), kotlinx-datetime as a new dependency, the emulator run for the format fixtures (F1), 5b as its own `:engine` module. This document is a helper's draft reviewed only in outline by the lead – the numbers come with the commands that produced them; §6 lists what is not verified.
+
 Working paper of phase 3 of `architecture-plan-2026-11.md` §5. Design only – no app code changed. Measured on main
 @ c11e4b071 by script, by three throw-away compiler probes in `/tmp` (not in the repo, §7) and by reading. The per-file
 table (583 rows: every Kotlin file of `core/` and `state/`, 25 categories, the native compiler's error count) is
