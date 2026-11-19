@@ -25,6 +25,11 @@ interface Camera {
     fun panTo(point: com.onpath.app.routing.GeoPoint)
 }
 
+/** Where the phone is now (null = no fix); the slices ask it, the view model answers from the location tracker. */
+fun interface Position {
+    fun here(): com.onpath.app.routing.GeoPoint?
+}
+
 /** The two clocks the slices read: wall time (stored stamps) and elapsed real time (waits, never goes back). */
 interface Clock {
     fun nowMs(): Long

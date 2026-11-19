@@ -465,105 +465,64 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
      * the same in Plan and Navigate; only the compass tap / the setting change it.
      */
     val headingUp: Boolean get() = navHeadingUp
+    /** Camera, compass, scrub, the fits and the start camera's flags (rebuild phase 2 piece 5); the names below forward to it. */
+    private val mapCamera = object : com.onpath.app.ui.Camera {
+        override fun fit(points: List<GeoPoint>) { events += UiEvent.Fit(points) }
+        override fun centerOn(point: GeoPoint, zoom: Double) { events += UiEvent.CenterOn(point, zoom) }
+        override fun panTo(point: GeoPoint) { events += UiEvent.PanTo(point) }
+    }
+    private val mapHost = object : com.onpath.app.ui.MapViewHost {
+        override val mode: AppMode get() = this@AppViewModel.mode
+        override val activity: com.onpath.app.routing.Activity get() = this@AppViewModel.activity
+        override val headingUp: Boolean get() = this@AppViewModel.headingUp
+        override fun setHeadingUp(on: Boolean) {
+            if (settings.navHeadingUp != on) { settingsSlice.put(settings.copy(navHeadingUp = on)) }
+        }
+        override var navStartZoom: Double?
+            get() = this@AppViewModel.navStartZoom
+            set(v) { this@AppViewModel.navStartZoom = v }
+        override val routePoints: List<GeoPoint>? get() = route?.points
+        override val waypoints: List<GeoPoint> get() = this@AppViewModel.waypoints
+        override val shown: ShownTrack? get() = this@AppViewModel.shown
+        override val followLine: List<GeoPoint>? get() = this@AppViewModel.followLine
+        override val navOriginal: List<GeoPoint>? get() = recState.value?.nav?.original
+        override val touring: Boolean get() = recState.value != null
+        override val keepCameraUntilMs: Long get() = searchFlow.keepCameraUntil
+        override fun highlight(at: GeoPoint?) { this@AppViewModel.highlight = at }
+        override fun closeSpots() { spotsOpen = false }
+        override fun spotLine(piece: List<GeoPoint>) { this@AppViewModel.spotLine = piece }
+        override fun appReturned(inPlan: Boolean) {
+            mapData.onReturn(inPlan = inPlan) // T3 in Plan: the next usable fix checks the own area
+            sync.request("back in the app")
+        }
+        override fun appLeft() { mapData.onLeave() }
+    }
+    val map = com.onpath.app.ui.MapViewSlice(notices, mapCamera,
+        { tracker.location.value?.let { GeoPoint(it.latitude, it.longitude) } }, mapHost, viewModelScope,
+        uptimeMs = { android.os.SystemClock.uptimeMillis() }, elapsedMs = { android.os.SystemClock.elapsedRealtime() })
     /** Bumped to turn the map north (MapScreen → MapController.northUp). */
-    var northTick by mutableIntStateOf(0)
+    val northTick: Int get() = map.northTick
     /** Bumped when the camera must follow the position again although [followMe] did not change. */
-    var recentreTick by mutableIntStateOf(0)
-
-    /**
-     * Locate button (GPS on, permission given): follow the position again. In Navigate also back to the standard
-     * follow zoom of the activity (owner 2026-10-31, [AppMode.locateZoom]) – also when the map still follows but was
-     * pinched; the map takes it while tracking (MapController.ensureStartZoom, no camera move – CLAUDE.md camera rule).
-     * Plan: unchanged, following resumes at the user's zoom.
-     */
-    fun locate() {
-        val zoom = AppMode.locateZoom(mode, activity)
-        followMe = true
-        if (zoom != null) { navStartZoom = zoom; recentreTick++ }
-    }
-
-    private fun setHeadingUp(on: Boolean) {
-        if (settings.navHeadingUp != on) { settingsSlice.put(settings.copy(navHeadingUp = on)) }
-    }
-
-    /** Plan's neutral GPS note after a tap of the user's ([PlanGps]); null = none. [planGpsNoteTick] restarts its time. */
-    var planGpsNote by mutableStateOf<PlanGps.Note?>(null)
-    var planGpsNoteTick by mutableStateOf(0)
-        private set
-
-    /**
-     * An edit during a tour needs my position and there is none: in Plan the neutral note (Plan is quiet about GPS, owner
-     * 2026-11-06 23:35), elsewhere the error box as before.
-     */
-    private fun noPositionForEdit(note: PlanGps.Note, text: org.jetbrains.compose.resources.StringResource) {
-        if (mode == AppMode.PLAN) showPlanGpsNote(note) else sayError(Txt.s(text), NoticePlace.MAP)
-    }
-
-    fun showPlanGpsNote(note: PlanGps.Note) {
-        Problems.trace("gps", "Plan: neutral note ${note.name} after a tap (no GPS warning in Plan)")
-        planGpsNote = note; planGpsNoteTick++
-    }
-
-    fun onCompass(mapTurned: Boolean) {
-        // one orientation for the session (owner 2026-11-07, MapOrientation): only this tap changes it
-        val o = com.onpath.app.domain.map.MapOrientation.of(headingUp)
-        val hasFix = tracker.location.value != null
-        val tap = com.onpath.app.domain.map.MapOrientation.tap(o, mapTurned, followMe, hasFix)
-        Problems.trace("map", "Compass tap: $o → ${tap.orientation}" + (if (mapTurned) " (map was turned)" else ""))
-        if (tap.noFix) {
-            // a tap must not do nothing; Plan says it neutrally, no red box (owner 2026-11-06 23:35 – PlanGps)
-            PlanGps.compassWithoutFix(mode == AppMode.PLAN)?.let { showPlanGpsNote(it) }
-                ?: sayError(Txt.s(Res.string.msg_no_position_turn), NoticePlace.MAP)
-            return
-        }
-        setHeadingUp(tap.orientation == com.onpath.app.domain.map.Orientation.TRAVEL)
-        // following north up turns the map to north itself; an extra camera move from the app would make MapLibre drop
-        // the tracking (it ends tracking on every app camera move) – so either follow again or turn north, never both
-        if (tap.follow == true) { followMe = true; recentreTick++ }
-        if (tap.turnNorth) northTick++
-    }
-
-    private var scrubWasFollowing = false
-    private var scrubEndJob: kotlinx.coroutines.Job? = null
-
-    /**
-     * Navigate: a finger on the elevation profile (owner): a dot marks that spot on the route and the map shows it
-     * (following pauses). After the finger leaves, the dot stays [SCRUB_HOLD_MS], then the map returns to the position.
-     */
-    fun navScrub(p: GeoPoint) {
-        scrubEndJob?.cancel(); scrubEndJob = null
-        if (followMe) { scrubWasFollowing = true; followMe = false; Problems.trace("map", "Following paused: finger on the elevation profile") }
-        highlight = p
-        events += UiEvent.PanTo(p)
-    }
-
-    fun navScrubEnd() {
-        scrubEndJob?.cancel()
-        scrubEndJob = viewModelScope.launchSafe("app", "navScrubEnd") {
-            kotlinx.coroutines.delay(SCRUB_HOLD_MS)
-            highlight = null
-            if (scrubWasFollowing && mode == AppMode.NAVIGATE) { followMe = true; recentreTick++ }
-            scrubWasFollowing = false
-        }
-    }
-
-    /** The app is on screen again (e.g. taken out of the pocket): in Navigate jump back to the own position (owner). */
-    fun onReturnToApp() {
-        if (mode == AppMode.NAVIGATE && tracker.location.value != null) { followMe = true; recentreTick++ }
-        appOnScreen = true
-        mapData.onReturn(inPlan = mode == AppMode.PLAN) // T3 in Plan: the next usable fix checks the own area
-        sync.request("back in the app")
-    }
-
-    /**
-     * The app left the screen. Map areas still on their way keep loading through MapLoadService (owner),
-     * started when they began; otherwise nothing is polled in the background (map-cells.md §8).
-     */
-    fun onLeaveApp() { appOnScreen = false; mapData.onLeave() }
-
+    val recentreTick: Int get() = map.recentreTick
+    /** Locate button: follow the position again ([MapViewSlice.locate]). */
+    fun locate() = map.locate()
+    /** Plan's neutral GPS note after a tap of the user's ([PlanGps]); null = none. */
+    var planGpsNote: PlanGps.Note?
+        get() = map.planGpsNote
+        set(v) { map.planGpsNote = v }
+    val planGpsNoteTick: Int get() = map.planGpsNoteTick
+    private fun noPositionForEdit(note: PlanGps.Note, text: org.jetbrains.compose.resources.StringResource) = map.noPositionForEdit(note, text)
+    fun showPlanGpsNote(note: PlanGps.Note) = map.showPlanGpsNote(note)
+    fun onCompass(mapTurned: Boolean) = map.onCompass(mapTurned)
+    /** Navigate: a finger on the elevation profile ([MapViewSlice.navScrub]). */
+    fun navScrub(p: GeoPoint) = map.navScrub(p)
+    fun navScrubEnd() = map.navScrubEnd()
+    /** The app is on screen again ([MapViewSlice.onReturnToApp]). */
+    fun onReturnToApp() = map.onReturnToApp()
+    /** The app left the screen ([MapViewSlice.onLeaveApp]). */
+    fun onLeaveApp() = map.onLeaveApp()
     /** The app is on screen (Compose state: MapHost catches up with newer map data on return). */
-    var appOnScreen by mutableStateOf(true)
-        private set
+    val appOnScreen: Boolean get() = map.appOnScreen
 
     // ---------------- map cells (docs/design/map-cells.md §9, §19) ----------------
 
@@ -1144,80 +1103,42 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Last navigation line version seen from the service. */
     private var navVersion = -1
 
-    // --- position / camera ---
-    var followMe by mutableStateOf(false)
-
-    /**
-     * Navigate: where the user turned / moved the map by hand (free look, e.g. to match a mountain range; owner); after
-     * walking on [FREE_LOOK_BACK_M] the map follows again by itself, compass / locate at once. null = not looking around.
-     */
-    private var freeLookAt: GeoPoint? = null
-
-    /** Last finger-down on the map (MapHost); a "gesture" without a recent touch is not one. */
-    var lastMapTouchMs = 0L
-
-    /**
-     * Finger down on the map. Plan with walking direction up: stop turning / following at once, so a route point stays
-     * exactly under the finger (a point cannot be held to delete it while the map keeps turning).
-     */
-    fun onMapTouch() {
-        lastMapTouchMs = android.os.SystemClock.uptimeMillis()
-        if (mode == AppMode.PLAN && followMe && headingUp) followMe = false
-    }
-
-    /**
-     * MapLibre stopped following. It does that for finger gestures and also for every camera move of the app itself
-     * (fly to a search result, show a route, profile scrub) – both mean "not following any more". Only a stop right
-     * after a real touch starts free look (back to following after walking on); a stop without a touch is not ignored –
-     * that would undo the app's own camera moves.
-     */
-    fun onMapGesture() {
-        followMe = false
-        val touched = android.os.SystemClock.uptimeMillis() - lastMapTouchMs <= 1_500
-        val loc = tracker.location.value
-        freeLookAt = if (touched && mode == AppMode.NAVIGATE && loc != null) GeoPoint(loc.latitude, loc.longitude) else null
-    }
-
+    // --- position / camera: the slice is `map` ([MapViewSlice]); the names below forward to it ---
+    var followMe: Boolean
+        get() = map.followMe
+        set(v) { map.followMe = v }
+    /** Navigate free look ([MapViewSlice.freeLookAt]). */
+    private var freeLookAt: GeoPoint?
+        get() = map.freeLookAt
+        set(v) { map.freeLookAt = v }
+    /** Last finger-down on the map (MapHost). */
+    var lastMapTouchMs: Long
+        get() = map.lastMapTouchMs
+        set(v) { map.lastMapTouchMs = v }
+    /** Finger down on the map ([MapViewSlice.onMapTouch]). */
+    fun onMapTouch() = map.onMapTouch()
+    /** MapLibre stopped following ([MapViewSlice.onMapGesture]). */
+    fun onMapGesture() = map.onMapGesture()
     /** Every fix: back to following after free look once the walker moved on. */
-    fun checkFreeLook(lat: Double, lon: Double) {
-        val at = freeLookAt ?: return
-        if (followMe || mode != AppMode.NAVIGATE) { freeLookAt = null; return }
-        if (Geo.distance(at.lat, at.lon, lat, lon) < FREE_LOOK_BACK_M) return
-        freeLookAt = null
-        followMe = true
-        recentreTick++
-    }
+    fun checkFreeLook(lat: Double, lon: Double) = map.checkFreeLook(lat, lon)
     /** The start mode (Plan / Navigate) is decided (database checked for an unfinished tour). */
-    var startModeKnown by mutableStateOf(false)
-        private set
+    var startModeKnown: Boolean
+        get() = map.startModeKnown
+        private set(v) { map.startModeKnown = v }
     /** The user moved or held the map since the app started (StartCamera never jumps after that). */
-    var userMovedMap = false
+    var userMovedMap: Boolean
+        get() = map.userMovedMap
+        set(v) { map.userMovedMap = v }
     /** StartCamera ran (centred or gave up) – reset each time the app comes to the front ([onAppStart]). */
-    var startCameraDone = false
+    var startCameraDone: Boolean
+        get() = map.startCameraDone
+        set(v) { map.startCameraDone = v }
     /** Bumped by [onAppStart]: restarts the start-camera check in MapScreen. */
-    var startCameraGen by mutableStateOf(0)
-
-    private var backgroundSince = 0L
-
+    val startCameraGen: Int get() = map.startCameraGen
     /** App goes to the background (Activity.onStop). */
-    fun onAppStop() { backgroundSince = android.os.SystemClock.elapsedRealtime() }
-
-    /**
-     * App comes to the front (Activity.onStart): centre on the position again unless something is running – on a
-     * real start, or after more than 10 min away (a quick look at Google Maps must not move the map).
-     */
-    fun onAppStart() {
-        val away = if (backgroundSince == 0L) Long.MAX_VALUE else android.os.SystemClock.elapsedRealtime() - backgroundSince
-        if (away < 10 * 60_000L) return
-        // back after a while with a plan: the plan in front, also during a tour (owner 2026-11-06, PlanCamera)
-        if (backgroundSince != 0L && mode == AppMode.PLAN && waypoints.isNotEmpty()) {
-            showPlanWhole(PlanCamera.Moment.BACK_IN_APP); return
-        }
-        if (recState.value != null || mode != AppMode.PLAN) return
-        // A place was just shared into the app: the map shows it, not the position.
-        if (android.os.SystemClock.elapsedRealtime() < searchFlow.keepCameraUntil) return
-        startCameraDone = false; userMovedMap = false; followMe = false; startCameraGen++
-    }
+    fun onAppStop() = map.onAppStop()
+    /** App comes to the front (Activity.onStart) – [MapViewSlice.onAppStart]. */
+    fun onAppStart() = map.onAppStart()
 
     // --- dialogs / messages ---
     /** Says [text] where it belongs: a line where the user acted, the red box for an error, else only the log ([NoticeBoard.say]). */
@@ -3034,82 +2955,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     private fun hasShownLine() = (shown?.segments?.sumOf { it.size } ?: 0) >= 2
     private fun hasFollowLine() = (followLine?.size ?: 0) >= 2
 
-    /**
-     * "Show whole route" (map button, owner 2026-10-31): following stops first (also free look – it would follow
-     * again by itself), then the map shows the whole line and its points north up; in Navigate also where you are.
-     * Following comes back with the locate button only.
-     */
-    fun showWholeRoute() {
-        val src = WholeRoute.source(mode, hasPlanLine(), hasShownLine(), hasFollowLine()) ?: return
-        val here = tracker.location.value?.takeIf { mode == AppMode.NAVIGATE }?.let { GeoPoint(it.latitude, it.longitude) }
-        val pts = when (src) {
-            WholeRoute.Source.SHOWN -> shown?.let { t -> WholeRoute.bounds(t.segments, t.waypoints.map { GeoPoint(it.lat, it.lon) }, null) }
-            WholeRoute.Source.PLANNED -> route?.let { r -> WholeRoute.bounds(listOf(r.points), waypoints.toList(), null) }
-            // with the original while a new route is followed (drawn thin grey)
-            WholeRoute.Source.FOLLOWED -> WholeRoute.bounds(listOfNotNull(followLine, recState.value?.nav?.original), emptyList(), here)
-        } ?: return
-        followMe = false
-        freeLookAt = null
-        events += UiEvent.Fit(pts)
-    }
+    /** "Show whole route" (map button, owner 2026-10-31) – [MapViewSlice.showWholeRoute]. */
+    fun showWholeRoute() = map.showWholeRoute()
 
-    /**
-     * Locate while I am off the map in Plan ([LocateDistance], owner 2026-11-07): the plan (or the shown track) and my
-     * position together, in the room [FitPaddingRule] leaves. Following stops first; the bearing follows the session's one
-     * orientation (owner 2026-11-07: north up when that is set, else the current bearing – MapController.northLocked).
-     */
-    fun showPlanAndMe() {
-        val me = tracker.location.value?.let { GeoPoint(it.latitude, it.longitude) } ?: run { locate(); return }
-        val pts = shown?.let { t -> WholeRoute.bounds(t.segments, t.waypoints.map { GeoPoint(it.lat, it.lon) }, me) }
-            ?: WholeRoute.bounds(listOfNotNull(route?.points), waypoints.toList(), me)
-        followMe = false
-        freeLookAt = null
-        events += UiEvent.Fit(pts) // the session's orientation decides the bearing (MapController.northLocked)
-        Problems.trace("map", "Locate off the map: plan and position shown together (${pts.size} points)")
-    }
+    /** Locate while I am off the map in Plan ([LocateDistance], owner 2026-11-07) – [MapViewSlice.showPlanAndMe]. */
+    fun showPlanAndMe() = map.showPlanAndMe()
 
-    /**
-     * The whole plan in front at a [PlanCamera.Moment] (owner 2026-11-06): once the sheet has settled, the fit of "Show
-     * whole route" over the route line and the points (one point: centred) – not when a finger touched the map meanwhile,
-     * Plan was left or a track is shown. Following stops first (CLAUDE.md "Map camera").
-     */
-    fun showPlanWhole(moment: PlanCamera.Moment) {
-        val asked = android.os.SystemClock.uptimeMillis()
-        viewModelScope.launchSafe("app", "showPlanWhole") {
-            delay(WholeRoute.SETTLE_MS)
-            val pts = waypoints.toList()
-            val what = if (mode != AppMode.PLAN) PlanCamera.Show.NOTHING
-                else PlanCamera.show(pts.size, touchedSince = lastMapTouchMs > asked, trackShown = shown != null)
-            if (what == PlanCamera.Show.NOTHING) {
-                Problems.trace("map", "Plan not shown whole (${moment.name.lowercase()}): the map was touched, Plan left or nothing to show")
-                return@launchSafe
-            }
-            followMe = false
-            freeLookAt = null
-            events += if (what == PlanCamera.Show.ONE_POINT) UiEvent.CenterOn(pts[0], PlanCamera.ONE_POINT_ZOOM)
-                else UiEvent.Fit(WholeRoute.bounds(listOfNotNull(route?.points), pts, null))
-            Problems.trace("map", "Plan shown whole (${moment.name.lowercase()}, ${pts.size} points)")
-        }
-    }
+    /** The whole plan in front at a [PlanCamera.Moment] (owner 2026-11-06) – [MapViewSlice.showPlanWhole]. */
+    fun showPlanWhole(moment: PlanCamera.Moment) = map.showPlanWhole(moment)
 
-    /**
-     * The plan's first route is there: the map shows it whole – the same fit as "Show whole route" (north up, the
-     * [FitPaddingRule] padding), once the sheet has grown to its route size. Not when the user took the map meanwhile,
-     * left Plan or the route changed again. Following stops first (CLAUDE.md "Map camera").
-     */
-    private fun fitFirstRoute(line: List<GeoPoint>, pts: List<GeoPoint>, extraMs: Long = 0L) {
-        val asked = android.os.SystemClock.uptimeMillis()
-        viewModelScope.launchSafe("app", "fitFirstRoute") {
-            delay(WholeRoute.SETTLE_MS + extraMs)
-            if (lastMapTouchMs > asked || mode != AppMode.PLAN || shown != null || route?.points != line) {
-                Problems.trace("map", "First route not fitted: the map was touched or the plan moved on")
-                return@launchSafe
-            }
-            followMe = false
-            freeLookAt = null
-            events += UiEvent.Fit(WholeRoute.bounds(listOf(line), pts, null))
-        }
-    }
+    /** The plan's first route is there: the map shows it whole – [MapViewSlice.fitFirstRoute]. */
+    private fun fitFirstRoute(line: List<GeoPoint>, pts: List<GeoPoint>, extraMs: Long = 0L) = map.fitFirstRoute(line, pts, extraMs)
 
     /** A spot in the list tapped: the list closes, following stops, the map shows that piece (drawn amber). */
     fun showSpot(s: RouteSpot) {
@@ -3118,12 +2974,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** One section on the map (a spot of the list, the way to a point not reached): drawn amber, the map goes there. */
-    private fun showPiece(piece: List<GeoPoint>, center: Pair<GeoPoint, Double>?) {
-        spotsOpen = false
-        followMe = false
-        spotLine = piece
-        events += if (center != null) UiEvent.CenterOn(center.first, center.second) else UiEvent.Fit(piece)
-    }
+    private fun showPiece(piece: List<GeoPoint>, center: Pair<GeoPoint, Double>?) = map.showPiece(piece, center)
 
     /**
      * Tap on the red line of a point the route does not reach – like a steep section (owner 2026-11-07): the section
@@ -5286,13 +5137,9 @@ private const val STYLE_MAX_WAIT_MS = 15_000L
 private const val ARRIVAL_QUIET_MS = 1_500L
 private const val ARRIVAL_MAX_WAIT_MS = 20_000L
 
-/** Navigate profile scrubbing: how long the dot and the map stay at the spot after the finger leaves (ms). */
-private const val SCRUB_HOLD_MS = 4000L
 /** Routing data: checked at most this often after a route (ms), and refreshed when older than this (days). */
 private const val ROUTING_CHECK_MS = 12 * 3600_000L
 private const val ROUTING_MAX_AGE_DAYS = 35
-/** Free look in Navigate ends after walking this far from where the map was turned / moved by hand. */
-private const val FREE_LOOK_BACK_M = 25.0
 
 /** What [AppViewModel.openTour] does with a done tour / track once it is shown. */
 enum class TrackThen { SHOW, FOLLOW, PLAN }

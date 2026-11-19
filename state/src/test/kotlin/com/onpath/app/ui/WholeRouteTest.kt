@@ -184,11 +184,9 @@ class WholeRouteTest {
         assertTrue(!WholeRoute.firstRoute(3, 2))
         assertTrue(!WholeRoute.firstRoute(0, 1))
         val vm = sourceFile("ui/AppViewModel.kt").readText()
-        // the same fit as "Show whole route", following stopped first
-        val fit = vm.substringAfter("private fun fitFirstRoute(").substringBefore("\n    }\n")
-        val stop = fit.indexOf("followMe = false")
-        assertTrue(stop >= 0 && fit.indexOf("events += UiEvent.Fit(WholeRoute.bounds(listOf(line), pts, null))") > stop)
-        assertTrue(fit.contains("lastMapTouchMs > asked")) // the user took the map meanwhile: their view stays
+        // the same fit as "Show whole route", following stopped first; a touch meanwhile keeps the user's view:
+        // MapViewFlowTest.theFirstRouteIsFittedOnceTheSheetHasSettledWithFollowingStoppedFirst / aHandOnTheMapMeanwhileKeepsTheUsersView
+        assertTrue(vm.contains("private fun fitFirstRoute(line: List<GeoPoint>, pts: List<GeoPoint>, extraMs: Long = 0L) = map.fitFirstRoute(line, pts, extraMs)"))
         assertTrue(vm.contains("if (WholeRoute.firstRoute(before.size, waypoints.size)) routeEvent(RouteRun.Event.FitNext)"))
         // once per order: RouteRunTest.theFirstRouteIsFittedOnce
         assertTrue(vm.contains("if (take.fit) fitFirstRoute(it.points, pts, if (take.rises) SheetRise.FIT_WAIT_MS else 0L)"))
