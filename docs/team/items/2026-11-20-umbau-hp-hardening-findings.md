@@ -20,11 +20,21 @@ answers · cards / „Mehr“ / pictures), each finding checked by the lead befo
    download – the field report's situation) was marked failed until the next app start. Now it is made at the next look.
    Tests in `RouteThumbsTest`.
 
+4. **The wait windows' time line on the phone** (`RouteWait`, `SuggestWait`, `MapLoad`; core `OneBar.measured`): the time left
+   was estimated from the bar, creep included – a route leg the router reports nothing of counted down „1 minute … 30
+   seconds“ by itself (the owner's „noch etwa 5 Sekunden“, then minutes; seen in the planner, the same on the phone). Now it
+   comes from the measured share only. Tests `WaitPromiseTest.routeWindow_aLegWithoutAnyProgressPromisesNoTime` (red before),
+   `WaitProgressTest.aBarThatOnlyCreepsGivesNoTimeLeft`. The planner's side is the laptop's own fix in `WebWait` (3afebead).
+5. **„Mehr“ pause times**: 12 new edge tests (`TourReviewTest`, `RouteMoreTest`: a stop at the very start / end, stepped stops,
+   a recording gap, odd timestamps, midnight / summer-time change in four zones) – no bug found; two proven red by breaking the code.
+
 ## Open (in work or noted)
-- Wait windows: „noch etwa 5 Sekunden“ then minutes (owner, München → Hilden) – the time left was estimated from the bar's
-  own creep. In work: estimate from the measured share only; no time line in a route's first leg.
-- Planner wait window (helper in work): a failed / stopped route closes the window as a success (100 % flash, learned shares
-  from an unfinished run); a shared link whose engine fails can leave the window open; a ghost wait after Abbrechen (suspected).
+- Planner wait window (helper in work, branch, merged after review): a failed / stopped route closes the window as a success
+  (100 % flash, learned shares from an unfinished run); a shared link whose engine fails can leave the window open; a ghost
+  wait after Abbrechen (suspected).
+- Second review round in work: the view model's host adapters and init order for the new slices, `TourEdits` line by line, the
+  screens after "forwarders out"; a fresh review of the fixes above.
 - Noted, no fix tonight: L5's service half is guarded by source-text tests only (no test drives `RecordingService`);
   `StyleLoader.lastMapDir` is process-global and now written per picture (a rollback could compare against the wrong folder –
-  suspected, low); planner `areas.ts` can show a stale state for one poll (heals itself).
+  suspected, low); planner `areas.ts` can show a stale state for one poll (heals itself); a round-trip search that dies with an
+  `Error` (out of memory) leaves the map deaf to presses until „Abbrechen“.
