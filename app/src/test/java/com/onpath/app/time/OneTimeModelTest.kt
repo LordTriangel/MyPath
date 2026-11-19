@@ -96,7 +96,8 @@ class OneTimeModelTest {
         assertEquals(300.0, s.ascentM, 1.0)
         assertEquals(0.0, s.descentM, 0.01)
         assertEquals(3600.0, s.durationS, 1.0)
-        val vm = java.io.File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
+        // the import moved from AppViewModel to ImportExport (rebuild phase 2 piece 7)
+        val vm = java.io.File("src/main/java/com/onpath/app/ui/ImportExport.kt").readText()
         val sync = java.io.File("src/main/java/com/onpath/app/plansync/DbTourStore.kt").readText()
         assertTrue(vm.contains("TimeEstimate.trackStats(") && sync.contains("TimeEstimate.trackStats("))
     }

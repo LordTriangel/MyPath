@@ -3,13 +3,11 @@ package com.onpath.app.ui
 import android.app.Application
 import android.content.Intent
 import android.net.Uri
-import android.provider.OpenableColumns
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.onpath.app.debug.launchSafe
@@ -53,9 +51,7 @@ import com.onpath.app.domain.SplitRequests
 import com.onpath.app.domain.StyleReloadRule
 import com.onpath.app.domain.TakenPin
 import com.onpath.app.domain.WaitBar
-import com.onpath.app.gpx.GpxParser
 import com.onpath.app.gpx.GpxWaypoint
-import com.onpath.app.gpx.GpxWriter
 import com.onpath.app.gpx.SportType
 import com.onpath.app.gpx.TrackPoint
 import com.onpath.app.recording.LocationTracker
@@ -1499,51 +1495,62 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         styleVersion++
     }
 
-    /** Imports the onpath-data zip or a single data/style file picked by the user. */
-    fun importData(uri: Uri) {
-        if (dataBusy != null) return
-        val app = getApplication<Application>()
-        dataBusy = Txt.s(Res.string.msg_import_busy)
-        viewModelScope.launchSafe("app", "importData", Dispatchers.IO) {
-            val msg: Pair<String, Boolean> = try {
-                val name = displayName(uri) ?: "import.zip"
-                val input = app.contentResolver.openInputStream(uri) ?: error("Cannot open the file.")
-                val r = com.onpath.app.data.DataImporter.import(input, name, dataFiles.dir) { f ->
-                    dataBusy = Txt.s(Res.string.msg_import_busy_file, f)
-                }
-                // MapLibre keeps an opened .pmtiles file's index in memory: a replaced file would be read with the
-                // old index (gaps, wrong tiles) until the process restarts. So after new .pmtiles: restart the app
-                // (not during a tour – then the user is asked to restart after it).
-                val newTiles = r.imported.any { it.endsWith(".pmtiles") }
-                // downloaded map cells are joined with the region package: join the new one
-                if (newTiles || r.imported.contains("pois.geojson")) cells.regionChanged()
-                withContext(Dispatchers.Main) {
-                    recheckData()
-                    if (newTiles && recState.value == null) restartForData = true else styleVersion++
-                }
-                (r.summary + packageNote() +
-                    if (newTiles && recState.value != null) " " + Txt.s(Res.string.msg_import_restart_after_tour) else "") to false
-            } catch (e: com.onpath.app.data.DataImporter.ImportException) {
-                Problems.warn("data", "Map data import rejected", e)
-                com.onpath.app.debug.UserText.of(e, Txt.s(Res.string.msg_import_failed_unchanged)) to true
-            } catch (e: Exception) {
-                Problems.error("data", "Map data import failed; existing data kept", e)
-                Txt.s(Res.string.msg_import_failed_damaged) to true
-            }
-            withContext(Dispatchers.Main) {
-                dataBusy = null
-                say(msg.first, if (msg.second) NoticeKind.ERROR else NoticeKind.INFO, NoticePlace.SETTINGS)
-            }
-        }
+    /**
+     * Import, export and backup ([ImportExport] in `:app`; the decisions are [ImportRules] in `:state`): GPX and map-data
+     * import, "Export all" / Export GPX, "Restore from folder", the first-start restore offer. The names below forward to it.
+     */
+    private val importExport by lazy {
+        ImportExport(app, viewModelScope, Dispatchers.IO, db, object : ImportExportHost {
+            override val recState: StateFlow<RecState?> get() = this@AppViewModel.recState
+            override val dataFiles: DataFiles get() = this@AppViewModel.dataFiles
+            override val prefs: Prefs get() = this@AppViewModel.prefs
+            override val cells: com.onpath.app.cells.MapCells get() = this@AppViewModel.cells
+            override val sync: com.onpath.app.plansync.PlanSync get() = this@AppViewModel.sync
+            override val events: MutableList<UiEvent> get() = this@AppViewModel.events
+            override val activity: Activity get() = this@AppViewModel.activity
+            override val showSettings: Boolean get() = this@AppViewModel.showSettings
+            override var dataBusy: String?
+                get() = this@AppViewModel.dataBusy
+                set(v) { this@AppViewModel.dataBusy = v }
+            override var restoreProgress: String?
+                get() = this@AppViewModel.restoreProgress
+                set(v) { this@AppViewModel.restoreProgress = v }
+            override var restoreOffer: Boolean
+                get() = this@AppViewModel.restoreOffer
+                set(v) { this@AppViewModel.restoreOffer = v }
+            override var restartForData: Boolean
+                get() = this@AppViewModel.restartForData
+                set(v) { this@AppViewModel.restartForData = v }
+            override var styleVersion: Int
+                get() = this@AppViewModel.styleVersion
+                set(v) { this@AppViewModel.styleVersion = v }
+            override var busy: Busy?
+                get() = this@AppViewModel.busy
+                set(v) { this@AppViewModel.busy = v }
+            override var sac: Int
+                get() = this@AppViewModel.sac
+                set(v) { this@AppViewModel.sac = v }
+            override var routesOpen: Boolean
+                get() = this@AppViewModel.routesOpen
+                set(v) { this@AppViewModel.routesOpen = v }
+            override var savedPlaces: com.onpath.app.search.SavedPlaces?
+                get() = this@AppViewModel.savedPlaces
+                set(v) { this@AppViewModel.savedPlaces = v }
+            override fun recheckData() = this@AppViewModel.recheckData()
+            override fun packageNote() = this@AppViewModel.packageNote()
+            override fun say(text: String, kind: NoticeKind, place: NoticePlace) = this@AppViewModel.say(text, kind, place)
+            override fun sayInfo(text: String, place: NoticePlace) = this@AppViewModel.sayInfo(text, place)
+            override fun sayError(text: String, place: NoticePlace) = this@AppViewModel.sayError(text, place)
+            override fun refreshTours() = this@AppViewModel.refreshTours()
+            override fun planFactors(a: Activity) = this@AppViewModel.planFactors(a)
+            override fun defaultName(prefix: String) = this@AppViewModel.defaultName(prefix)
+            override fun selectActivity(a: Activity, userChange: Boolean) = this@AppViewModel.selectActivity(a, userChange)
+            override fun showTrack(s: ShownTrack) = this@AppViewModel.showTrack(s)
+        })
     }
 
-    private fun displayName(uri: Uri): String? = try {
-        getApplication<Application>().contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
-            ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
-    } catch (e: Exception) {
-        Problems.warn("data", "File name of the picked file unreadable; using the URI name", e)
-        null
-    } ?: uri.lastPathSegment?.substringAfterLast('/')
+    /** Imports the onpath-data zip or a single data/style file picked by the user. */
+    fun importData(uri: Uri) = importExport.importData(uri)
 
     // ---------------- activity: [PlanRouteSlice] (rebuild phase 2 piece 8) ----------------
 
@@ -4417,32 +4424,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun deleteForever(t: Tour) = recent.deleteForever(t)
 
     /** "Export all": one ZIP with every tour and plan as GPX, handed to the share sheet (Files, Drive, mail …). */
-    fun exportAll() {
-        busy = Busy.EXPORT
-        viewModelScope.launchSafe("app", "exportAll") {
-            try {
-                val app = getApplication<Application>()
-                val uri = withContext(Dispatchers.IO) {
-                    val f = Backups.exportZip(app, File(app.cacheDir, "export"), SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(Date()))
-                    FileProvider.getUriForFile(app, app.packageName + ".files", f) to f.name
-                }
-                busy = null
-                val send = Intent(Intent.ACTION_SEND).apply {
-                    type = "application/zip"
-                    putExtra(Intent.EXTRA_STREAM, uri.first)
-                    putExtra(Intent.EXTRA_SUBJECT, uri.second)
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                events += UiEvent.Share(Intent.createChooser(send, Txt.s(Res.string.msg_export_all_chooser)))
-            } catch (e: com.onpath.app.backup.BackupException) {
-                Problems.info("backup", "Export all: ${e.reason}", e); busy = null; sayError(Txt.s(Res.string.msg_export_reason, e.reason), NoticePlace.ROUTES)
-            } catch (e: Exception) {
-                Problems.error("backup", "Export all failed", e)
-                busy = null
-                sayError(Txt.s(Res.string.msg_export_failed), NoticePlace.ROUTES)
-            }
-        }
-    }
+    fun exportAll() = importExport.exportAll()
 
     /** First start with an empty database: "Earlier tours found? Restore from Documents/OnPath" (asked once). */
     var restoreOffer by mutableStateOf(false)
@@ -4507,15 +4489,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var restoreProgress by mutableStateOf<String?>(null)
         private set
 
-    private fun checkRestoreOffer() {
-        viewModelScope.launchSafe("app", "checkRestoreOffer", Dispatchers.IO) {
-            val app = getApplication<Application>()
-            val offer = try { !Backups.restoreOffered(app) && db.countAll() == 0 } catch (e: Exception) {
-                Problems.warn("backup", "Restore offer not checked", e); false
-            }
-            if (offer) withContext(Dispatchers.Main) { restoreOffer = true }
-        }
-    }
+    private fun checkRestoreOffer() = importExport.checkRestoreOffer()
 
     init {
         Backups.init(app)
@@ -4536,135 +4510,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun restoreOfferAnswered() { restoreOffer = false; Backups.setRestoreOffered(getApplication()) }
 
     /** The folder the user confirmed in the picker: import every OnPath backup in it (off the main thread). */
-    fun restoreFrom(tree: Uri) {
-        if (restoreProgress != null) return
-        restoreProgress = Txt.s(Res.string.msg_restore_looking)
-        viewModelScope.launchSafe("app", "restoreFrom") {
-            val app = getApplication<Application>()
-            val r = withContext(Dispatchers.IO) {
-                try { Backups.restore(app, tree) { line -> viewModelScope.launchSafe("app", "restoreFrom", Dispatchers.Main) { if (restoreProgress != null) restoreProgress = line } } }
-                catch (e: Exception) { Problems.error("backup", "Restore from the backup folder failed", e); null }
-            }
-            restoreProgress = null
-            savedPlaces = null // a restore may have brought kept places (Zuhause, favourites): read them again
-            if (r != null) sync.changed("restored from the backup folder")
-            // the result where it was started (Settings → Backup), else where the tracks are now: My routes (restore
-            // offered at the first start); a failure there → the error box
-            if (r != null) sayInfo(com.onpath.app.backup.BackupRestore.summary(r),
-                if (showSettings) NoticePlace.SETTINGS else { routesOpen = true; NoticePlace.ROUTES })
-            else sayError(Txt.s(Res.string.msg_restore_folder_unreadable), if (showSettings) NoticePlace.SETTINGS else NoticePlace.MAP)
-            refreshTours()
-        }
-    }
+    fun restoreFrom(tree: Uri) = importExport.restoreFrom(tree)
 
-    fun exportTour(t: Tour) {
-        viewModelScope.launchSafe("app", "exportTour") {
-            // as chosen at End tour: rides not counted are their own segments, a dropped ride is not exported
-            val segs = withContext(Dispatchers.IO) { com.onpath.app.rides.RideView.layout(db.loadSegments(t.id), t.rides).trk.map { it.first } }
-            share(t.name) {
-                // a planned route: the one plan export shared with the web planner (gpx/PlanGpx) – its route points
-                // as <wpt> (start, stops, goal – with their names): other apps show them, a re-import rebuilds the plan
-                if (t.kind == TourKind.PLANNED) com.onpath.app.gpx.PlanGpx.export(t.name, segs,
-                    com.onpath.app.gpx.PlanGpx.withPins(t.waypoints, t.pinned), t.activity, t.sac)
-                // the sport as `<trk><type>` (Komoot's string, so Komoot and OnPath read the activity back);
-                // the file name the same in every language (owner): "Hilden - rec.gpx"
-                else com.onpath.app.gpx.GpxFile(GpxWriter.fileName(t.name, GpxWriter.kindSuffix(false, t.kind == TourKind.RECORDED)),
-                    GpxWriter.write(t.name, segs, t.waypoints, type = SportType.typeOf(t.activity, t.sac)))
-            }
-        }
-    }
+    fun exportTour(t: Tour) = importExport.exportTour(t)
 
     /** Writes the GPX [gpx] builds (off the main thread) into the export folder and opens the share sheet. */
-    private suspend fun share(name: String, gpx: () -> com.onpath.app.gpx.GpxFile) {
-        try {
-            val uri = withContext(Dispatchers.IO) {
-                val dir = File(getApplication<Application>().cacheDir, "export").apply { mkdirs() }
-                val g = gpx()
-                val file = File(dir, g.fileName)
-                file.writeText(g.text)
-                FileProvider.getUriForFile(getApplication(), getApplication<Application>().packageName + ".files", file)
-            }
-            val send = Intent(Intent.ACTION_SEND).apply {
-                type = "application/gpx+xml"
-                putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, name)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            events += UiEvent.Share(Intent.createChooser(send, Txt.s(Res.string.common_export_gpx)))
-        } catch (e: Exception) {
-            Problems.error("gpx", "GPX export failed", e)
-            sayError(Txt.s(Res.string.msg_export_failed), NoticePlace.ROUTES)
-        }
-    }
+    private suspend fun share(name: String, gpx: () -> com.onpath.app.gpx.GpxFile) = importExport.share(name, gpx)
 
     // ---------------- GPX import ----------------
 
-    fun importGpx(uri: Uri) {
-        busy = Busy.IMPORT
-        viewModelScope.launchSafe("app", "importGpx") {
-            try {
-                val app = getApplication<Application>()
-                val (data, fileName) = withContext(Dispatchers.IO) {
-                    val name = runCatching {
-                        app.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
-                            if (c.moveToFirst()) c.getString(0) else null
-                        }
-                    }.onFailure { Problems.warn("gpx", "GPX import: file name unreadable; using the GPX name", it) }.getOrNull()
-                    val stream = app.contentResolver.openInputStream(uri) ?: error("Cannot open the file.")
-                    stream.use { GpxParser.parse(it) } to name
-                }
-                val segs = data.allSegments
-                // Komoot's sport in <trk><type> preselects the activity (owner); unknown → the current one;
-                // the user's T level stays when it fits the type's band, and a change is said
-                val choice = SportType.importChoice(data.type, activity, sac, touring = recState.value != null)
-                val pick = choice.pick
-                val name = data.name ?: fileName?.removeSuffix(".gpx")?.removeSuffix(".GPX") ?: defaultName(Txt.s(Res.string.msg_name_import))
-                val geo = segs.map { s -> s.map { it.toGeo() } }
-                // the file's own moving time, else the one time model with the pace level – the one import stats (app,
-                // sync, web: TimeEstimate.trackStats)
-                val st = com.onpath.app.time.TimeEstimate.trackStats(segs, pick.activity, planFactors(pick.activity))
-                val id = withContext(Dispatchers.IO) {
-                    db.insertTour(TourKind.IMPORTED, name, pick.activity.name, pick.sac, st.distanceM, st.ascentM, st.descentM,
-                        st.durationS, segs, data.waypoints)
-                }
-                Backups.tourChanged(app, id)
-                sync.changed("GPX imported")
-                val pts = geo.flatten().ifEmpty { data.waypoints.map { GeoPoint(it.lat, it.lon) } }
-                routesOpen = false // show the imported track on the map
-                refreshTours()
-                // like opening a recorded tour: its activity is chosen (not during a tour – the followed route keeps its own);
-                // before the track is shown: an activity change clears the panel's line, this one sets it
-                if (choice.switch) {
-                    if (pick.activity == Activity.HIKE) { sac = pick.sac.coerceIn(1, 5); prefs.sac = sac }
-                    selectActivity(pick.activity, userChange = false)
-                }
-                // something odd in the file: a grey line in the track panel, never a message (owner)
-                showTrack(ShownTrack(id, name, geo, data.waypoints, st.distanceM, st.ascentM, st.descentM, st.durationS, note = choice.note,
-                    skippedNote = data.skippedNote))
-                if (geo.isEmpty()) events += UiEvent.Fit(pts)
-                // Diagnostics: the type is the file's own text – cut short, and say when it was not one we know
-                data.type?.let { t ->
-                    val to = if (SportType.activityOf(t) == null) "unknown, kept ${pick.activity.name}"
-                        else pick.activity.name + if (pick.activity == Activity.HIKE) " T${pick.sac}" else ""
-                    Problems.info("gpx", "GPX import “$name”: type “${t.take(40)}” → $to")
-                }
-                // The track panel with its name is the feedback (+ its "parts skipped" line); the details go to Diagnostics
-                busy = null
-                if (data.warnings.isNotEmpty()) {
-                    Problems.info("gpx", "GPX import “$name”: ${data.pointCount} points, ${data.waypoints.size} waypoints; " +
-                        data.warnings.joinToString("; "))
-                }
-            } catch (e: Exception) {
-                busy = null
-                Problems.error("gpx", "GPX import failed", e)
-                // GpxException: our own plain reason ("No track, route or waypoint found in this file.")
-                val own = com.onpath.app.debug.UserText.of(e, "")
-                // My routes when the import was started there; a file opened from another app → the error box
-                sayError(if (own.isNotEmpty()) Txt.s(Res.string.msg_gpx_import_failed_reason, own)
-                    else Txt.s(Res.string.msg_gpx_import_failed), NoticePlace.ROUTES)
-            }
-        }
-    }
+    fun importGpx(uri: Uri) = importExport.importGpx(uri)
 
     // ---------------- routing data freshness (owner: routing matters most – a changed way must reroute) ----
 

@@ -146,7 +146,10 @@ class SavePathsTest {
 
     /** Export: a planned item = the plan GPX (line + route points + pins), a tour = its track. */
     @Test fun exportPlannedIsThePlanGpxTourIsTheTrack() {
-        val exp = body("fun exportTour(t: Tour) {")
+        // moved with the export to ImportExport (rebuild phase 2 piece 7)
+        val imp = File("src/main/java/com/onpath/app/ui/ImportExport.kt").readText()
+        val a = imp.indexOf("    fun exportTour(t: Tour) {"); assertTrue("exportTour not found", a >= 0)
+        val exp = imp.substring(a).substringBefore("\n    }\n")
         assertTrue(exp.contains("if (t.kind == TourKind.PLANNED) com.onpath.app.gpx.PlanGpx.export("))
         assertTrue(exp.contains("PlanGpx.withPins(t.waypoints, t.pinned)"))
         assertTrue(exp.contains("else com.onpath.app.gpx.GpxFile(GpxWriter.fileName("))
