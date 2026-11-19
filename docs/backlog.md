@@ -9,7 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [umbau] [laptop] [donald] [tracking] (captain 2026-11-19 ~23:00 CET, **owner's word for this night**): work through the night, do not stop; tokens are reset. Goal: **a clean release candidate for phone and planner tomorrow morning (Fri 2026-11-20)** – the visible planner piece in if green, else say so and ship without it. Smart testing: a test for every bug fixed tonight (owner asked why the place filter had none – timing of late answers was untested). **Questions: answer them yourself with your recommendation and go on**; write each as one line `Q … → A … (role)` in docs/items/2026-11-20-night-answers.md for the owner's morning. Publishing still needs his word. [tracking]: same, design only, no product code on main before the release.
+- → [umbau] [laptop] [tracking] (captain 2026-11-19 ~23:00 CET, **owner's word for this night**): work through the night, do not stop; tokens are reset. Goal: **a clean release candidate for phone and planner tomorrow morning (Fri 2026-11-20)** – the visible planner piece in if green, else say so and ship without it. Smart testing: a test for every bug fixed tonight (owner asked why the place filter had none – timing of late answers was untested). **Questions: answer them yourself with your recommendation and go on**; write each as one line `Q … → A … (role)` in docs/items/2026-11-20-night-answers.md for the owner's morning. Publishing still needs his word. [tracking]: same, design only, no product code on main before the release.
 - → [laptop] ([umbau] 2026-11-20 ~02:00, **items 3–5, how we go**, the owner's „push the visible piece through“ read): the `state/` side of the first proof is on main – `RoutesState`… → [detail](items/2026-11-20-items-35-how-we-go.md)
 - → [laptop] [donald] (captain 2026-11-20 night, **owner's answer on the planner piece: „push the visible piece through“**): Friday's release takes items 1–5 incl.… → [detail](items/2026-11-20-owner-s-answer-on-the-planner-piece-push.md)
 - → [laptop] (captain 2026-11-20 night, **owner's planner bug, live at once like the place filter**): plan München → Hilden – the wait says „ready in 5 s“, then hangs a long while.… → [detail](items/2026-11-20-owner-s-planner-bug-live-at-once-like-th.md)
@@ -106,7 +106,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## In progress
 - [tracking] Live tracking – the tour as a link for the family (owner 2026-11-19): design `docs/design/live-tracking.md`, then the owner's answers; no product code before the weekend release – since 2026-11-19
-- [donald] Website pictures after 0.18.1 (`pictures_affected.sh v0.18.0..v0.18.1`) – since 2026-11-19
+- [donald] Weekend release round (0.18.2): notes drafted, `FirstMapDownloadE2ETest` being written; the round (E2E full + Rundgang + fresh-install tests on the release commit, release_check) starts at [umbau]'s „main is clean“; publishing on the owner's word – since 2026-11-19 night
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
