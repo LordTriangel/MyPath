@@ -108,7 +108,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 ## In progress
 - [umbau-hp] Release hardening for 0.18.2 (owner's night 2026-11-19 → 20): review of everything since `v0.18.1` by risk, a behaviour test per unguarded risk, tests and small fixes only – starts in a fresh session, brief `docs/items/2026-11-20-umbau-hp-release-hardening-start.md` – since 2026-11-19 23:00
 - [tracking] Live tracking – the tour as a link for the family (owner 2026-11-19): design + build plan in `docs/design/live-tracking.md` (decisions §12); code starts after the weekend release is out – since 2026-11-19
-- [donald] Weekend release round (0.18.2): notes drafted, `FirstMapDownloadE2ETest` being written; the round (E2E full + Rundgang + fresh-install tests on the release commit, release_check) starts at [umbau]'s „main is clean“; publishing on the owner's word – since 2026-11-19 night
+- [donald] Weekend release round (0.18.2): notes drafted; the round (E2E full + Rundgang + fresh-install tests on the release commit, release_check) starts at [umbau]'s „main is clean“; publishing on the owner's word – since 2026-11-19 night
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
@@ -191,6 +191,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- [donald] 2026-11-20 night: **may donald clear the app once on its own test emulator** (not your phone) to try the first start + first map download by hand before the release? Tonight the permission check refused it without your word; GitHub's tests cannot download real maps (no key there). Recommendation: yes – „ja, Emulator leeren“ in donald's chat, ~10 min.
 - [captain] 2026-11-19: **merge pull request 15** → [detail](items/2026-11-19-merge-pull-request-15.md)
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)
 - **[laptop] For the owner to look at…** → [detail](items/2026-11-19-for-the-owner-to-look-at-no-answer-neede.md)
