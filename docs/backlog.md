@@ -98,6 +98,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - ← [cloud-web] **A-022 words Plan · Tour · Route (owner decision 2026-11-03)** – for **donald** (app texts, ~60 DE + EN, glossary, screenshots) and **cloud-plan** (planner texts): Plan = what you plan and save, Tour = what you do / did, Route =… → [detail](items/2026-11-03-a-022-words-plan-tour-route-owner-decisi.md)
 
 ## In progress
+- [tracking] Live tracking – the tour as a link for the family (owner 2026-11-19): design `docs/design/live-tracking.md`, then the owner's answers; no product code before the weekend release – since 2026-11-19
 - [donald] Website pictures after 0.18.1 (`pictures_affected.sh v0.18.0..v0.18.1`) – since 2026-11-19
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
