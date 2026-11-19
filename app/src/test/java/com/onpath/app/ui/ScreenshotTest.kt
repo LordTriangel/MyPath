@@ -1419,7 +1419,7 @@ class ScreenshotTest {
         val plan = track.mapIndexed { i, p -> if (i in 30..45) com.onpath.app.routing.GeoPoint(p.lat - 0.004, p.lon + 0.002) else p }
         // its look back (owner 2026-11-15, round 3 of the tour analysis): the sketch's example hike
         OnPathTheme { RouteOverview(reviewTour, listOf(track), touring = false, snapshot = null, onPrimary = {},
-            onCancel = {}, onGo = {}, planLine = plan, position = str(Res.string.routes_overview_position, 3, 27),
+            onCancel = {}, onGo = {}, planLine = plan, position = str(Res.string.routes_overview_position, 3, 27), page = 2, pageCount = 27,
             review = sampleReview, onExportTrack = {}, onExportPlan = {}) }
     }
 
@@ -1456,11 +1456,12 @@ class ScreenshotTest {
 
     /**
      * Swiping through the overviews (owner 2026-11-15, the swipe sketch): the small pill „3 of 27“ top right over the
-     * picture – where this tour is in the list My routes shows.
+     * picture – where this tour is in the list My routes shows; the page dots under the picture (owner 2026-11-19), a window of
+     * seven with the edge dot smaller where more follow.
      */
     @Test fun routesOverviewSwipe() = paparazzi.snapshot {
         OnPathTheme { RouteOverview(tourList[0], listOf(sampleLine(1)), touring = false, snapshot = null, onPrimary = {},
-            onCancel = {}, onGo = {}, position = str(Res.string.routes_overview_position, 3, 27)) }
+            onCancel = {}, onGo = {}, position = str(Res.string.routes_overview_position, 3, 27), page = 2, pageCount = 27) }
     }
 
     /** The same during a tour: "Folgen" (green) – followed at once, the recording goes on (owner 2026-11-06 22:05). */

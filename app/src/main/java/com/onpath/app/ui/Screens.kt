@@ -652,6 +652,7 @@ fun RoutesScreen(
                 },
                 planLine = planLine,
                 position = if (pages.size > 1) str(Res.string.routes_overview_position, i + 1, pages.size) else null,
+                page = i, pageCount = pages.size,
                 review = review,
                 // share (owner 2026-11-15): the recorded way, and the plan it followed when there is one; not while it records
                 onExportTrack = if (t.kind == TourKind.RECORDED && t.id != recordingId) ({ onExport(t) }) else null,

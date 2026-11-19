@@ -204,6 +204,11 @@ internal fun RouteOverview(
     /** „3 von 27“ – where this tour is in the list swiped through (owner 2026-11-15); null = no pill (a list of one). */
     position: String? = null,
     /**
+     * The page dots under the picture (owner 2026-11-19: so one sees the overview can be swiped): this page (0-based) of
+     * [pageCount]; none for a list of one.
+     */
+    page: Int = 0, pageCount: Int = 1,
+    /**
      * A done tour's look back (owner 2026-11-15, round 3 of the tour analysis – [DoneTourOverview]); null = still read or
      * not known: the recorded tour's overview shows its stored numbers only. Ignored for planned / imported routes.
      */
@@ -219,12 +224,13 @@ internal fun RouteOverview(
         else OverviewButtons(primary = str(if (touring) Res.string.routes_overview_follow else Res.string.routes_overview_plan),
             go = touring, onPrimary = onPrimary, onCancel = onCancel)
     }
+    val dots = if (pageCount > 1) (@Composable { PageDots(page, pageCount, Modifier.fillMaxWidth()) }) else null
     Surface(Modifier.fillMaxSize(), color = OnPathColors.Paper) {
         Column(Modifier.fillMaxSize().systemBarsPadding().padding(16.dp)) {
             // a done tour (owner 2026-11-15, round 3): its look back – the big values, the picture with the profile, the
             // highlights, Details and share
             if (t.kind == com.onpath.app.data.TourKind.RECORDED) {
-                DoneTourOverview(t, review, picture, foot, onExportTrack, onExportPlan)
+                DoneTourOverview(t, review, picture, foot, onExportTrack, onExportPlan, dots)
                 return@Column
             }
             Text(t.name, style = MaterialTheme.typography.titleLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -233,7 +239,8 @@ internal fun RouteOverview(
                 .joinToString(" · ") { it.replace(' ', ' ') },
                 MaterialTheme.typography.bodyLarge, MaterialTheme.colorScheme.onSurfaceVariant),
                 style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            picture(Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp).clip(OnPathShapes.Card))
+            picture(Modifier.weight(1f).fillMaxWidth().padding(top = 12.dp, bottom = if (dots != null) 8.dp else 12.dp).clip(OnPathShapes.Card))
+            dots?.let { Box(Modifier.padding(bottom = 10.dp)) { it() } }
             foot()
         }
     }
@@ -275,6 +282,45 @@ private fun OverviewMapPicture(t: Tour, segments: List<List<GeoPoint>>?, snapsho
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         // „3 von 27“ (owner 2026-11-15, the swipe sketch): a small pill top right over the picture
         position?.let { PositionPill(it, Modifier.align(Alignment.TopEnd).padding(10.dp)) }
+    }
+}
+
+/**
+ * The page dots of the swiped overview (owner 2026-11-19, "damit man sieht, dass man wischen kann"): small dots centred,
+ * the shown page filled green, the others light; at most [DotWindow.MAX] at a time – a longer list shows a window around the
+ * shown page, its edge dots smaller where more pages lie beyond (the „3 von 27“ pill says the number). TalkBack reads
+ * „Seite 3 von 27“.
+ */
+@Composable
+internal fun PageDots(page: Int, count: Int, modifier: Modifier = Modifier) {
+    val desc = str(Res.string.routes_overview_page_dots, page + 1, count)
+    Row(modifier.heightIn(min = 12.dp).semantics { contentDescription = desc },
+        horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+        DotWindow.window(page, count).forEach { i ->
+            val small = DotWindow.small(i, page, count)
+            Box(Modifier.padding(horizontal = 4.dp).size(if (small) 5.dp else 8.dp).clip(CircleShape)
+                .background(if (i == page) OnPathColors.Green else OnPathColors.InkMuted.copy(alpha = 0.35f)))
+        }
+    }
+}
+
+/** Which dots [PageDots] shows – pure, so a test can say it. */
+internal object DotWindow {
+    /** At most this many dots at a time. */
+    const val MAX = 7
+
+    /** The pages that get a dot: all up to [MAX], else [MAX] around [page] (kept inside the list). */
+    fun window(page: Int, count: Int): IntRange {
+        if (count <= MAX) return 0 until count
+        val start = (page - MAX / 2).coerceIn(0, count - MAX)
+        return start until start + MAX
+    }
+
+    /** A window's edge dot drawn smaller: more pages lie beyond it (never the shown page). */
+    fun small(i: Int, page: Int, count: Int): Boolean {
+        if (i == page) return false
+        val w = window(page, count)
+        return (i == w.first && w.first > 0) || (i == w.last && w.last < count - 1)
     }
 }
 

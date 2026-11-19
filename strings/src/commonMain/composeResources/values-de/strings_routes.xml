@@ -74,6 +74,7 @@
     <string name="routes_overview_follow">Folgen</string>
     <string name="routes_overview_loading">Karte wird gezeichnet …</string>
     <string name="routes_overview_position">%1$d von %2$d</string>
+    <string name="routes_overview_page_dots">Seite %1$d von %2$d</string>
     <!-- Der Rückblick auf eine gemachte Tour in ihrer großen Übersicht (Owner 2026-11-15, Runde 3 der Tour-Auswertung) -->
     <string name="routes_review_distance">Strecke</string>
     <string name="routes_review_ascent">Aufstieg</string>

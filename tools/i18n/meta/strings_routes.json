@@ -468,6 +468,12 @@
     "priority": 2,
     "confidence": "sicher"
   },
+  "routes_overview_page_dots": {
+    "area": "My routes – route overview",
+    "context": "TalkBack description of the page dots under the overview's map picture that show it can be swiped (owner 2026-11-19): %1$d = this page, %2$d = how many pages.",
+    "priority": 2,
+    "confidence": "sicher"
+  },
   "routes_sac_line": {
     "area": "Activity picker",
     "context": "Under the T1–T5 chips (owner 2026-11-08): the chosen level's name and description; %1$d = level, %2$s = SAC name, %3$s = SAC description",

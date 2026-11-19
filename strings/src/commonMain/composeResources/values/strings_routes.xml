@@ -75,6 +75,7 @@
     <string name="routes_overview_follow">Follow</string>
     <string name="routes_overview_loading">Drawing the map …</string>
     <string name="routes_overview_position">%1$d of %2$d</string>
+    <string name="routes_overview_page_dots">Page %1$d of %2$d</string>
     <!-- The look back at a done tour in its large overview (owner 2026-11-15, round 3 of the tour analysis) -->
     <string name="routes_review_distance">Distance</string>
     <string name="routes_review_ascent">Ascent</string>

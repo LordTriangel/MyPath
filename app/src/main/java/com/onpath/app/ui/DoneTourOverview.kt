@@ -193,6 +193,8 @@ internal fun DoneTourOverview(
     picture: @Composable (Modifier) -> Unit,
     foot: @Composable () -> Unit,
     onExportTrack: (() -> Unit)?, onExportPlan: (() -> Unit)?,
+    /** The page dots under the picture (owner 2026-11-19, [PageDots]); null = a list of one. */
+    dots: (@Composable () -> Unit)? = null,
 ) {
     var details by remember { mutableStateOf(false) }
     val r = review
@@ -213,6 +215,7 @@ internal fun DoneTourOverview(
         },
         bottom = {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                dots?.invoke()
                 val lower = ReviewText.lower(t, r)
                 if (lower.isNotEmpty()) BigValues(lower, dividerBelow = true, top = false)
                 r?.let { ReviewText.plan(it.planPct) }?.let { PlanLine(it, faster = (r.planPct ?: 0) >= 0) }
