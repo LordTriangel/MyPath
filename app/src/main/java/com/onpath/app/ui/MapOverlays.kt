@@ -43,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -318,8 +319,11 @@ internal fun PinMenuOverlay(key: Any, tip: Offset, pinPx: Float, topPx: Int, bot
     val maxW = with(d) { 320.dp.roundToPx() }
     // decided once per opened menu (a plain holder: written while measuring, never recomposes)
     val decided = remember(key) { arrayOfNulls<PinMenuPlace.Decision>(1) }
-    var pan by remember(key) { mutableStateOf(0f) }
-    LaunchedEffect(key, pan) { if (pan != 0f) onPan(pan) }
+    // the map moves once per opened menu (PanOnce): an effect launched before the move was wished and relaunched for
+    // it must not move it twice (release flow 10, 2026-11-19: 2 × 428 px, the pin at the sheet's edge, no name chip)
+    val panOnce = remember(key) { PinMenuPlace.PanOnce() }
+    var pan by remember(key) { mutableIntStateOf(0) }
+    LaunchedEffect(key, pan) { panOnce.take().takeIf { it != 0 }?.let { onPan(it.toFloat()) } }
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val w = constraints.maxWidth; val h = constraints.maxHeight
         if (!MapGestures.anchorVisible(tip.x, tip.y, w, h)) {
@@ -340,7 +344,7 @@ internal fun PinMenuOverlay(key: Any, tip: Offset, pinPx: Float, topPx: Int, bot
                     decided[0] = it
                     com.onpath.app.debug.Problems.trace("plan", "Found place menu: ${it.kind}" +
                         (if (it.panPx != 0) ", map moved ${it.panPx} px" else "") + " (menu ${m.height} px, map $topPx..$bottom px)")
-                    if (it.panPx != 0) pan = it.panPx.toFloat()
+                    if (it.panPx != 0) { panOnce.want(it.panPx); pan = it.panPx }
                 }
             }
             if (decision.kind == PinMenuPlace.Kind.CARD) {
@@ -348,7 +352,7 @@ internal fun PinMenuOverlay(key: Any, tip: Offset, pinPx: Float, topPx: Int, bot
                     Box(Modifier.navigationBarsPadding().padding(start = 12.dp, end = 12.dp, bottom = 12.dp)) { content(true) }
                 }.first().measure(loose)
                 // the pin stays visible above the card (once)
-                if (mayPan && pan == 0f) PinMenuPlace.cardPan(head, tip.y, h - card.height, topPx, tipRoom).takeIf { it != 0 }?.let { pan = it.toFloat() }
+                if (mayPan && !panOnce.asked) PinMenuPlace.cardPan(head, tip.y, h - card.height, topPx, tipRoom).takeIf { it != 0 }?.let { panOnce.want(it); pan = it }
                 return@SubcomposeLayout layout(w, h) { card.place((w - card.width) / 2, h - card.height) }
             }
             val m = menu ?: measureMenu()

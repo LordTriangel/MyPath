@@ -46,6 +46,30 @@ object PinMenuPlace {
     }
 
     /**
+     * The map move of ONE opened menu, handed out once ([want] while measuring, [take] where the map is moved). Release
+     * flow 10, 2026-11-19: the effect that moves the map ran twice for one decision (launched before the move was
+     * known, it read the new value; then relaunched for it) – the map moved 2 × 428 px, the pin went to the sheet's
+     * edge and its name chip could not show once the menu closed.
+     */
+    class PanOnce {
+        private var wanted = 0
+        private var done = false
+
+        /** The decision wants the map moved by [px] (0 = not at all); only the first wish counts. */
+        fun want(px: Int) { if (!done && wanted == 0) wanted = px }
+
+        /** True once a move was wished – whether or not it was taken already. */
+        val asked: Boolean get() = wanted != 0
+
+        /** The move to make now: the wished one the first time, 0 after that. */
+        fun take(): Int {
+            if (done || wanted == 0) return 0
+            done = true
+            return wanted
+        }
+    }
+
+    /**
      * B: how far the map moves its content up (a negative pixel count, 0 = not at all) so the pin stays visible above a
      * card whose top is at [cardTop] – never so far that the pin's head goes under the top bar ([top]).
      */

@@ -63,6 +63,42 @@ class PinMenuPlaceTest {
         assertEquals(-50, PinMenuPlace.cardPan(headY = 350f, tipY = 455f, cardTop = 400, top = 300, tipRoom = 63))
     }
 
+    /**
+     * Release flow 10 (GitHub run 44497175210, 2026-11-19): the shared place's menu with „Rundtour von hier“ is 1010 px
+     * high; the pin in the middle of the map 338..1938 (tip 1102, pin 124 px) → the map moves 428 px. The effect that
+     * moves the map ran twice for that one decision: 2 × 428 put the tip at 1958, under the sheet – the name chip had no
+     * room once the menu closed. One opened menu moves the map once, however often it is asked.
+     */
+    @Test fun oneOpenedMenuMovesTheMapOnce() {
+        val tip = 1102f
+        val d = PinMenuPlace.decide(tip - 124f, tip, 1010, 338, 1938, 58, 63)
+        assertEquals(Decision(Kind.ABOVE, 428), d)
+        val once = PinMenuPlace.PanOnce()
+        once.want(d.panPx)
+        once.want(d.panPx) // measured again: still the one move
+        val moved = once.take() + once.take() + once.take() // the effect launched before and again after the wish
+        assertEquals(428, moved)
+        assertTrue("the tip stays above the sheet: ${tip + moved}", tip + moved <= 1938 - 63)
+    }
+
+    @Test fun noWishNoMove() {
+        val once = PinMenuPlace.PanOnce()
+        assertEquals(0, once.take())
+        assertTrue(!once.asked)
+        once.want(-163) // the card's move, asked later
+        assertTrue(once.asked)
+        assertEquals(-163, once.take())
+        once.want(-50) // a second wish after the move: ignored
+        assertEquals(0, once.take())
+    }
+
+    @Test fun theOverlayMovesTheMapThroughPanOnce() {
+        val overlay = src("ui/MapOverlays.kt").substringAfter("internal fun PinMenuOverlay(").substringBefore("\n}\n")
+        val effect = overlay.lines().first { "LaunchedEffect(" in it }
+        // the effect reads no state of its own: what it moves comes from take() – once per opened menu
+        assertTrue(effect, effect.contains(".take()") && !effect.contains("onPan(pan)"))
+    }
+
     // ---- the rows: the same as a hold on that spot ----
 
     private val stopMenu = PlaceAddMenu.menu(3, touring = false, zone = PlaceAddMenu.Zone.STOP)
