@@ -21,6 +21,7 @@ class PlaceAddAdaptersTest {
 
     @Test fun theHostAnswersFromTheViewModelsOwnMembers() {
         assertTrue("the placeAdd block was found", vm.contains(head) && block.length > 2000 && block.contains("object : com.onpath.app.ui.plan.PlaceAddHost"))
+        assertTrue("the block's end anchor was found", vm.substringAfter(head).contains("\n    private val routeRun get() = planRun.routeRun"))
         listOf(
             "override fun closeMapOverlays(why: String) = this@AppViewModel.closeMapOverlays(why)",
             "override fun openPointMenu(index: Int, via: String) = this@AppViewModel.openPointMenu(index, via = via)",

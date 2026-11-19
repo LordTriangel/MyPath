@@ -143,7 +143,6 @@ class PlaceAddFlowTest {
         var lengths: (GeoPoint, GeoPoint) -> Double = { x, y -> Geo.distance(x, y) }
         val routed = ArrayList<String>()
         var routerThrows: String? = null
-        var routerThread: Thread? = null
         /** Reads of values the slice may read on one branch only. */
         val reads = HashMap<String, Int>()
         private fun read(what: String) { reads[what] = (reads[what] ?: 0) + 1 }
@@ -151,7 +150,6 @@ class PlaceAddFlowTest {
         fun st() = "[stored=${ids(store.points).ifEmpty { "-" }} pinTaken=${edit.pinTaken?.at?.let { letters[it] ?: "?" } ?: "-"}]"
 
         val router = HoldRouter { x, y, act, level, cancel ->
-            routerThread = Thread.currentThread()
             routed += "${ids(listOf(x))}→${ids(listOf(y))} ${act.name} T$level"
             routerThrows?.let { throw RoutingException(it) }
             if (cancel.isCancelled) throw RoutingException("stopped", kind = RoutingException.Kind.CANCELLED)
@@ -708,6 +706,7 @@ class PlaceAddFlowTest {
         app.slice.addPoiPoint(hut)
         assertEquals(3, app.store.points.size)
         assertEquals(hutAt, app.edit.pinTaken?.at)
+        assertTrue("a POI added through the menu is pinned (addPoint onPoi)", hutAt in app.plan.pinned)
         assertNull("the found place's pin went into the plan", app.pinOnMap)
         assertEquals("POI menu: \"Hütte\" added to the route (plan 2 → 3 points)", app.trace().last())
         assertTrue("the found place's add fits the new route", app.fit)
@@ -718,7 +717,36 @@ class PlaceAddFlowTest {
         assertFalse(plain.fit)
         assertNull(plain.edit.pinTaken)
         assertEquals(listOf(hutAt to "Hütte"), plain.names)
+        assertTrue("the plain add pins it too", hutAt in plain.plan.pinned)
+        // known gap since 2026-11-10 (ed7310756): the kind arrives later by the 5 m index lookup; reported to donald
         assertTrue("no kind kept by this entry", plain.kinds.isEmpty())
+    }
+
+    /** While a reroute runs the shown line belongs to older points: best fit only, and the hold's line distance is on the straight legs. */
+    @Test fun whileARerouteRunsTheShownLineIsNotUsedForTheInsertionOrTheHoldsLineDistance() {
+        val line = listOf(a, b, beside, c) // the shown route passes the spot: on the line it is a stop before the goal
+        val idle = App(listOf(a, b, c))
+        idle.routeLine = line
+        idle.slice.addPoint(beside)
+        assertEquals("abSc", idle.stored())
+        val busy = App(listOf(a, b, c))
+        busy.routeLine = line
+        busy.run.routeEvent(RouteRun.Event.Recalc(listOf(a, b, c), Activity.HIKE, planMode = true, newPlan = false))
+        assertTrue(busy.run.routing)
+        busy.slice.addPoint(beside)
+        assertEquals("best fit by geometry: the new goal", "abcS", busy.stored())
+        // the hold: on the shown line it is set at once; while routing it is measured (straight legs are far away)
+        val holdIdle = App(listOf(a, b, c))
+        holdIdle.routeLine = line
+        holdIdle.slice.holdOnMap(beside, 30.0)
+        assertEquals("abSc", holdIdle.stored())
+        assertEquals(0, holdIdle.worker.size)
+        val holdBusy = App(listOf(a, b, c))
+        holdBusy.routeLine = line
+        holdBusy.run.routeEvent(RouteRun.Event.Recalc(listOf(a, b, c), Activity.HIKE, planMode = true, newPlan = false))
+        holdBusy.slice.holdOnMap(beside, 30.0)
+        assertEquals("abc", holdBusy.stored())
+        assertEquals(beside, holdBusy.slice.holdMeasuring)
     }
 
     @Test fun goHereFromMyLocationOnAnEmptyPlanStartsAtMeAndNeedsAFix() {
