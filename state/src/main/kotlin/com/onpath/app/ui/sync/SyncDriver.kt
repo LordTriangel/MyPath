@@ -6,6 +6,8 @@ import androidx.compose.runtime.setValue
 import com.onpath.app.debug.launchSafe
 import com.onpath.app.plansync.SyncMark
 import com.onpath.app.plansync.SyncPoll
+import com.onpath.app.plansync.SyncReport
+import com.onpath.app.plansync.SyncState
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -16,8 +18,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.isActive
-import com.onpath.app.plansync.SyncState
-import com.onpath.app.plansync.SyncReport
 
 /** The browser sync as its driver sees it ([PlanSync] in the app, a fake in tests). */
 interface SyncEngine {

@@ -97,9 +97,9 @@ class SyncedRoutingFlowTest {
 
     /** A browser plan as the pass stores it: its via points, a line that is only those points, its own uuid. */
     private fun fromBrowser(name: String = "Alm", vararg via: GeoPoint = arrayOf(a, b, c), kind: TourKind = TourKind.PLANNED,
-                            uuid: String = "uuid-$name", activity: String? = "HIKE"): Tour {
-        val id = db.insertTour(kind, name, activity, 2, listOf(via.map { TrackPoint(it.lat, it.lon, 0.0) }),
-            via.map { GpxWaypoint(it.lat, it.lon, null) }, uuid = uuid)
+                            uuid: String = "uuid-$name", activity: String? = "HIKE", sac: Int = 2, pinned: Set<Int> = emptySet()): Tour {
+        val id = db.insertTour(kind, name, activity, sac, listOf(via.map { TrackPoint(it.lat, it.lon, 0.0) }),
+            via.map { GpxWaypoint(it.lat, it.lon, null) }, uuid = uuid, pinned = pinned)
         return db.getTour(id)!!
     }
 
@@ -134,15 +134,18 @@ class SyncedRoutingFlowTest {
         val engine = FakeRoutingEngine()
         var straight = false
         var createFails = false
+        /** What the scripted router says of every route (the kit engine gives 0 / 0). */
+        var ascent = 0.0
+        var descent = 0.0
         /** Runs inside every routing request, on the thread it runs on (a change made "meanwhile"). */
         var onRoute: () -> Unit = {}
         val router = object : RouterPort {
             override fun create(): RoutingEngine {
                 if (createFails) throw IllegalStateException("router could not start")
                 return if (straight) com.onpath.app.routing.StraightLineEngine() else object : RoutingEngine by engine {
-                    override fun route(waypoints: List<GeoPoint>, activity: Activity, sacLimit: Int) = engine.route(waypoints, activity, sacLimit).also { hit() }
+                    override fun route(waypoints: List<GeoPoint>, activity: Activity, sacLimit: Int) = engine.route(waypoints, activity, sacLimit).copy(ascentM = ascent, descentM = descent).also { hit() }
                     override fun route(waypoints: List<GeoPoint>, activity: Activity, sacLimit: Int, limits: com.onpath.app.routing.RouteLimits) =
-                        engine.route(waypoints, activity, sacLimit, limits).also { hit() }
+                        engine.route(waypoints, activity, sacLimit, limits).copy(ascentM = ascent, descentM = descent).also { hit() }
                     private fun hit() { log += "$where: router call"; onRoute() }
                 }
             }
@@ -152,7 +155,8 @@ class SyncedRoutingFlowTest {
             override fun partVersion(part: Rd5Parts.Part) = "v1"
         }
         val planGroups = ArrayList<String>()
-        val planRoute: PlanRouteSlice = PlanRouteSlice(MemoryPrefs(), router, object : TimesStore {
+        val prefs = MemoryPrefs()
+        val planRoute: PlanRouteSlice = PlanRouteSlice(prefs, router, object : TimesStore {
             override fun loadSegments(id: Long) = db.loadSegments(id)
             override fun planGroups(id: Long, distanceM: Double): DoubleArray? = null
             override fun putPlanGroups(id: Long, distanceM: Double, groups: DoubleArray) { planGroups += "$where: times $id ${distanceM.toLong()}" }
@@ -356,8 +360,12 @@ class SyncedRoutingFlowTest {
         assertEquals(1, app.said("store.replacePlanned").size)
     }
 
-    /** Kept verbatim (latent, reported in piece 15): with the straight-line stand-in (no routing data installed at all) a plan is skipped, not queued. */
-    @Test fun withTheStraightLineStandInAPlanIsSkippedAndNotQueuedForTheData() {
+    /**
+     * Kept verbatim: the straight-line stand-in engine only appears when the router could not START (the BRouter classes failed to
+     * load; with no routing data BRouter answers with straight legs and the plan IS queued – the test above). Then the plan is
+     * skipped, not queued: it keeps its points until it is opened.
+     */
+    @Test fun whenTheRouterCouldNotStartAndTheStandInIsUsedAPlanIsSkippedAndNotQueued() {
         val t = fromBrowser()
         val app = rig { straight = true }
         app.slice.routeSyncedPlans(listOf(t.id)); app.settle()
@@ -400,6 +408,44 @@ class SyncedRoutingFlowTest {
         assertEquals("only the second was written and backed up", listOf("main: backup ${t2.id}"), app.said("backup"))
         assertEquals(3, db.loadSegments(t1.id).single().size)
         assertTrue(db.loadSegments(t2.id).single().size > 3)
+    }
+
+    /**
+     * Every column of the write: a route whose ascent, descent, time and level all differ, stored with a non-default T level, a
+     * non-hike activity and pinned points, while the user's prefs hold ANOTHER activity and level.
+     */
+    @Test fun everyColumnOfTheWriteComesFromTheRoutedRouteOrTheStoredRowNeverFromThePrefs() {
+        val t = fromBrowser(activity = "MTB", sac = 4, pinned = setOf(1))
+        val app = rig { ascent = 321.0; descent = 123.0; prefs.activity = Activity.BIKE_TOURING; prefs.sac = 1 }
+        // the route list's cached time of this plan: gone after the write
+        app.planRoute.withModelTime(t)
+        assertTrue("cached before", app.planRoute.plannedTimes.containsKey(t.id))
+        app.slice.routeSyncedPlans(listOf(t.id)); app.settle()
+        val row = db.getTour(t.id)!!
+        val line = db.loadSegments(t.id).single()
+        val pts = line.map { GeoPoint(it.lat, it.lon) }
+        assertEquals("two legs, each 321 up / 123 down", 642.0, row.ascentM, 0.0); assertEquals(246.0, row.descentM, 0.0)
+        assertEquals("MTB", row.activity); assertEquals(4, row.sac); assertEquals(setOf(1), row.pinned)
+        assertEquals(t.waypoints, row.waypoints)
+        assertTrue(row.distanceM > 0); assertTrue(row.durationS > 0); assertNotEquals(row.distanceM, row.durationS, 0.0)
+        assertEquals(com.onpath.app.data.Geo.length(pts), row.distanceM, 1.0)
+        assertTrue("the routed line", line.size > 3 && pts.first() == a && pts.last() == c)
+        assertEquals(com.onpath.app.routing.RouteSummary.rating(Activity.MTB, row.distanceM, 642.0, pts).level.name, row.difficulty)
+        assertEquals("the router was asked for the stored activity and level", Activity.MTB, app.engine.calls.first().activity)
+        assertEquals(4, app.engine.calls.first().sac)
+        assertFalse("the cached list time of the old line is gone", app.planRoute.plannedTimes.containsKey(t.id))
+        assertEquals("the user's own prefs are not touched", Activity.BIKE_TOURING, app.prefs.activity)
+    }
+
+    /** The open plan was edited: its saved points are the old ones, its points the new – the link follows with the SAVED points. */
+    @Test fun theLinkFollowsTheNewNameWithTheSavedPointsNotTheEditedOnes() {
+        val t = fromBrowser()
+        val app = rig { open(t) }
+        app.plan.edit { add(GeoPoint(46.72, 11.08)) }
+        db.rename(t.id, "Alm neu")
+        app.slice.followSyncedSavedPlan(); app.settle()
+        assertEquals("main: saved Alm neu 1 3", app.said("saved").single())
+        assertEquals(3, app.plan.savedPoints!!.size); assertEquals(4, app.plan.points.size)
     }
 
     /** An edit of the open plan neither cancels nor changes the routing of a browser plan (it is guarded by the stored stops only). */
