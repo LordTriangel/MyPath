@@ -10,6 +10,17 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.flow.drop
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -215,7 +226,23 @@ class SuggestPanelCallbacks(
     val onTake: (Int) -> Unit = {},
     val onChange: () -> Unit = {},
     val onClose: () -> Unit = {},
+    /** A card's whole text opened (its index) or closed (-1): the panel's height changed (the host fits the loop again). */
+    val onOpen: (Int) -> Unit = {},
 )
+
+/**
+ * Which card of the row shows its whole text (owner 2026-11-19, V1 „die Karte wächst“): at most one. A tap on a card's
+ * text opens it (the text takes a tap only when something on the card is cut), „▴ weniger“ closes it, and the row
+ * settling on another card closes it (a swipe, a tap on the card beside).
+ */
+class OpenCard(start: Int = -1) {
+    var open by mutableIntStateOf(start)
+        private set
+
+    fun tapText(i: Int) { open = i }
+    fun less() { open = -1 }
+    fun settled(page: Int) { if (page != open) open = -1 }
+}
 
 /** How far the next card looks in at the right edge of the row (sketch 8). */
 private val PEEK = 16.dp
@@ -230,9 +257,11 @@ private val CARD_GAP = 8.dp
  * the failure stay a short panel with the wish in one line.
  */
 @Composable
-fun SuggestPanel(ui: SuggestPanelUi, cb: SuggestPanelCallbacks, modifier: Modifier = Modifier) {
+fun SuggestPanel(ui: SuggestPanelUi, cb: SuggestPanelCallbacks, modifier: Modifier = Modifier, startOpen: Int = -1) {
+    // a grown card never takes the loop's room: the panel stays under GROWN_MAX of the screen, the card's text scrolls inside
+    val most = (LocalConfiguration.current.screenHeightDp * GROWN_MAX).dp
     Surface(
-        modifier.fillMaxWidth().warmShadow(OnPathShadow.HIGH, SheetShape),
+        modifier.fillMaxWidth().heightIn(max = most).warmShadow(OnPathShadow.HIGH, SheetShape),
         shape = SheetShape, color = OnPathColors.Paper,
     ) {
         Column(Modifier.navigationBarsPadding().padding(top = 4.dp, bottom = 8.dp)) {
@@ -268,7 +297,7 @@ fun SuggestPanel(ui: SuggestPanelUi, cb: SuggestPanelCallbacks, modifier: Modifi
                 SuggestPhase.CARDS -> {
                     if (ui.notes.isNotEmpty()) Column(Modifier.padding(horizontal = ROW_PAD).padding(bottom = 6.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)) { ui.notes.forEach { Note(it) } }
-                    if (ui.cards.isNotEmpty()) CardRow(ui, cb)
+                    if (ui.cards.isNotEmpty()) CardRow(ui, cb, startOpen)
                 }
             }
         }
@@ -277,6 +306,9 @@ fun SuggestPanel(ui: SuggestPanelUi, cb: SuggestPanelCallbacks, modifier: Modifi
 
 /** The sheet's shape: rounded at the top, flush with the screen's bottom edge (sketch 8). */
 private val SheetShape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+
+/** The panel with a grown card stays under this part of the screen: at least 40 % above it keep the loop in sight. */
+internal const val GROWN_MAX = 0.6f
 
 @Composable
 private fun Summary(text: String) {
@@ -289,27 +321,35 @@ private fun Summary(text: String) {
  * scrolls to the front.
  */
 @Composable
-private fun CardRow(ui: SuggestPanelUi, cb: SuggestPanelCallbacks) {
+private fun ColumnScope.CardRow(ui: SuggestPanelUi, cb: SuggestPanelCallbacks, startOpen: Int) {
     val n = ui.cards.size
     val pager = rememberPagerState(initialPage = ui.chosen.coerceIn(0, n - 1)) { n }
     val chosenNow by rememberUpdatedState(ui.chosen)
     val choose by rememberUpdatedState(cb.onChoose)
-    // the row → the slice: the card it settled on is the chosen one (its loop on the map)
-    LaunchedEffect(pager, n) {
-        snapshotFlow { pager.settledPage }.collect { p -> if (p in 0 until n && p != chosenNow) choose(p) }
+    val opened by rememberUpdatedState(cb.onOpen)
+    val card = remember(ui.cards) { OpenCard(startOpen) }
+    // the row → the slice: the card it settled on is the chosen one (its loop on the map); another card closes the open text
+    LaunchedEffect(pager, n, card) {
+        snapshotFlow { pager.settledPage }.collect { p ->
+            card.settled(p)
+            if (p in 0 until n && p != chosenNow) choose(p)
+        }
     }
     // the slice → the row: a card chosen by a tap (or the first card after a run) comes to the front
     LaunchedEffect(ui.chosen) {
         if (ui.chosen in 0 until n && ui.chosen != pager.currentPage) pager.animateScrollToPage(ui.chosen)
     }
+    LaunchedEffect(card) { snapshotFlow { card.open }.drop(1).collect { opened(it) } }
     HorizontalPager(
-        pager, Modifier.fillMaxWidth(),
+        // under the panel's cap the row takes what is left (a grown card scrolls its text inside)
+        pager, Modifier.fillMaxWidth().weight(1f, fill = false),
         contentPadding = PaddingValues(start = ROW_PAD, end = PEEK + CARD_GAP),
         pageSpacing = CARD_GAP, verticalAlignment = Alignment.Top,
         beyondViewportPageCount = n, // every card composed: the strip keeps one height while swiping
     ) { i ->
         SuggestCardView(ui.cards[i], chosen = i == ui.chosen, taking = ui.taking && i == ui.chosen,
-            onClick = { cb.onChoose(i) }, onTake = { cb.onTake(i) })
+            onClick = { cb.onChoose(i) }, onTake = { cb.onTake(i) }, open = card.open == i,
+            onOpen = { card.tapText(i); if (i != ui.chosen) cb.onChoose(i) }, onLess = card::less)
     }
     if (n > 1) Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.Center) {
         repeat(n) { i ->
@@ -332,34 +372,104 @@ fun cardStats(c: SuggestCard): String =
 
 /**
  * One compact card (sketch 8): badge and „Übernehmen“ on top (filled on the chosen card, outlined on the others), the
- * title, km · h · ↑ (and the part on the signed loop), the text in one line, the pills.
+ * title, km · h · ↑ (and the part on the signed loop), the text in one line, the pills. Where something is cut, a tap on
+ * the text grows the card in place ([open], owner 2026-11-19 V1): title, line and text in full, „▴ weniger“ under them.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun SuggestCardView(c: SuggestCard, chosen: Boolean, taking: Boolean = false, onClick: () -> Unit = {}, onTake: () -> Unit = {}) {
+fun SuggestCardView(
+    c: SuggestCard, chosen: Boolean, taking: Boolean = false, onClick: () -> Unit = {}, onTake: () -> Unit = {},
+    open: Boolean = false, onOpen: () -> Unit = {}, onLess: () -> Unit = {},
+) {
     Surface(
         shape = RoundedCornerShape(14.dp), color = OnPathColors.CardPaper,
         border = if (chosen) BorderStroke(2.dp, OnPathColors.ActionEdit) else BorderStroke(1.dp, OnPathColors.Line),
         modifier = Modifier.fillMaxWidth().semantics { selected = chosen }.clickable(role = Role.Button, onClick = onClick),
     ) {
-        Column(Modifier.padding(start = 12.dp, end = 8.dp, top = 4.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(Modifier.padding(start = 12.dp, end = 8.dp, top = 4.dp, bottom = if (open) 8.dp else 10.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.weight(1f)) { Badge(c.badge) }
                 Spacer(Modifier.width(8.dp))
                 Take(chosen, taking, onTake)
             }
-            Text(c.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(end = 4.dp))
-            Text(buildAnnotatedString {
-                append(cardStats(c))
-                c.loopKm?.let { withStyle(SpanStyle(color = OnPathColors.InkMuted)) { append(" · " + str(Res.string.suggest_ui_on_loop, Format.number(it, 1))) } }
-            }, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(end = 4.dp))
-            if (c.line.isNotBlank()) Text(c.line, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(end = 4.dp))
-            if (c.pills.isNotEmpty()) FlowRow(Modifier.padding(top = 4.dp, end = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)) { c.pills.forEach { Pill(it) } }
+            // at a large font the grown card's pills scroll with the text: the room under the panel's cap goes to the text
+            val pillsInside = open && LocalDensity.current.fontScale >= LARGE_FONT
+            val pills: @Composable () -> Unit = {
+                if (c.pills.isNotEmpty()) FlowRow(Modifier.padding(top = 4.dp, end = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)) { c.pills.forEach { Pill(it) } }
+            }
+            if (open) GrownText(c, onLess, if (pillsInside) pills else null) else ShortText(c, onOpen)
+            if (!pillsInside) pills()
         }
     }
+}
+
+/** From this font scale on, a grown card's pills scroll with its text (under „▴ weniger“ they would take the text's room). */
+private const val LARGE_FONT = 1.15f
+
+/** km · h · ↑ and the part on the signed loop (muted). */
+@Composable
+private fun statsText(c: SuggestCard) = buildAnnotatedString {
+    append(cardStats(c))
+    c.loopKm?.let { withStyle(SpanStyle(color = OnPathColors.InkMuted)) { append(" · " + str(Res.string.suggest_ui_on_loop, Format.number(it, 1))) } }
+}
+
+/** The card as it sits in the row: one line each; where any of them is cut, the text takes a tap that grows the card. */
+@Composable
+private fun ShortText(c: SuggestCard, onOpen: () -> Unit) {
+    var nameCut by remember(c) { mutableStateOf(false) }
+    var statsCut by remember(c) { mutableStateOf(false) }
+    var lineCut by remember(c) { mutableStateOf(false) }
+    val more = str(Res.string.suggest_ui_more)
+    Text(c.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.padding(end = 4.dp), onTextLayout = { nameCut = it.hasVisualOverflow })
+    Text(statsText(c), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.padding(end = 4.dp), onTextLayout = { statsCut = it.hasVisualOverflow })
+    if (c.line.isNotBlank()) Text(c.line, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
+        onTextLayout = { lineCut = it.hasVisualOverflow },
+        modifier = Modifier.fillMaxWidth().padding(end = 4.dp)
+            .then(if (nameCut || statsCut || lineCut) Modifier.clickable(role = Role.Button, onClickLabel = more, onClick = onOpen) else Modifier))
+}
+
+/**
+ * The grown card's middle: title, line and the whole text in full. Where the panel's room ([GROWN_MAX]) is not enough
+ * (a large font) they scroll inside the card, a fade at the edge where more is; „▴ weniger“ under them – like
+ * „Übernehmen“ above – never scrolls away.
+ */
+@Composable
+private fun ColumnScope.GrownText(c: SuggestCard, onLess: () -> Unit, pills: (@Composable () -> Unit)?) {
+    val scroll = rememberScrollState()
+    Column(Modifier.weight(1f, fill = false).fadeAtEdges(scroll).verticalScroll(scroll).padding(end = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(c.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text(statsText(c), style = MaterialTheme.typography.bodyMedium)
+        if (c.line.isNotBlank()) Text(c.line, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+        pills?.invoke()
+    }
+    // „▴ weniger“ at the text's end, where the row's „…“ was; the pills keep the whole width below it (a large font: above it)
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        TextButton(colors = ActionButtons.editText(), onClick = onLess, modifier = Modifier.heightIn(min = 48.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp)) {
+            Icon(Icons.Filled.ExpandLess, contentDescription = null, modifier = Modifier.size(20.dp))
+            Text(str(Res.string.suggest_ui_less), maxLines = 1)
+        }
+    }
+}
+
+/** How deep the fade at a scrolling text's edge is: clearly more than a line. */
+private val FADE = 40.dp
+
+/** A fade to the card's paper at the lower edge while more text is below, at the upper edge while some is above. */
+private fun Modifier.fadeAtEdges(scroll: ScrollState) = drawWithContent {
+    drawContent()
+    val h = FADE.toPx().coerceAtMost(size.height / 2)
+    val paper = OnPathColors.CardPaper
+    if (scroll.value < scroll.maxValue)
+        drawRect(Brush.verticalGradient(listOf(paper.copy(alpha = 0f), paper), startY = size.height - h, endY = size.height),
+            topLeft = Offset(0f, size.height - h), size = Size(size.width, h))
+    if (scroll.value > 0)
+        drawRect(Brush.verticalGradient(listOf(paper, paper.copy(alpha = 0f)), startY = 0f, endY = h), size = Size(size.width, h))
 }
 
 /** „Übernehmen“ in the card's top row: filled on the chosen card, outlined on the others (sketch 8). */

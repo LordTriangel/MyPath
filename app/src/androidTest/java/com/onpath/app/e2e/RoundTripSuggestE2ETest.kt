@@ -15,6 +15,7 @@ import com.onpath.strings.common_ok
 import com.onpath.strings.wait_step_suggest_read
 import com.onpath.strings.wait_title_suggest
 import com.onpath.strings.suggest_ui_from_here
+import com.onpath.strings.suggest_ui_less
 import com.onpath.strings.suggest_ui_take
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -27,8 +28,9 @@ import java.util.concurrent.TimeUnit
 /**
  * Round-trip suggestions on the phone (docs/design/tour-suggestions.md §7 stage 4), on by default since 2026-11-18: a hold
  * on the empty map → „Rundtour von hier“ (right under „Hier starten“) → the wish sheet → OK → the cards in the plan
- * sheet's place, side by side in one row (sketch 8) → a swipe to the second card draws its loop (the one suggestion
- * line on the map) → „Übernehmen“.
+ * sheet's place, side by side in one row (sketch 8) → a tap on the first card's text grows it, „weniger“ folds it (V1,
+ * owner 2026-11-19) → a swipe to the second card folds it and draws its loop (the one suggestion line on the map) →
+ * „Übernehmen“.
  *
  * The method itself is not run here: the test map (Meran) has no suggest file, so the run is a stand-in answer
  * ([SuggestHost.suggest] replaced, everything else – camera, „Übernehmen“ through TrackToPlan – is the app's own).
@@ -63,11 +65,25 @@ class RoundTripSuggestE2ETest : E2EBase() {
         assertNotNull("the first card", findFresh(By.text("Runde am Hang"), 5_000))
         shot("suggest-cards")
 
+        // owner 2026-11-19 (V1): a tap on the card's cut text grows the card in place with the whole text, „▴ weniger“
+        // folds it back; a swipe to another card folds it too
+        val less = Txt.s(Res.string.suggest_ui_less)
+        assertTrue("folded at first", findFresh(By.text(less), 1_000) == null)
+        findFresh(By.text(LONG), 5_000)!!.click()
+        assertNotNull("the card grew: „weniger“ under its text", findFresh(By.text(less), 5_000))
+        shot("suggest-card-grown")
+        assertEquals("the map keeps the chosen loop", 0, read { it.suggest.chosen })
+        findFresh(By.text(less), 2_000)!!.click()
+        waitUntil("„weniger“ folded it back", 5_000) { findFresh(By.text(less), 500) == null }
+        findFresh(By.text(LONG), 5_000)!!.click()
+        assertNotNull("grown again", findFresh(By.text(less), 5_000))
+
         // the cards sit side by side in one row (sketch 8): a swipe to the left brings the second card to the front
         val first = findFresh(By.text("Runde am Hang"), 5_000)!!.visibleBounds
         val (sw, _) = mapSize()
         device.swipe((sw * 0.85f).toInt(), first.centerY(), (sw * 0.15f).toInt(), first.centerY(), 25)
         waitUntil("the second card chosen by the swipe", 5_000) { read { it.suggest.chosen } == 1 }
+        waitUntil("the swipe folded the grown card", 5_000) { findFresh(By.text(less), 500) == null }
         assertEquals("only the chosen loop is on the map", read { it.suggest.cards[1].points() }, read { it.suggest.loop })
         waitUntil("its line drawn by MapLibre", 10_000) { loopDrawn() }
         shot("suggest-loop")
@@ -144,11 +160,17 @@ class RoundTripSuggestE2ETest : E2EBase() {
         release.complete(Unit)
     }
 
+    private companion object {
+        /** The first card's text: longer than its one line on the card (the tap grows the card). */
+        const val LONG = "Am Waalweg entlang durch den Wald, über die Wiesen hinauf zum Hof mit Blick ins Tal, " +
+            "dann auf dem alten Steig zurück zum Start."
+    }
+
     /** Two loops of ~1.5 km around the held spot (closed: first = last). */
     private fun answer(lat: Double, lon: Double): SuggestCards {
         fun loop(dLon: Double) = doubleArrayOf(lon, lat, lon + dLon, lat + 0.004, lon + dLon * 2, lat, lon + dLon, lat - 0.004, lon, lat)
         val cards = listOf(
-            SuggestCard(1, "Runde am Hang", null, null, 4.2, 1.2, 180, "Waalweg und Wald", listOf(SuggestPill("grün", true, 2)), loop(0.005)),
+            SuggestCard(1, "Runde am Hang", null, null, 4.2, 1.2, 180, LONG, listOf(SuggestPill("grün", true, 2)), loop(0.005)),
             SuggestCard(2, "Runde im Tal", "Rundweg", 2.0, 3.6, 1.0, 60, "am Bach entlang", listOf(SuggestPill("lauter", false, 1)), loop(-0.005)),
         )
         return SuggestCards(cards, emptyList(), false, doubleArrayOf(2.0, 3.0), intArrayOf(0, 400), 2, emptyMap())

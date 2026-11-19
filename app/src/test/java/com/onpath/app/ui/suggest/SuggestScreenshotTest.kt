@@ -61,6 +61,38 @@ object SuggestShots {
             }
         }
     }
+
+    /** A signed loop with a long text (five sentences), in the language of the shot. */
+    private fun longCard(): SuggestCard {
+        val de = Locale.getDefault().language == "de"
+        val text = if (de) "Von Monreal hinauf zur Löwenburg und zur Philippsburg, dann über die Höhen mit weitem Blick ins Elztal. " +
+            "Lange Abschnitte auf schmalen Pfaden durch Buchenwald, dazwischen offene Wiesen mit Bänken. " +
+            "Am Elzbach entlang zurück, zweimal über kleine Holzbrücken. " +
+            "Wenig Straße, nur am Anfang und am Ende ein kurzes Stück durch den Ort. Einkehr in Monreal am Start und am Ziel."
+        else "From Monreal up to the Löwenburg and the Philippsburg, then over the heights with a wide view into the Elz valley. " +
+            "Long stretches on narrow paths through beech wood, open meadows with benches between them. " +
+            "Back along the Elzbach, twice over small wooden bridges. " +
+            "Little road, only a short bit through the village at the start and the end. Food in Monreal at the start and the end."
+        return SuggestCard(1, "Traumpfad Monrealer Ritterschlag", "Traumpfad", 14.1, 15.0, 4.6, 450, text,
+            listOf(SuggestPill(Txt.s(Res.string.suggest_pill_besonderes_good), true, 3), SuggestPill(Txt.s(Res.string.suggest_pill_ruhe_good), true, 2),
+                SuggestPill(Txt.s(Res.string.suggest_pill_longer, "20"), false, 2)), line)
+    }
+
+    /**
+     * The chosen card grown in place (owner 2026-11-19, V1): the whole text, „▴ weniger“; the next card looks in at the
+     * right; the panel stays under [GROWN_MAX] of the screen – a long text at a large font scrolls inside the card.
+     */
+    fun grown(paparazzi: Paparazzi) = paparazzi.snapshot {
+        OnPathTheme {
+            Box(Modifier.fillMaxSize()) {
+                MapPlaceholder(Modifier.fillMaxSize())
+                Box(Modifier.align(Alignment.BottomCenter)) {
+                    SuggestPanel(SuggestPanelUi(SuggestPhase.CARDS, "", listOf(longCard()) + cards().drop(1), chosen = 0),
+                        SuggestPanelCallbacks(), startOpen = 0)
+                }
+            }
+        }
+    }
 }
 
 open class SuggestScreenshotTest {
@@ -75,6 +107,8 @@ open class SuggestScreenshotTest {
     @Test fun cardsSecond() = SuggestShots.panel(paparazzi, SuggestPhase.CARDS, chosen = 1)
     @Test fun cardsMapUpdating() = SuggestShots.panel(paparazzi, SuggestPhase.CARDS, listOf(Txt.s(Res.string.suggest_note_map_updating)))
     @Test fun failed() = SuggestShots.panel(paparazzi, SuggestPhase.FAILED)
+    /** A tap on the card's text: it grows in place with the whole text, „▴ weniger“ (owner 2026-11-19, V1). */
+    @Test fun cardGrown() = SuggestShots.grown(paparazzi)
 }
 
 class SuggestGermanScreenshotTest : SuggestScreenshotTest() {
@@ -94,4 +128,6 @@ class SuggestLargeFontGermanTest {
 
     @Test fun wishSheet() = SuggestShots.dialog(paparazzi)
     @Test fun cards() = SuggestShots.panel(paparazzi, SuggestPhase.CARDS)
+    /** The grown card at a large font: under 60 % of the screen, the text scrolls inside, „Übernehmen“ and „▴ weniger“ stay. */
+    @Test fun cardGrown() = SuggestShots.grown(paparazzi)
 }

@@ -3,6 +3,10 @@ package com.onpath.app.ui.suggest
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.onpath.app.ui.AppViewModel
 
 /** After a card's tap: the panel's new height reaches the map's fit padding (MapScreen reports it after 120 ms). */
@@ -29,9 +33,11 @@ fun SuggestHostPanel(vm: AppViewModel) {
     val planned = vm.waypoints.isNotEmpty()
     LaunchedEffect(planned) { if (planned && !s.taking) s.close() }
     // the fit on a card's tap uses the sheet's height of that moment; once the panel has grown, fit again above it
-    LaunchedEffect(s.chosen, s.cards) { if (s.chosen >= 0) { kotlinx.coroutines.delay(REFIT_MS); s.refit() } }
+    // (also when a card's whole text opens or closes: the loop stays in sight above the grown card)
+    var open by remember { mutableIntStateOf(-1) }
+    LaunchedEffect(s.chosen, s.cards, open) { if (s.chosen >= 0) { kotlinx.coroutines.delay(REFIT_MS); s.refit() } }
     SuggestPanel(
         SuggestPanelUi(phase, s.wish?.let(::wishSummary).orEmpty(), s.cards, s.notes, s.chosen, s.taking),
-        SuggestPanelCallbacks(onChoose = s::choose, onTake = s::take, onChange = s::change, onClose = s::close),
+        SuggestPanelCallbacks(onChoose = s::choose, onTake = s::take, onChange = s::change, onClose = s::close, onOpen = { open = it }),
     )
 }
