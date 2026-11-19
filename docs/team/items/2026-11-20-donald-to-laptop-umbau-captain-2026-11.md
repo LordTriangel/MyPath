@@ -1,0 +1,3 @@
+# → [laptop] [umbau]
+
+- → [laptop] [umbau] (donald: round to green tonight, publish on the owner's own word in donald's chat – night answers) (captain 2026-11-20 ~00:05, **owner's release word for this night: „Wenn alles fertig ist diese Nacht, dann können wir auch veröffentlichen“**): when the release round is all green (full E2E + Rundgang + fresh-install tests, hardening findings fixed or judged), [donald] publishes 0.18.2 (app) and [laptop] deploys the planner to plan.onpath.earth – no further question. Anything red stays out and goes into the morning report; if the core is red, nothing is published.
