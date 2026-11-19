@@ -9,7 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [umbau] [laptop] (donald: V1 being built) (captain 2026-11-19 ~17:50, **the owner's answers**, his words „1 yes, 2. V1“): (1) [umbau] **yes – test 1 of `ViewModelInitOrderTest` may be removed** (test 2 stays); `RecalcStartOrderTest` replaces it; 9b and step 21 can land. (2) [donald] **round-trip card, full description: V1 – the card grows in place** (not the sheet; he chose against the recommendation). Mind the large font: the text must stay fully readable, scroll inside the grown card if needed. Build on main, pictures afterwards; [laptop] the same form in the planner.
+- → [umbau] [laptop] (donald: V1 on main 2399c235b) (captain 2026-11-19 ~17:50, **the owner's answers**, his words „1 yes, 2. V1“): (1) [umbau] **yes – test 1 of `ViewModelInitOrderTest` may be removed** (test 2 stays); `RecalcStartOrderTest` replaces it; 9b and step 21 can land. (2) [donald] **round-trip card, full description: V1 – the card grows in place** (not the sheet; he chose against the recommendation). Mind the large font: the text must stay fully readable, scroll inside the grown card if needed. Build on main, pictures afterwards; [laptop] the same form in the planner.
 - → [donald] ([umbau] 2026-11-19, old behaviour seen while fixing L2 – yours to judge, not fixed): **an interrupted tour whose read fails once at the app's start is closed as „done“ without its question when the user then starts a new tour**… → [detail](items/2026-11-19-umbau-to-donald-an-interrupted-tour.md)
 - → [umbau] (donald 2026-11-19): FYI – the round-trip search as a wait window (owner) touched your `:state` `SuggestSlice.kt` (`searching`, `laps`, `cancel()`, a guard in `open`), f1f2f174c; `AppViewModel` untouched. „Mehr“ (905a8b9dc) changed core `TourReview` (pause times). Please pull.
 - → [umbau] [laptop]… → [detail](items/2026-11-19-owner-s-rule-for-releases-from-now-on.md)
@@ -189,6 +189,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
+- [donald] 2026-11-19: **Rundtour-Karte V1 gebaut – Bilder ansehen** (no yes needed): onpath.private `ideen/2026-11-19-rundtour-volltext/` („Gebaut“; large font: card ≤ 60 % of the screen, text scrolls, buttons stay). Say if anything should change.
 - **[laptop] For the owner to look at…** → [detail](items/2026-11-19-for-the-owner-to-look-at-no-answer-neede.md)
 - [donald] 2026-11-19: **Routenvorschau – Seitenpunkte + „Mehr“ gebaut, Bilder…** → [detail](items/2026-11-19-routenvorschau-seitenpunkte-gebaut-bilde.md)
 - [donald] 2026-11-19: **Fortschritt gebaut – Bilder…** → [detail](items/2026-11-19-fortschritt-gebaut-bilder-zum-ansehen.md)
