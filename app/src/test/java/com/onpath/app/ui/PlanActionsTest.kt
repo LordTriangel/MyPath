@@ -2,7 +2,6 @@ package com.onpath.app.ui
 
 import com.onpath.app.testkit.sourceFile
 import com.onpath.app.domain.RouteRules
-import com.onpath.app.routing.GeoPoint
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -15,9 +14,6 @@ import java.io.File
  * and Share plan are in My routes → ⋮; Time details = a tap on the time.
  */
 class PlanActionsTest {
-    private val a = GeoPoint(46.680, 11.140)
-    private val b = GeoPoint(46.700, 11.120)
-
     private fun src(f: String) = sourceFile(f).readText()
     private val vm = src("ui/AppViewModel.kt")
     private val panel = src("ui/PlanPanel.kt")
@@ -27,9 +23,7 @@ class PlanActionsTest {
         assertTrue(src("ui/MapScreen.kt").contains("onNewPlan = if (vm.plan.points.isNotEmpty()) vm.planEdit::clearPlan else null"))
         assertTrue(src("ui/MapScreen.kt").contains("onClear = vm.planEdit::clearPlan")) // piece 21: the ✕ calls the edit slice's clearPlan itself, the forwarder `requestClear` is gone
         // the plan is kept under Zuletzt first, before it leaves the map: PlanEditFlowTest.clearKeepsThePlanForZuletztFirstThenEmptiesInOneUndoStepAndNeverAsks
-        // unsaved = a new plan of two points, or a saved one changed since (it decides what goes under Zuletzt)
-        assertTrue(RouteRules.isUnsaved(listOf(a, b), null))
-        assertFalse(RouteRules.isUnsaved(listOf(a, b), listOf(a, b)))
+        // what is unsaved (decides what goes under Zuletzt) = RouteRulesTest.isUnsaved…
         assertFalse(src("ui/RouteDialogs.kt").contains("DiscardPlanDialog"))
     }
 

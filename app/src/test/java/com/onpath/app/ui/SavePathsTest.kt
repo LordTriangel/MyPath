@@ -1,7 +1,6 @@
 package com.onpath.app.ui
 
 import com.onpath.app.data.TourKind
-import com.onpath.app.domain.Drafts
 import com.onpath.app.domain.OpenAsk
 import com.onpath.app.domain.PlanAutoSave
 import com.onpath.app.domain.RouteRules
@@ -14,41 +13,25 @@ import java.io.File
 
 /**
  * Every way a plan / tour is saved, overwritten, exported or imported, walked once (owner 2026-11-06: "einmal die Abläufe
- * durchsuchen"). The table and the proposals: docs/design/save-paths.md. These tests pin TODAY's behaviour of the paths
- * that had no test. The end of a tour asks nothing about the plan and clears it the "Neu planen" way (owner 2026-11-07) –
- * [theEndOfATourGoesBackToTheStartTheNeuPlanenWay].
+ * durchsuchen"). The table and the proposals: docs/design/save-paths.md. The behaviour of the ways is flow tests of the real
+ * slices since the test clean-up G04 (2026-11-19); what stays here is what a flow cannot see – the thread a call runs on, the
+ * app's adapters and screens, the backup / sync / export files:
+ *  - the end of a tour asks nothing about the plan and clears it the "Neu planen" way (owner 2026-11-07), was
+ *    theEndOfATourGoesBackToTheStartTheNeuPlanenWay = TourEndFlowTest.aSavedTourIsHandledInTheOrderOfTheRulesBehindTheIoHop… (the host log
+ *    holds clearPlan, no ask), .aDeletedTourGoesToTheBin…, SaveFlowTest.losGehtsSavesAPlanNeverSavedWithoutAskingAndNotTwice (SAVE_NEW),
+ *    SaveFlowTest.aReplacedUnsavedPlanIsKeptUnderZuletztAtOnceAndASavedOneAsItIsIsNot (Drafts), the adapter line TourWiringTest;
+ *  - the demo ride ends with the tour (Pixel review 2026-11-06) = TourEndFlowTest (host log: demoEndedWithTour after clearFollow) + the
+ *    adapter line in TourWiringTest;
+ *  - replacing a plan keeps it under Zuletzt (owner 2026-11-06), was replacingAPlanKeepsItUnderZuletzt = RoutesFlowTest
+ *    .aPlannedRouteBecomesThePlanAfterTheOldOneWentUnderZuletzt (a route opened), the track-to-plan flows, PlanLinkFlowTest / RoutesGoWaitTest
+ *    (a plan link), RoutesFlowTest "during the tour" (follow a track);
+ *  - a track made a plan is one Undo step, was planFromATrackIsOneUndoStep = the same RoutesFlowTest cases (host.change log "change N points").
  */
 class SavePathsTest {
     private val vm = File("src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
-    private fun body(start: String) = vm.substringAfter(start).substringBefore("\n    }\n")
-    /** The tour's end moved to the slice (piece 17); its order is proven by TourEndFlowTest. */
-    private val end = com.onpath.app.testkit.sourceFile("ui/tour/TourEndSlice.kt").readText()
-    private fun endBody(start: String) = end.substringAfter(start).substringBefore("\n    }\n")
 
     private val a = GeoPoint(51.17, 6.93)
     private val b = GeoPoint(51.20, 6.77)
-
-    /**
-     * Way 1 (owner 2026-11-06, the tour and the plan are two things; owner 2026-11-07 "Tour beenden" → back to the start
-     * as after "✕ Neu planen"): a plan never saved is saved at "Los geht's"; ending, saving or deleting the tour asks
-     * nothing about the plan and then clears it the ONE clear way – [AppViewModel.clearPlan]: kept under Zuletzt when
-     * changed on the way, one Undo brings it back (E2E: CoreFieldE2ETest.endTourSavesTheTourKeepsThePlanAndClearsTheMap,
-     * .arrivalEndTourBringsTheStartScreen).
-     */
-    @Test fun theEndOfATourGoesBackToTheStartTheNeuPlanenWay() {
-        // after the tour bookkeeping (saved box / bin, the list refreshed, Plan entered) – never before the tour is stored:
-        // TourEndFlowTest.aSavedTourIsHandledInTheOrderOfTheRules… (the host log: refreshTours … enterMode(PLAN), clearPlan, …)
-        val after = endBody("private fun afterTourEnded() {")
-        assertTrue("no parallel path: the Neu planen clear (the host's clearPlan is the view model's one clearPlan, pinned below)", after.contains("host.clearPlan()"))
-        assertFalse("nothing asked about the plan", after.contains("requestSave") || after.contains("saveAsk"))
-        assertTrue(vm.contains("override fun clearPlan() = this@AppViewModel.planEdit.clearPlan()"))
-        // clearPlan keeps an unsaved plan under Zuletzt first: PlanEditFlowTest.clearKeepsThePlanForZuletztFirstThenEmptiesInOneUndoStepAndNeverAsks
-        assertFalse(endBody("fun endTourAndDelete() {").contains("requestSave"))
-        assertEquals(PlanAutoSave.AtStart.SAVE_NEW, PlanAutoSave.atStart(points = 2, unsaved = true, changesASavedPlan = false))
-        // the plan saved at Los geht's and unchanged is no draft (it is in My routes); changed on the way → Zuletzt
-        assertFalse(Drafts.keeps(points = 2, unsaved = false)); assertTrue(Drafts.keeps(points = 2, unsaved = true))
-        // a mode switch closes Save's dialog: TourSessionFlowTest.enteringAModeClosesSavesDialogAndTheHintsBeforeAnythingElse (piece 19; the old source line is gone)
-    }
 
     /**
      * Tester review 2026-11-07: the draft is written BEFORE the plan leaves the map – not after a wait of up to 5 s for a
@@ -63,48 +46,12 @@ class SavePathsTest {
         assertFalse("handed over at once, no background work before it", keep.contains("launch"))
     }
 
-    /** Pixel review 2026-11-06: the demo ride ends with its tour – "DEMO" / "Sim" do not stay (DemoLocationTest). */
-    @Test fun theDemoRideEndsWithTheTour() {
-        // the slice calls the host once (TourEndFlowTest: demoEndedWithTour is in the host log, after clearFollow, before enterMode(PLAN));
-        // the view model's adapter is the old line, the `if` inside
-        assertTrue(vm.contains("override fun demoEndedWithTour() { if (com.onpath.app.recording.DemoLocation.endWithTour()) demo.navSimLine = null }"))
-    }
-
     /** Way 2: the ride summary has no plan part – nor does any end sheet now. */
     @Test fun theRideSummaryOffersNoPlanSave() {
         val screen = File("src/main/java/com/onpath/app/ui/MapScreen.kt").readText()
         val rides = screen.substringAfter("is EndAsk.Rides -> RideSummaryDialog(").substringBefore("null -> {}")
         assertFalse(rides, rides.contains("routeLabel") || rides.contains("saveRouteAtEnd"))
-        // rides found → the summary (and nothing about the plan): TourEndPathsTest.endTourAndArrivalRunTheRideCheck
-    }
-
-    /**
-     * Ways 6 + 8 and following a track during a tour (owner 2026-11-06, "Zuletzt"): nothing asks to save any more – the
-     * plan they replace goes under My routes → Zuletzt ([AppViewModel.keepAsDraft]) when it is not saved as it is.
-     */
-    @Test fun replacingAPlanKeepsItUnderZuletzt() {
-        assertTrue(Drafts.keeps(points = 2, unsaved = true))
-        assertFalse("a saved plan as it is stays in My routes", Drafts.keeps(points = 2, unsaved = false))
-        assertFalse("one point is no plan worth keeping", Drafts.keeps(points = 1, unsaved = true))
-        assertTrue(vm.contains("fun followShownDuringTour() = routesFlow.unlessUnsaved("))
-        assertFalse(vm.contains("ReplaceAsk") || vm.contains("replaceUnsavedAsk") || vm.contains("replaceAsk"))
-        // (clearPlan keeps the plan first: PlanEditFlowTest; the draft call itself is the slice host line pinned in PlanEditAdaptersTest)
-        // every way a plan is replaced: a route opened, a track made a plan (a plan GPX, a fitted track) – RoutesSlice (piece 13; the
-        // flows RoutesFlowTest show the draft is there when the plan changes) – and a plan link (RoutesGoSlice, piece 14; RoutesFlowTest.aPlanFromALinkBecomes…)
-        val routesSlice = com.onpath.app.testkit.sourceFile("ui/routes/RoutesSlice.kt").readText()
-        assertEquals(3, routesSlice.split("keepAsDraft(\"replaced by").size - 1)
-        val goSlice = com.onpath.app.testkit.sourceFile("ui/routes/RoutesGoSlice.kt").readText()
-        assertEquals("the plan link keeps the plan it replaces", 1, goSlice.split("keepAsDraft(\"replaced by a plan link\")").size - 1)
-        assertEquals("…and no copy of that rule is left in the view model", 0, vm.split("keepAsDraft(\"replaced by").size - 1)
-    }
-
-    /** Making a plan of a track still replaces the plan in one Undo step (after the question above). */
-    @Test fun planFromATrackIsOneUndoStep() {
-        // a plan GPX's own points, else TrackToPlan in planFromLine (shared with the round-trip suggestions' „Übernehmen“)
-        // (moved to RoutesSlice, piece 13: one `host.change` = the view model's `change`, one Undo step – RoutesWiringTest pins the host)
-        val slice = com.onpath.app.testkit.sourceFile("ui/routes/RoutesSlice.kt").readText()
-        assertTrue(slice.substringAfter("private fun planFromShownNow() {").substringBefore("\n    }\n").contains("host.change { clear(); addAll(pts) }"))
-        assertTrue(slice.substringAfter("fun planFromLine(").substringBefore("\n    }\n").contains("host.change { clear(); addAll(r.points) }"))
+        // rides found → the summary (and nothing about the plan): TourEndFlowTest.endTourWithARideShowsTheSummaryAfterTheCheckOnIo / theArrivalBoxsEndTourOfATourWithARideShowsTheSummaryAndStopsNothing
     }
 
     /**
@@ -156,5 +103,25 @@ class SavePathsTest {
         assertTrue(exp.contains("if (t.kind == TourKind.PLANNED) com.onpath.app.gpx.PlanGpx.export("))
         assertTrue(exp.contains("PlanGpx.withPins(t.waypoints, t.pinned)"))
         assertTrue(exp.contains("else com.onpath.app.gpx.GpxFile(GpxWriter.fileName("))
+    }
+
+    /**
+     * Owner 2026-11-07: a loaded saved plan changed and started with "Los geht's" updates the ORIGINAL route (like
+     * ☰ Plan speichern) – no "Name (2)" copies; the version before goes under Zuletzt.
+     * (The one-line rule of the deleted PlanAutoSaveTest; owner 2026-11-06: the tour and the plan are two things, like Komoot / Strava –
+     * the behaviour is SaveFlowTest.losGehtsOnASavedPlanChangedSince… on the real slice.)
+     */
+    @Test fun aSavedPlanChangedSinceUpdatesTheOriginal() =
+        assertEquals(PlanAutoSave.AtStart.SAVE_OVERWRITE, PlanAutoSave.atStart(points = 3, unsaved = true, changesASavedPlan = true))
+
+    /**
+     * Ways 6 + 8 and following a track during a tour (owner 2026-11-06, "Zuletzt"): nothing asks to save any more – the
+     * plan they replace goes under My routes → Zuletzt ([AppViewModel.keepAsDraft]) when it is not saved as it is. The behaviour is
+     * RoutesFlowTest / PlanLinkFlowTest; what no flow can see stays here: no question is left in the view model, and no copy of the
+     * rule (every `keepAsDraft("replaced by …")` is a slice's).
+     */
+    @Test fun replacingAPlanAsksNothingAndTheViewModelHoldsNoCopyOfTheRule() {
+        assertFalse(vm.contains("ReplaceAsk") || vm.contains("replaceUnsavedAsk") || vm.contains("replaceAsk"))
+        assertEquals("…and no copy of that rule is left in the view model", 0, vm.split("keepAsDraft(\"replaced by").size - 1)
     }
 }

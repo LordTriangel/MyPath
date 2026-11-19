@@ -45,7 +45,7 @@ import org.junit.Test
  * `SaveSlice` and these tests fail.
  *
  * Not here: a multi-day tour's overwrite (`MultiDaySlice.overwriteWhole` is its own code, only the hand-over is asserted),
- * the view model's wiring (SavePathsTest / PlanAutoSaveTest keep the pins on it).
+ * the view model's wiring (SavePathsTest keeps the pins on it; the rule line of "Los geht's" is SavePathsTest.aSavedPlanChangedSinceUpdatesTheOriginal).
  */
 class SaveFlowTest {
     @get:Rule val composeState = OwnComposeSnapshot()
@@ -617,6 +617,13 @@ class SaveFlowTest {
 
     // ---------------------------------------------------------------- "Los geht's"
 
+    /**
+     * From PlanAutoSaveTest (class doc, deleted in the test clean-up G04, 2026-11-19), word for word:
+     * Owner 2026-11-06: the tour and the plan are two things (like Komoot / Strava). "Los geht's" saves a plan never saved;
+     * the end of a tour neither asks about the plan nor takes it off the map. What "Los geht's" does with each kind of plan
+     * (never saved, from Zuletzt, saved and unchanged, no plan) is a behaviour test on the real `SaveSlice.atTourStart` now
+     * (`:state` `SaveFlowTest.losGehts…`); here stay the owner's 2026-11-07 decision on the rule and the view model's call.
+     */
     @Test fun losGehtsSavesAPlanNeverSavedWithoutAskingAndNotTwice() {
         val app = App()
         app.draw(a, b); app.routeNow = route(a, b)
@@ -642,6 +649,11 @@ class SaveFlowTest {
         assertEquals(1, planned().size)
     }
 
+    /**
+     * From PlanAutoSaveTest.aSavedPlanChangedSinceUpdatesTheOriginal (deleted in the test clean-up G04, 2026-11-19; the rule line stays in TourEndPathsTest):
+     * Owner 2026-11-07: a loaded saved plan changed and started with "Los geht's" updates the ORIGINAL route (like
+     * ☰ Plan speichern) – no "Name (2)" copies; the version before goes under Zuletzt.
+     */
     @Test fun losGehtsOnASavedPlanChangedSinceUpdatesTheOriginalAndKeepsTheVersionBefore() {
         val maker = App()
         maker.draw(a, b); maker.saveAs(proposalName)

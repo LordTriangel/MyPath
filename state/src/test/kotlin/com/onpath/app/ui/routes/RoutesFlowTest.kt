@@ -157,6 +157,11 @@ class RoutesFlowTest : RoutesFlowBase() {
 
     // ---------------------------------------------------------------- open a planned route
 
+    /**
+     * From SavePathsTest.replacingAPlanKeepsItUnderZuletzt (deleted in the test clean-up G04, 2026-11-19), word for word:
+     * Ways 6 + 8 and following a track during a tour (owner 2026-11-06, "Zuletzt"): nothing asks to save any more – the
+     * plan they replace goes under My routes → Zuletzt ([AppViewModel.keepAsDraft]) when it is not saved as it is.
+     */
     @Test fun aPlannedRouteBecomesThePlanAfterTheOldOneWentUnderZuletzt() {
         val app = App()
         app.draw(c, b)                                   // an unsaved plan on the map
@@ -1126,5 +1131,16 @@ class RoutesFlowTest : RoutesFlowBase() {
         val back = (com.onpath.app.routing.PlanLinks.fromText(link) as com.onpath.app.routing.PlanLinks.Found.Plan).plan
         assertEquals(Activity.HIKE, back.activity); assertEquals(3, back.sac); assertEquals(setOf(2), back.pinned)
         assertEquals(mapOf(0 to "Start", 1 to "Mitte"), back.names); assertEquals(listOf(a, b, c), back.points)
+    }
+
+    // ---- test clean-up G04 (2026-11-19): SavePathsTest.planFromATrackIsOneUndoStep as a flow
+
+    /** Making a plan of a track replaces the plan in ONE edit of the view model (`host.change` = one Undo step), also through the router path. */
+    @Test fun aTrackBecomesThePlanInOneEditThatIsOneUndoStep() {
+        val app = App()
+        app.draw(c, b)
+        app.log.clear()
+        app.go.planFromTour(recorded("Ride")); app.settle()
+        assertEquals("one change of the plan = one Undo step: ${app.log}", 1, app.log.count { it.contains(": change ") })
     }
 }

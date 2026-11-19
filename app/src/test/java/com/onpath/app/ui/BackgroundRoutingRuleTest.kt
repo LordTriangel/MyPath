@@ -52,5 +52,5 @@ class BackgroundRoutingRuleTest {
         assertTrue(over.indexOf("SaveRule.keepsOtherEdit") in 0 until over.indexOf("store.replacePlanned("))
     }
 
-    // Close plan without a tour takes every plan line along: ClearPlanDuringTourTest (ClearRule)
+    // Close plan without a tour takes every plan line along: PlanGuidanceTest.withoutATourTheFollowedLineGoesWithThePlan (ClearRule)
 }

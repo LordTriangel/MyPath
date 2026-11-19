@@ -223,6 +223,16 @@ class TourEndFlowTest {
     // ======================================================================================================================
 
     /** The order of everything after the service's end (rule 8) and what it sees (rule 9), for a saved tour with two split parts. */
+    /**
+     * From SavePathsTest.theEndOfATourGoesBackToTheStartTheNeuPlanenWay (deleted in the test clean-up G04, 2026-11-19), word for word:
+     * Way 1 (owner 2026-11-06, the tour and the plan are two things; owner 2026-11-07 "Tour beenden" → back to the start
+     * as after "✕ Neu planen"): a plan never saved is saved at "Los geht's"; ending, saving or deleting the tour asks
+     * nothing about the plan and then clears it the ONE clear way – [AppViewModel.clearPlan]: kept under Zuletzt when
+     * changed on the way, one Undo brings it back (E2E: CoreFieldE2ETest.endTourSavesTheTourKeepsThePlanAndClearsTheMap,
+     * .arrivalEndTourBringsTheStartScreen).
+     * From the same class: "Pixel review 2026-11-06: the demo ride ends with its tour – "DEMO" / "Sim" do not stay (DemoLocationTest)." (theDemoRideEndsWithTheTour: demoEndedWithTour is in the host log, after clearFollow, before enterMode(PLAN)).
+     * And the plan file comment: "the end of a tour asks nothing about the plan and clears it the "Neu planen" way (owner 2026-11-07): E2E CoreFieldE2ETest.endTourSavesTheTourKeepsThePlanAndClearsTheMap / endTourDeleteBinsTheTourAndKeepsThePlan / arrivalEndTourBringsTheStartScreen".
+     */
     @Test fun aSavedTourIsHandledInTheOrderOfTheRulesBehindTheIoHopWithNoTourRecording() {
         ctl.arrivalAsk = true; ctl.noteNewPlan(undo = true)
         touring(hike)
