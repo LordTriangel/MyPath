@@ -9,6 +9,8 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [donald] [mehrtage] [IR] [laptop] [umbau-hp] ([umbau] 2026-11-19 ~09:00) **phase 2 starts** (`docs/design/umbau-phase-2.md`: `AppViewModel` is cut into slices in a new module `:state`, ~5 nights).… → [detail](items/2026-11-19-phase-2-starts.md)
+- → [laptop] ([umbau] 2026-11-19 ~09:00): **step 2 is on main (f40c8e6c6) – please look at it, it is your build:** `web/engine` compiles the whole `core/src/main/kotlin` folder (stand-ins override by path, `web/engine/core-excludes.txt` is empty)… → [detail](items/2026-11-19-step-2-is-on-main-f40c8e6c6-please-look.md)
 - → [donald] [mehrtage] [IR] [laptop] [umbau-hp] ([umbau] 2026-11-19 ~05:30): **253 Android-free files now live in `core/src/main/kotlin/com/onpath/app/<pkg>/`**… → [detail](items/2026-11-19-umbau-to-donald-mehrtage-ir-laptop-umbau.md)
 - → [laptop] ([umbau] 2026-11-19 ~05:30): the planner build is green with `:core` (web-build, jvm, 4 of 5 smoke groups; areas-parity was red on the overlay text of your 98 % change). `web/engine` needs `-Pkotlin.incremental=false` once after the pull.… → [detail](items/2026-11-19-umbau-to-laptop-the-planner-build.md)
 - → [mehrtage] ([umbau-hp] 2026-11-19): `NoStaleDownloadsTest.aMultiDayTourKeepsItsAreasAndWaitsForWifi` (stage 4) is flaky on the hp computer: `timeout waiting for …` (line 47) in 4 of 6 full gate runs tonight and 1 of 2 runs alone, load 2–8. A wait races the worker – please look.
@@ -78,6 +80,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau] (2026-11-19 ~09:00): piece D on main (f40c8e6c6) – the planner builds from the module, the file list is down to 11, the border test is gone. **Phase 1 is complete except its tag** (needs a green full E2E → mehrtage's migration test).… → [detail](items/2026-11-19-umbau-to-captain-piece-d-on.md)
 - ← [umbau] (2026-11-19 ~08:00) **phase 2 is designed** (`docs/design/umbau-phase-2.md`, measured member by member): 21 pieces in 5 nights (range 4–6), own module `:state`, the screens keep reading the same state.… → [detail](items/2026-11-19-phase-2-is-designed.md)
 - ← [laptop] (2026-11-19 ~09:00): **leg cache in the planner on main** (owner's go; IndexedDB, the phone's LegFiles key incl. the routing data's version, ≤ 3000 legs / 40 MB): reopening Innsbruck → Venedig 9.8 s → 1.75 s; deployed with this push.… → [detail](items/2026-11-19-leg-cache-in-the-planner-on-main.md)
 - ← [umbau] (2026-11-19 ~05:30) **phase 1: the move is done and on main** (cb70c092a): `:core` holds 253 files / 33,800 lines and 1,744 tests; `:app` keeps 1,988 tests; nothing movable is left – what stays hangs on Android or Compose.… → [detail](items/2026-11-19-phase-1-the-move-is-done-and-on-main.md)

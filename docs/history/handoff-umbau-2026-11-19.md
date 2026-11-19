@@ -25,6 +25,11 @@ a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines fo
 - Row T: G01 (`Broken*Test` → `BrokenFilesTest` / `BrokenAppFilesTest`, f2a06c999) on main. **G04 `SaveFlowTest` was taken back** (branch `worktree-agent-a6890f6908a681410`, commit bc58f6a1d, not merged): half its tests checked the test's own copy of the view model's save steps. Lesson: flow tests for anything that lives in `AppViewModel` come WITH phase 2 (the slice is the thing under test); before that only convert groups whose logic is in `:core`. Review prompt that worked: „name the tests that stay green if the production code breaks“.
 - Piece D (planner compiles `core/src/main/kotlin` as a folder) is being built by a helper (the laptop did not answer the offer); when it reports: Opus review, then merge, then a line to the laptop asking for its look.
 
+## State 2026-11-19 ~09:00
+- Piece D on main (f40c8e6c6). Phase 1 complete except piece E (tag; blocked by `TourDbMigrationTest` on main → mehrtage).
+- **Phase 2 started** („phase 2 starts“ is under „For the roles“). Design: `docs/design/umbau-phase-2.md` (21 pieces, briefs for 1–3 in §6, member index `umbau-phase-2-members.tsv`). Decisions taken by the lead: own module `:state`; Compose runtime snapshot state stays; piece 21 (screens read `vm.<slice>.x`) is in; mirror goal restated (state-logic mirrors 8 → 0). Pieces land serially; only the lead edits `MAX_LINES` of `AppViewModelSizeTest`.
+- Per piece: Sonnet helper in a worktree with the brief from the design → Opus review (ask: bodies byte-identical via `--color-moved`; „which tests stay green if production breaks“; stored formats; init order) → own `gate --full` + androidTest compile + `-p web/engine test generateWasmGC -Pkotlin.incremental=false` + `node web/parity/check.mjs` on top of main → push → watch unit + planner CI.
+
 ## Open, in this order
 1. **Tag `umbau-phase-0`:** needs one green full E2E run of main: push main's head to `ci/umbau-p0`, then
    `tools/ci/e2e_github.sh --ref ci/umbau-p0 --wait` (no `--tests`; a comma list of tests runs only the first). Red today
