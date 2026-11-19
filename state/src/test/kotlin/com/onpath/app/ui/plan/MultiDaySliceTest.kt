@@ -88,12 +88,9 @@ import kotlin.coroutines.CoroutineContext
  *
  * What these flows do NOT prove: the view model's own members behind the host ([MultiDayWiringTest] pins the adapters), the
  * sheets' Compose code. Not provable (named, not claimed): `plan.pin(part.pinned)` of "Tag n fahren" (the day's pins are a subset of
- * the plan's own, taken from it by `pinnedIndices()`: pinning them again changes nothing); the order of `plan.pin` and the plan's one
- * edit in "‹ Alle Tage" (pins are by value and the edit keeps every point of the whole tour, so its own pruning finds all of them
- * planned); the order of the two preference writes after a load (nothing reads between them); the order of the start's hook / cells /
+ * the plan's own, taken from it by `pinnedIndices()`: pinning them again changes nothing); the order of the two preference writes after a load (nothing reads between them); the order of the start's hook / cells /
  * collector lines (nothing runs between them); the order `dayMapsMissing = null` before `dayMapsCells = null` in the two day actions
- * (two assignments of the same moment); and that "Tag n fahren" resets the day check before its launch: the only state it could still
- * hold there was reset by "‹ Alle Tage" (the one way back).
+ * (two assignments of the same moment).
  */
 class MultiDaySliceTest {
     @get:Rule val problems = ProblemsRule()
@@ -218,6 +215,8 @@ class MultiDaySliceTest {
         val endNames = HashMap<GeoPoint, String>()
         val fitted = ArrayList<List<GeoPoint>>()
         val loads = ArrayList<String>()
+        /** What the plan held when the edit asked for the route run (the real recalc reads the pins at once). */
+        val atRecalc = ArrayList<String>()
         /** The store's failures, by call name: the NEXT call of that name throws once. */
         val failOn = HashSet<String>()
         var replaced = 0
@@ -279,7 +278,7 @@ class MultiDaySliceTest {
             override fun loadMapsForNewPoints(before: List<GeoPoint>) = Unit
             override fun keepAsDraft(why: String) = save.keepAsDraft(why)
             override fun routeLine(): List<GeoPoint>? = routeNow?.points
-            override fun recalc() = Unit
+            override fun recalc() { atRecalc += "points=${ids(plan.points)} pinned=${plan.pinned.mapNotNull { letters[it] }.sorted().joinToString("")}" }
             override fun restoreActivity(c: PlanStatus.Cause.ActivityChange) = Unit
             override fun planChanged() = Unit
             override fun myPosition(): GeoPoint? = null
@@ -612,7 +611,7 @@ class MultiDaySliceTest {
         val app = App(); app.openOverview()
         // the overview: an edit of the whole tour is no day's edit
         ui { app.planEdit.change { add(1, X) } }; app.settle()
-        assertNull(app.multiDay.flow.day)
+        assertEquals("the whole tour is edited, no day exists to write into", "AXBCDE", app.planIds())
         // a day: a change that leaves fewer than two points is not written back
         val day = App(); day.rideDay2()
         ui { day.planEdit.change { removeAt(1) } }; day.settle()
@@ -918,8 +917,10 @@ class MultiDaySliceTest {
         app.settle()
         ui { app.planEdit.change { add(1, X) } }; app.settle()
         assertEquals("B is not in the day and nothing can bring it back: its pin is forgotten by the edit", setOf(D), app.plan.pinned)
+        app.atRecalc.clear()
         ui { app.multiDay.allDays() }
         assertEquals("the whole tour's pins are all back", setOf(B, D), app.plan.pinned)
+        assertEquals("the route run of the whole tour already sees both pins", listOf("points=ABCXDE pinned=BD"), app.atRecalc)
     }
 
     @Test fun allDaysForgetsTheQuestionAboutTheDaysMaps() {
@@ -930,6 +931,21 @@ class MultiDaySliceTest {
         assertNull("the whole tour is the plan: no question about a day's maps", app.multiDay.dayMapsMissing)
         app.multiDay.loadDayMaps()
         assertTrue("and nothing left to load", app.loads.isEmpty())
+    }
+
+    @Test fun pickingADayAgainAfterTheTourWasOpenedAgainForgetsTheEarlierDaysMapQuestion() {
+        val app = App(); app.dayMissing = cellsDay; app.openOverview()
+        ui { app.multiDay.tapDay(2) }; ui { app.multiDay.rideDays() }; app.settle()
+        assertEquals("day 2's maps are missing", 10_000_000L, app.multiDay.dayMapsMissing)
+        // the tour is opened again from My routes (not "Alle Tage"): the overview, the question still stands
+        app.openOverview()
+        assertFalse(app.multiDay.flow.following)
+        app.dayMissing = emptyList()
+        ui { app.multiDay.tapDay(1) }; ui { app.multiDay.rideDays() }
+        app.settle()
+        assertNull("day 1's maps are all there: no question", app.multiDay.dayMapsMissing)
+        app.multiDay.loadDayMaps()
+        assertTrue("nothing of day 2 is loaded for day 1", app.loads.isEmpty())
     }
 
     @Test fun allDaysDoesNothingDuringATourOrWithoutAFollowedDay() {
