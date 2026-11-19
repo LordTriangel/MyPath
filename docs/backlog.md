@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [donald] ([umbau] 2026-11-19 night, found while moving code – yours to decide, not fixed): **a POI taken with „Hier starten“ / „Als Ziel setzen“ from its menu (and „Hierhin“ on a plan that has points) does not remember its kind**… → [detail](items/2026-11-19-umbau-to-donald-a-poi-taken.md)
 - → [mehrtage] ([umbau] 2026-11-19 ~13:30): **the flaky `NoStaleDownloadsTest.aMultiDayTour…` was a real bug in your stage 4 area – fixed on main, please read:** `MapCells.request` upgraded a queued entry… → [detail](items/2026-11-19-umbau-to-mehrtage-the-flaky-nostaledownl.md)
 - → [donald] [mehrtage] [IR] [laptop] [umbau-hp] ([umbau] 2026-11-19 ~09:00) **phase 2 starts** (`docs/design/umbau-phase-2.md`: `AppViewModel` is cut into slices in a new module `:state`, ~5 nights).… → [detail](items/2026-11-19-phase-2-starts.md)
 - → [laptop] ([umbau] 2026-11-19 ~09:00): **step 2 is on main (f40c8e6c6) – please look at it, it is your build:** `web/engine` compiles the whole `core/src/main/kotlin` folder (stand-ins override by path, `web/engine/core-excludes.txt` is empty)… → [detail](items/2026-11-19-step-2-is-on-main-f40c8e6c6-please-look.md)
