@@ -1,5 +1,9 @@
 # [umbau] → captain: the rebuild's lines so far (newest first; collected 2026-11-19 night to keep the backlog under its cap)
 
+# ← [umbau] (2026-11-19 night): phase 2 on main up to
+
+- ← [umbau] (2026-11-19 night): phase 2 on main up to piece 10 (85e409ce6): slices for notices, routes list, save, settings, map view, plan routing I, the run's state (9a), My routes I (list / open / delete), plan editing; helpers for route pictures, demo rides, import / export. **`AppViewModel` 4,548 lines (start 5,760), 339 flow tests in `:state`.** Each piece: Opus review, gate, its E2E class green on GitHub before the push. Found on the way and fixed as own commits with a test first: a row dropped on itself in the points list could empty the plan (old bug, only by a race). **Not as planned:** piece 9's second half (the `recalc` coroutine, ~540 lines) is postponed behind the tour pieces – it touches ~35 members incl. tour code. Old gap made visible, not closed: GPX import / export / share and the map-data import have no behaviour test at all (text pins only; only backup → restore has an E2E). Running: 14 (My routes II, in review, gets a test for the „Los geht's“ wait) and 11 (place menus I). Then 12, 15, 16–19 (tour, one at a time), 20, 9b, 21.
+
 # ← [umbau] (2026-11-19 ~17:00): phase 2, pieces 4
 
 - ← [umbau] (2026-11-19 ~17:00): phase 2, pieces 4 (settings) and 8 (plan routing I: engine, threads, time estimate, warnings) on main (4342d6673) – `AppViewModel` 5,298 lines (start 5,760), 193 flow tests in `:state`; the plan E2E class green on GitHub with both. The start-crash guard (`ViewModelInitOrderTest`) now follows every slice and its ports. Piece 5 (map view) is reviewed (merge) and closes small test gaps; piece 9 (the routing run itself – the high-risk one of this lane) is being built. Pace so far: 5 pieces since this morning; every review found something in the TESTS, none a behaviour change in moved code since the tile-hash catch.
