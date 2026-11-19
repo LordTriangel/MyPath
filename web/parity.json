@@ -46,7 +46,7 @@
         "web/app/src/search.ts",
         "web/app/src/main.ts"
       ],
-      "blob": "e3048a0c5121953fc1a98c760add8bac31338471"
+      "blob": "dbba0fd09e2dc0ddb329492358c0d824b8fb514e"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/routing/PlanPoints.kt",
@@ -223,17 +223,16 @@
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/AppViewModel.kt",
-      "what": "recalc long-route ask / answerLongRoute; pinnedPoiKinds / refreshPinnedKinds; placeMenu while planning = PlaceAddMenu.planningMenu (WebApi.placeMenu); keepPlaces / placesChanged = the kept-places sync (keptplaces.ts / sync.ts); the done tours' Ø speed is not in the planner (no recorded tours)",
+      "what": "recalc long-route ask / answerLongRoute; the done tours' Ø speed is not in the planner (no recorded tours) – pinnedPoiKinds / refreshPinnedKinds, placeMenu and keepPlaces / placesChanged moved to PlaceMenusSlice / KeptPlacesSlice (rebuild phase 2 piece 12)",
       "web": [
         "web/app/src/main.ts",
         "web/app/src/longroute.ts",
         "web/app/src/gpximport.ts",
         "web/engine/src/main/kotlin/com/onpath/web/WebImport.kt",
         "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt",
-        "web/app/src/plans.ts",
-        "web/app/src/poipin.ts"
+        "web/app/src/plans.ts"
       ],
-      "blob": "605a5368b1f24caacb0371a40155c5549013eea7"
+      "blob": "f4419510173fe2e66d6c532726323abe8abdd7a0"
     },
     {
       "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddSlice.kt",
@@ -243,7 +242,7 @@
         "web/app/src/poipin.ts",
         "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt"
       ],
-      "blob": "ab0536e28f9ee6dbc3293057c968dae8bde6424c"
+      "blob": "1fb6889ae02d2528538585c73bbf813c359bcb9b"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -520,6 +519,25 @@
         "web/engine/src/main/kotlin/com/onpath/web/WebKept.kt"
       ],
       "blob": "5b0e98909b44474022ff92a5e2c3501ef71e8a93"
+    },
+    {
+      "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceMenusSlice.kt",
+      "what": "pinnedPoiKinds / refreshPinnedKinds (the pinned POI keeps its symbol, a ring + badge – poipin.ts); placeMenu while planning = PlaceAddMenu.planningMenu (WebApi.placeMenu, main.ts) – moved here from AppViewModel, rebuild phase 2 piece 12; the menus' state (POI / point / pin menu), the measuring of a held place's rows on the paths (PlaceMenuMeasure on the hold's router thread) and the place card's tour-aware add label are the phone's: the planner has no router thread and no tour",
+      "web": [
+        "web/app/src/poipin.ts",
+        "web/app/src/main.ts",
+        "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt"
+      ],
+      "blob": "75007588452a623b8edfa1a44b6c3584b16a5022"
+    },
+    {
+      "app": "state/src/main/kotlin/com/onpath/app/ui/plan/KeptPlacesSlice.kt",
+      "what": "toggleFavouritePlace / toggleHomePlace / keepPlaces (one change made on what is stored now, then backed up and sent to the paired browser) = the kept places in the planner (keptplaces.ts, sync.ts) – moved here from AppViewModel, rebuild phase 2 piece 12; the phone's store (SearchStore, Backups) stays behind PlacesStore",
+      "web": [
+        "web/app/src/keptplaces.ts",
+        "web/app/src/sync.ts"
+      ],
+      "blob": "9d2168e49df3a475023755c08caf10afc4ac3704"
     }
   ],
   "watch": [
@@ -2578,7 +2596,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/search/OnlineSearch.kt": {
-      "blob": "25994b984ff60b2bcc54b4f65f587cfeb8c89fd4",
+      "blob": "ac1ef13df9aa8aeacdce968c3b76739a8ede67e5",
       "perf": [
         "fun search(query: String, lat: Double, lon: Double, limit: Int = 10): List<Place>",
         "fun url(query: String, lat: Double, lon: Double, limit: Int): String {",
@@ -2611,10 +2629,6 @@
         "/** Prepares what [search] needs (reads the word index into memory), so the first keystroke answers fast. */"
       ]
     },
-    "app/src/main/java/com/onpath/app/search/SavedPlaces.kt": {
-      "blob": "bad38bba5a4a70205769eaa8c57a464066f97f32",
-      "perf": []
-    },
     "app/src/main/java/com/onpath/app/search/RouteNamer.kt": {
       "blob": "1bfff7ef95bf5f0e22dc4e814d9cefcb278f0ea3",
       "perf": [
@@ -2631,7 +2645,7 @@
       ]
     },
     "app/src/main/java/com/onpath/app/sync/PlaceSync.kt": {
-      "blob": "1b8eb4d6b92f6849b396654336957b12acf68e9a",
+      "blob": "d21efd8af51fb4bbf701430659f8d4875bb5a145",
       "perf": []
     },
     "app/src/main/java/com/onpath/app/map/Overview.kt": {
@@ -3082,6 +3096,14 @@
         "const val BUSY_RECHECK_MS = 5_000L",
         "const val OPEN_DEBOUNCE_MS = 10_000L"
       ]
+    },
+    "core/src/main/kotlin/com/onpath/app/search/SavedPlaces.kt": {
+      "blob": "bad38bba5a4a70205769eaa8c57a464066f97f32",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/search/SearchMerge.kt": {
+      "blob": "8c60babb0f6a5ba23e691eb1c79378dc848d0320",
+      "perf": []
     }
   }
 }

@@ -98,13 +98,14 @@ class PlanEditsTest {
         assertEquals("the destination moves to the front", listOf(d, p, q, r), PlanEdits.startHere(listOf(p, q, r, d), 3))
         assertEquals("the start stays", listOf(p, q, r), PlanEdits.startHere(listOf(p, q, r), 0))
         assertEquals("a round trip rotates", listOf(q, r, p, q), PlanEdits.startHere(listOf(p, q, r, p), 1))
-        val vm = java.io.File("../app/src/main/java/com/onpath/app/ui/AppViewModel.kt").readText()
         // the card's "As start" on a planned place (PlaceAddSlice, piece 11; PlaceAddFlowTest.thePlaceCardsRoles… runs it) and the
-        // point menu's "Start here" (still in the view model, piece 12) are the one edit startAtPoint
+        // point menu's "Start here" (PlaceMenusSlice, piece 12) are the one edit startAtPoint
         val slice = java.io.File("../state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddSlice.kt").readText()
         val add = slice.substringAfter("    fun addPlace(").substringBefore("\n    }")
         assertTrue(add, add.contains("AddRole.START -> startAtPoint(idx)"))
-        val menu = vm.substringAfter("fun makeStartFromMenu(").substringBefore("\n    }")
+        val menus = java.io.File("../state/src/main/kotlin/com/onpath/app/ui/plan/PlaceMenusSlice.kt").readText()
+        assertTrue("the slice's makeStartFromMenu was found", menus.contains("    fun makeStartFromMenu() {"))
+        val menu = menus.substringAfter("    fun makeStartFromMenu() {").substringBefore("\n    }")
         assertTrue(menu, menu.contains("placeAdd.startAtPoint(index)"))
         val edit = slice.substringAfter("    fun startAtPoint(index: Int) {").substringBefore("\n    }")
         assertTrue(edit, edit.contains("PlanEdits.startHere(w, index)"))

@@ -33,12 +33,12 @@ fun interface HoldRouter {
 }
 
 /**
- * What [PlaceAddSlice] asks from the rest of the app (main thread): the map's menus and the place card (piece 12 still
- * holds them in the view model), the tour (what a new point means during a tour in progress – pieces 16–19), the route
+ * What [PlaceAddSlice] asks from the rest of the app (main thread): the map's menus and the place card ([PlaceMenusSlice],
+ * piece 12; the view model's adapters call it), the tour (what a new point means during a tour in progress – pieces 16–19), the route
  * the plan shows and the search's found place. Every call is made at the point of the old code's sequence.
  */
 interface PlaceAddHost {
-    // ---- map menus and the place card (piece 12)
+    // ---- map menus and the place card ([PlaceMenusSlice], piece 12)
     /** Closes every map menu ([why] into the log) – the hold / place menu's own state is the slice's, the rest the view model's. */
     fun closeMapOverlays(why: String = "closed")
     /** The point menu of route point [index] opens ([via] = what opened it, for the gesture log). */
@@ -92,8 +92,8 @@ enum class AddRole { SMART, START, DESTINATION }
  * from my location), the hold on the map with its two-row menu and the measuring of a hold beside the plan on the router's
  * real paths, the places added from the menu / the card, and the first-point menu. Every add is ONE [PlanEditSlice.change]
  * and writes [PlanEditSlice.pinTaken] after it. The decisions are rules in :core (WaypointInsertion, PlaceAddMenu,
- * HoldPaths, TakenPin, WholeRoute). The POI / point / pin menus, the place card and the kept places are piece 12 and stay in
- * the view model behind [PlaceAddHost]. Constructed with the view model (no work).
+ * HoldPaths, TakenPin, WholeRoute). The POI / point / pin menus, the place card and the kept places are [PlaceMenusSlice] and
+ * [KeptPlacesSlice] (piece 12); this slice reaches them behind [PlaceAddHost]. Constructed with the view model (no work).
  */
 class PlaceAddSlice(
     private val plan: PlanDocument,
@@ -108,7 +108,7 @@ class PlaceAddSlice(
 ) {
     private val waypoints: List<GeoPoint> get() = plan.points
 
-    /** The measure of a hold beside the plan ([measureHold]) and of a held place ([PlaceMenuMeasure], piece 12). */
+    /** The measure of a hold beside the plan ([measureHold]) and of a held place ([PlaceMenuMeasure], [PlaceMenusSlice.openPoiMenu]). */
     val holdPaths = HoldPaths(scope, holdWorker)
 
     /** The view model ends: a running measure stops ([HoldPaths.cancel]). */
@@ -124,8 +124,8 @@ class PlaceAddSlice(
     var firstPointMenu by mutableStateOf<GeoPoint?>(null)
 
     /**
-     * A hold beside the plan being measured on the paths ([measureHold]) or a held place's rows being decided (piece 12's
-     * `openPoiMenu`, which sets it until it moves): the spot, a ring turns on it; null = none.
+     * A hold beside the plan being measured on the paths ([measureHold]) or a held place's rows being decided ([PlaceMenusSlice.openPoiMenu],
+     * which sets it until it moves): the spot, a ring turns on it; null = none.
      */
     var holdMeasuring by mutableStateOf<GeoPoint?>(null)
 

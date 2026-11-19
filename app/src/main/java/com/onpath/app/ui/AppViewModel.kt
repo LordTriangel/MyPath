@@ -731,44 +731,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             set(v) { prefs.planLinkPoints = v }
     }, viewModelScope)
     fun pinnedIndices(): Set<Int> = plan.pinnedIndices()
-    /**
-     * POI kinds of pinned points (owner 2026-11-10, variant A: the POI symbol stays, a blue ring + badge around it):
-     * [poiKindsKnown] from the tap that pinned it, [poiKindsFound] from the offline index for the others (a plan loaded
-     * from My routes, a link, a backup) – [refreshPinnedKinds]. Not stored: looked up again after a restart.
-     */
-    private var poiKindsKnown by mutableStateOf<Map<GeoPoint, String>>(emptyMap())
-    private var poiKindsFound by mutableStateOf<Map<GeoPoint, String>>(emptyMap())
-    private val poiKindsLookedUp = HashSet<GeoPoint>()
-    private var poiKindsJob: Job? = null
-    /** Kind by point index for the pinned points that sit on a POI the map draws (map/MapController poi markers). */
-    fun pinnedPoiKinds(): Map<Int, String> =
-        com.onpath.app.poi.PinnedPoiKinds.byIndex(waypoints.toList(), pinnedIndices(), poiKindsKnown, poiKindsFound)
-    private fun rememberPoiKind(p: GeoPoint, kind: String?) {
-        if (com.onpath.app.poi.PinnedPoiKinds.isPoiKind(kind)) poiKindsKnown = poiKindsKnown + (p to kind!!)
-    }
-
-    /** Looks up the POI under each pinned point without a known kind (once per point, off the main thread). */
-    fun refreshPinnedKinds() {
-        val todo = pinnedIndices().mapNotNull { waypoints.getOrNull(it) }
-            .filter { it !in poiKindsKnown && it !in poiKindsLookedUp }.distinct()
-        if (todo.isEmpty() || poiKindsJob?.isActive == true) return
-        poiKindsJob = viewModelScope.launchSafe("app", "refreshPinnedKinds") {
-            val index = try { search.offlineIndex() }
-                catch (e: kotlinx.coroutines.CancellationException) { throw e }
-                catch (e: Exception) { Problems.info("plan", "No place index for pinned POI symbols; plain points shown", e); return@launchSafe }
-            val pad = com.onpath.app.data.Geo.degLat(3 * com.onpath.app.poi.PinnedPoiKinds.SAME_SPOT_M)
-            val kinds = com.onpath.app.poi.PinnedPoiKinds.indexKinds
-            val found = withContext(Dispatchers.IO) {
-                todo.mapNotNull { p ->
-                    val padLon = com.onpath.app.data.Geo.degLon(3 * com.onpath.app.poi.PinnedPoiKinds.SAME_SPOT_M, p.lat)
-                    val near = index.placesIn(p.lat - pad, p.lon - padLon, p.lat + pad, p.lon + padLon, kinds)
-                    com.onpath.app.poi.PinnedPoiKinds.lookup(p, near)?.let { p to it }
-                }.toMap()
-            }
-            poiKindsLookedUp += todo
-            if (found.isNotEmpty()) poiKindsFound = poiKindsFound + found
-        }
-    }
+    /** Kind by point index for the pinned points that sit on a POI the map draws ([PlaceMenusSlice.pinnedPoiKinds]). */
+    fun pinnedPoiKinds(): Map<Int, String> = placeMenus.pinnedPoiKinds()
+    /** Looks up the POI under each pinned point without a known kind ([PlaceMenusSlice.refreshPinnedKinds]). */
+    fun refreshPinnedKinds() = placeMenus.refreshPinnedKinds()
     /** Followed routes replaced by plan edits during the tour (Undo takes them back exactly, Bug 02). */
     private val followHistory = FollowHistory()
     val canUndo: Boolean get() = plan.canUndo
@@ -806,11 +772,10 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Blocking: what [OfflineReady] says for [line] (MapScreen calls it on Dispatchers.IO). */
     fun computeOfflineReady(line: List<GeoPoint>): OfflineReady.Result? = mapData.offlineReady(line, activity)
 
-    /** The route point whose point menu is open (hold on its marker, MapGestures): index when opened + position. */
-    var pointMenuTarget by mutableStateOf<PointMenuTarget?>(null)
-        private set
+    /** The route point whose point menu is open ([PlaceMenusSlice.pointMenuTarget]). */
+    val pointMenuTarget: PointMenuTarget? get() = placeMenus.pointMenuTarget
     /** Index of that point in the plan now, or null (no menu, or its point is gone). */
-    val pointMenu: Int? get() = pointMenuTarget?.indexIn(waypoints)
+    val pointMenu: Int? get() = placeMenus.pointMenu
     var route by mutableStateOf<PlannedRoute?>(null)
         private set
     /**
@@ -840,12 +805,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         host = object : com.onpath.app.ui.plan.PlanEditHost {
             override fun cancelHoldMeasure(why: String) = placeAdd.cancelHoldMeasure(why)
             override fun stopFollowingWhenMapTurns() { if (mode == AppMode.PLAN && headingUp && followMe) followMe = false }
-            override fun closePointMenu(why: String) = this@AppViewModel.closePointMenu(why)
+            override fun closePointMenu(why: String) = placeMenus.closePointMenu(why)
             override fun clearFirstPointMenu() { placeAdd.firstPointMenu = null }
             override fun clearHoldAddMenu() { placeAdd.holdAddMenu = null }
             override fun clearHighlight() { highlight = null }
-            override fun removePin(why: String) = this@AppViewModel.removePin(why)
-            override fun menuAction(what: String): Int? = this@AppViewModel.menuAction(what)
+            override fun removePin(why: String) = placeMenus.removePin(why)
+            override fun menuAction(what: String): Int? = placeMenus.menuAction(what)
             override fun setRoutingSpot(spot: GeoPoint?) { routingSpot = spot }
             override fun loadMapsForNewPoints(before: List<GeoPoint>) = cellsForNewPoints(before, waypoints)
             override fun keepAsDraft(why: String) = save.keepAsDraft(why)
@@ -881,16 +846,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /**
      * Adding points ([PlaceAddSlice], rebuild phase 2 piece 11, core feature C2): where a new point goes, the add entries of a
      * place / a held spot, the hold on the map with its menu and the measuring on the router's paths, the places added from the
-     * menu / the card, the first-point menu. The POI / point / pin menus, the place card and the kept places (piece 12) and the
-     * tour hooks stay here behind [com.onpath.app.ui.plan.PlaceAddHost]. Declared after [planEdit] (which it edits through) and
+     * menu / the card, the first-point menu. The POI / point / pin menus, the place card and the kept places ([placeMenus],
+     * [keptPlaces], piece 12) and the tour hooks stay here behind [com.onpath.app.ui.plan.PlaceAddHost]. Declared after [planEdit] (which it edits through) and
      * above the init blocks that can reach it (ViewModelInitOrderTest).
      */
+    /** The router the hold and a held place's menu measure on (the engine, its leg cache and the Planner stay here, [routedLength]). */
+    private val holdRouter = com.onpath.app.ui.plan.HoldRouter { a, b, act, level, cancel -> routedLength(a, b, act, level, cancel) }
     private val placeAdd = PlaceAddSlice(
         plan = plan, planEdit = planEdit, planRun = planRun,
         host = object : com.onpath.app.ui.plan.PlaceAddHost {
-            override fun closeMapOverlays(why: String) = this@AppViewModel.closeMapOverlays(why)
-            override fun openPointMenu(index: Int, via: String) = this@AppViewModel.openPointMenu(index, via = via)
-            override fun closePlaceCard() = this@AppViewModel.closePlaceCard()
+            override fun closeMapOverlays(why: String) = placeMenus.closeMapOverlays(why)
+            override fun openPointMenu(index: Int, via: String) = placeMenus.openPointMenu(index, via = via)
+            override fun closePlaceCard() = placeMenus.closePlaceCard()
             override fun planMode(): Boolean = mode == AppMode.PLAN
             override fun canEditMap(): Boolean = this@AppViewModel.canEditMap
             override fun activity(): Activity = this@AppViewModel.activity
@@ -906,12 +873,59 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             override fun takePin(lat: Double, lon: Double): com.onpath.app.search.Place? = this@AppViewModel.takePin(lat, lon)
             override fun isCandidate(poi: com.onpath.app.poi.Poi): Boolean = this@AppViewModel.isCandidate(poi)
             override fun rememberPlaceName(p: GeoPoint, name: String) = this@AppViewModel.rememberPlaceName(p, name)
-            override fun rememberPoiKind(p: GeoPoint, kind: String?) = this@AppViewModel.rememberPoiKind(p, kind)
+            override fun rememberPoiKind(p: GeoPoint, kind: String?) = placeMenus.rememberPoiKind(p, kind)
             override fun stopIndexAt(lat: Double, lon: Double): Int = waypoints.indexOfFirst { sameSpot(it, lat, lon) }
             override fun routeIndexOf(place: com.onpath.app.search.Place): Int? = this@AppViewModel.routeIndexOf(place)
         },
-        router = com.onpath.app.ui.plan.HoldRouter { a, b, act, level, cancel -> routedLength(a, b, act, level, cancel) },
+        router = holdRouter,
         holdWorker = planRoute.threads.hold, scope = viewModelScope,
+    )
+    /**
+     * The menus of a held place / a route point / the found place's pin, the place card and the POI kinds of pinned points
+     * ([PlaceMenusSlice], rebuild phase 2 piece 12, core feature C19): which menu is open and its rows (on the same router as
+     * the hold), closing every map menu, what the card says. The hold's own state stays in [placeAdd]; the search's pin and
+     * picked place in the search flow. Declared right after [placeAdd] (its host calls it) and above the init blocks.
+     */
+    private val placeMenus: com.onpath.app.ui.plan.PlaceMenusSlice = com.onpath.app.ui.plan.PlaceMenusSlice(
+        plan = plan, planRun = planRun, placeAdd = placeAdd,
+        host = object : com.onpath.app.ui.plan.PlaceMenusHost {
+            override fun planMode(): Boolean = mode == AppMode.PLAN
+            override fun touring(): Boolean = recState.value != null
+            override fun activity(): Activity = this@AppViewModel.activity
+            override fun sac(): Int = this@AppViewModel.sac
+            override fun route(): PlannedRoute? = this@AppViewModel.route
+            override fun wayThereFrom(): GeoPoint? = this@AppViewModel.wayThereFrom()
+            override fun routeIndexOf(place: com.onpath.app.search.Place): Int? = this@AppViewModel.routeIndexOf(place)
+            override var searchMark: com.onpath.app.search.Place?
+                get() = this@AppViewModel.searchMark
+                set(v) { this@AppViewModel.searchMark = v }
+            override var searchPlace: com.onpath.app.search.Place?
+                get() = this@AppViewModel.searchPlace
+                set(v) { this@AppViewModel.searchPlace = v }
+            override suspend fun offlineIndex(): com.onpath.app.ui.plan.PlaceLookup {
+                val index = search.offlineIndex()
+                return com.onpath.app.ui.plan.PlaceLookup { minLat, minLon, maxLat, maxLon, kinds -> index.placesIn(minLat, minLon, maxLat, maxLon, kinds) }
+            }
+        },
+        router = holdRouter, io = Dispatchers.IO, scope = viewModelScope,
+    )
+    /**
+     * The kept places: Zuhause + favourites ([KeptPlacesSlice], piece 12, core feature C19). The store (`SearchStore`: its
+     * file, `Backups`, the browser sync) stays here behind [com.onpath.app.ui.plan.PlacesStore]; each member passes the old
+     * arguments on unchanged.
+     */
+    private val keptPlaces: com.onpath.app.ui.plan.KeptPlacesSlice = com.onpath.app.ui.plan.KeptPlacesSlice(
+        store = object : com.onpath.app.ui.plan.PlacesStore {
+            override fun saved(): com.onpath.app.search.SavedPlaces = searchStore.saved()
+            override fun update(change: (com.onpath.app.search.SavedPlaces) -> com.onpath.app.search.SavedPlaces): com.onpath.app.search.SavedPlaces =
+                searchStore.update(change = change)
+            override fun backupChanged() = com.onpath.app.backup.Backups.placesChanged(getApplication())
+            override fun syncChanged() = sync.changed("kept places")
+        },
+        host = object : com.onpath.app.ui.plan.KeptPlacesHost {
+            override fun searchMark(): com.onpath.app.search.Place? = this@AppViewModel.searchMark
+            override fun isCandidate(poi: com.onpath.app.poi.Poi): Boolean = this@AppViewModel.isCandidate(poi)
+        },
     )
     private val routeRun get() = planRun.routeRun
     val routing: Boolean get() = planRun.routing
@@ -1648,8 +1662,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 get() = this@AppViewModel.routesOpen
                 set(v) { this@AppViewModel.routesOpen = v }
             override var savedPlaces: com.onpath.app.search.SavedPlaces?
-                get() = this@AppViewModel.savedPlaces
-                set(v) { this@AppViewModel.savedPlaces = v }
+                get() = keptPlaces.savedPlaces
+                set(v) { keptPlaces.savedPlaces = v }
             override fun recheckData() = this@AppViewModel.recheckData()
             override fun packageNote() = this@AppViewModel.packageNote()
             override fun say(text: String, kind: NoticeKind, place: NoticePlace) = this@AppViewModel.say(text, kind, place)
@@ -1836,28 +1850,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Adds a held point where it most likely belongs ([PlaceAddSlice.addPoint]). */
     fun addPoint(p: GeoPoint, lineSnapM: Double = 30.0, onPoi: Boolean = false) = placeAdd.addPoint(p, lineSnapM, onPoi)
 
-    /**
-     * The add entries of a held place's menu ([PlaceAddMenu], owner 2026-11-07 / 2026-11-15 / 2026-11-17): on a tour or a
-     * round trip with 2+ points „Einfügen“ and „Neues Ziel“, the likelier first by how clear the case is – measured on the
-     * route still to go (during a tour from my position). While planning (owner 2026-11-17: „wenn ich da nicht einfügen
-     * muss, dann braucht das auch im Menü nicht angezeigt zu werden“) only the matching row in a clear case, both in
-     * between – the rows [openPoiMenu] decided on the paths ([PlaceMenuMeasure]); for a plan changed since (or a menu not
-     * opened by it) the same rule on straight lines.
-     */
-    fun placeMenu(poi: com.onpath.app.poi.Poi): PlaceAddMenu.Menu {
-        val p = GeoPoint(poi.lat, poi.lon)
-        val touring = recState.value != null
-        if (!touring && !isRoundTrip() && waypoints.size >= 2) {
-            poiMenuRows?.takeIf { it.poi == poi && it.points == waypoints.toList() }?.let { return it.menu }
-            val d = PlaceAddMenu.detours(waypoints.toList(), p)!!
-            return PlaceAddMenu.planningPlaceMenu(placeAdd.lineDpOf(p, poiMenuRows?.lineSnapM ?: 30.0), d)
-        }
-        return PlaceAddMenu.menu(waypoints.size, touring, placeAdd.zoneFor(p))
-    }
-
-    /** The add rows decided for an open place menu while planning ([openPoiMenu]): for [poi] beside the plan [points]. */
-    private class PoiRows(val poi: com.onpath.app.poi.Poi, val points: List<GeoPoint>, val menu: PlaceAddMenu.Menu, val lineSnapM: Double)
-    private var poiMenuRows: PoiRows? = null
+    /** The add entries of a held place's menu ([PlaceMenusSlice.placeMenu]). */
+    fun placeMenu(poi: com.onpath.app.poi.Poi): PlaceAddMenu.Menu = placeMenus.placeMenu(poi)
 
     /** Place menu → „Einfügen“ ([PlaceAddSlice.addPoiAsStop]). */
     fun addPoiAsStop(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) = placeAdd.addPoiAsStop(poi, lineSnapM)
@@ -1915,41 +1909,31 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Plan point [index] deleted (map menu, search card): a round trip stays closed, as in the Points list. */
     fun removePoint(index: Int) = planEdit.removePoint(index)
 
-    /** Search result shown in the place card (search, ui/search); map-held POIs use [poiMenu]. */
-    var planPoi by mutableStateOf<com.onpath.app.poi.Poi?>(null)
+    /** Search result shown in the place card ([PlaceMenusSlice.planPoi]). */
+    var planPoi: com.onpath.app.poi.Poi?
+        get() = placeMenus.planPoi
+        set(v) { placeMenus.planPoi = v }
     /** Eye button held: route lines and markers are hidden (position and recorded track stay). */
     var routePeek by mutableStateOf(false)
 
     // ---------------- map hold menus (MapGestures, ui/MapOverlays) ----------------
-    /** POI held on the map in Plan: its menu "Add to route · Open in Google Maps". */
-    var poiMenu by mutableStateOf<com.onpath.app.poi.Poi?>(null)
+    /** POI held on the map in Plan: its menu "Add to route · Open in Google Maps" ([PlaceMenusSlice.poiMenu]). */
+    var poiMenu: com.onpath.app.poi.Poi?
+        get() = placeMenus.poiMenu
+        set(v) { placeMenus.poiMenu = v }
 
     /** First hold on an empty plan: the held spot, its menu "Start here · Go here (from my location)" is open ([PlaceAddSlice.firstPointMenu]). */
     var firstPointMenu: GeoPoint?
         get() = placeAdd.firstPointMenu
         set(v) { placeAdd.firstPointMenu = v }
 
-    val mapOverlayOpen: Boolean get() =
-        poiMenu != null || pointMenu != null || firstPointMenu != null || holdAddMenu != null || planPoi != null
+    val mapOverlayOpen: Boolean get() = placeMenus.mapOverlayOpen
 
-    /** Closes every map menu; [why] goes into the gesture log (Diagnostics) when a point menu was open. */
-    fun closeMapOverlays(why: String = "closed") {
-        // The found place's pin stays when its menu closes (owner 2026-11-02: a tap elsewhere closes only the menu); it
-        // goes when the place is added, with a new search, "Neu planen" or the menu's "Nadel entfernen" ([removePin]).
-        closePointMenu(why)
-        if (firstPointMenu != null) Problems.trace("plan", "First-point menu closed: $why")
-        if (poiMenu != null) Problems.trace("plan", "POI menu closed: $why")
-        if (holdAddMenu != null) Problems.trace("plan", "Hold menu closed: $why (nothing added)")
-        cancelHoldMeasure(why)
-        poiMenu = null; poiMenuRows = null; firstPointMenu = null; holdAddMenu = null; if (planPoi != null) closePlaceCard()
-    }
+    /** Closes every map menu ([PlaceMenusSlice.closeMapOverlays]). */
+    fun closeMapOverlays(why: String = "closed") = placeMenus.closeMapOverlays(why)
 
-    /** Closes the point menu (if open) and logs by what (core feature C1 diagnostics). */
-    fun closePointMenu(why: String) {
-        val t = pointMenuTarget ?: return
-        pointMenuTarget = null
-        Problems.trace("plan", "Point menu closed (point ${t.index + 1}): $why")
-    }
+    /** Closes the point menu (if open) ([PlaceMenusSlice.closePointMenu]). */
+    fun closePointMenu(why: String) = placeMenus.closePointMenu(why)
 
     fun openFirstPointMenu(p: GeoPoint) = placeAdd.openFirstPointMenu(p)
 
@@ -1958,103 +1942,31 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** First-point menu → "Go here" ([PlaceAddSlice.routeFromMyLocation]). */
     fun routeFromMyLocation(p: GeoPoint) = placeAdd.routeFromMyLocation(p)
-    /**
-     * Opens a held place's menu (a POI on the map, the found pin – a hold, its chip or a search pick; core feature C19).
-     * While planning with 2+ points (no tour, no round trip) its add rows are decided first, exactly as a hold on the empty
-     * map (owner 2026-11-17, [PlaceMenuMeasure]): on the line at once, else measured on the paths with the ring on the
-     * place ([holdMeasuring], same time limit, fallback and cancel as [measureHold]) – the menu opens with its rows, nothing
-     * jumps. [lineSnapM] = metres in [PlaceAddMenu.LINE_SNAP_DP] on screen (30 m when the caller has no map at hand).
-     */
-    fun openPoiMenu(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) {
-        closeMapOverlays("POI menu opened")
-        val p = GeoPoint(poi.lat, poi.lon)
-        val pts = waypoints.toList()
-        if (pts.size < 2 || recState.value != null || isRoundTrip() || mode != AppMode.PLAN) { poiMenu = poi; return }
-        val act = activity; val level = sac
-        val name = poi.name ?: poi.kind
-        val measuring = PlaceMenuMeasure.start(placeAdd.holdPaths, pts, p, placeAdd.lineDpOf(p, lineSnapM), PlaceAddMenu.detours(pts, p)!!,
-            { a, b, cancel -> routedLength(a, b, act, level, cancel) }) { r ->
-            holdMeasuring = null
-            if (waypoints.toList() != pts || mode != AppMode.PLAN || recState.value != null || activity != act || sac != level) {
-                Problems.trace("plan", "Place menu: measured for a plan no longer shown – not opened (${r.how})")
-                return@start
-            }
-            Problems.trace("plan", "Place menu of a ${poi.kind}: ${r.action} → ${r.menu.main.joinToString(" / ")} (${r.how}, ${pts.size} points)")
-            poiMenuRows = PoiRows(poi, pts, r.menu, lineSnapM)
-            poiMenu = poi
-        }
-        if (measuring) holdMeasuring = p
-    }
+    /** Opens a held place's menu ([PlaceMenusSlice.openPoiMenu]). */
+    fun openPoiMenu(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) = placeMenus.openPoiMenu(poi, lineSnapM)
 
-    /** The pin's name chip tapped (owner 2026-11-02): the same menu a hold on the pin opens. */
-    fun openPinMenu() {
-        val m = searchMark ?: return
-        Problems.trace("plan", "Pin chip tapped: menu of \"${m.title()}\"")
-        openPoiMenu(m.toPoi())
-    }
+    /** The pin's name chip tapped ([PlaceMenusSlice.openPinMenu]). */
+    fun openPinMenu() = placeMenus.openPinMenu()
 
-    /**
-     * The found place's pin goes (owner 2026-11-02): its menu's "Nadel entfernen" or "Neu planen" ([clearPlan]); adding
-     * the place ([clearSearchMarkAt]) and a new search pick replace it on their own.
-     */
-    fun removePin(why: String) {
-        if (searchMark == null) return
-        Problems.trace("plan", "Pin removed: $why")
-        searchMark = null; searchPlace = null
-    }
+    /** The found place's pin goes ([PlaceMenusSlice.removePin]). */
+    fun removePin(why: String) = placeMenus.removePin(why)
 
     /** POI menu on an empty plan → "Go here" ([PlaceAddSlice.poiFromMyLocation]). */
     fun poiFromMyLocation(poi: com.onpath.app.poi.Poi) = placeAdd.poiFromMyLocation(poi)
-    /**
-     * Opens the menu of route point [index]; [distDp] = finger distance from the marker, [via] = what opened it
-     * (both only for the gesture log in Diagnostics).
-     */
-    fun openPointMenu(index: Int, distDp: Int? = null, via: String = "hold") {
-        closeMapOverlays("another menu opened ($via)")
-        val p = waypoints.getOrNull(index)
-        if (p == null) { Problems.trace("plan", "Point menu NOT opened: point ${index + 1} not in the plan of ${waypoints.size}"); return }
-        pointMenuTarget = PointMenuTarget(index, p)
-        Problems.trace("plan", "Point menu opened ($via): point ${index + 1} of ${waypoints.size}" +
-            (distDp?.let { ", $it dp from the finger" } ?: ""))
-    }
+    /** Opens the menu of route point [index] ([PlaceMenusSlice.openPointMenu]). */
+    fun openPointMenu(index: Int, distDp: Int? = null, via: String = "hold") = placeMenus.openPointMenu(index, distDp, via)
 
-    /** POI menu → "Add to route": a pinned, named route point; when it already is a stop, its point menu opens. */
-    /** The POI menu's add item, saying what it does ("Set as destination", "Add as stop 2", …) – same rule as [addPoint]. */
-    /**
-     * What the POI menu's add action says – the SAME decision [addPoint] then takes ([insertionFor]: during a tour only
-     * the points ahead count, from the position), so the label never promises something else (field 2026-11-07: the
-     * label was decided on the whole plan and read "Als Start setzen" while the tour ran).
-     */
-    fun poiAddLabel(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0): String {
-        val ins = placeAdd.insertionFor(GeoPoint(poi.lat, poi.lon), lineSnapM)
-        return com.onpath.app.search.AddPreview.label(WaypointInsertion.Decision(ins.index, ins.decision.kind), waypoints.size)
-    }
+    /** What the POI menu's add action says ([PlaceMenusSlice.poiAddLabel]). */
+    fun poiAddLabel(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0): String = placeMenus.poiAddLabel(poi, lineSnapM)
 
     fun addPoiPoint(poi: com.onpath.app.poi.Poi, lineSnapM: Double = 30.0) = placeAdd.addPoiPoint(poi, lineSnapM)
 
-    /** Point menu → "Start here" (drops earlier points) / round trip "Start & finish here" (rotates the loop). */
-    fun makeStartFromMenu() {
-        val index = menuAction("Start here") ?: return
-        placeAdd.startAtPoint(index)
-    }
+    /** Point menu → "Start here" ([PlaceMenusSlice.makeStartFromMenu]). */
+    fun makeStartFromMenu() = placeMenus.makeStartFromMenu()
 
     fun isRoundTrip(): Boolean = PlanEdits.isRoundTrip(waypoints)
     /** Index of the round trip's ① (stops on the way before it), null without a loop ([PlanEdits.loopStart]). */
     fun loopStart(): Int? = PlanEdits.loopStart(waypoints)
-
-    /**
-     * A point menu action was tapped: closes the menu and returns the index of the point it was opened for in the
-     * plan as it is NOW (the plan can change under an open menu – PointMenuTarget), or null when that point is gone.
-     * Logged either way, so a "tap did nothing" report can be traced.
-     */
-    private fun menuAction(what: String): Int? {
-        val t = pointMenuTarget
-        val i = t?.indexIn(waypoints)
-        pointMenuTarget = null
-        Problems.trace("plan", "Point menu: $what tapped – menu of point ${t?.index?.plus(1)}, now point ${i?.plus(1)}, " +
-            "plan ${waypoints.size} points, route ${if (routing) "calculating" else "ready"}")
-        return i
-    }
 
     // ---------------- Points section of the full plan sheet (PointsSection, routing/PlanPoints) ----------------
 
@@ -2089,7 +2001,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun deletePointFromMenu() = planEdit.deletePointFromMenu()
 
     /** Point menu → "Open in Google Maps" (closes the menu; the caller opens the link). */
-    fun googleFromMenu(): GeoPoint? = menuAction("Open in Google Maps")?.let { waypoints[it] }
+    fun googleFromMenu(): GeoPoint? = placeMenus.menuAction("Open in Google Maps")?.let { waypoints[it] }
     // ---------------- end map hold menus ----------------
 
     fun isStop(poi: com.onpath.app.poi.Poi): Boolean = waypoints.any { sameSpot(it, poi.lat, poi.lon) }
@@ -2123,45 +2035,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // --- kept places: Zuhause + favourites (owner 2026-11-15, „Orte merken“; SavedPlaces) ---
 
-    /** Zuhause and the favourite places, read once from the phone; every change saved at once and backed up. */
-    var savedPlaces by mutableStateOf<com.onpath.app.search.SavedPlaces?>(null)
-        private set
-    private fun saved(): com.onpath.app.search.SavedPlaces = savedPlaces ?: searchStore.saved().also { savedPlaces = it }
-
-    /** The place a held menu is about: the found place itself (address, kind) for its pin, else the map's POI. */
-    private fun placeOf(poi: com.onpath.app.poi.Poi): com.onpath.app.search.Place =
-        searchMark?.takeIf { isCandidate(poi) } ?: com.onpath.app.search.Place.fromPoi(poi)
-
-    fun isFavouritePlace(poi: com.onpath.app.poi.Poi): Boolean = saved().isFavourite(placeOf(poi))
-    fun isHomePlace(poi: com.onpath.app.poi.Poi): Boolean = saved().isHome(placeOf(poi))
-
-    /** „☆ Merken“ / „★ Gemerkt“ in a held place's menu: one tap sets / removes; the menu stays and shows the new state. */
-    fun toggleFavouritePlace(poi: com.onpath.app.poi.Poi) {
-        val p = placeOf(poi)
-        val on = !saved().isFavourite(p)
-        keepPlaces { s -> if (s.isFavourite(p) != on) s.toggleFavourite(p) else s }
-        Problems.trace("search", "Place menu: \"${p.title()}\" ${if (on) "kept as a favourite" else "no longer a favourite"}")
-    }
-
-    /** „⌂ Als Zuhause festlegen“ (replaces the old home) / „⌂ Zuhause entfernen“ on the place that is home. */
-    fun toggleHomePlace(poi: com.onpath.app.poi.Poi) {
-        val p = placeOf(poi)
-        val remove = saved().isHome(p)
-        keepPlaces { s -> s.withHome(if (remove) null else p) }
-        Problems.trace("search", "Place menu: \"${p.title()}\" ${if (remove) "no longer home" else "set as home"}")
-    }
-
-    /**
-     * One change of the kept places, made on what is stored now (read, change, write in one step – the browser sync may
-     * have brought places since this screen read them; web-sync.md §5.4); then backed up and sent to a paired browser.
-     */
-    private fun keepPlaces(change: (com.onpath.app.search.SavedPlaces) -> com.onpath.app.search.SavedPlaces) {
-        savedPlaces = try { searchStore.update(change = change) } catch (e: Exception) {
-            Problems.error("search", "Favourite places / Zuhause could not be saved", e); return
-        }
-        com.onpath.app.backup.Backups.placesChanged(getApplication())
-        sync.changed("kept places")
-    }
+    fun isFavouritePlace(poi: com.onpath.app.poi.Poi): Boolean = keptPlaces.isFavouritePlace(poi)
+    fun isHomePlace(poi: com.onpath.app.poi.Poi): Boolean = keptPlaces.isHomePlace(poi)
+    /** „☆ Merken“ / „★ Gemerkt“ in a held place's menu ([KeptPlacesSlice.toggleFavouritePlace]). */
+    fun toggleFavouritePlace(poi: com.onpath.app.poi.Poi) = keptPlaces.toggleFavouritePlace(poi)
+    /** „⌂ Als Zuhause festlegen“ / „⌂ Zuhause entfernen“ ([KeptPlacesSlice.toggleHomePlace]). */
+    fun toggleHomePlace(poi: com.onpath.app.poi.Poi) = keptPlaces.toggleHomePlace(poi)
     private fun clearSearchMarkAt(lat: Double, lon: Double) = searchFlow.clearSearchMarkAt(lat, lon)
 
     /** The found place at ([lat], [lon]) goes into the plan: its pin goes; returns that place (null = no pin there). */
@@ -2172,32 +2051,16 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return m
     }
 
-    /** Place shown in the card: the search result, or the tapped POI. */
-    val cardPlace: com.onpath.app.search.Place?
-        get() = planPoi?.let { poi -> searchPlace?.takeIf { it.id == poi.id } ?: com.onpath.app.search.Place.fromPoi(poi) }
+    /** Place shown in the card: the search result, or the tapped POI ([PlaceMenusSlice.cardPlace]). */
+    val cardPlace: com.onpath.app.search.Place? get() = placeMenus.cardPlace
 
-    fun closePlaceCard() { planPoi = null; searchPlace = null }
+    fun closePlaceCard() = placeMenus.closePlaceCard()
 
     private fun routeIndexOf(place: com.onpath.app.search.Place) =
         waypoints.indexOfFirst { sameSpot(it, place.lat, place.lon) }.takeIf { it >= 0 }
 
-    /** Card content incl. what "Add to route" will do (same WaypointInsertion as a map hold). */
-    fun placeCardUi(place: com.onpath.app.search.Place): com.onpath.app.ui.search.PlaceCardUi {
-        val idx = routeIndexOf(place)
-        val r = route
-        if (idx != null) return com.onpath.app.ui.search.PlaceCardUi(place, idx, waypoints.size,
-            com.onpath.app.search.AddPreview.existingRole(idx, waypoints.size))
-        val pv = com.onpath.app.search.AddPreview.of(waypoints.toList(), GeoPoint(place.lat, place.lon), if (routing) null else r?.points,
-            r?.takeIf { it.durationS > 0 }?.let { it.distanceM / it.durationS }, here = wayThereFrom())
-        // during a tour the add goes among the points ahead ([insertionFor]) – say what really happens
-        val ins = placeAdd.insertionFor(GeoPoint(place.lat, place.lon), 30.0)
-        val k = ins.decision.kind
-        val label = if (ins.inTour) com.onpath.app.search.AddPreview.label(WaypointInsertion.Decision(ins.index, k), waypoints.size)
-            else pv.label
-        return com.onpath.app.ui.search.PlaceCardUi(place, null, waypoints.size, if (ins.inTour) "" else pv.subtitle, label,
-            addIsStart = k == WaypointInsertion.Kind.START,
-            addIsDestination = k == WaypointInsertion.Kind.DESTINATION && waypoints.size <= 1)
-    }
+    /** Card content incl. what "Add to route" will do ([PlaceMenusSlice.placeCardUi]). */
+    fun placeCardUi(place: com.onpath.app.search.Place): com.onpath.app.ui.search.PlaceCardUi = placeMenus.placeCardUi(place)
 
     /** Adds the place as a pinned stop (passed exactly), named after the place ([PlaceAddSlice.addPlace]). */
     fun addPlace(place: com.onpath.app.search.Place, role: PlaceRole) = placeAdd.addPlace(place, when (role) {
@@ -2482,7 +2345,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val moves = WaypointSnap.moves(routed, snapped)
         plan.snappedHistory(moves)
         // an open menu follows its point to the snapped position (it must still find it for Delete)
-        pointMenuTarget = pointMenuTarget?.afterSnap(moves)
+        placeMenus.followSnapped(moves)
     }
 
     /**
@@ -3665,7 +3528,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     settingsPage == SettingsPage.SYNC)
             }
             override fun ended() { sayInfo(Txt.s(Res.string.sync_ended), NoticePlace.SETTINGS) }
-            override fun placesChanged() { savedPlaces = null }
+            override fun placesChanged() { keptPlaces.savedPlaces = null }
             override fun toursChanged(toRoute: List<Long>) { refreshTours(); followSyncedSavedPlan(); routeSyncedPlans(toRoute) }
             override fun newerData(tiles: List<String>) { refreshRoutingTiles(tiles, "a plan from the browser was routed with newer data") }
         },

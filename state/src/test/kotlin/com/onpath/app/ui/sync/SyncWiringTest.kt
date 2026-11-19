@@ -85,7 +85,7 @@ class SyncWiringTest {
      */
     @Test fun theDriversHostSaysItInTheSamePlacesAndRunsTheThreeStepsInOrder() {
         assertTrue(driverHost.contains("override fun ended() { sayInfo(Txt.s(Res.string.sync_ended), NoticePlace.SETTINGS) }"))
-        assertTrue(driverHost.contains("override fun placesChanged() { savedPlaces = null }"))
+        assertTrue(driverHost.contains("override fun placesChanged() { keptPlaces.savedPlaces = null }"))
         assertTrue(driverHost.contains("override fun toursChanged(toRoute: List<Long>) { refreshTours(); followSyncedSavedPlan(); routeSyncedPlans(toRoute) }"))
         assertTrue(driverHost.contains("override fun newerData(tiles: List<String>) { refreshRoutingTiles(tiles, \"a plan from the browser was routed with newer data\") }"))
         assertTrue(driverHost.contains("SyncPoll.routesScreen(routesOpen, showSettings, settingsPage == SettingsPage.SYNC)"))

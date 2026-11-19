@@ -77,7 +77,7 @@ class PlaceSync(private val encode: (Place) -> String, private val decode: (Stri
             if (item.id == SyncPlaces.HOME_ID) {
                 val home = s.home
                 val untouched = seen == null || (home == null && seen.home == null) ||
-                    (home != null && seen.home != null && SavedPlaces.same(home, seen.home))
+                    (home != null && seen.home?.let { SavedPlaces.same(home, it) } == true)
                 if (!untouched) continue
                 if (!item.deleted) {
                     if (p != null && (home == null || !SavedPlaces.same(home, p))) s = s.withHome(p)

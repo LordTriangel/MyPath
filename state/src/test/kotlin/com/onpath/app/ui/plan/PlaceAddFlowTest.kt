@@ -49,7 +49,7 @@ import kotlin.coroutines.CoroutineContext
  * Replaces the source pins on the view model's add functions (WholeRouteTest.placeAddedFromTheCardOrTheCandidateIsFitted,
  * PlanEditsTest.asStartIsStartHere, FarDestinationTest.cancelOfARunShowsThePinOfTheAddItTookBack, FoundPlacePinTest's
  * "adding the place takes the pin"). What has no behaviour test here: the view model's own adapters (PlaceAddAdaptersTest reads
- * them), the POI / point / pin menus and the place card (piece 12), `tourPassed` itself (tour code).
+ * them), the POI / point / pin menus and the place card (PlaceMenusFlowTest, piece 12), `tourPassed` itself (tour code).
  */
 class PlaceAddFlowTest {
     @get:Rule val composeState = OwnComposeSnapshot()

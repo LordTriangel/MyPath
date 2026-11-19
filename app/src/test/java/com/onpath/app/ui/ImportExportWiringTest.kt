@@ -61,10 +61,12 @@ class ImportExportWiringTest {
             "override fun selectActivity(a: Activity, userChange: Boolean) = this@AppViewModel.selectActivity(a, userChange)",
             "override fun showTrack(s: ShownTrack) = this@AppViewModel.showTrack(s)")) has(b, l)
         for (v in listOf("dataBusy: String?", "restoreProgress: String?", "restoreOffer: Boolean", "restartForData: Boolean",
-            "styleVersion: Int", "busy: Busy?", "sac: Int", "routesOpen: Boolean", "savedPlaces: com.onpath.app.search.SavedPlaces?")) {
+            "styleVersion: Int", "busy: Busy?", "sac: Int", "routesOpen: Boolean")) {
             val name = v.substringBefore(":")
             has(b, "override var $v\n                get() = this@AppViewModel.$name\n                set(v) { this@AppViewModel.$name = v }")
         }
+        // the kept places live in their slice (piece 12): a restore sets its cache to null through the host
+        has(b, "override var savedPlaces: com.onpath.app.search.SavedPlaces?\n                get() = keptPlaces.savedPlaces\n                set(v) { keptPlaces.savedPlaces = v }")
     }
 
     @Test fun theBackupAndRestoreGuardsAndWritesAreAsTheyWere() {
