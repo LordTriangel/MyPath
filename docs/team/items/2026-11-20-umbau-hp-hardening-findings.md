@@ -63,6 +63,12 @@ answers · cards / „Mehr“ / pictures), each finding checked by the lead befo
     reopening My routes (fix 1).
 
 ## Open (in work or noted)
+- **GitHub's unit run on fa9031fe was red once: `NoStaleDownloadsTest.runningCorridorDownloadStops`** (core, C13; line 106 – the
+  cell was still / again queued 400 ms after the plan dropped its corridor). `MapCells` is unchanged since v0.18.1 and my
+  commit does not touch it; its sibling test is a known flake on the runner. Rerun started; a helper checks whether it is
+  a real race in `MapCells` (a retry putting the cell back) or the test's 400 ms.
+- The planner run on fa9031fe was red at the parity check: my two app files (`RouteWait`, `ThumbMaker`) are mirrored by the
+  planner and needed a parity note – my miss (`node web/parity/check.mjs` before an app push); the laptop added it (0072edd7).
 - Noted for [umbau], after the release: nothing pins the real host adapters in `AppViewModel` for `TourSession`, `TourEdits`,
   `PlanRecalcSlice`, `TourEndSlice` (the flow tests use their own fakes) – a source-text test like `RoutesWiringTest`.
 - Noted, no fix tonight: L5's service half is guarded by source-text tests only (no test drives `RecordingService`);
