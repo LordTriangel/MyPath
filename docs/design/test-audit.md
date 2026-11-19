@@ -333,7 +333,7 @@ Per package: **before it moves**, sort its tests (this file), do the CONVERT tha
 
 The three flow tests that must exist **before** their group is deleted: `SaveFlowTest` (G04, C18), `TourEndFlowTest` (G05, C4 / C12), `RecordingServiceHarnessTest` (G08, phase 4). The `BrokenInputs` helper (G01) goes into `testkit` in the first piece.
 
-## 9. Rule for `docs/working-agreement.md` (proposal)
+## 9. Rule for `docs/team/working-agreement.md` (proposal)
 
 > **Tests.** A new test names, in its KDoc, the risk or the behaviour it guards (a core feature C-id, a field bug with its date, an owner decision, a stored format) – a test without that line is not merged.
 > Tests that pin wording, colours, dp numbers or the structure of the code do not get written; a text of the main source is read by a test only for a rule from the stay list (`test-audit.md` §3.1). Prefer one flow or table test per feature over many small tests of one function.

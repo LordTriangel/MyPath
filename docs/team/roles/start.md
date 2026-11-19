@@ -5,7 +5,7 @@ one-branch merge (2026-11-06) both work on `main`; the laptop keeps the planner 
 it owns) and cloud-web works as before (`cloud-web.md`). The captain: `captain.md`. Why it is built this way and what was tested:
 `multi-agent-lernen.md`.
 
-**Start sentence** (the owner types it once): „Du bist die Einheit **donald** (OnPath). Lies `docs/roles/start.md`.“
+**Start sentence** (the owner types it once): „Du bist die Einheit **donald** (OnPath). Lies `docs/team/roles/start.md`.“
 
 ## How it runs
 - The computer runs a **host**: `tools/dev/unit.sh run <name>` in the checkout (`claude remote-control`, spawn mode
@@ -14,37 +14,37 @@ it owns) and cloud-web works as before (`cloud-web.md`). The captain: `captain.m
   own worktrees (`CLAUDE.md` "Sub-agents", "Responsive chat").
 - **Wake-up: off** (owner 2026-11-07, calm phase, saves tokens): the session works when the owner writes to it. Do not
   create a scheduled task or `/loop` yourself. The paused task (`create_trigger`, `persistent_session_id` = the session,
-  prompt „Runde – docs/roles/start.md“) is switched on again only on the owner's word.
+  prompt „Runde – docs/team/roles/start.md“) is switched on again only on the owner's word.
 - When the context reaches ~350,000 tokens (phase 0d of `docs/design/architecture-plan-2026-11.md`): handoff file
-  `docs/history/handoff-<role>-<date>.md`, archive, start a new session with the same sentence – the repo is the memory.
+  `docs/team/handoffs/handoff-<role>-<date>.md`, archive, start a new session with the same sentence – the repo is the memory.
 
-## Who takes what (tags in `docs/backlog.md` "Next")
+## Who takes what (tags in `docs/team/backlog.md` "Next")
 `[pixel]`, `[emu]` → donald · `[karten]`, `[ram]` → laptop · no tag → any unit that is free. The owner does not route:
 an item said to the wrong session goes into the backlog for the right one.
 
 ## The round (every wake-up and whenever the owner writes – the start hook already shows 2–4)
 1. `git pull --rebase origin main`.
-2. Owner's word: `docs/backlog.md` "For the roles" – a line with your tag → do it, then remove your tag (the line
+2. Owner's word: `docs/team/backlog.md` "For the roles" – a line with your tag → do it, then remove your tag (the line
    when no tag is left).
-3. Answers: `docs/backlog.md` "Waiting for the owner" – a question of this unit the owner has answered (in a chat) →
+3. Answers: `docs/team/backlog.md` "Waiting for the owner" – a question of this unit the owner has answered (in a chat) →
    act, delete the line.
 4. `wip/<name>-…` branches (work saved before a shutdown): bring them to `main`, say so in the handoff. Old branches
    go with `tools/dev/prune_branches.sh` (owner 2026-11-06): `list` → one question box to the owner with exactly that list
    ("Alle löschen" / "Nein"; branches checked by hand marked as such) → on yes `delete [--by-hand "<why>"] <branches…>`,
-   then commit + push `docs/history/deleted-branches.md`. Never the bare git delete commands; `restore <branch>` undoes one.
+   then commit + push `docs/team/deleted-branches.md`. Never the bare git delete commands; `restore <branch>` undoes one.
 5. Next item this unit can do and nobody claims → claim under "In progress", push.
 6. Work: small green commits, `tools/ci/gate.sh`, push. Gradle only in a slot (`gate.sh` / `tools/dev/gradle_slot.sh`),
-   devices only via `tools/dev/device.sh`, phone rules in `docs/owner-preferences.md`.
+   devices only via `tools/dev/device.sh`, phone rules in `docs/team/owner-preferences.md`.
 7. Done: remove the claim (role / claim lines ≤ 400 bytes, other items one short title line, detail in
-   `docs/items/<date>-<slug>.md`; the gate caps the backlog, target 20 KB), one handoff line in "Last session"
-   (`docs/project-status.md`), push (`docs/working-agreement.md` §1).
+   `docs/team/items/<date>-<slug>.md`; the gate caps the backlog, target 20 KB), one handoff line in "Last session"
+   (`docs/project-status.md`), push (`docs/team/working-agreement.md` §1).
 
 **Before switching the computer off / when asked to stop:** push everything; half-done work on a `wip/<name>-<date>-<topic>`
 branch.
 
 ## Questions to the owner
-In your own chat as a question box (rules: `docs/owner-preferences.md`). Push first if the answer blocks you. Still
-open when you stop → one line under "Waiting for the owner" in `docs/backlog.md` (who, date, question, recommendation).
+In your own chat as a question box (rules: `docs/team/owner-preferences.md`). Push first if the answer blocks you. Still
+open when you stop → one line under "Waiting for the owner" in `docs/team/backlog.md` (who, date, question, recommendation).
 Not urgent → take the recommendation, note it, go on.
 
 ## Never

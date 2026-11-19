@@ -3,7 +3,7 @@
 Status: **live** on plan.onpath.earth (public, no login; `noindex` until the launch, §18.4). Code: `web/` on `main`
 (one branch since 2026-11-06; `web-spike` is frozen). CI and deploy: "Web planner" (`.github/workflows/web.yml`, §9);
 it goes online with an app release (release.yml job "planner") or by hand (Actions → Web planner → Run workflow →
-deploy). Owner: `docs/roles/cloud-plan.md` (the laptop). Plan sync phone ⇄ browser: `docs/design/web-sync.md`.
+deploy). Owner: `docs/team/roles/cloud-plan.md` (the laptop). Plan sync phone ⇄ browser: `docs/design/web-sync.md`.
 Sections 1–5 (the first KMP proposal of 2026-10-23) were dropped; the section numbers stay because code cites them.
 
 ## 6. Architecture – the same bytecode in the browser (decided 2026-10-23)
@@ -1038,7 +1038,7 @@ Also (owner 2026-11-07, app f37793d0 `RouteWarnings.saysChanged`): the user's ow
 ## 27. The load overlay – the map of a new place loading, in percent (laptop, 2026-11-13)
 **Replaced 2026-11-19 by the app's progress design** (owner: „wir haben den Fortschritt nun an unterschiedlichen Stellen
 und Formen … vereinheitlichen“; „A, aber nie mehr als 3 Häkchen; B: einfach nur Prozent, muss aber passen für die
-gesamte Aktion“ – `docs/items/2026-11-19-progress-design-on-main.md`). **Form A, the wait window** (`loadoverlay.ts`, the
+gesamte Aktion“ – `docs/team/items/2026-11-19-progress-design-on-main.md`). **Form A, the wait window** (`loadoverlay.ts`, the
 app's `ui/progress/WaitWindow.kt` + `MapLoad.kt` MapWait + `RouteWait.kt`, mirrored): one window over the free map's middle,
 always the same – sign + title, ONE bar 0–100 with its number over all steps, at most 3 step rows with ticks, the time
 left („about 20 seconds left“, „taking a bit longer…“ when a step overruns), Cancel. A new place's map, its routing data

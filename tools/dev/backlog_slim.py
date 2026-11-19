@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Keep docs/backlog.md small: one line per item, detail in docs/items/<date>-<slug>.md (stdlib only).
+"""Keep docs/team/backlog.md small: one line per item, detail in docs/team/items/<date>-<slug>.md (stdlib only).
 
-  python3 tools/dev/backlog_slim.py            rewrite docs/backlog.md, write the item files, print sizes + files
+  python3 tools/dev/backlog_slim.py            rewrite docs/team/backlog.md, write the item files, print sizes + files
   python3 tools/dev/backlog_slim.py --check    only check the cap (exit 1 + the 5 longest lines when over it)
   python3 tools/dev/backlog_slim.py --dry-run  show what would change, write nothing
 
 Section structure, header, HTML comments (also multi-line ones) and the order of items stay. Idempotent: an item whose
-head line already ends with a link to docs/items is never touched again, so a second run changes nothing.
+head line already ends with a link to docs/team/items is never touched again, so a second run changes nothing.
   - "For the roles", "For the captain", "In progress": an item up to ROLE_MAX bytes stays complete; a longer one keeps
     a head of ~ROLE_HEAD bytes + " → [detail](items/<file>.md)"; the full text goes to the file.
   - every other section ("Next", "Waiting for the owner", "Later", ...): an item over ITEM_MAX bytes becomes one line:
@@ -28,9 +28,9 @@ SLUG_MAX = 40
 ROLE_SECTIONS = ("For the roles", "For the captain", "In progress")
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-BACKLOG = os.path.join(ROOT, "docs", "backlog.md")
-ITEMS = os.path.join(ROOT, "docs", "items")
-LINK_END = re.compile(r"(docs/items/[^\s)]+\.md|\]\(items/[^)\s]+\.md\))\s*$")
+BACKLOG = os.path.join(ROOT, "docs", "team", "backlog.md")
+ITEMS = os.path.join(ROOT, "docs", "team", "items")
+LINK_END = re.compile(r"(docs/team/items/[^\s)]+\.md|\]\(items/[^)\s]+\.md\))\s*$")
 ATOMIC = re.compile(r"`[^`\n]*`|\[[^\]\n]*\]\([^)\n]*\)")  # code span, markdown link
 PAIRS = {"(": ")", "[": "]", "„": "“"}
 
@@ -137,7 +137,7 @@ def item_date(text, today):
 
 
 def write_item(title, slug_src, date, lines, written, dry):
-    """Write docs/items/<date>-<slug>.md (reuse an identical existing file); return the file name."""
+    """Write docs/team/items/<date>-<slug>.md (reuse an identical existing file); return the file name."""
     body = "# " + re.sub(r"\s+", " ", re.sub(r"\*\*", "", title)).strip() + "\n\n" + "\n".join(lines) + "\n"
     base = f"{date}-{slugify(slug_src)}"
     n = 1
@@ -232,14 +232,14 @@ def slim(text, dry=False, today=None):
 
 def check():
     if not os.path.exists(BACKLOG):
-        print("docs/backlog.md does not exist – nothing to check")
+        print("docs/team/backlog.md does not exist – nothing to check")
         return 0
     size = os.path.getsize(BACKLOG)
     if size <= CAP:
-        print(f"docs/backlog.md is {size} bytes (cap {CAP}) – ok")
+        print(f"docs/team/backlog.md is {size} bytes (cap {CAP}) – ok")
         return 0
     ls = sorted(open(BACKLOG, encoding="utf-8").read().split("\n"), key=lambda x: -nbytes(x))[:5]
-    print(f"docs/backlog.md is {size} bytes (cap {CAP}): delete role lines every tag has read and items that are done; "
+    print(f"docs/team/backlog.md is {size} bytes (cap {CAP}): delete role lines every tag has read and items that are done; "
           "then run tools/dev/backlog_slim.py")
     print("The 5 longest lines:")
     for l in ls:
@@ -251,16 +251,16 @@ def main(argv):
     if "--check" in argv:
         return check()
     if not os.path.exists(BACKLOG):
-        print("docs/backlog.md does not exist – nothing to do")
+        print("docs/team/backlog.md does not exist – nothing to do")
         return 0
     dry = "--dry-run" in argv
     old = open(BACKLOG, encoding="utf-8", newline="").read()
     new, written = slim(old, dry)
-    print(f"docs/backlog.md: {nbytes(old)} -> {nbytes(new)} bytes ({len(old.splitlines())} -> {len(new.splitlines())} lines)")
+    print(f"docs/team/backlog.md: {nbytes(old)} -> {nbytes(new)} bytes ({len(old.splitlines())} -> {len(new.splitlines())} lines)")
     if new != old and not dry:
         with open(BACKLOG, "w", encoding="utf-8", newline="") as f:
             f.write(new)
-    print(f"{len(written)} item file(s) {'that would be ' if dry else ''}written to docs/items/:")
+    print(f"{len(written)} item file(s) {'that would be ' if dry else ''}written to docs/team/items/:")
     for fn in written:
         print("  " + fn)
     if nbytes(new) > CAP:

@@ -1,11 +1,11 @@
 # OnPath – project status and decisions
 
-Current release **v0.17.2** (2026-11-07). Open work: `docs/backlog.md`. Core features and their tests:
+Current release **v0.17.2** (2026-11-07). Open work: `docs/team/backlog.md`. Core features and their tests:
 `docs/core-features.md`. What each release changed: GitHub Releases (`docs/release-notes/` holds only the current
 release's notes) and the git history – this file keeps only the current state and the decisions that still apply.
 
 ## Where things are
-<!-- Kept by the captain every round (docs/roles/captain.md). -->
+<!-- Kept by the captain every round (docs/team/roles/captain.md). -->
 - **GitHub release:** v0.17.2 (2026-11-07 ~07:45, 7dd730f5, donald): calmer look (walnut, paper, ink blue), plan and tour
   apart with "Zuletzt", hold to unlock, route previews, the night's code audit. Before it: gate --full, GitHub E2E
   CoreField / CorePlan / CorePlanLink / Release-Rundgang green, unit.yml green. Details: the git history of that day.
@@ -19,13 +19,13 @@ release's notes) and the git history – this file keeps only the current state 
   uploaded by hand (`docs/play-build.md`); first release 0.17.3 (versionCode 1703), 0.17.4 (1704) live 2026-11-07, 3–4 testers by email list. Every new
   upload needs a higher versionCode. The owner's Pixel stays on donald's debug builds (Play over GitHub/debug = uninstall).
 - **Owner decisions 2026-11-07:** "on the line" = 24 dp (the `metersPerPixel` fix has been on main since 46e93b09);
-  offline corridor 10 km on foot, 20 km for bike activities (donald). Smaller open items: `docs/backlog.md`; open questions: backlog "Waiting for the owner"; the owner's own questions: the Fragenregister.
+  offline corridor 10 km on foot, 20 km for bike activities (donald). Smaller open items: `docs/team/backlog.md`; open questions: backlog "Waiting for the owner"; the owner's own questions: the Fragenregister.
 
 ## Last session
-- **IR, 2026-11-18/19 – tour suggestions live (READ `docs/history/handoff-ir-2026-11-19.md`):** planner + app on by default, swipe card row, „Rundtour von hier“ only for the first point, suggest files in all cells, core lean (bike 3 h < 96 MB), README + website pictures.
-- **umbau-hp, 2026-11-19 23:00 – READ `docs/items/2026-11-20-umbau-hp-release-hardening-start.md`:** next job = release hardening for 0.18.2 (claimed, not started). Done before: routing spike 5a (`docs/design/routing-kmp-spike.md`; the port 5b has the owner's go, after the release, start = [umbau]'s line „P1 + H1 on main“), phase 4b as far as it goes without app code (`docs/items/2026-11-19-umbau-hp-phase-4b-result.md`). Worktree `.claude/worktrees/umbau-hp` (branch `umbau-hp-work`).
-- **donald, 2026-11-19 – 0.18.1 released (dccc49789):** round trips for everyone, progress design (A window / B ring), Undo in the points list, „Tag 2 starten“, Zuhause hidden; four red tests fixed (TourDb 8→9, hold-measure, overview swipe, Rundgang flow 10 = a real double map move). Planner deploy pending ([laptop]). State: `docs/items/2026-11-19-donald-fresh-session-state.md`.
-- **donald, 2026-11-18 late – READ `docs/history/handoff-donald-2026-11-18-late.md`:** v0.18.0 released; calm line dropped; website pictures; open: 0.18.1 (owner's word), Zuhause branch, Undo in the points sheet, E06.
+- **IR, 2026-11-18/19 – tour suggestions live (READ `docs/team/handoffs/handoff-ir-2026-11-19.md`):** planner + app on by default, swipe card row, „Rundtour von hier“ only for the first point, suggest files in all cells, core lean (bike 3 h < 96 MB), README + website pictures.
+- **umbau-hp, 2026-11-19 23:00 – READ `docs/team/items/2026-11-20-umbau-hp-release-hardening-start.md`:** next job = release hardening for 0.18.2 (claimed, not started). Done before: routing spike 5a (`docs/design/routing-kmp-spike.md`; the port 5b has the owner's go, after the release, start = [umbau]'s line „P1 + H1 on main“), phase 4b as far as it goes without app code (`docs/team/items/2026-11-19-umbau-hp-phase-4b-result.md`). Worktree `.claude/worktrees/umbau-hp` (branch `umbau-hp-work`).
+- **donald, 2026-11-19 – 0.18.1 released (dccc49789):** round trips for everyone, progress design (A window / B ring), Undo in the points list, „Tag 2 starten“, Zuhause hidden; four red tests fixed (TourDb 8→9, hold-measure, overview swipe, Rundgang flow 10 = a real double map move). Planner deploy pending ([laptop]). State: `docs/team/items/2026-11-19-donald-fresh-session-state.md`.
+- **donald, 2026-11-18 late – READ `docs/team/handoffs/handoff-donald-2026-11-18-late.md`:** v0.18.0 released; calm line dropped; website pictures; open: 0.18.1 (owner's word), Zuhause branch, Undo in the points sheet, E06.
 <!-- Newest first; keep the newest 2–3 entries – older ones go (git history has them). Who (donald / laptop / captain / cloud-web), date, what changed, what's half done, next. -->
 
 ## Where we are
@@ -41,7 +41,7 @@ release's notes) and the git history – this file keeps only the current state 
 - Map pipeline and cell builds: `docs/map-pipeline.md`, `tools/cells/`, `tools/cloud/`, dev loop `tools/dev/`.
 
 ## Decisions (still valid – the one place for product rules)
-How we work together: `docs/owner-preferences.md`.
+How we work together: `docs/team/owner-preferences.md`.
 
 | Topic | Decision |
 | --- | --- |

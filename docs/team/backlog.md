@@ -1,11 +1,11 @@
 # Backlog (shared by all sessions)
 
-Claim / handoff rules: `docs/working-agreement.md` §1. Claim an item under "In progress" before working on it (one line,
+Claim / handoff rules: `docs/team/working-agreement.md` §1. Claim an item under "In progress" before working on it (one line,
 push immediately), remove it when done. Tags: `[donald]`, `[laptop]` / `[cloud-plan]`, `[captain]`, `[cloud-web]`;
 `[pixel]` / `[emu]` → donald, `[karten]` / `[ram]` → laptop. Newest requests on top. Owner decisions are marked **(owner)**; decisions
 that still apply are listed in `docs/project-status.md`. Finished work is not kept here – see GitHub Releases
 and the commit history. Role and claim lines (For the roles, For the captain, In progress) stay complete up to 400 bytes, every other
-item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`tools/dev/backlog_slim.py` moves it). The gate
+item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` (`tools/dev/backlog_slim.py` moves it). The gate
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
@@ -110,7 +110,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - ← [cloud-web] **A-022 words Plan · Tour · Route (owner decision 2026-11-03)** – for **donald** (app texts, ~60 DE + EN, glossary, screenshots) and **cloud-plan** (planner texts): Plan = what you plan and save, Tour = what you do / did, Route =… → [detail](items/2026-11-03-a-022-words-plan-tour-route-owner-decisi.md)
 
 ## In progress
-- [umbau-hp] Release hardening for 0.18.2 (owner's night 2026-11-19 → 20): review of everything since `v0.18.1` by risk, a behaviour test per unguarded risk, tests and small fixes only – starts in a fresh session, brief `docs/items/2026-11-20-umbau-hp-release-hardening-start.md` – since 2026-11-19 23:00
+- [umbau-hp] Release hardening for 0.18.2 (owner's night 2026-11-19 → 20): review of everything since `v0.18.1` by risk, a behaviour test per unguarded risk, tests and small fixes only – starts in a fresh session, brief `docs/team/items/2026-11-20-umbau-hp-release-hardening-start.md` – since 2026-11-19 23:00
 - [tracking] Live tracking – the tour as a link for the family (owner 2026-11-19): design + build plan in `docs/design/live-tracking.md` (decisions §12); code starts after the weekend release is out – since 2026-11-19
 - [donald] Weekend release round (0.18.2): notes drafted; the round (E2E full + Rundgang + fresh-install tests on the release commit, release_check) starts at [umbau]'s „main is clean“; publishing on the owner's word – since 2026-11-19 night
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)

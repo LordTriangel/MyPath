@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start the Remote Control host of this computer in this checkout (docs/roles/start.md, tested on donald 2026-11-01):
+# Start the Remote Control host of this computer in this checkout (docs/team/roles/start.md, tested on donald 2026-11-01):
 #   tools/dev/unit.sh run <name>      e.g. donald, laptop
 # A plain `claude remote-control` hosts up to 32 sessions; restarting it reconnects every session of the folder.
 # Spawn mode "worktree" (press w once in the folder, saved per folder): every new session gets its own git worktree.

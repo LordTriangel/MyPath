@@ -1,6 +1,6 @@
 # Handoff laptop – 2026-11-17 late (context nearly full – the next laptop session starts here)
 
-Read first: the top lines of `docs/backlog.md` „For the roles“ (captain 49750e83 ~23:20 = the order for tomorrow
+Read first: the top lines of `docs/team/backlog.md` „For the roles“ (captain 49750e83 ~23:20 = the order for tomorrow
 evening's owner goal), then this page, then `handoff-laptop-2026-11-16.md`.
 
 ## Owner's goal (captain 2026-11-17 ~23:20)

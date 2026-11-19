@@ -142,9 +142,9 @@ geplant; heute schützen Auto-Modus, Deny-Regeln und der Push-Hook.
 ## 7. Wo was liegt
 | Thema | Datei |
 | --- | --- |
-| Wer arbeitet wo | `docs/roles/README.md` |
-| Zusammenarbeit (Claim, Übergabe, Konflikte, E2E) | `docs/working-agreement.md` |
-| Arbeitsweise der Rechner-Sitzungen | `docs/roles/start.md` |
-| Captain | `docs/roles/captain.md` |
+| Wer arbeitet wo | `docs/team/roles/README.md` |
+| Zusammenarbeit (Claim, Übergabe, Konflikte, E2E) | `docs/team/working-agreement.md` |
+| Arbeitsweise der Rechner-Sitzungen | `docs/team/roles/start.md` |
+| Captain | `docs/team/roles/captain.md` |
 | Skripte | `tools/ci/gate.sh`, `tools/ci/release_check.sh`, `tools/dev/{unit,device,gradle_slot}.sh`, `tools/hooks/` |
 | Erzwungene Regeln | `.claude/settings.json` (Hooks, Deny), `.claude/rules/` |

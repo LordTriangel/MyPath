@@ -100,7 +100,7 @@ You need **Android 8 or newer**. There is no iPhone app.
 Current limitations include the early map-service setup, downloads that can take a few minutes for a new area,
 round-trip suggestions that are new and little tested, and limited field testing across devices. Offline spoken directions require
 a suitable text-to-speech voice installed on the phone. The [project status](docs/project-status.md) and
-[backlog](docs/backlog.md) track ongoing work.
+[backlog](docs/team/backlog.md) track ongoing work.
 
 ## How it works
 

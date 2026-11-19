@@ -79,7 +79,7 @@ class T(unittest.TestCase):
         new, w = self.slim(doc(nxt=line))
         self.assertIn(line.rstrip(), new)
         self.assertEqual(w, [])
-        old_style = "- [IR] " + "w " * 300 + "→ docs/items/2026-01-01-y.md\n"
+        old_style = "- [IR] " + "w " * 300 + "→ docs/team/items/2026-01-01-y.md\n"
         new, w = self.slim(doc(roles=old_style))
         self.assertEqual(w, [])
 

@@ -6,7 +6,7 @@
 #   tools/dev/device.sh status                                        who holds what, since when
 # Default: wait for the device (a line says who has it). --try: busy → exit 75 at once, so the agent does other work
 # first. --max SEC: give up after SEC seconds (exit 75). Exit: the command's, 75 = device busy, 3 = refused, 2 = usage.
-# Pixel extra (docs/owner-preferences.md "The owner's phone"): an install command (adb install / installDebug) is refused
+# Pixel extra (docs/team/owner-preferences.md "The owner's phone"): an install command (adb install / installDebug) is refused
 # while OnPath records a tour on the phone (RecordingService running) – exit 3.
 # Env: ONPATH_AGENT = a short name for the status line (default: folder + branch), WORK (default ~/onpath-cells-work).
 set -uo pipefail

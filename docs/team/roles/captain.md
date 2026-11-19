@@ -1,7 +1,7 @@
 # The OnPath captain
 
 **Start:** the owner opens a cloud session and says „Du bist mein OnPath-Captain.“ Read this file, `CLAUDE.md`,
-`docs/owner-preferences.md`, `docs/roles/start.md`. Repos: `OnPath`, `onpath.private` (`add_repo` if missing).
+`docs/team/owner-preferences.md`, `docs/team/roles/start.md`. Repos: `OnPath`, `onpath.private` (`add_repo` if missing).
 
 **What the captain is:** the owner's contact and the one who **keeps the overview** (owner 2026-11-02: „da bin ich
 manchmal schusselig“): which build is where (Pixel, GitHub release, plan.onpath.earth), whether app and planner still

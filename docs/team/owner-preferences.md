@@ -9,13 +9,13 @@ Shared by every session (donald, laptop, captain, cloud-web). Product rules (UX,
   Owner 2026-11-01, the general motto: open questions always as a **question box with answer options, one after the
   other**, each with 2–3 lines of background – never a list of questions in prose. Ask in your own chat (owner
   2026-11-07: no more question issues – he always answered in the chat). Not answered when the session stops → one line
-  under "Waiting for the owner" in `docs/backlog.md` (who, date, question, recommendation); whoever acts on the answer
+  under "Waiting for the owner" in `docs/team/backlog.md` (who, date, question, recommendation); whoever acts on the answer
   deletes it. "Nie warten": take the recommendation, note it, go on.
 - **No numbers toward the owner** (owner 2026-11-02: "sowas wie #19 kann ich mir nicht merken"): in the chat and in
   push messages name a question, commit or item by a short description ("die Frage zum Startknopf"), never by
   its number alone. Numbers stay in the backlog and commit messages for the sessions; the owner may answer
   with a word ("Startknopf: A").
-- **Planner deploys in the test phase** (owner 2026-11-06): the planner goes online right after the affected local tests – GitHub's full run continues behind it; a red run is fixed and deployed again (`docs/roles/cloud-plan.md`).
+- **Planner deploys in the test phase** (owner 2026-11-06): the planner goes online right after the affected local tests – GitHub's full run continues behind it; a red run is fixed and deployed again (`docs/team/roles/cloud-plan.md`).
 - **No Fragenregister any more** (owner 2026-11-17: „brauchen wir nicht mehr“): the page is not written any more; answer in the chat only.
 - **The owner does not relay between sessions** (owner 2026-11-17): a word for the captain goes into the backlog under "For the captain" (`← [role] …`) – the captain reads it whenever the owner next writes to it; never ask the owner to pass a message on.
 - Plain words, short updates, outcome first. No diffs or file dumps in the terminal; quiet tool calls, one-line results.
@@ -29,8 +29,8 @@ gestures, re-routing only after asking, core-feature bugs test first, public tex
 
 ## How sessions work
 - **The owner must notice when a session waits** (owner 2026-11-02): on donald / the laptop the Claude push is on
-  (`/config`: "Push when actions required" + "Push when Claude decides" – `docs/roles/multi-agent-lernen.md` §2); an
-  open question outlives the session only as a line under "Waiting for the owner" in `docs/backlog.md`.
+  (`/config`: "Push when actions required" + "Push when Claude decides" – `docs/team/roles/multi-agent-lernen.md` §2); an
+  open question outlives the session only as a line under "Waiting for the owner" in `docs/team/backlog.md`.
 - **Main session talks and distributes; work runs in background agents** (builds, checks, merges, installs). The
   main session keeps the overview of all agents (task → state → next step), stops stuck ones, and reports without
   being asked. **The chat stays responsive** (owner 2026-11-01): a request that takes longer than ~2 minutes and stands
@@ -42,7 +42,7 @@ gestures, re-routing only after asking, core-feature bugs test first, public tex
   builds per computer, one while the emulator runs; `gate.sh` uses `--max-workers=2`, nice + ionice); other heavy jobs
   `nice -n 19 ionice -c3`, Docker `--cpus=2`, `OMP_NUM_THREADS=1`. E2E (owner 2026-11-06): the local emulator on donald
   only for the test(s) a change is about, one at a time via `tools/dev/device.sh`; whole E2E classes and the
-  Release-Rundgang run on GitHub (`tools/ci/e2e_github.sh`) – `docs/working-agreement.md` "E2E".
+  Release-Rundgang run on GitHub (`tools/ci/e2e_github.sh`) – `docs/team/working-agreement.md` "E2E".
 - **Code first for bugs:** when diagnostics exist, find the cause by reading the code and reproduce it in a JVM test.
   Use the phone only briefly to confirm, say how long, say when it is free again, and restore the owner's app state
   before handing it back (a long trial-and-error session on the phone was not OK).
@@ -59,7 +59,7 @@ gestures, re-routing only after asking, core-feature bugs test first, public tex
   configuration cache a changed property may be ignored – use `--no-configuration-cache` and check the APK contains
   `assets/overview/*.pmtiles`.
 
-## Setup work (owner 2026-11-05, after the setup audit – lessons in `docs/roles/multi-agent-lernen.md` §4)
+## Setup work (owner 2026-11-05, after the setup audit – lessons in `docs/team/roles/multi-agent-lernen.md` §4)
 - **Research and check before building**: docs, existing solutions, the sessions' real transcripts; prove platform
   facts with a small test. Never sell an assumption as a fact.
 - No new mechanism without a real case; unused for a week → removed. Hooks / `gate.sh` / locks hit every session at

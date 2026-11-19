@@ -2,7 +2,7 @@ import unittest, risk_tests as r
 
 class RiskTests(unittest.TestCase):
     def test_core_always(self):
-        self.assertEqual(r.select(["docs/backlog.md"]), sorted(r.CORE))
+        self.assertEqual(r.select(["docs/team/backlog.md"]), sorted(r.CORE))
     def test_changed_package_added(self):
         self.assertIn("search", r.select(["app/src/main/java/com/onpath/app/search/OnlineSearch.kt"]))
     def test_texts_run_the_ui_tests(self):
@@ -24,7 +24,7 @@ class RiskTests(unittest.TestCase):
     # gate.sh (local agent gate)
     SHOTS = {"ui", "search"}
     def test_gate_docs_only_skips_gradle(self):
-        g = r.gate(["docs/backlog.md", "CLAUDE.md", "web/x.ts"], self.SHOTS)
+        g = r.gate(["docs/team/backlog.md", "CLAUDE.md", "web/x.ts"], self.SHOTS)
         self.assertEqual((g["mode"], g["paparazzi"], g["release"]), ("skip", 0, 0))
     def test_gate_no_changes_skips(self):
         self.assertEqual(r.gate([], self.SHOTS)["mode"], "skip")

@@ -24,13 +24,11 @@ Questions and ideas: the GitHub discussions and issues of this repository.
 ## Internal working notes
 
 OnPath is built by several Claude Code sessions working side by side for the owner. Their shared memory is in the
-repository, so it is public – but it is a workbench, not documentation:
-
-| What | Where |
-| --- | --- |
-| the to-do list, claims and messages between the sessions | [backlog.md](backlog.md), detail per item in [items/](items/) |
-| where things stand, the last hand-over | [project-status.md](project-status.md), longer hand-overs in [history/](history/) |
-| how the sessions work together, who does what | [working-agreement.md](working-agreement.md), [roles/](roles/), [owner-preferences.md](owner-preferences.md) |
+repository, so it is public – but it is a workbench, not documentation. All of it is in one folder,
+[team/](team/README.md): the to-do list with its claims and messages (`backlog.md`, detail in `items/`), the hand-overs
+(`handoffs/`), who does what (`roles/`, `working-agreement.md`) and how the owner likes to work
+(`owner-preferences.md`). Beside it: [project-status.md](project-status.md) – where things stand and the product
+decisions that still apply.
 
 Finished work is not kept there: the git history and the releases hold it. Trials that are in no build live in
 [`experiments/`](../experiments/README.md) at the top of the repository.

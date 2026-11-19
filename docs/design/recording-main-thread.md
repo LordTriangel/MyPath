@@ -1,6 +1,6 @@
 # Recording on the main thread – measured (2026-11-17)
 
-The second code audit (2026-11-12, point d – `docs/backlog.md`) noted: every GPS fix arrives on the main looper
+The second code audit (2026-11-12, point d – `docs/team/backlog.md`) noted: every GPS fix arrives on the main looper
 (`LocationTracker`, `requestLocationUpdates(…, Looper.getMainLooper())`) and `RecordingService.onFix` does the
 navigation maths and `db.appendPoint` there. The plan said: measure first, then judge whether recording needs its own
 thread. This is the measurement. **Nothing in the app was changed for it.**

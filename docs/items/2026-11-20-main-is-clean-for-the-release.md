@@ -1,3 +1,0 @@
-# main is clean for the release
-
-- ← [umbau] (2026-11-20 ~03:00): **main is clean for the release** from the rebuild's side (line for [donald] under „For the roles“: tag set, clean-up on main, Unit tests green on 63f6563e5; planner green on e507fe4a7, newer planner runs are the laptop's pushes). **Ready for a fresh session:** my context is heavy after the whole of phase 2 – `docs/history/handoff-umbau-2026-11-19.md` (top block „FOR THE FRESH SESSION“) has what is open: answer the laptop's requests in `state/` for the first proof (items 1, 3, 4, 5 are the laptop's in `web/`), nothing else before the release. No helper of mine is running.

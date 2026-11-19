@@ -11,11 +11,11 @@
 #   tools/dev/prune_branches.sh restore <branch>     brings a deleted branch back from the log
 # A branch is a candidate when: not main / web-spike / HEAD; no open pull request; last commit older than 12 h (a
 # session may still be on it); and every commit of it is in main or in web-spike (ancestor, or the same patch – git cherry).
-# Every deletion goes to docs/history/deleted-branches.md (date, branch, last commit) – commit and push that file after.
+# Every deletion goes to docs/team/deleted-branches.md (date, branch, last commit) – commit and push that file after.
 # Exit: 0 ok, 2 usage, 3 refused (a branch is not safe – nothing of it is deleted).
 set -uo pipefail
 cd "$(git rev-parse --show-toplevel)" || exit 2
-LOG=docs/history/deleted-branches.md
+LOG=docs/team/deleted-branches.md
 MIN_AGE_H=${MIN_AGE_H:-12}
 PROTECTED=" main web-spike HEAD "
 usage() { sed -n '2,/^set -uo/p' "$0" | sed '$d; s/^# \{0,1\}//'; }

@@ -294,7 +294,7 @@ OnPath app.
 | How long stays the finished tour visible? | **12 h** after the end, then deleted | owner, chat 2026-11-20 |
 | Where does „Live teilen“ sit? | **In the running tour's menu** only | owner, chat 2026-11-20 |
 | „Wie es mir geht“ in version 1? | **Automatic signs only**; „Alles gut 👍“ is the first later step | owner, chat 2026-11-20 |
-| Show the phone's battery level to the viewer? | **Yes** – it explains a silent phone | [tracking]'s recommendation, night 19→20 Nov (`docs/items/2026-11-20-night-answers.md`) – the owner may overrule |
+| Show the phone's battery level to the viewer? | **Yes** – it explains a silent phone | [tracking]'s recommendation, night 19→20 Nov (`docs/team/items/2026-11-20-night-answers.md`) – the owner may overrule |
 | The name on the page? | **Asked once at the first share** (may stay empty → „Live-Tour“), changeable in Settings | [tracking]'s recommendation, same night – the owner may overrule |
 
 Still the owner's before anything is built on screen: the real pictures of the app's share sign / menu and of the viewer

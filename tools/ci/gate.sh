@@ -65,8 +65,8 @@ eval "$(python3 tools/ci/risk_tests.py --gate "${CHANGED[@]}")" || { echo "gate:
 echo "gate: base $(git rev-parse --short "$BASE_SHA") ($BASE) · ${#CHANGED[@]} changed file(s) · $mode – $why"
 
 rc=0
-# docs/backlog.md has a size cap (one line per item, detail in docs/items/) – cheap, runs on every path
-if [[ " ${CHANGED[*]} " == *" docs/backlog.md "* ]]; then
+# docs/team/backlog.md has a size cap (one line per item, detail in docs/team/items/) – cheap, runs on every path
+if [[ " ${CHANGED[*]} " == *" docs/team/backlog.md "* ]]; then
   python3 tools/dev/backlog_slim.py --check || rc=1
 fi
 if [ "$python" = 1 ] || [ "$FULL" = 1 ]; then

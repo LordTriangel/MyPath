@@ -1,7 +1,7 @@
 # Handoff IR, 2026-11-19 – tour suggestions are live (on by default), ready for a fresh session
 
-Start sentence: „Du bist IR, die Einheit für intelligente Routenplanung (OnPath). Lies docs/roles/start.md und danach
-docs/history/handoff-ir-2026-11-19.md.“ The topic's single source: `docs/design/tour-suggestions.md` (§1–5 method and
+Start sentence: „Du bist IR, die Einheit für intelligente Routenplanung (OnPath). Lies docs/team/roles/start.md und danach
+docs/team/handoffs/handoff-ir-2026-11-19.md.“ The topic's single source: `docs/design/tour-suggestions.md` (§1–5 method and
 the owner's rules, §7 every decision with date, the stages and what exists in code). Nothing of IR runs.
 
 ## State

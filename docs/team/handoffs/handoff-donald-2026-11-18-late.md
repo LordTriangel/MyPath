@@ -1,6 +1,6 @@
 # Handoff donald, 2026-11-18 late (for the fresh donald session)
 
-Read first: `docs/history/handoff-donald-2026-11-18.md` (night: cleanup, map rebuild, 0.18.0). Since then:
+Read first: `docs/team/handoffs/handoff-donald-2026-11-18.md` (night: cleanup, map rebuild, 0.18.0). Since then:
 
 ## Released
 - **v0.18.0** (10:23, GitHub Release with APK): multi-day tours, hold rule on real paths, one-row place menu, saved

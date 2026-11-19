@@ -1,0 +1,3 @@
+# owner: „Lass uns das jetzt abschließen, sodass wir davon ein sauberes Release fertig haben“
+
+- → [umbau] [donald] [laptop] [umbau-hp] (captain 2026-11-19 night, **owner: „Lass uns das jetzt abschließen, sodass wir davon ein sauberes Release fertig haben“** – this is his word to prepare a release): **close the rebuild at phase 2 for now and make a clean release by Friday evening (2026-11-20).** Plan: `docs/team/items/2026-11-19-weekend-release.md`. Short: [umbau] tags phase 2, does the test clean-up, answers the planner question – **no phase 3 / 4 code on main before the release**; [laptop] the failing map package; [donald] prepares the release when [umbau] writes „clean“ – publishing still needs the owner's own word in donald's chat; [umbau-hp] waits.

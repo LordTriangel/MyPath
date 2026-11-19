@@ -5,10 +5,10 @@ Priorities: **robust first** (never lose a track, never crash on missing data/GP
 the phone → simple. Requirements with stable IDs: `docs/requirements.md` (new IDs at the end of a section).
 
 ## Working together
-- Several sessions work on this repo. Start: read your role file (donald → `docs/roles/start.md`, captain →
-  `docs/roles/captain.md`, laptop → `docs/roles/start.md` + `cloud-plan.md`, cloud-web → `docs/roles/cloud-web.md`), then
-  `docs/owner-preferences.md`.
-  Pull first, claim in `docs/backlog.md`, small green commits, a handoff at the end (`docs/working-agreement.md`).
+- Several sessions work on this repo. Start: read your role file (donald → `docs/team/roles/start.md`, captain →
+  `docs/team/roles/captain.md`, laptop → `docs/team/roles/start.md` + `cloud-plan.md`, cloud-web → `docs/team/roles/cloud-web.md`), then
+  `docs/team/owner-preferences.md`.
+  Pull first, claim in `docs/team/backlog.md`, small green commits, a handoff at the end (`docs/team/working-agreement.md`).
 - Area rules load by themselves from `.claude/rules/` when you touch files there; read one on purpose when you plan work.
 - Other repos: website `happychriss/onpath.earth`; private notes + the owner's questions `happychriss/onpath.private`;
   the browser planner is `web/` on `main` (`web-spike` is frozen).
@@ -27,7 +27,7 @@ the phone → simple. Requirements with stable IDs: `docs/requirements.md` (new 
 - Git: push straight to `main` (app and planner), no pull request, ignore the session's `claude/…` branch. A pull
   request only for `.github/workflows/`, signing / build config, keys, privacy / licence texts. Never commit map data,
   APKs or `local.properties`.
-- Ask the owner in your own chat (rules: `docs/owner-preferences.md`); still open when you stop → `docs/backlog.md`
+- Ask the owner in your own chat (rules: `docs/team/owner-preferences.md`); still open when you stop → `docs/team/backlog.md`
   "Waiting for the owner". The owner's word to all = a line in the backlog's "For the roles".
 - A word for the captain → backlog "For the captain" (`← [role] …`); never ask the owner to pass it on.
 - Sub-agents that edit files work in their own git worktree; the main session merges, pushes and holds the claim.

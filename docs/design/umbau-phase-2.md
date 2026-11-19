@@ -413,7 +413,7 @@ with a port, forwarders, ratchet, a web-ready file.
    files import nothing but `com.onpath.app.*` of `:core` / `:state`, `com.onpath.strings.*`, the five Compose
    runtime names, `java.*` / `kotlin.*`; no `kotlinx.coroutines`). Nothing under `web/` is edited.
 7. `SafeLaunchRuleTest` also scans `state/` for bare `scope.launch(` / `scope.launch {`.
-*Do not touch:* `MAX_LINES` (report the new line count), any screen file, `web/`, workflows, `docs/backlog.md`,
+*Do not touch:* `MAX_LINES` (report the new line count), any screen file, `web/`, workflows, `docs/team/backlog.md`,
 other slices. *Checks:* the "done per piece" list of §5; `StartSmokeE2ETest`. *Report:* files moved, the path-keyed
 places changed, where the three tests live and why, hunks that are not pure moves.
 
