@@ -73,6 +73,7 @@ class GermanScreenshotTest {
     @Test fun planOnePointLow() = shots.planOnePointLow()
     @Test fun trackWithoutLine() = shots.trackWithoutLine()
     @Test fun planPointsFull() = shots.planPointsFull()
+    @Test fun planPointsFullUndo() = shots.planPointsFullUndo()
     @Test fun planSummaryBike() = shots.planSummaryBike()
     @Test fun planCollapsed() = shots.planCollapsed()
     @Test fun planTourRolledUp() = shots.planTourRolledUp()

@@ -348,6 +348,14 @@ class ScreenshotTest {
     fun planPointsFull() = paparazzi.snapshot { Frame { PlanPanel(planWithPoints(PlanSize.FULL), PlanCallbacks()) } }
 
     /**
+     * The full sheet hides the map's undo pill (no room): undo / redo at the "Points" title's right (owner 2026-11-18,
+     * answer 4) – here both can act; [planPointsFull] has Redo greyed.
+     */
+    @Test fun planPointsFullUndo() = paparazzi.snapshot {
+        Frame { PlanPanel(planWithPoints(PlanSize.FULL).copy(canRedo = true), PlanCallbacks()) }
+    }
+
+    /**
      * With the points open, all four map controls (compass, eye, undo, locate) do not fit
      * between the top bar and the sheet – they stay below the top bar and fade under the sheet instead of covering ☰.
      */

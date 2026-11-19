@@ -83,7 +83,7 @@ private val HANDLE_WIDTH = 48.dp
 /**
  * Points section of the full plan sheet: its title (⇅ Reverse / ↻ Round trip are in the sheet's action row), then one row per
  * route point – ≡ (drag it to reorder; holding first works too), marker, name, distance from the previous point, ✕
- * (delete at once, Undo brings it back). Tapping a row shows the point on the map. No vibration in the list (owner).
+ * (delete at once, Undo brings it back – at the title's right, [UndoPill]). Tapping a row shows the point on the map. No vibration in the list (owner).
  * After a ✕ the deleted row stays as a quiet placeholder for a moment and the list ignores taps ([PointsDeleteGuard]):
  * the rows never shift under the finger (a quick second tap would delete the next point).
  */
@@ -98,12 +98,19 @@ fun PointsSection(
     scroll: ScrollState? = null,
     /** That container's visible part (for the auto-scroll edges). */
     viewport: () -> LayoutCoordinates? = { null },
+    /**
+     * Undo / redo at the title's right (owner 2026-11-18, answer 4): the full sheet hides the map's undo pill, so the
+     * same actions stand here ([UndoPill] inSheet); null = cannot act now, both null = not shown.
+     */
+    onUndo: (() -> Unit)? = null,
+    onRedo: (() -> Unit)? = null,
 ) {
     RecomposeProbe.hit("points")
     Column(modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(str(Res.string.plan_points), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.weight(1f))
+            UndoPill(onUndo, onRedo, inSheet = true)
         }
         if (rows.isEmpty()) {
             Text(str(Res.string.plan_no_points), style = MaterialTheme.typography.bodyMedium,

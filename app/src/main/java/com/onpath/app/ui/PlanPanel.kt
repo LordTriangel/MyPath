@@ -93,7 +93,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 
 /** Everything the plan panel can ask for; defaults keep previews and tests short. */
 class PlanCallbacks(
+    /** Undo / redo of the plan's history: the map's [UndoPill] and, in the full sheet, the same pill at "Punkte". */
     val onUndo: () -> Unit = {},
+    val onRedo: () -> Unit = {},
     /** ✕ "Close plan" in the sheet's action row: the plan leaves the screen (asks first with unsaved changes). */
     val onClear: () -> Unit = {},
     /** Primary action: follow the route (free recording is in the ⋮ menu). */
@@ -384,6 +386,10 @@ private fun ColumnScope.PlanBody(sheet: StepSheetScope, ui: PlanUi, cb: PlanCall
                 onMove = cb.onMovePoint, onDelete = cb.onDeletePoint, onShow = cb.onShowPoint,
                 modifier = Modifier.padding(top = 4.dp),
                 scroll = scroll, viewport = { viewport },
+                // the full sheet hides the map's undo pill (no room): the same undo / redo at the "Punkte" title (owner
+                // 2026-11-18, answer 4); only in the full step – below it the map's pill is there
+                onUndo = if (full && ui.canUndo) cb.onUndo else null,
+                onRedo = if (full && ui.canRedo) cb.onRedo else null,
             )
         }
     }

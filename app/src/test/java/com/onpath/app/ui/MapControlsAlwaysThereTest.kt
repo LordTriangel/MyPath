@@ -36,6 +36,28 @@ class MapControlsAlwaysThereTest {
         assertTrue(pill, !pill.contains("Text("))
     }
 
+    /**
+     * Owner 2026-11-18 (answer 4): the full points sheet hides the map's controls, so undo / redo stand at its "Punkte"
+     * title – the same pill ([UndoPill] inSheet), the same actions of the view model (no own undo logic), only in the
+     * full step and only the one that can act.
+     */
+    @Test fun undoAndRedoAlsoInTheFullPointsSheet() {
+        val ui = "src/main/java/com/onpath/app/ui"
+        val section = File("$ui/PointsSection.kt").readText().substringAfter("fun PointsSection(").substringBefore("\n}\n")
+        assertTrue(section, section.contains("UndoPill(onUndo, onRedo, inSheet = true)"))
+        val panel = File("$ui/PlanPanel.kt").readText()
+        assertTrue(panel.contains("onUndo = if (full && ui.canUndo) cb.onUndo else null"))
+        assertTrue(panel.contains("onRedo = if (full && ui.canRedo) cb.onRedo else null"))
+        val screen = File("$ui/MapScreen.kt").readText()
+        assertTrue("the sheet's undo / redo are the map pill's", screen.contains("onUndo = vm::undoStep, onRedo = vm::redoStep"))
+        assertTrue(screen.contains("onUndo = if (MapControlsEnabled.undo(ctl)) vm::undoStep else null"))
+        assertTrue(screen.contains("onRedo = if (MapControlsEnabled.redo(ctl)) vm::redoStep else null"))
+        // in the sheet: 48 dp (the title row's height), no shadow; on the map: 56 dp with the float shadow
+        val pill = footer.substringAfter("fun UndoPill(").substringBefore("\n}\n")
+        assertTrue(pill, pill.contains("if (inSheet) SHEET_UNDO else MAP_FAB"))
+        assertEquals(48f, SHEET_UNDO.value, 0f)
+    }
+
     @Test fun aDisabledControlIsGreyNotGone() {
         val t = OnPathColors.ActionEdit
         assertEquals(t, MapControlState.tint(t, true))

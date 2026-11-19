@@ -205,22 +205,35 @@ private fun iconSize(size: Dp): Dp = 28.dp
  * greyed. It stands right above the map column, right-aligned with it ([PlanControlsLayer], owner 2026-11-08 evening:
  * not "mitten im Bild"); always one row – where the room is short (360 dp, a large font) "↷" goes without its word
  * first, then "↶" ([UndoPillShape]); TalkBack hears both names in every case.
+ *
+ * [inSheet] (owner 2026-11-18, answer 4: "Undo auch im vollen Punkte-Blatt"): the full points sheet hides the map
+ * controls, so the same two buttons stand side by side at the right of the sheet's "Punkte" title ([PointsSection]) –
+ * 48 dp (the title row's height, nothing grows), on the plan row's deeper sage like its pills, no shadow (it lies in the
+ * sheet, not over the map). Same actions, same rule: only while one can act, the other greyed.
  */
 @Composable
-fun UndoPill(onUndo: (() -> Unit)?, onRedo: (() -> Unit)?) {
+fun UndoPill(onUndo: (() -> Unit)?, onRedo: (() -> Unit)?, inSheet: Boolean = false) {
     if (onUndo == null && onRedo == null) return
     // owner 2026-11-08 late: the worded pill took too much room – two plain round buttons stacked under the map column,
     // same look as the column, only while something can be undone or redone (the one that cannot act is greyed)
-    val shape = RoundedCornerShape(MAP_FAB / 2)
-    Surface(shape = shape, color = OnPathColors.PlanTint, modifier = Modifier.floatShadow(shape)) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            IconControl(Icons.AutoMirrored.Filled.Undo, Res.string.plan_undo, onUndo ?: {}, MAP_FAB,
-                tint = OnPathColors.PlanAccent, enabled = onUndo != null)
-            IconControl(Icons.AutoMirrored.Filled.Redo, Res.string.plan_redo, onRedo ?: {}, MAP_FAB,
-                tint = OnPathColors.PlanAccent, enabled = onRedo != null)
-        }
+    val size = if (inSheet) SHEET_UNDO else MAP_FAB
+    val shape = RoundedCornerShape(size / 2)
+    val buttons = @Composable {
+        IconControl(Icons.AutoMirrored.Filled.Undo, Res.string.plan_undo, onUndo ?: {}, size,
+            tint = OnPathColors.PlanAccent, enabled = onUndo != null)
+        IconControl(Icons.AutoMirrored.Filled.Redo, Res.string.plan_redo, onRedo ?: {}, size,
+            tint = OnPathColors.PlanAccent, enabled = onRedo != null)
+    }
+    if (inSheet) Surface(shape = shape, color = OnPathColors.PaperDeep) {
+        Row(verticalAlignment = Alignment.CenterVertically) { buttons() }
+    }
+    else Surface(shape = shape, color = OnPathColors.PlanTint, modifier = Modifier.floatShadow(shape)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) { buttons() }
     }
 }
+
+/** One undo / redo button in the full points sheet: the 48 dp touch target, the height of the "Punkte" title row. */
+val SHEET_UNDO = 48.dp
 
 /**
  * The undo pill's words for the room it has: both ("↶ Rückgängig | ↷ Wiederholen"), only Undo's ("↶ Rückgängig | ↷"),
