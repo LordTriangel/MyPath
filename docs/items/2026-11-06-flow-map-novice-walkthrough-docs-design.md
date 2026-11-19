@@ -9,4 +9,4 @@
   back key in locked Navigate leaves the app; N5 bin hard to find; N6/N7 words "Original behalten / Neue Route",
   "Hinführen" (owner's words? ask); N8 undo icon only; N9 grey 12 sp lines in the sun. **Colour rule** C1–C17 (theme
   primary is green → every plain button green): owner thinks about an earth tone as the base colour (page
-  https://claude.ai/artifact/P6SCbUKQhHuuPqJ9SmePq6, recommendation Torf #3B352F / Walnuss #4A3F37). H2 done (844c8401).
+  (picture page in the owner's chat), recommendation Torf #3B352F / Walnuss #4A3F37). H2 done (844c8401).

@@ -2,7 +2,7 @@
 
 Owner: „Mit 0, 1 und 2 haben wir unseren Code schon mal aufgeräumt … Was ist los mit dem Browserplaner? Das kannst du
 erstmal klären. Die Tests aufräumen sollten wir auch machen. Lass uns das jetzt abschließen, sodass wir davon ein
-sauberes Release fertig haben, das ich ins Wochenende nehmen kann und das meine Freunde auch runterladen können.“
+sauberes Release fertig haben.“
 
 Goal: by **Friday evening, 2026-11-20**, a published app release from a quiet, fully tested main. Friends install it –
 so first-start, first map download and a first tour matter most.

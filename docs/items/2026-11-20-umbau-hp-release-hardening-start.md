@@ -27,7 +27,7 @@ Order = the captain's list, core features first; behind each the files that chan
    meanwhile, `docs/items/2026-11-19-umbau-to-laptop-a-browser-plan.md`) – not fixed; check whether it can lose a plan.
 5. **The new wait windows** – app `ui/progress/SuggestWait.kt` (round-trip search waits with Abbrechen), planner
    `web/app/src/loadoverlay.ts` (431 changed), `waitengine.ts`, `web/engine/…/WebWait.kt` (new, 364). Timing: cancel
-   during a wait, a late answer after cancel, two waits at once, "ready in 5 s" then hanging (owner's München → Hilden).
+   during a wait, a late answer after cancel, two waits at once, "ready in 5 s" then hanging (München → Hilden).
 6. **Round-trip cards** – `ui/suggest/SuggestSheet.kt` (a tap grows the card), `SuggestSlice`.
 7. **„Mehr“** – `ui/RouteMore.kt` (new, 305), `DoneTourOverview.kt`, core `TourReview` (pause times).
 8. **Meine Routen pictures** – page dots, the pictures made again after 0.18.1.

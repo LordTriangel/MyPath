@@ -15,7 +15,7 @@ Release)". Owner wants new builds **on the Pixel first** (before the long checks
 - **Released:** v0.17.4 (main f9b9b5ce; all 12 E2E classes, Rundgang 17/17); in the Play internal test (owner uploaded,
   versionCode 1704). Planner not deployed with it – laptop's backlog line (parity + manual deploy).
 - **Owner's word for v0.17.5:** release right after the "Anhalten" build (variant 5, page
-  https://claude.ai/artifact/BxrUPCkkheDRPXksZSroHx) lands green – all checks, then `tools/dev/play_bundle.sh` →
+  (picture page in the owner's chat)) lands green – all checks, then `tools/dev/play_bundle.sh` →
   `dist/onpath-0.17.5.aab` (versionCode 1705) for his Play upload. No phone install (S10 runs Play; the Pixel gets the
   GitHub release through the in-app updater – same test key as donald's debug builds).
 - **Running:** the Anhalten build (branch donald-anhalten, sketch branch donald-anhalten-sketch with variants 0–5).
@@ -49,8 +49,8 @@ TTS voice step (de5e7939); a far destination lost at the long-plan Cancel (752d6
 - **Open owner questions** (backlog "Waiting for the owner"): 6 s turn cue OK?; Undo in the full points sheet.
 - **Follow-ups:** backlog Next "[donald] Follow-ups from v0.17.3"; ▶ Sim restart progress; prune ci/donald-* refs (the
   classifier refuses agents' deletes – only `tools/dev/prune_branches.sh` after the owner's yes to the list).
-- **Pages for the owner:** reach hint round https://claude.ai/artifact/XbgyccgVnzANV1KDAWu9GU, Meine Touren
-  https://claude.ai/artifact/HGDEpf4pdubLAiEoFZ9TmD.
+- **Pages for the owner:** reach hint round (picture page in the owner's chat), Meine Touren
+  (picture page in the owner's chat).
 
 ## On main today (all gated, most with E2E)
 
@@ -93,9 +93,9 @@ green → prune the ci branch.
   `donald-hold-setting` (Settings slider Aus · 0,5–2 s) and `donald-tour-end-fixes` (0 m tour without "Als Plan
   übernehmen", end-sheet 500 ms guard, "In Meine Touren ›" opens Gemacht, logs).
 - `donald-pixel-1106` = all of the above + `spike/3d-webview` (Meran demo, fly-over) – Pixel test build only, never main.
-- Waiting for the owner: blue A/B/C https://claude.ai/artifact/R3w2uLnjDmENdtmCqY39sQ (rec. C ink blue #2B4C6F, no
-  blue surfaces), polish 1–8 https://claude.ai/artifact/AdSGgKD15W3GZCfu6Ngx7M (rec. 2, 3, 5), Settings → Navigation
-  groups https://claude.ai/artifact/52sgsWj1GSPuUJY7GYRaC3 (rec. A), 3D A vs B (fly-over liked: "sehr, sehr cool").
+- Waiting for the owner: blue A/B/C (picture page in the owner's chat) (rec. C ink blue #2B4C6F, no
+  blue surfaces), polish 1–8 (picture page in the owner's chat) (rec. 2, 3, 5), Settings → Navigation
+  groups (picture page in the owner's chat) (rec. A), 3D A vs B (fly-over liked: "sehr, sehr cool").
 - Seen on the way: theme `secondaryContainer` #DDE3F7 tints every FilterChip light blue app-wide → Walnuss.
 
 ## Owner decisions 2026-11-06 ~23:10 – the next package (build after `donald-merge2-1106` is on main)
@@ -107,7 +107,7 @@ green → prune the ci branch.
   (big number, small unit, tabular figures) everywhere YES · 4 contour pattern NO · 5 Literata NO · 6 warm walnut shadows
   in two levels + corner family (pills full, cards 20 dp, small 12 dp) YES · 7 only the goal flag (no ring, 1.11. stays)
   · 8 profile gradient + steepness (smoothed ~100 m) YES. Sketch `donald-polish-sketch`.
-- Settings: **value rows** (variant C of https://claude.ai/artifact/52sgsWj1GSPuUJY7GYRaC3: title + current value,
+- Settings: **value rows** (variant C of (picture page in the owner's chat): title + current value,
   the choice on tap) on ALL settings pages – but NOT T1–T5 for hiking (stay buttons). "Handy einrichten" on the
   Navigation page: at the top with ⚠ + what is missing when location / vibration / battery is not set up (menu and topic
   list already do this). FilterChips' light blue (`secondaryContainer` #DDE3F7) → Walnuss.
@@ -211,7 +211,7 @@ worktrees with unmerged WIP kept for you.
 - Remove dead `TourRunningBar` / `TourControls` (TourBar.kt) and redraw the screenshot tests that still show the old
   tour card (`endTourConfirm`, `planMenuNavigating`) – the end sheet over Navigate.
 - N9: prepare a page with every grey 12 sp line (bin note, plan line, stop times …) – the owner decides line by line.
-- Update the owner's question register (ArtifactData, https://claude.ai/artifact/MyNqN2MaaxNzrex7wVccwX, collection
+- Update the owner's question register (ArtifactData, (picture page in the owner's chat), collection
   `fragen`): docs `donald-20261106-10` … `-28` are `in_arbeit`; set each to `beantwortet` (+ `antwort`,
   `beantwortet_am`, remove `arbeit`, pass `if_version`) once its change is on main/Pixel.
 - 3D: report the spike's numbers (offline? memory? fps? effort) and ask the owner; alternative = native 2.5D fly-over.
@@ -257,7 +257,7 @@ fixed, nothing jumps, unavailable = grey not hidden · no red recording dots · 
 
 ## 2026-11-08 ~22:00 – v0.17.7 and v0.17.8 released
 - v0.17.7 (18:40): setup never waits for the map, first-map card, shorter + bigger setup texts. AAB 1707.
-- v0.17.8 (~22:00): father's feedback – location step names „Genau“ + „Bei Nutzung der App“, one-buzz vibration test,
+- v0.17.8 (~22:00): a tester's feedback – location step names „Genau“ + „Bei Nutzung der App“, one-buzz vibration test,
   Samsung page once only + „Mehr Infos ›“ → onpath.earth `#samsung` (cloud-web writes the section), Settings „Handy
   einrichten“ on top while steps are open, T levels readable with their line (own chip row), undo / redo as two round
   buttons under the map column (kept slot), „Hilfe“ first in ☰. Gate --full, Rundgang 17/17, 12 E2E green. AAB 1708.

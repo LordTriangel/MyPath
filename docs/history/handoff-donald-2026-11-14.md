@@ -50,6 +50,6 @@ the owner's taste rules, the parked planner plan) and `tools/suggest-poc/README.
   `tools/suggest-poc/remote/`, his sheet `~/onpath-suggest-poc/remote/MORGEN.md`.
 
 ## Pages for the owner
-Sketch 1 https://claude.ai/artifact/4vw94n6ag24ziSHRMSkftX · sketch 2 ("Rundtour von hier")
-https://claude.ai/artifact/GE3STB3Dj1zFgYTiAK8gjV · the night's judgement https://claude.ai/artifact/XLLZc8KsLr51CABSVAKQF5 ·
-the rebuild https://claude.ai/artifact/QB7sxGZWfvm72EmyF2PjA7
+Sketch 1 (picture page in the owner's chat) · sketch 2 ("Rundtour von hier")
+(picture page in the owner's chat) · the night's judgement (picture page in the owner's chat) ·
+the rebuild (picture page in the owner's chat)

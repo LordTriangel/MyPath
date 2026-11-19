@@ -1,4 +1,4 @@
-# Handoff laptop – 2026-11-16 / 17 (night, owner asleep: „alles ohne Rückfragen, eigene Entscheidungen notieren“)
+# Handoff laptop – 2026-11-16 / 17 (night, owner offline: „alles ohne Rückfragen, eigene Entscheidungen notieren“)
 
 ## Owner decisions (2026-11-16, chat)
 - All map cells keep every signed route: **yes** – on main 0f7030c2 (CELL_SCHEMA 8, overlays-only partial rebuild),
@@ -11,7 +11,7 @@
   moved clear on close, z-order) – 06e33d12.
 - donald's six shared `suggest/*.kt` files registered in parity.json (main's Web planner run was red on it).
 
-## My own decisions tonight (owner asleep)
+## My own decisions tonight (owner offline)
 1. **POI click right after a map move** (search-smoke 1 in 3): treated as a real bug, not a flaky test – a visible
    restaurant icon did not answer a click (MapLibre's symbol placement lags a move). Fixed: a click waits for the
    map's `idle` (≤ 1 s) and looks again (443fd70d). Mirrors the app's „POIs read at camera idle“.

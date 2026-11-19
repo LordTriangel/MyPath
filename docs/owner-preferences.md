@@ -45,7 +45,7 @@ gestures, re-routing only after asking, core-feature bugs test first, public tex
   Release-Rundgang run on GitHub (`tools/ci/e2e_github.sh`) – `docs/working-agreement.md` "E2E".
 - **Code first for bugs:** when diagnostics exist, find the cause by reading the code and reproduce it in a JVM test.
   Use the phone only briefly to confirm, say how long, say when it is free again, and restore the owner's app state
-  before handing it back (a long trial-and-error session on the phone at bedtime was not OK).
+  before handing it back (a long trial-and-error session on the phone was not OK).
 - **Don't weaken CI gates** without the owner's explicit words. Releases are batched unless the owner asks.
 
 ## The owner's phone (Pixel 8, adb)

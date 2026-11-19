@@ -699,7 +699,7 @@ Owner decision 2026-10-30: the planner goes public (no login), with a quiet path
 - **Owner step – spending alert (Cloudflare, no token needed):** dash.cloudflare.com → the account → *Notifications*
   (left menu, "Manage account" → Notifications) → *Add* → **Usage Based Billing** (alerts when a product's billable
   usage passes a threshold you set – choose *Workers*, *R2* and *D1*, e.g. Workers 5 M requests / day) → email
-  neuhaus.info@gmail.com → Save. Add a second one: *Add* → **Workers – Weekly Summary** (optional, for the trend). Also
+  your own address → Save. Add a second one: *Add* → **Workers – Weekly Summary** (optional, for the trend). Also
   check *Billing → Billable usage* once a week for the first month after launch. (Cloud Run builds are billed in
   Google Cloud: Billing → Budgets & alerts → a monthly budget for the maps project with alerts at 50 / 90 / 100 %.)
 
@@ -965,7 +965,7 @@ Problems found while making the browser plan exactly like the phone, and the spe
 
 
 ## 24. Plan sheet A – points first, the profile along the bottom (laptop, 2026-11-07, owner: A + B's profile)
-Proposals page https://claude.ai/artifact/F1rCK7xXXmUhWcQRj3o1mR (today's sheet, three proposals, „Aus der App übernehmen“;
+Proposals page (picture page in the owner's chat) (today's sheet, three proposals, „Aus der App übernehmen“;
 section „Gebaut“ with the shots). The owner chose A („Punkte zuerst“, like Google Maps' route panel) with B's profile.
 - **Wide (> 700 px): no steps.** The side panel always shows, in the phone's order (owner after the first look, 2026-11-07:
   „das Wichtigste zuerst“): activity chip · Teilen; the facts in one row (time · km · ↑ ↓ · max · difficulty, tabular

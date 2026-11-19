@@ -26,8 +26,8 @@ Einheit für intelligente Routenplanung. Lies docs/roles/start.md.“ Then read 
 5. **Laptop built test cells with every signed route per way** (layer `routelines`, on the laptop only; `named.py`
    reads it, cache now attr-v7). With them, built suggestions contain the Traumpfad at 19 instead of 7 of 21 places
    (measured with the old method).
-6. **Sketches:** sketch 3 https://claude.ai/artifact/46KFniQG4WU4zQeGBW6tS9 (three variants), sketch 4
-   https://claude.ai/artifact/HWivjn7CbA2zocRVRwZhKq (A as chosen: calm map, text on the cards).
+6. **Sketches:** sketch 3 (picture page in the owner's chat) (three variants), sketch 4
+   (picture page in the owner's chat) (A as chosen: calm map, text on the cards).
 
 ## The owner's decisions today (all in the design doc)
 - "Rundtour von hier" appears wherever "Hier starten" appears.

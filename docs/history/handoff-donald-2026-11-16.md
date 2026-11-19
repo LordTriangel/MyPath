@@ -1,6 +1,6 @@
 # Handoff donald, 2026-11-16 (evening → night)
 
-Everything below is on `main`. Nothing is released. The owner's Pixel (44080DLJH000E5) has a debug build of main at
+Everything below is on `main`. Nothing is released. The owner's Pixel has a debug build of main at
 43091d6b (installed 23:38, `adb install -r`, plans + tours kept); the symmetric hold rule (f12e8d83) is in it, the
 kept-places sync and the POI E2E test are not (both after). Phone unplugged at 23:45.
 
@@ -8,7 +8,7 @@ kept-places sync and the POI E2E test are not (both after). Phone unplugged at 2
 1. **Hold rule past the goal** – „I want to continue my way from point 15 to the new target, and it still asks me“.
    Screen `docs/history/img/2026-11-16-hold-past-goal.jpg`; every hold past the end asked (insert ≈ 2 × append). Cause
    and a direction-based idea are in the backlog item. Talk + sketch before code.
-2. **POI symbols and names** – A no names / B overlap / C first version (https://claude.ai/artifact/8ziJojuGmReaJh3PqfRQV6).
+2. **POI symbols and names** – A no names / B overlap / C first version ((picture page in the owner's chat)).
 3. **Check with him: does a tap on a restaurant symbol show its details now?** The 23:35 bug (tap = nothing, hold = no
    point) was fixed in 43091d6b on the diagnosis „the runtime icon-image read found no POI layer“ – but the night's E2E
    test could NOT reproduce that on the emulator (the old code passed there). Other possible cause: since 2797bb7f a tap
@@ -31,9 +31,9 @@ kept-places sync and the POI E2E test are not (both after). Phone unplugged at 2
 
 ## Notes
 - Fragenregister: donald-20261116-1 … -7.
-- Pages: hold cases https://claude.ai/artifact/Ve3ZJFa1U7Z2evSR5feye2 · names round 1
-  https://claude.ai/artifact/YCL4Mkh1NkyBSVqJNdhwSp · round 2 https://claude.ai/artifact/8ziJojuGmReaJh3PqfRQV6 · Ø
-  sketch https://claude.ai/artifact/LgvfZnNKWjMp3k6vYqD9Js.
+- Pages: hold cases (picture page in the owner's chat) · names round 1
+  (picture page in the owner's chat) · round 2 (picture page in the owner's chat) · Ø
+  sketch (picture page in the owner's chat).
 - The E2E agent saw MapLibre read a PMTiles file rewritten at the same path wrongly („unknown pbf field type“) in tests;
   possibly relevant if `MapCells` rewrites `pois.pmtiles` in place while the map shows – unchecked.
 - Lesson: a change to how the map finds POIs went to his phone without a tap on a symbol first – now C19 / E2E.

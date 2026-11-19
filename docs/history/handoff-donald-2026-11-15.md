@@ -1,7 +1,7 @@
 # Handoff donald, 2026-11-15 (evening) – the owner's hike findings
 
 The owner walked with 0.17.10 (no crash) and sent findings one by one. Everything below is on `main` except the hold
-rule (branch). Nothing is released. The owner's Pixel (44080DLJH000E5) has the test APK of the hold branch on top of
+rule (branch). Nothing is released. The owner's Pixel has the test APK of the hold branch on top of
 today's main (installed 23:13, `adb install -r`, plan and tours kept). Problem log of the day: no ERROR, only
 "main thread blocked while leaving the app" WARNs.
 
@@ -39,8 +39,8 @@ today's main (installed 23:13, `adb install -r`, plan and tours kept). Problem l
 - Then a release of today's batch on his word (none of it is released).
 
 ## Pages
-Insert menu https://claude.ai/artifact/WjKusxvp2S1Ya6fTRkUWNx · places (compact) https://claude.ai/artifact/LqFT7h7KhEmKRdGJUVtrG9 ·
-swipe https://claude.ai/artifact/QwU5BSHSbxbF9xUSz76T6X · tour review https://claude.ai/artifact/4QQF66CN7f8L2pJ15xY5fm ·
+Insert menu (picture page in the owner's chat) · places (compact) (picture page in the owner's chat) ·
+swipe (picture page in the owner's chat) · tour review (picture page in the owner's chat) ·
 Fragenregister entries donald-20261115-1 … -8.
 
 ## Notes

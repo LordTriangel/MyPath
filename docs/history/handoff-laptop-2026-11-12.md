@@ -19,7 +19,7 @@ Planner deployed four times today; last deploy = main after the sync rule fix (r
   Save first was not ok).
 
 ## 2. Field incidents on the owner's Pixel (today)
-- **„Bad Honnef → Bonn“ disappeared** after a browser Save (my advice – wrong). It was saved on the phone. Likely cause
+- **a saved tour disappeared** after a browser Save (my advice – wrong). It was saved on the phone. Likely cause
   (now covered by tests): the browser's `adopt()` re-saved tours with a stamp 1 ms newer than the phone's, so an old
   browser state replaced the phone's tour without a copy; or an old browser delete with a newer clock sent it to the
   bin. **Not yet confirmed where it is** – owner asked to look in the phone's recycle bin and for „(Kopie)“.
