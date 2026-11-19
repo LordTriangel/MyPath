@@ -20,21 +20,46 @@ answers · cards / „Mehr“ / pictures), each finding checked by the lead befo
    download – the field report's situation) was marked failed until the next app start. Now it is made at the next look.
    Tests in `RouteThumbsTest`.
 
-4. **The wait windows' time line on the phone** (`RouteWait`, `SuggestWait`, `MapLoad`; core `OneBar.measured`): the time left
-   was estimated from the bar, creep included – a route leg the router reports nothing of counted down „1 minute … 30
-   seconds“ by itself (the owner's „noch etwa 5 Sekunden“, then minutes; seen in the planner, the same on the phone). Now it
-   comes from the measured share only. Tests `WaitPromiseTest.routeWindow_aLegWithoutAnyProgressPromisesNoTime` (red before),
-   `WaitProgressTest.aBarThatOnlyCreepsGivesNoTimeLeft`. The planner's side is the laptop's own fix in `WebWait` (3afebead).
+4. **The route wait window's time line on the phone** (`RouteWait`; core `OneBar.measured`, additive): the time left was
+   read off the bar, creep included – a leg the router reports nothing of counted down „1 minute … 30 seconds“ by itself
+   (the owner's „noch etwa 5 Sekunden“, then minutes; seen in the planner). Now the route window says a time only while the
+   router measures (its share within the legs, or the check). **My first version (e5a61deb) also switched the round-trip and
+   the map window – the fresh review found the round-trip search's time then counted UP in a long phase; corrected in
+   fa9031fe: those two are byte for byte as before**, with a test that is red on the first version
+   (`SuggestWaitTest.theTimeLeftNeverCountsUpInALongPhase`). Tests `WaitPromiseTest.routeWindow_…PromisesNoTime` (two).
+   The planner's side is the laptop's own fix in `WebWait` (3afebead).
 5. **„Mehr“ pause times**: 12 new edge tests (`TourReviewTest`, `RouteMoreTest`: a stop at the very start / end, stepped stops,
    a recording gap, odd timestamps, midnight / summer-time change in four zones) – no bug found; two proven red by breaking the code.
 
+## Second round (all clean)
+- `TourEdits` (edits of a running tour) line by line against v0.18.1, every host adapter of the new slices in `AppViewModel`,
+  the initialisation order by hand: faithful, no finding.
+- The screens after "forwarders out": all 389 removed forwarders compared with their old bodies by script, the screens
+  re-derived mechanically from the old files + the rename table – identical. No guard, fallback or second statement lost.
+- A fresh review of fixes 1–3: correct, nothing made worse. Fix 4: see above.
+
+## For the release walk-through (suspicious by nature, not known bugs – tap, expect)
+1. Round trip → wait window: the phone's Back does nothing bad; a tap on the map adds no point under the window.
+2. A track shown in Plan: a map tap adds no point; Back closes the track first.
+3. During a tour: ☰ → My routes → Back → Back gives "Continue navigation", the app does not close.
+4. An update offered during a tour: the "after the tour / install now" question, both answers.
+5. A plan link opened while a track is shown / My routes is open: both close, the plan opens.
+6. Settings → Offline maps → clean up → Cancel: the preview goes, nothing is deleted.
+7. Cycling rest view: it yields to every question box (arrival, end tour, route back, update, error, My routes).
+8. Save fails → OK: the box does not come back.
+9. A very long route: "Plan anyway" and "Cancel" – the map goes back, no stuck "Calculating…".
+10. Heading-up on, GPS follow on, turn the map by hand: follow switches off.
+11. A paired browser plan, opened on the phone right after it arrived, activity changed, saved: it stays changed after
+    reopening My routes (fix 1).
+
 ## Open (in work or noted)
-- Planner wait window (helper in work, branch, merged after review): a failed / stopped route closes the window as a success
-  (100 % flash, learned shares from an unfinished run); a shared link whose engine fails can leave the window open; a ghost
-  wait after Abbrechen (suspected).
-- Second review round in work: the view model's host adapters and init order for the new slices, `TourEdits` line by line, the
-  screens after "forwarders out"; a fresh review of the fixes above.
+- Planner wait window: the three defects are confirmed with failing smoke steps and fixed on a branch (a failed / stopped
+  route closed the window as a success and taught the shares; a shared link with no engine left the window open; a late
+  report after Abbrechen restarted the wait unseen) – smoke run + fresh review in work, pushed only if both are clean.
+- Noted for [umbau], after the release: nothing pins the real host adapters in `AppViewModel` for `TourSession`, `TourEdits`,
+  `PlanRecalcSlice`, `TourEndSlice` (the flow tests use their own fakes) – a source-text test like `RoutesWiringTest`.
 - Noted, no fix tonight: L5's service half is guarded by source-text tests only (no test drives `RecordingService`);
-  `StyleLoader.lastMapDir` is process-global and now written per picture (a rollback could compare against the wrong folder –
-  suspected, low); planner `areas.ts` can show a stale state for one poll (heals itself); a round-trip search that dies with an
-  `Error` (out of memory) leaves the map deaf to presses until „Abbrechen“.
+  `StyleLoader.lastMapDir` is process-global and written per picture (a rollback could compare against the wrong folder –
+  suspected, low, older than this release); planner `areas.ts` can show a stale state for one poll (heals itself); a
+  round-trip search that dies with an `Error` (out of memory) leaves the map deaf to presses until „Abbrechen“; in the route
+  window a tiny measured share after a long wait gives a very long time („98 Minuten“) until "dauert etwas länger…".
