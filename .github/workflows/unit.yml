@@ -6,8 +6,8 @@
 # app/src/test/snapshots/images/ (verifyPaparazziDebug runs the same test task in verify mode, so the suite runs once).
 # A changed screen = record locally (./gradlew :app:recordPaparazziDebug), look at the images, commit them.
 #
-# Lint: its own job, reports only (owner: not failing the build at first). Known findings are in app/lint-baseline.xml,
-# so the report and the job summary list only NEW issues.
+# Lint: its own job; a NEW finding of severity error fails it (owner 2026-11-18: „einfach einschalten“). Known findings
+# are in app/lint-baseline.xml, so the report and the job summary list only new issues.
 #
 # Actions pinned to a commit (# = its release), like maps-deploy.yml.
 name: Unit tests
@@ -17,6 +17,8 @@ on:
     branches: [main]
     paths:
       - "app/**"
+      - "core/**"
+      - "state/**"
       - "strings/**"
       - "tools/ci/**"
       - "*.gradle.kts"
@@ -45,7 +47,7 @@ jobs:
       - name: Risk selection script
         run: cd tools/ci && python3 -m unittest -q test_risk_tests
       - name: All unit tests + screenshot check
-        run: ./gradlew --no-daemon testDebugUnitTest verifyPaparazziDebug
+        run: ./gradlew --no-daemon --continue testDebugUnitTest verifyPaparazziDebug # --continue: a red test in one module must not hide the others
       - name: Test report + screenshot differences
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -53,6 +55,8 @@ jobs:
           name: unit-report
           path: |
             app/build/reports/tests/
+            core/build/reports/tests/
+            state/build/reports/tests/
             app/build/paparazzi/failures/
           if-no-files-found: ignore
           retention-days: 7
@@ -70,10 +74,8 @@ jobs:
         with:
           packages: "platforms;android-36 build-tools;35.0.0 platform-tools"
       - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
-      # abortOnError = false (app/build.gradle.kts): findings never fail this step; continue-on-error keeps a lint
-      # crash from turning the run red while lint only reports
+      # abortOnError = true (app/build.gradle.kts): a new error-level finding fails this step
       - name: Android lint (new findings only – the rest is in app/lint-baseline.xml)
-        continue-on-error: true
         run: ./gradlew --no-daemon :app:lintDebug
       - name: Lint summary
         if: always()
