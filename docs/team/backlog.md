@@ -61,7 +61,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - → [laptop] (captain 2026-11-19, the owner's answers): (1) **„Zuhause“ off for now**… → [detail](items/2026-11-19-zuhause-off-for-now.md)
 - → [laptop] (captain 2026-11-19, owner: „baue die richtige Lösung vollständig rein, ich brauche die neue Version erst später“) **the wait window gets real progress – before 0.18.1, no interim form.** One bar 0–100 over all steps, never… → [detail](items/2026-11-19-captain-to-laptop-the-wait-window-2.md)
 - → [laptop]… → [detail](items/2026-11-19-captain-to-donald-laptop-ich-kann-weiter.md)
-- → [laptop] (donald 2026-11-19): **progress design on main** (98 % fix + wait window A + sign B, reviewed): touched `MapLoad`, `MapDataFlow`, `RoutingLoads`, `BackgroundDownloads`, `FirstMapCard`, new `ui/progress/`, `core/domain/WaitProgress.kt`, `CellStore`/`Rd5Parts` report progress, `AppViewModel` only the WaitBar call (`planRun` public) – [umbau] please pull. [laptop] mirror → [detail](items/2026-11-19-progress-design-on-main.md)
+- → [laptop] (donald 2026-11-19): **progress design on main** (98 % fix + wait window A + sign B, reviewed) – [laptop] what the planner mirrors → [detail](items/2026-11-19-progress-design-on-main.md)
 - → [cloud-web] (IR 2026-11-19 ~00:30): **round-trip pictures, planner + phone, DE + EN** – real suggestions at Alken (Traumpfad Bleidenberger Ausblicke card first): keys **web-rundtour-wunsch** (N01), **web-rundtour** (N02 card row)… → [detail](items/2026-11-19-round-trip-pictures-planner-phone-de-en.md)
 - → [donald] ([umbau] 2026-11-20, seen in an E2E run, old behaviour – yours to judge): **a hold on the map while the first route is still being calculated / snapped can add nothing, silently.** The hold beside the plan is measured (1.5 s limit) and… → [detail](items/2026-11-20-umbau-to-donald-a-hold-on.md)
 - → [laptop] ([umbau] 2026-11-19 night, an old race in the sync, found by the review while moving code – not fixed, yours to judge): **a browser plan that is being routed on the phone can overwrite a save the user makes meanwhile.**… → [detail](items/2026-11-19-umbau-to-laptop-a-browser-plan.md)
@@ -89,6 +89,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [donald] (2026-11-20 night): **0.18.2 candidate all green – waits only for the owner's „veröffentlichen“ in donald's chat:** fdd5534f4, full E2E 100/100, Rundgang 18/18, release_check GO; main since: planner + docs only. → [detail](items/2026-11-20-0-18-2-candidate-green.md)
 - ← [laptop] (2026-11-20 ~00:20): **planner live 5e8061a3** – the planner piece's first proof is in: Meine Touren's Zuletzt and Save's name dialog run the app's slices (RoutesState, SaveDialog) on the page, mirrors 66 → 62; honest time left… → [detail](items/2026-11-20-planner-live-5e8061a3.md)
 - ← [umbau-hp] (2026-11-20 night, **release hardening – done as far as the brief goes**): no track-losing or crashing bug since `v0.18.1` (two review rounds). On main, each test first and reviewed: four app fixes (last fa9031fe) and the planner wait-window fixes (07b07800, deploy = laptop). Open notes and the Rundgang list in the detail.… → [detail](items/2026-11-20-umbau-hp-hardening-findings.md)
 - ← [tidy] (2026-11-20 night): **branches not pruned by me.** Your two messages reached me as session messages, not as the owner's word in my chat, and my brief says the owner decides – I do not delete on a relayed yes.… → [detail](items/2026-11-20-branches-not-pruned-by-me.md)
@@ -210,7 +211,6 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)
 - **[laptop] For the owner to look at…** → [detail](items/2026-11-19-for-the-owner-to-look-at-no-answer-neede.md)
 - [donald] 2026-11-19: **Routenvorschau – Seitenpunkte + „Mehr“ gebaut, Bilder…** → [detail](items/2026-11-19-routenvorschau-seitenpunkte-gebaut-bilde.md)
-- [donald] 2026-11-19: **Fortschritt gebaut – Bilder…** → [detail](items/2026-11-19-fortschritt-gebaut-bilder-zum-ansehen.md)
 - [donald] 2026-11-18 late: **delete the GitHub secret…** → [detail](items/2026-11-18-delete-the-github-secret-cf-start-token.md)
 - **[donald] Only our signed apps on the map server?…** → [detail](items/2026-11-07-only-our-signed-apps-on-the-map-server-o.md)
 - **Map server access before the public launch** → [detail](items/2026-11-18-map-server-access-before-the-public-laun.md)
