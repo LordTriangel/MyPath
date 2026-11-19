@@ -37,7 +37,12 @@ class RoutePicturesWiringTest {
     @Test fun theStoredFoldersAndTheBusyRuleAreAsTheyWere() {
         has(pics, "java.io.File(app.filesDir, \"thumbs\")")
         has(pics, "java.io.File(app.filesDir, \"overviews\")")
-        has(pics, "host.mode == AppMode.NAVIGATE || host.recState.value != null") // never while navigating or recording
+        // never while navigating or recording: one rule per maker (row pictures, overview pictures)
+        val busy = "busy = { host.mode == AppMode.NAVIGATE || host.recState.value != null }"
+        assertTrue("busy rule once per maker", pics.split(busy).size - 1 == 2)
+        val thumbBlock = pics.substringAfter("private val thumbMaker by lazy").substringBefore("private val overviewMaker")
+        val overviewBlock = pics.substringAfter("private val overviewMaker by lazy").substringBefore("suspend fun overviewShot")
+        has(thumbBlock, busy); has(overviewBlock, busy)
         has(pics, "scope.launchSafe(\"routes\", \"Map picture shown\", Dispatchers.Main) { thumbVersion++ }")
         has(pics, "overviewPictures.setSize(widthPx, heightPx, paddingPx, done = t.kind == TourKind.RECORDED)") // owner 2026-11-15
         has(pics, "val store = t.uuid.isNotEmpty() && t.id >= 0") // the plan on the map is never stored
@@ -50,5 +55,37 @@ class RoutePicturesWiringTest {
         has(demo, "navSimLine = null // a recorded tour is ridden as it was")
         has(demo, "if (navSimLine == null || line == null || line.size < 2 || line == navSimLine) return")
         has(demo, "DemoRules.recentRecordedTours(host.tours, com.onpath.app.recording.DemoLocation.TOUR_PREFIX)")
+    }
+
+    private fun block(start: String): String {
+        val a = vm.indexOf(start); assertTrue("not found: $start", a >= 0)
+        return vm.substring(a, vm.indexOf("        })\n", a))
+    }
+
+    @Test fun thePicturesHostAdapterForwardsEachMemberToItsOwn() {
+        val b = block("object : RoutePicturesHost {")
+        for (l in listOf(
+            "override val mode: AppMode get() = this@AppViewModel.mode",
+            "override val recState: StateFlow<RecState?> get() = this@AppViewModel.recState",
+            "override val settings: AppSettings get() = this@AppViewModel.settings",
+            "override val dataFiles: DataFiles get() = this@AppViewModel.dataFiles",
+            "override val devToolsShown: Boolean get() = this@AppViewModel.devToolsShown",
+            "override fun detailedAreas() = this@AppViewModel.detailedAreas()",
+            "override fun packageAreas() = this@AppViewModel.packageAreas()",
+            "override suspend fun followedPlanLine(t: Tour) = this@AppViewModel.followedPlanLine(t)")) has(b, l)
+    }
+
+    @Test fun theDemoHostAdapterForwardsEachMemberToItsOwn() {
+        val b = block("object : DemoRidesHost {")
+        for (l in listOf(
+            "override val route: PlannedRoute? get() = this@AppViewModel.route",
+            "override val shown: ShownTrack? get() = this@AppViewModel.shown",
+            "override val activity: Activity get() = this@AppViewModel.activity",
+            "override val recState: StateFlow<RecState?> get() = this@AppViewModel.recState",
+            "override val tours: List<Tour> get() = this@AppViewModel.tours",
+            "override fun planFactors() = this@AppViewModel.planFactors()",
+            "override fun sayInfo(text: String, place: NoticePlace) = this@AppViewModel.sayInfo(text, place)",
+            "override fun sayError(text: String, place: NoticePlace) = this@AppViewModel.sayError(text, place)",
+            "override fun initialCamera() = this@AppViewModel.initialCamera()")) has(b, l)
     }
 }

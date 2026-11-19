@@ -16,18 +16,23 @@ class DemoRulesTest {
 
     @Test fun theLineIsThePlannedRouteFirst() {
         val r = listOf(p(0), p(1), p(2))
-        val got = DemoRules.demoLine(r, track(listOf(p(5), p(6))))
+        val got = DemoRules.demoLine(r) { track(listOf(p(5), p(6))) }
         assertEquals("planned route" to r, got)
     }
 
+    @Test fun theShownTrackIsNotReadWhenThePlanHasALine() {
+        val r = listOf(p(0), p(1))
+        assertEquals("planned route" to r, DemoRules.demoLine(r) { error("shown must not be read") })
+    }
+
     @Test fun aRouteOfOnePointFallsBackToTheShownTrackWhichIsJoinedAcrossSegments() {
-        val got = DemoRules.demoLine(listOf(p(0)), track(listOf(p(5)), listOf(p(6), p(7))))
+        val got = DemoRules.demoLine(listOf(p(0))) { track(listOf(p(5)), listOf(p(6), p(7))) }
         assertEquals("track \"Rax\"" to listOf(p(5), p(6), p(7)), got)
     }
 
     @Test fun nothingToRideIsNull() {
-        assertNull(DemoRules.demoLine(null, null))
-        assertNull(DemoRules.demoLine(null, track(listOf(p(1)))))
+        assertNull(DemoRules.demoLine(null) { null })
+        assertNull(DemoRules.demoLine(null) { track(listOf(p(1))) })
     }
 
     @Test fun recordedToursOnlyNotDemoOnesNotTheTinyOnesNewestEightFirst() {

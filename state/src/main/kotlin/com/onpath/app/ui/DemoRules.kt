@@ -12,9 +12,9 @@ import java.util.Locale
  */
 object DemoRules {
     /** What "Demo: ride" would ride: the planned route, else the shown track (a GPX file / tour); null = nothing. */
-    fun demoLine(routePoints: List<GeoPoint>?, shown: ShownTrack?): Pair<String, List<GeoPoint>>? {
+    fun demoLine(routePoints: List<GeoPoint>?, shown: () -> ShownTrack?): Pair<String, List<GeoPoint>>? {
         routePoints?.takeIf { it.size >= 2 }?.let { return "planned route" to it }
-        shown?.let { t -> t.segments.flatten().takeIf { it.size >= 2 }?.let { return "track \"${t.name}\"" to it } }
+        shown()?.let { t -> t.segments.flatten().takeIf { it.size >= 2 }?.let { return "track \"${t.name}\"" to it } }
         return null
     }
 

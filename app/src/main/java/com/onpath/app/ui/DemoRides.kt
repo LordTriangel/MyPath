@@ -39,7 +39,7 @@ class DemoRides(
     private val host: DemoRidesHost,
 ) {
     /** What "Demo: ride" would ride: the planned route, else the shown track (a GPX file / tour); null = nothing. */
-    fun demoLine(): Pair<String, List<GeoPoint>>? = DemoRules.demoLine(host.route?.points, host.shown)
+    fun demoLine(): Pair<String, List<GeoPoint>>? = DemoRules.demoLine(host.route?.points) { host.shown }
 
     /** Rides [demoLine] from its start at the activity's modelled speed (user's pace); real GPS is ignored meanwhile. */
     fun startDemoRide() {
