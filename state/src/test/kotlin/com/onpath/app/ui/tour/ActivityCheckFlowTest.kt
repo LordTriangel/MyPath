@@ -646,13 +646,17 @@ class ActivityCheckFlowTest {
         neverReachedPlan(); mode = AppMode.PLAN
         slice.openActivityCheck()
         tapAndRoute(Activity.BIKE_TREKKING)
-        assertTrue("no proposal, no question, no command", client.sent.isEmpty() && !proposalFile.exists() && atSend.isEmpty())
+        assertTrue("no proposal, no question", !proposalFile.exists() && atSend.none { it.proposal != null })
+        // L5: only the service's recorded activity is told (for when the plan is no longer followed)
+        assertEquals(listOf("ACTIVITY_CHANGED"), sentActions())
+        assertEquals(mapOf<String, Any>("activity" to "BIKE_TREKKING", "sac" to 2), client.sent.single().extras)
         // the order: "follow the next result" BEFORE the activity change that starts the run; the activity reaches the prefs; no mode change
         val seen = log.filterNot { it.startsWith("clearShownNote") }
         assertEquals(listOf(
             "FollowNext-host ${RouteRun.Event.FollowNext}",
             "event ${RouteRun.Event.CompareActivity(false)}",
-            "recalc BIKE_TREKKING T3 prefs=BIKE_TREKKING/T3"), seen)
+            "recalc BIKE_TREKKING T3 prefs=BIKE_TREKKING/T3",
+            "send ACTIVITY_CHANGED"), seen)
         assertEquals(Activity.BIKE_TREKKING, planRoute.activity); assertEquals(Activity.BIKE_TREKKING, prefs.activity)
         assertEquals("not the user's own picker: Cancel then only stops", PlanStatus.Cause.Other, planRoute.runCauses.next)
         assertNull("the sheet closed", slice.activityCheck)
@@ -676,7 +680,7 @@ class ActivityCheckFlowTest {
             "rememberSac(5)",
             "FollowNext-host ${RouteRun.Event.FollowNext}",
             "event ${RouteRun.Event.CompareActivity(false)}",
-            "recalc HIKE T5 prefs=HIKE/T5"), log.filterNot { it.startsWith("clearShownNote") })
+            "recalc HIKE T5 prefs=HIKE/T5", "send ACTIVITY_CHANGED"), log.filterNot { it.startsWith("clearShownNote") })
         assertEquals(5, planRoute.sac); assertEquals(5, prefs.sac)
         stepIo()
         assertEquals("HIKE" to 5, tourRow())
@@ -722,12 +726,14 @@ class ActivityCheckFlowTest {
         assertNull("the sheet closed", slice.activityCheck)
         assertEquals(Activity.EBIKE, planRoute.activity); assertEquals(Activity.EBIKE, prefs.activity)
         assertEquals("taken over from the sheet, not the user's own picker: Cancel then only stops", PlanStatus.Cause.Other, planRoute.runCauses.next)
-        assertEquals("the plan's activity, as the picker does it: no switch in the tour's session", true, client.sent.isEmpty())
+        // L5: the service is told (it records / times the tour as the new activity); the plan's activity is not a switch in a session
+        assertEquals(listOf("ACTIVITY_CHANGED"), sentActions())
+        assertEquals(mapOf<String, Any>("activity" to "EBIKE", "sac" to 3), client.sent.single().extras)
         assertEquals(0, engine.calls.size + cpuEx.size + checkEx.size)
         assertEquals("not stored before io runs", "HIKE" to 2, tourRow())
         stepIo()
         assertEquals("the remembered level goes with it", "EBIKE" to 3, tourRow())
-        assertEquals(listOf("event ${RouteRun.Event.CompareActivity(false)}", "recalc EBIKE T3 prefs=EBIKE/T3", "clearShownNote", "updateActivity($tourId, EBIKE, T3)"), log)
+        assertEquals(listOf("event ${RouteRun.Event.CompareActivity(false)}", "recalc EBIKE T3 prefs=EBIKE/T3", "clearShownNote", "send ACTIVITY_CHANGED", "updateActivity($tourId, EBIKE, T3)"), log)
         assertFalse(proposalFile.exists())
     }
 
@@ -737,6 +743,7 @@ class ActivityCheckFlowTest {
         slice.chooseActivity(Activity.MTB)
         assertEquals(Activity.MTB, planRoute.activity)
         assertEquals(0, ioEx.size)
+        assertEquals("no tour recording: the service is not asked (it would stop itself again)", emptyList<String>(), sentActions())
         assertEquals("HIKE" to 2, tourRow())
     }
 
@@ -751,7 +758,8 @@ class ActivityCheckFlowTest {
         assertEquals("HIKE" to 4, tourRow())
         assertTrue(log.indexOf("recalc HIKE T3 prefs=HIKE/T3") < log.indexOf("recalc HIKE T4 prefs=HIKE/T4"))
         assertEquals("the Hike chip was traced", listOf("Activity check: Hike T4 chosen (was MTB)"), traced().filter { it.startsWith("Activity check") })
-        assertTrue(client.sent.isEmpty())
+        assertEquals(listOf("ACTIVITY_CHANGED"), sentActions())
+        assertEquals(mapOf<String, Any>("activity" to "HIKE", "sac" to 4), client.sent.single().extras)
     }
 
     @Test fun aHikeChipAtTheRememberedLevelSelectsHikeAsTakenOverNotAsTheUsersOwnPick() {

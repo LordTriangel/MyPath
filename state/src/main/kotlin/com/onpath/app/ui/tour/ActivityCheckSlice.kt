@@ -195,7 +195,9 @@ class ActivityCheckSlice(
             closeActivityCheck()
             planRoute.selectActivity(Activity.HIKE, userChange = false)
             planRoute.selectSac(l)
-            recording.state.value?.tourId?.let { id -> scope.launchSafe("app", "chooseHikeLevel", io) {
+            recording.state.value?.tourId?.let { id ->
+                recording.activityChanged(Activity.HIKE.name, l) // the service records / times the tour as the new activity (L5)
+                scope.launchSafe("app", "chooseHikeLevel", io) {
                 runCatching { rows.updateActivity(id, Activity.HIKE.name, l) }
                     .onFailure { Problems.error("db", "Activity of the recorded tour not updated in the database", it) }
             } }
@@ -229,7 +231,9 @@ class ActivityCheckSlice(
         if (st == ActivityRowState.Plain || session == null) {
             closeActivityCheck()
             planRoute.selectActivity(a, userChange = false)
-            recording.state.value?.tourId?.let { id -> scope.launchSafe("app", "chooseActivity", io) {
+            recording.state.value?.tourId?.let { id ->
+                recording.activityChanged(a.name, sacFor(a)) // the service records / times the tour as the new activity (L5)
+                scope.launchSafe("app", "chooseActivity", io) {
                 runCatching { rows.updateActivity(id, a.name, sacFor(a)) }
                     .onFailure { Problems.error("db", "Activity of the recorded tour not updated in the database", it) }
             } }
@@ -282,7 +286,9 @@ class ActivityCheckSlice(
         host.routeEvent(RouteRun.Event.FollowNext) // the plan's result is followed at once (recalc → followPlanned)
         planRoute.selectActivity(a, userChange = false)
         val storedSac = if (a == Activity.HIKE) sac else level
-        recording.state.value?.tourId?.let { id -> scope.launchSafe("app", "switchPlanActivity", io) {
+        recording.state.value?.tourId?.let { id ->
+            recording.activityChanged(a.name, storedSac) // the service's recorded activity, for when the plan is no longer followed (L5)
+            scope.launchSafe("app", "switchPlanActivity", io) {
             runCatching { rows.updateActivity(id, a.name, storedSac) }
                 .onFailure { Problems.error("db", "Activity of the recorded tour not updated in the database", it) }
         } }

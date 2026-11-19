@@ -278,7 +278,7 @@ class RecordingService : Service() {
     /** Moving time, breaks and pace learning of this tour (persisted in [TRIP_FILE], survives a restart). */
     private var trip = TripPace()
     /** Activity of the recording (the navigated session's activity wins for the time model). */
-    private var recActivity = Activity.HIKE
+    private val recorded = RecordedActivity()
     private var tripSaved = 0L
     /** This tour carries the "Demo · " name (Developer tools → Demo fed it simulated fixes). */
     private var demoMarked = false
@@ -310,7 +310,7 @@ class RecordingService : Service() {
     private fun startCommand(intent: Intent?, startId: Int): Int {
         val control = intent?.action in setOf(ACTION_PAUSE, ACTION_RESUME, ACTION_STOP, ACTION_FOLLOW_CHANGED, ACTION_NAVIGATING,
             ACTION_SETTINGS, ACTION_TAKE_ROUTE, ACTION_TAKE_VIA, ACTION_KEEP_ROUTE, ACTION_CHECK_NOW, ACTION_PROPOSE_SWITCH,
-            ACTION_LEAD_THERE, ACTION_JUST_RECORD, ACTION_LEAD_FAILED_OK, ACTION_JOIN_HERE, ACTION_SAY)
+            ACTION_LEAD_THERE, ACTION_JUST_RECORD, ACTION_LEAD_FAILED_OK, ACTION_JOIN_HERE, ACTION_SAY, ACTION_ACTIVITY_CHANGED)
         // (a SAY sent just before End reaches a service that finish() now keeps for a newer start: it must stop too)
         if (control && tourId < 0) { stopSelf(startId); return START_NOT_STICKY } // nothing is recording
         when (intent?.action) {
@@ -347,6 +347,18 @@ class RecordingService : Service() {
                     voice.event(phrase, SystemClock.elapsedRealtime())?.let { say(it) }
                     saveVoice()
                 }
+                return START_STICKY
+            }
+            ACTION_ACTIVITY_CHANGED -> {
+                // the activity was switched in the app without a followed route (check sheet, free recording): the end's
+                // ride detection, the time prior and a rescued row use it from now on (the tour's row is the app's write)
+                val level = intent.getIntExtra(EXTRA_SAC, 0)
+                if (recorded.switchTo(intent.getStringExtra(EXTRA_ACTIVITY), level)) {
+                    tourMeta = tourMeta?.let { Triple(it.first, it.second, recorded.sac) }
+                    trip.setPrior(priorFor(timeActivity()))
+                    Problems.trace("recording", "The tour is recorded as ${recorded.activity.name} from now on (switched in the app)")
+                    publish()
+                } else Problems.warn("recording", "Activity switch ignored: no known activity in the command")
                 return START_STICKY
             }
             ACTION_SETTINGS -> {
@@ -427,7 +439,7 @@ class RecordingService : Service() {
                     existing.durationS.toLong(), nextSeq, lastSeg, segs)
                 tourId = existing.id
                 tourMeta = Triple(existing.name, existing.createdMs, existing.sac)
-                recActivity = activityOf(existing.activity)
+                recorded.activity = activityOf(existing.activity); recorded.sac = existing.sac
                 demoMarked = existing.name.startsWith(DemoLocation.TOUR_PREFIX)
                 voice.newTour()
                 loadTrip() // also the tour's voice memory: a sticky restart never says "Los geht's" again
@@ -451,8 +463,8 @@ class RecordingService : Service() {
                 tourRun = TourRun()
                 tourId = id
                 tourMeta = Triple(name, created, sac)
-                recActivity = activityOf(intent?.getStringExtra(EXTRA_ACTIVITY))
-                trip = TripPace(priorFor(recActivity))
+                recorded.activity = activityOf(intent?.getStringExtra(EXTRA_ACTIVITY)); recorded.sac = sac
+                trip = TripPace(priorFor(recorded.activity))
                 voice.newTour(); voiceSaved = null
                 saveTrip()
             }
@@ -794,7 +806,7 @@ class RecordingService : Service() {
             System.currentTimeMillis(), Prefs(this).sac)
         val segments = track.snapshot().map { seg -> seg.map { TrackPoint(it.lat, it.lon, it.ele, null) } }
         if (safeDb("rescue") {
-                seq = db.rescueRecording(tourId, name, recActivity.name, sac, created, segments, distance, ascent, descent,
+                seq = db.rescueRecording(tourId, name, recorded.activity.name, sac, created, segments, distance, ascent, descent,
                     elapsedS.toDouble())
                 seg = segments.size; last = null
                 pointQueue.clear() // the waiting points are in the track just written
@@ -1004,6 +1016,7 @@ class RecordingService : Service() {
         }
         if (step.activityChanged && tourId >= 0) {
             // the tour is now recorded as the new activity; the app follows via RecState.nav.session
+            recorded.switchTo(nav.session.activity.name, nav.session.sac) // kept for after the follow ends (timeActivity)
             try { db.updateActivity(tourId, nav.session.activity.name, nav.session.sac) } catch (e: Exception) {
                 Problems.error("db", "Activity switch could not be saved to the recorded tour", e)
             }
@@ -1497,7 +1510,7 @@ class RecordingService : Service() {
         com.onpath.app.debug.enumOr(name, Activity.HIKE, "recording")
 
     /** Activity the times are computed for: the navigated session's, else the recording's. */
-    private fun timeActivity() = navigator?.session?.activity ?: recActivity
+    private fun timeActivity() = recorded.timeActivity(navigator?.session?.activity)
 
     /** The pace setting for [a] (same as the plan sheet; learning per tour only, nothing stored across tours). */
     private fun priorFor(a: Activity): Factors = try {
@@ -1546,7 +1559,7 @@ class RecordingService : Service() {
     }
 
     private fun loadTrip() {
-        val prior = priorFor(recActivity)
+        val prior = priorFor(recorded.activity)
         trip = try {
             val o = JSONObject(File(filesDir, TRIP_FILE).readText())
             if (o.optLong("tour", -1) == tourId) {
@@ -1694,6 +1707,8 @@ class RecordingService : Service() {
         const val EXTRA_ACTIVITY = RecordingWire.EXTRA_ACTIVITY
         /** T level (SAC 1..5) the tour is recorded at; missing = the stored one ([Prefs.sac]). */
         const val EXTRA_SAC = RecordingWire.EXTRA_SAC
+        /** The tour's activity was switched in the app (free recording): [EXTRA_ACTIVITY] + [EXTRA_SAC] (L5). */
+        const val ACTION_ACTIVITY_CHANGED = RecordingWire.ACTION_ACTIVITY_CHANGED
 
         /** T level of a new recorded tour: the one sent with the start ([extra] 1..5), else the [stored] one. */
         fun newTourSac(extra: Int, stored: Int): Int =

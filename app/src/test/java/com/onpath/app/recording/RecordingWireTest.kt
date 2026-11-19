@@ -5,7 +5,7 @@ import org.junit.Test
 
 /**
  * The wire strings of the service's Intents, written out as literals – copied from `RecordingService` as it was before
- * they moved to `:core` (`RecordingWire`): the 17 actions, 8 extras and 2 SAY values. A pending notification button of an
+ * they moved to `:core` (`RecordingWire`): the 18 actions, 8 extras and 2 SAY values. A pending notification button of an
  * older build and a sticky restart carry exactly these; a changed value is a changed contract. Both the new home and the
  * service's alias are compared, so neither can drift.
  */
@@ -40,14 +40,15 @@ class RecordingWireTest {
         Wire("EXTRA_CONTINUE_ID", "continueId", RecordingWire.EXTRA_CONTINUE_ID, RecordingService.EXTRA_CONTINUE_ID),
         Wire("EXTRA_ACTIVITY", "activity", RecordingWire.EXTRA_ACTIVITY, RecordingService.EXTRA_ACTIVITY),
         Wire("EXTRA_SAC", "sac", RecordingWire.EXTRA_SAC, RecordingService.EXTRA_SAC),
+        Wire("ACTION_ACTIVITY_CHANGED", "com.onpath.app.ACTIVITY_CHANGED", RecordingWire.ACTION_ACTIVITY_CHANGED, RecordingService.ACTION_ACTIVITY_CHANGED),
     )
 
     @Test fun everyActionAndExtraStringIsWhatItAlwaysWas() {
-        assertEquals("17 actions + 8 extras + 2 SAY values", 27, all.size)
+        assertEquals("18 actions + 8 extras + 2 SAY values", 28, all.size)
         for (w in all) {
             assertEquals("${w.name} in RecordingWire", w.literal, w.inWire)
             assertEquals("${w.name} on RecordingService", w.literal, w.inService)
         }
-        assertEquals("every name once", 27, all.map { it.name }.toSet().size)
+        assertEquals("every name once", 28, all.map { it.name }.toSet().size)
     }
 }

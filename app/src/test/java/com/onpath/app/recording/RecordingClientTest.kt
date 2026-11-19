@@ -38,6 +38,7 @@ class RecordingClientTest {
         client.checkNow(); assertEquals("com.onpath.app.CHECK_NOW" to emptyMap<String, Any>(), last())
         client.say(RecordingService.SAY_ARRIVED); assertEquals("com.onpath.app.SAY" to mapOf<String, Any>("say" to "arrived"), last())
         client.proposeSwitch(1234.5); assertEquals("com.onpath.app.PROPOSE_SWITCH" to mapOf<String, Any>("timeS" to 1234.5), last())
+        client.activityChanged("BIKE_TREKKING", 2); assertEquals("com.onpath.app.ACTIVITY_CHANGED" to mapOf<String, Any>("activity" to "BIKE_TREKKING", "sac" to 2), last())
         val answers = listOf<Pair<(Int) -> Unit, String>>(
             client::takeRoute to "TAKE_ROUTE", client::takeVia to "TAKE_VIA", client::keepRoute to "KEEP_ROUTE",
             client::leadThere to "LEAD_THERE", client::justRecord to "JUST_RECORD", client::joinHere to "JOIN_HERE",
@@ -54,11 +55,11 @@ class RecordingClientTest {
         val contract = File("../core/src/main/kotlin/com/onpath/app/recording/RecordingClient.kt").readText()
         val wire = contract.substringAfter("object RecordingWire").substringBefore("\n}\n")
         val declared = Regex("""const val (ACTION_\w+) = "com\.onpath\.app\.""").findAll(wire).map { it.groupValues[1] }.toSet()
-        assertEquals("the service's actions", 17, declared.size)
+        assertEquals("the service's actions", 18, declared.size)
         val companion = contract.substringAfter("companion object")
         assertEquals("actions without a typed command", emptySet<String>(), declared.filterNot { companion.contains("RecordingWire.$it") }.toSet())
         val wireNames = Regex("""const val ((?:ACTION|EXTRA|SAY)_\w+) = """).findAll(wire).map { it.groupValues[1] }.toSet()
-        assertEquals("17 actions, 8 extras, 2 SAY values", 27, wireNames.size)
+        assertEquals("18 actions, 8 extras, 2 SAY values", 28, wireNames.size)
         assertEquals("a wire string the service has no alias for", emptySet<String>(),
             wireNames.filterNot { svc.contains("const val $it = RecordingWire.$it") }.toSet())
         // … and each is taken by onStartCommand: a control action in its set and its branch (START is the fall-through)

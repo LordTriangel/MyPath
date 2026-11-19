@@ -35,6 +35,8 @@ object RecordingWire {
     const val EXTRA_CONTINUE_ID = "continueId"
     const val EXTRA_ACTIVITY = "activity"
     const val EXTRA_SAC = "sac"
+    /** The activity of the running tour changed in the app (free recording): [EXTRA_ACTIVITY] + [EXTRA_SAC], as with START. */
+    const val ACTION_ACTIVITY_CHANGED = "com.onpath.app.ACTIVITY_CHANGED"
 }
 
 /**
@@ -55,7 +57,9 @@ data class RecordingCommand(val action: String, val extras: Map<String, Any> = e
         fun followChanged(checkNow: Boolean? = null) = RecordingCommand(RecordingWire.ACTION_FOLLOW_CHANGED,
             if (checkNow == null) emptyMap() else mapOf(RecordingWire.EXTRA_CHECK_NOW to checkNow))
         fun navigating(on: Boolean) = RecordingCommand(RecordingWire.ACTION_NAVIGATING, mapOf(RecordingWire.EXTRA_ON to on))
-        val settingsChanged = RecordingCommand(RecordingWire.ACTION_SETTINGS)
+        fun activityChanged(activity: String, sac: Int) = RecordingCommand(RecordingWire.ACTION_ACTIVITY_CHANGED,
+            mapOf(RecordingWire.EXTRA_ACTIVITY to activity, RecordingWire.EXTRA_SAC to sac))
+        val settingsChanged =RecordingCommand(RecordingWire.ACTION_SETTINGS)
         val checkNow = RecordingCommand(RecordingWire.ACTION_CHECK_NOW)
         fun say(what: String) = RecordingCommand(RecordingWire.ACTION_SAY, mapOf(RecordingWire.EXTRA_SAY to what))
         fun proposeSwitch(timeS: Double) = RecordingCommand(RecordingWire.ACTION_PROPOSE_SWITCH, mapOf(RecordingWire.EXTRA_TIME_S to timeS))
@@ -102,6 +106,8 @@ interface RecordingClient {
     fun followChanged(checkNow: Boolean? = null) = send(RecordingCommand.followChanged(checkNow))
     /** The app is in Navigate ([on]) or in Plan. */
     fun navigating(on: Boolean) = send(RecordingCommand.navigating(on))
+    /** The tour's activity was switched in the app (check sheet, free recording): the service records / times it as [activity]. */
+    fun activityChanged(activity: String, sac: Int) = send(RecordingCommand.activityChanged(activity, sac))
     fun settingsChanged() = send(RecordingCommand.settingsChanged)
     /** "Weiter geht's" back on the map: check the next fix at once. */
     fun checkNow() = send(RecordingCommand.checkNow)
