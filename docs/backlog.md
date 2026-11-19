@@ -9,8 +9,9 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [umbau] [laptop] [donald] (captain 2026-11-20 night, **owner's answer on the planner piece: „push the visible piece through“**): Friday's release takes items 1–5 incl. the first proof (`RoutesState` + `SaveDialog` run in the browser, `recent.ts` + save part of `plans.ts` gone), even if tight; the rest (6–10) after the weekend. Planner bugs (place filter, time left) still go live at once. If item 5 is not green by Friday evening, write it here early.
-- → [laptop] (captain 2026-11-20 night, **owner's planner bug, live at once like the place filter**): plan München → Hilden – the wait says „ready in 5 s“, then hangs a long while. The time-left estimate does not hold for a long route (the owner means the estimate, not the routing). Find which window it is (route calculation or map areas along the route, `areas.ts` takes the max eta of single cells), reproduce, test first, fix so the time left is honest or shows steps without a number.
+- → [laptop] ([umbau] 2026-11-20 ~02:00, **items 3–5, how we go**, the owner's „push the visible piece through“ read): the `state/` side of the first proof is on main – `RoutesState`… → [detail](items/2026-11-20-items-35-how-we-go.md)
+- → [laptop] [donald] (captain 2026-11-20 night, **owner's answer on the planner piece: „push the visible piece through“**): Friday's release takes items 1–5 incl.… → [detail](items/2026-11-20-owner-s-answer-on-the-planner-piece-push.md)
+- → [laptop] (captain 2026-11-20 night, **owner's planner bug, live at once like the place filter**): plan München → Hilden – the wait says „ready in 5 s“, then hangs a long while.… → [detail](items/2026-11-20-owner-s-planner-bug-live-at-once-like-th.md)
 - → [laptop] (captain 2026-11-19 night, owner): the planner has no browser icon (tab shows the placeholder; `web/app/index.html` has no `<link rel=icon>`). Use the onpath.earth site icon (repo happychriss/onpath.earth), else the app's launcher icon (`app/src/main/res/drawable/ic_launcher_foreground.xml`) – SVG + 32 px PNG + apple-touch-icon. Small; after the place filter, goes live with it.
 - → [laptop] ([umbau] 2026-11-20 ~00:30, **item 2 of the planner cut is on main (967082e6c): 29 `:state` files are listed in `state/web-ready.txt`** – 6 slices… → [detail](items/2026-11-20-umbau-to-laptop-29-state-files.md)
 - → [laptop]… → [detail](items/2026-11-19-captain-to-laptop-search-munchen-tap.md)
@@ -84,7 +85,8 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
-- ← [laptop] (2026-11-19 ~22:30): **7-63-42 builds on TEST** (`ready`, 2.4 MB, OSM 2026-10-27) after the maps deploy went through on the third try (GitHub's token server timed out twice – nothing on our side, the Google sign-in step itself was green). **Place filter (owner's „direkt ändern und pushen“)**: planner-only as the owner said; a real race fixed (a late online answer without the chip refilled the „Orte“ list with every kind) – live with this deploy; the owner's exact case did not reproduce, so the chip now also lights up and filters the list at once on the tap, as in the app (next deploy). Parity: PlanRunSlice / PlanRecalcSlice stamped (umbau's Cancellable port, no behaviour change).
+- ← [umbau] (2026-11-20 ~02:00, **test clean-up done – all four helper runs reviewed and on main (63f6563e5); numbers before → after**, `wc -l` over `.kt` / count of `@Test`): app 28,284 → 27,540 lines (1,787 → 1,744 tests) · core 24,990 →… → [detail](items/2026-11-20-umbau-to-captain-numbers-before-after.md)
+- ← [laptop] (2026-11-19 ~22:30): **7-63-42 builds on TEST** (`ready`, 2.4 MB, OSM 2026-10-27) after the maps deploy went through on the third try (GitHub's token server timed out twice – nothing on our side, the Google sign-in step itself was green).… → [detail](items/2026-11-19-7-63-42-builds-on-test.md)
 - ← [umbau] (2026-11-20 ~00:30): **tag `umbau-phase-2` is set on c123880c7** (full E2E 100/100 there; unit CI + planner run green on 9a3a1d2, docs-only difference).… → [detail](items/2026-11-20-tag-umbau-phase-2-is-set-on-c123880c7.md)
 - ← [umbau] (2026-11-19 ~23:30, **the planner on the shared slices – the count, the cut, and an early warning**; counted on cfe64975d, method and tables: the analysis is in my chat, I put it into `docs/design/` on request).… → [detail](items/2026-11-19-the-planner-on-the-shared-slices-the-cou.md)
 - ← [laptop] (2026-11-19 night): **region package 7-63-42 fixed** (on main, deploys to TEST by itself): not the DEM – `cells.py bbox` printed the package's 0° edge as `-1e-07`, the job's Python 3.12 argparse took that for an option, the shade step… → [detail](items/2026-11-19-region-package-7-63-42-fixed.md)
@@ -186,7 +188,6 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Small:** → [detail](items/2026-11-18-small.md)
 
 ## Waiting for the owner
-- [umbau] 2026-11-19 night: **Planner auf den…** → [detail](items/2026-11-19-planner-auf-den-gemeinsamen-bausteinen-w.md)
 - [captain] 2026-11-19: **merge pull request 15** → [detail](items/2026-11-19-merge-pull-request-15.md)
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)
 - **[laptop] For the owner to look at…** → [detail](items/2026-11-19-for-the-owner-to-look-at-no-answer-neede.md)
