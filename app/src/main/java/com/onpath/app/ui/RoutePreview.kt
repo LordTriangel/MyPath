@@ -228,7 +228,7 @@ internal fun RouteOverview(
     Surface(Modifier.fillMaxSize(), color = OnPathColors.Paper) {
         Column(Modifier.fillMaxSize().systemBarsPadding().padding(16.dp)) {
             // a done tour (owner 2026-11-15, round 3): its look back – the big values, the picture with the profile, the
-            // highlights, Details and share
+            // highlights, „Mehr“ and share
             if (t.kind == com.onpath.app.data.TourKind.RECORDED) {
                 DoneTourOverview(t, review, picture, foot, onExportTrack, onExportPlan, dots)
                 return@Column
@@ -241,6 +241,8 @@ internal fun RouteOverview(
                 style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             picture(Modifier.weight(1f).fillMaxWidth().padding(top = 12.dp, bottom = if (dots != null) 8.dp else 12.dp).clip(OnPathShapes.Card))
             dots?.let { Box(Modifier.padding(bottom = 10.dp)) { it() } }
+            // „Mehr ›“ (owner 2026-11-19): what the facts line does not say – the descent, the activity
+            if (More.of(t, null) != null) Box(Modifier.padding(bottom = 12.dp)) { MoreEntry(t, null) }
             foot()
         }
     }

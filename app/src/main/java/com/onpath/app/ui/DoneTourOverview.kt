@@ -2,7 +2,6 @@ package com.onpath.app.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,7 +21,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Route
 import androidx.compose.material.icons.filled.Timeline
@@ -34,12 +31,10 @@ import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
@@ -65,7 +60,6 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.onpath.app.data.Format
-import com.onpath.app.data.LastActivity
 import com.onpath.app.data.Tour
 import com.onpath.app.routing.Activity
 import com.onpath.app.time.TourReview
@@ -99,12 +93,6 @@ internal object ReviewText {
 
     fun perHour(m: Double): String = "${m.roundToInt()} m/h"
 
-    /** "10:12–14:47" in the phone's time zone. */
-    fun clockRange(startMs: Long, endMs: Long): String {
-        val f = java.text.SimpleDateFormat("HH:mm", java.util.Locale.ROOT)
-        return "${f.format(java.util.Date(startMs))}–${f.format(java.util.Date(endMs))}"
-    }
-
     /** The one plan line: "12 % schneller als geplant" / "… langsamer …" / "Genau wie geplant"; null = no comparison. */
     fun plan(pct: Int?): String? = when {
         pct == null -> null
@@ -115,17 +103,6 @@ internal object ReviewText {
 
     fun pausesLabel(count: Int?): String =
         if (count != null && count > 0) Txt.s(Res.string.routes_review_pauses_n, count) else Txt.s(Res.string.routes_review_pauses)
-
-    /** The small line under the Details numbers: planned vs needed · the activity · its place by length – what is known. */
-    fun note(t: Tour, r: TourReview): String? {
-        val act = com.onpath.app.debug.enumOrNull<Activity>(t.activity, "routes")
-        return listOfNotNull(
-            r.plannedS?.let { p -> r.neededS?.let { n ->  // no smart cast on a property of :core's TourReview
-                Txt.s(Res.string.routes_review_plan_note, com.onpath.app.time.TimeEstimate.hm(p), com.onpath.app.time.TimeEstimate.hm(n)) } },
-            act?.let { LastActivity.name(it, t.sac) },
-            r.rank?.let { Txt.s(Res.string.routes_review_rank, it.place, it.of) },
-        ).takeIf { it.isNotEmpty() }?.joinToString(" · ")
-    }
 
     /** A highlight row: icon, label, value, where (km). */
     data class Row(val icon: ImageVector, val label: String, val value: String, val where: String)
@@ -165,27 +142,15 @@ internal object ReviewText {
 
     /** The time on the way: the review's (start to end), else the tour's stored duration. */
     private fun total(t: Tour, r: TourReview?) = time(r?.totalS ?: t.durationS) to Txt.s(Res.string.routes_review_total)
-
-    /** The Details sheet's numbers (label, value) – only the known ones. */
-    fun details(t: Tour, r: TourReview): List<Pair<String, String>> = listOfNotNull(
-        r.startMs?.let { s -> r.endMs?.let { e -> Txt.s(Res.string.routes_review_on_the_way) to clockRange(s, e) } },
-        r.movingS?.let { Txt.s(Res.string.routes_review_moving) to time(it) },
-        r.pauseS?.let { pausesLabel(r.pauseCount) to time(it) },
-        r.avgKmh?.let { Txt.s(Res.string.routes_review_avg) to kmh(it) },
-        Txt.s(Res.string.routes_review_ascent) to ascent(t.ascentM),
-        Txt.s(Res.string.routes_review_descent) to descent(t.descentM),
-        r.upMh?.let { Txt.s(Res.string.routes_review_uphill) to perHour(it) },
-        r.downMh?.let { Txt.s(Res.string.routes_review_downhill) to perHour(it) },
-    )
 }
 
 /**
  * The large overview of a done tour (owner 2026-11-15, round 3 of the tour analysis – the compromise between the owner's
  * other proposal and the compact sketch, in the app's colours): title + share, three big values (distance, ascent, average
  * speed – owner 2026-11-16, [ReviewText.top]), the map picture with the height profile under it in one card, total time |
- * moving | pauses ([ReviewText.lower]), the plan line, the highlights,
- * „Details ›“ (a sheet with the further numbers) and the overview's foot. One screen at a normal font; at a large font the
- * page scrolls (nothing is cut). [review] null = still read / not known: the stored numbers only.
+ * moving | pauses ([ReviewText.lower]), the plan line, the highlights, „Mehr ›“ (a sheet with only what the overview does
+ * not show, [More] – owner 2026-11-19) and the overview's foot. One screen at a normal font; at a large font the page
+ * scrolls (nothing is cut). [review] null = still read / not known: the stored numbers only.
  */
 @Composable
 internal fun DoneTourOverview(
@@ -196,7 +161,6 @@ internal fun DoneTourOverview(
     /** The page dots under the picture (owner 2026-11-19, [PageDots]); null = a list of one. */
     dots: (@Composable () -> Unit)? = null,
 ) {
-    var details by remember { mutableStateOf(false) }
     val r = review
     // a large font scrolls the page anyway: the picture keeps a size worth looking at
     val large = LocalDensity.current.fontScale >= DraftLook.STACK_FONT_SCALE
@@ -220,12 +184,11 @@ internal fun DoneTourOverview(
                 if (lower.isNotEmpty()) BigValues(lower, dividerBelow = true, top = false)
                 r?.let { ReviewText.plan(it.planPct) }?.let { PlanLine(it, faster = (r.planPct ?: 0) >= 0) }
                 r?.let { ReviewText.highlights(t, it) }?.forEach { HighlightRow(it) }
-                if (r != null && ReviewText.details(t, r).isNotEmpty()) DetailsRow { details = true }
+                MoreEntry(t, r)
                 Spacer(Modifier.height(2.dp))
                 foot()
             }
         })
-    if (details && r != null) DetailsSheet(t, r) { details = false }
 }
 
 /** At least this much picture: below it the page scrolls instead (a large font). */
@@ -363,51 +326,6 @@ private fun HighlightRow(row: ReviewText.Row) {
         value()
         Text(row.where, style = body, color = OnPathColors.InkMuted, maxLines = 1, softWrap = false,
             textAlign = TextAlign.End, modifier = Modifier.widthIn(min = 72.dp).padding(start = 10.dp))
-    }
-}
-
-@Composable
-private fun DetailsRow(onClick: () -> Unit) {
-    Column {
-        HorizontalDivider(color = OnPathColors.Line)
-        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(onClick = onClick), verticalAlignment = Alignment.CenterVertically) {
-            Text(str(Res.string.routes_review_details), style = MaterialTheme.typography.bodyLarge, color = OnPathColors.Ink,
-                modifier = Modifier.weight(1f))
-            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = OnPathColors.InkMuted)
-        }
-        HorizontalDivider(color = OnPathColors.Line)
-    }
-}
-
-/** „Details ›“: the further numbers in a sheet from below, three to a row (two at a large font), the small line under them. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun DetailsSheet(t: Tour, r: TourReview, onClose: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onClose, containerColor = OnPathColors.Paper) {
-        DetailsContent(t, r)
-    }
-}
-
-/** The sheet's content (also drawn alone in the screenshots). */
-@Composable
-internal fun DetailsContent(t: Tour, r: TourReview) {
-    val perRow = if (LocalDensity.current.fontScale >= DraftLook.STACK_FONT_SCALE) 2 else 3
-    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 20.dp).navigationBarsPadding(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(str(Res.string.routes_review_details), style = MaterialTheme.typography.titleLarge, color = OnPathColors.Ink)
-        ReviewText.details(t, r).chunked(perRow).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { (label, value) ->
-                    Column(Modifier.weight(1f)) {
-                        Text(label, style = MaterialTheme.typography.bodySmall, color = OnPathColors.InkMuted, maxLines = 2)
-                        Text(instrument(value, MaterialTheme.typography.bodyLarge, OnPathColors.Ink), style = MaterialTheme.typography.bodyLarge,
-                            color = OnPathColors.Ink, maxLines = 2)
-                    }
-                }
-                repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
-            }
-        }
-        ReviewText.note(t, r)?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = OnPathColors.InkMuted) }
     }
 }
 

@@ -90,17 +90,22 @@
     <string name="routes_review_highest">Höchster Punkt</string>
     <string name="routes_review_fastest_km">Schnellster km</string>
     <string name="routes_review_at_km">km %1$s</string>
-    <string name="routes_review_details">Details</string>
+    <string name="routes_review_more">Mehr</string>
     <string name="routes_review_on_the_way">Unterwegs</string>
     <string name="routes_review_avg">Ø Tempo</string>
-    <string name="routes_review_uphill">bergauf</string>
-    <string name="routes_review_downhill">bergab</string>
-    <string name="routes_review_plan_note">Geplant %1$s · gebraucht %2$s (ohne Pausen)</string>
+    <string name="routes_review_uphill">Bergauf</string>
+    <string name="routes_review_downhill">Bergab</string>
     <string name="routes_review_rank">%1$d. längste von %2$d</string>
     <string name="routes_review_share">Teilen</string>
     <string name="routes_review_export_track_line">der aufgezeichnete Weg · „%1$s“</string>
     <string name="routes_review_export_plan">Plan exportieren</string>
     <string name="routes_review_export_plan_line">die geplante Route · „%1$s“</string>
+    <string name="routes_more_planned">Geplant</string>
+    <string name="routes_more_needed">Gebraucht</string>
+    <string name="routes_more_longer">%1$s länger</string>
+    <string name="routes_more_faster">%1$s schneller</string>
+    <string name="routes_more_without_breaks">ohne Pausen</string>
+    <string name="routes_more_clock_desc">Unterwegs von %1$s bis %2$s</string>
     <string name="routes_followed_plan_missing">Der Plan dieser Tour konnte nicht gelesen werden.</string>
     <string name="routes_sac_line">T%1$d · %2$s: %3$s</string>
     <!-- Meine Touren: die Sortier-Chips (Owner 2026-11-12, Variante C) -->

@@ -27,10 +27,11 @@ class ReviewTextTest {
     @Test fun nothingKnownGivesNoHighlightsAndOnlyTheStoredNumbers() {
         val empty = TourReview()
         assertTrue(ReviewText.highlights(hike, empty).isEmpty())
-        // ascent and descent are the tour's own; nothing else is made up
-        assertEquals(listOf("Ascent", "Descent"), ReviewText.details(hike, empty).map { it.first })
-        // the activity is always known
-        assertEquals("Hike T2", ReviewText.note(hike, empty))
+        // „Mehr“ (owner 2026-11-19): the tour's own descent and activity, nothing made up
+        val more = More.of(hike, empty)!!
+        assertEquals("↓640 m", more.descent)
+        assertEquals("Hike T2", more.note)
+        assertNull(more.clock); assertNull(more.rates); assertNull(more.plan)
     }
 
     @Test fun theHighlightsInTheSketchsOrder() {

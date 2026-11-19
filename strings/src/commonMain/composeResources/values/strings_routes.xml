@@ -91,17 +91,22 @@
     <string name="routes_review_highest">Highest point</string>
     <string name="routes_review_fastest_km">Fastest km</string>
     <string name="routes_review_at_km">km %1$s</string>
-    <string name="routes_review_details">Details</string>
+    <string name="routes_review_more">More</string>
     <string name="routes_review_on_the_way">On the way</string>
     <string name="routes_review_avg">Ø speed</string>
     <string name="routes_review_uphill">Uphill</string>
     <string name="routes_review_downhill">Downhill</string>
-    <string name="routes_review_plan_note">Planned %1$s · needed %2$s (without breaks)</string>
     <string name="routes_review_rank">no. %1$d by length of %2$d</string>
     <string name="routes_review_share">Share</string>
     <string name="routes_review_export_track_line">the recorded way · “%1$s”</string>
     <string name="routes_review_export_plan">Export plan</string>
     <string name="routes_review_export_plan_line">the planned route · “%1$s”</string>
+    <string name="routes_more_planned">Planned</string>
+    <string name="routes_more_needed">Needed</string>
+    <string name="routes_more_longer">%1$s longer</string>
+    <string name="routes_more_faster">%1$s faster</string>
+    <string name="routes_more_without_breaks">without breaks</string>
+    <string name="routes_more_clock_desc">On the way from %1$s to %2$s</string>
     <string name="routes_followed_plan_missing">The plan of this tour could not be read.</string>
     <string name="routes_sac_line">T%1$d · %2$s: %3$s</string>
     <!-- My routes: the sort chips (owner 2026-11-12, variant C) -->

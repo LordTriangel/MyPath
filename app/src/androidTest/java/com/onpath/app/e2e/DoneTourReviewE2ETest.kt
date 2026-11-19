@@ -10,9 +10,9 @@ import com.onpath.app.domain.RoutesTab
 import com.onpath.strings.Res
 import com.onpath.strings.Txt
 import com.onpath.strings.common_export_gpx
-import com.onpath.strings.routes_review_details
 import com.onpath.strings.routes_review_highest
 import com.onpath.strings.routes_review_longest_pause
+import com.onpath.strings.routes_review_more
 import com.onpath.strings.routes_review_on_the_way
 import com.onpath.strings.routes_review_share
 import org.junit.Assert.assertNotNull
@@ -24,7 +24,8 @@ import kotlin.math.sin
 
 /**
  * A done tour's look back in its large overview (owner 2026-11-15, round 3 of the tour analysis): a recorded walk with a
- * long stop opens with its highlights (longest pause, highest point), „Details ›“ opens the further numbers, the share
+ * long stop opens with its highlights (longest pause, highest point), „Mehr ›“ (owner 2026-11-19) opens the extra values
+ * (the time bar is read by its description „Unterwegs von … bis …“), the share
  * icon offers "GPX exportieren".
  */
 @RunWith(AndroidJUnit4::class)
@@ -56,11 +57,12 @@ class DoneTourReviewE2ETest : E2EBase() {
             assertNotNull("its highest point", findFresh(By.text(Txt.s(Res.string.routes_review_highest)), 5_000))
             pause(3_000, "the map picture")
             shot("1-look-back")
-            clickText(Txt.s(Res.string.routes_review_details))
-            assertNotNull("the Details sheet", findFresh(By.text(Txt.s(Res.string.routes_review_on_the_way)), 5_000))
-            shot("2-details")
+            clickText(Txt.s(Res.string.routes_review_more))
+            val bar = By.descContains(Txt.s(Res.string.routes_review_on_the_way))
+            assertNotNull("the „Mehr“ sheet's time bar", findFresh(bar, 5_000))
+            shot("2-more")
             device.pressBack()
-            device.wait(androidx.test.uiautomator.Until.gone(By.text(Txt.s(Res.string.routes_review_on_the_way))), 5_000)
+            device.wait(androidx.test.uiautomator.Until.gone(bar), 5_000)
             findFresh(By.desc(Txt.s(Res.string.routes_review_share)), 5_000)!!.click()
             assertNotNull("share → GPX exportieren", findFresh(By.text(Txt.s(Res.string.common_export_gpx)), 5_000))
             shot("3-share")

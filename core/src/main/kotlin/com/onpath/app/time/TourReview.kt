@@ -31,6 +31,8 @@ data class TourReview(
     val neededS: Double? = null,
     /** The longest pause and where it began (m along the track). */
     val longestPause: AtTrack? = null,
+    /** Every pause the points show as clock times (start, end ms) – the gaps of „Mehr“'s time bar; empty = none / not known. */
+    val pauseSpans: List<Span> = emptyList(),
     /** The highest point: [AtTrack.value] = height (m). */
     val highest: AtTrack? = null,
     /** The fastest whole km: [AtTrack.value] = seconds for it, [AtTrack.atM] = its end (k × 1000 m). */
@@ -45,6 +47,8 @@ data class TourReview(
     data class ProfilePoint(val atM: Double, val ele: Double)
     /** [place]-longest of [of] tours. */
     data class Rank(val place: Int, val of: Int)
+    /** A stretch of clock time (ms). */
+    data class Span(val startMs: Long, val endMs: Long)
 
     companion object {
         const val PROFILE_MAX = 240
@@ -95,7 +99,8 @@ data class TourReview(
                 upMh = up, downMh = down,
                 planPct = if (planOk) ((p!! - n!!) / p * 100).roundToInt() else null,
                 plannedS = p.takeIf { planOk }, neededS = n.takeIf { planOk },
-                longestPause = pauses.maxByOrNull { it.value },
+                longestPause = pauses.maxByOrNull { it.value }?.let { AtTrack(it.value, it.atM) },
+                pauseSpans = pauses.map { Span(it.startMs, it.startMs + (it.value * 1000).toLong()) },
                 highest = along.filter { it.ele != null }.maxByOrNull { it.ele!! }?.let { AtTrack(it.ele!!, it.atM) },
                 fastestKm = fastestKm(along),
                 profile = profileOf(along),
@@ -136,22 +141,25 @@ data class TourReview(
             return out
         }
 
+        /** A pause found in the points: its length (s), where it began (m along the track) and when (ms). */
+        internal class Pause(val value: Double, val atM: Double, val startMs: Long)
+
         /**
          * The pauses in the points: the stops [BreakDetector] finds in each recorded part (its rule: 2 min within a
          * few metres) and the gaps between parts of at least [GAP_PAUSE_S] (Anhalten, a GPS gap). Each with its length
-         * (s) and where it began (m along the track).
+         * (s), where it began (m along the track) and its clock time.
          */
-        internal fun pausesIn(segs: List<List<TrackPoint>>): List<AtTrack> {
-            val out = ArrayList<AtTrack>()
+        internal fun pausesIn(segs: List<List<TrackPoint>>): List<Pause> {
+            val out = ArrayList<Pause>()
             var at = 0.0
             var lastTime: Long? = null
             for (seg in segs) {
                 val firstTime = seg.firstOrNull { it.timeMs != null }?.timeMs
                 if (lastTime != null && firstTime != null && (firstTime - lastTime) / 1000.0 >= GAP_PAUSE_S)
-                    out += AtTrack((firstTime - lastTime) / 1000.0, at)
+                    out += Pause((firstTime - lastTime) / 1000.0, at, lastTime)
                 val b = BreakDetector()
                 var prev: TrackPoint? = null
-                var current: AtTrack? = null
+                var current: Pause? = null
                 var prevAt = at
                 for (p in seg) {
                     prev?.let { at += Geo.distance(it.lat, it.lon, p.lat, p.lon) }
@@ -161,12 +169,13 @@ data class TourReview(
                         b.onFix((t - firstTime) / 1000.0, p.lat, p.lon)
                         val d = b.breakS() - before
                         when {
-                            !wasIn && b.inBreak -> { current?.let { out += it }; current = AtTrack(d, at) }
-                            wasIn && b.inBreak -> current = current?.let { AtTrack(it.value + d, it.atM) } ?: AtTrack(d, at)
+                            !wasIn && b.inBreak -> { current?.let { out += it }; current = Pause(d, at, t - (d * 1000).toLong()) }
+                            wasIn && b.inBreak -> current = current?.let { Pause(it.value + d, it.atM, it.startMs) }
+                                ?: Pause(d, at, t - (d * 1000).toLong())
                             else -> {
                                 // a stop ended here; a long gap without moving right before this fix is a pause of its own
                                 current?.let { out += it }; current = null
-                                if (d > 0) out += AtTrack(d, prevAt)
+                                if (d > 0) out += Pause(d, prevAt, t - (d * 1000).toLong())
                             }
                         }
                         lastTime = t

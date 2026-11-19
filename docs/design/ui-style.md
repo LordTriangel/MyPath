@@ -260,8 +260,11 @@ for the map centre.
   (GPX of the recorded way; the followed plan as `PlanGpx` when there is one), three big values (Strecke, Aufstieg,
   Gesamtzeit), the picture with the done-green profile in one card, In Bewegung | Pausen (n), the plan line, the
   highlights (Längste Pause, Höchster Punkt, Schnellster km – where as „km 6,1“: no offline place lookup by position
-  exists), „Details ›“ (sheet: Unterwegs, In Bewegung, Pausen, Ø Tempo, Aufstieg, Abstieg, bergauf / bergab m/h, a small
-  line with planned vs needed · activity · its place by length among the same activity's done tours). One screen at a
+  exists), „Mehr ›“ (owner 2026-11-19, `ui/RouteMore` – only what the overview does not show, as calm graphics without a
+  chart library: the time bar start–end clock with the pauses as light gaps, Abstieg, Bergauf / Bergab m/h as two bars on
+  one scale, Geplant (plan blue) / Gebraucht (done green) on one scale with „30 min schneller · ohne Pausen“, a small line
+  activity · place by length; each graphic read by TalkBack with its numbers; empty parts hidden, no row when nothing is
+  left – a planned route's overview has the same row with Abstieg + activity). One screen at a
   normal font (the picture takes what is left, ≥ 220 dp); at a large font the values stand one per row and the page
   scrolls. A done tour's picture has its own stored size (`OverviewPictures.size(done = true)`).
 

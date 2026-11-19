@@ -564,15 +564,15 @@
     "priority": 2,
     "confidence": "sicher"
   },
-  "routes_review_details": {
+  "routes_review_more": {
     "area": "My routes – look back at a done tour",
-    "context": "Row that opens the sheet with all further numbers of the tour (owner 2026-11-15, round 3 of the tour analysis).",
+    "context": "Row and sheet title for the further values the overview does not show – clock times, descent, speed up / down, planned vs needed (owner 2026-11-19: „we don't call it details, but more“). Short.",
     "priority": 2,
     "confidence": "sicher"
   },
   "routes_review_on_the_way": {
     "area": "My routes – look back at a done tour",
-    "context": "Details sheet label: clock times of start and end (\"10:12–14:47\") (owner 2026-11-15, round 3 of the tour analysis).",
+    "context": "„More“ label over the time bar: clock times of start and end (\"10:12–14:47\") (owner 2026-11-15, round 3 of the tour analysis).",
     "priority": 2,
     "confidence": "sicher"
   },
@@ -584,19 +584,13 @@
   },
   "routes_review_uphill": {
     "area": "My routes – look back at a done tour",
-    "context": "Details sheet label: metres climbed per hour on the climbing parts (m/h); lower case in DE (owner 2026-11-15, round 3 of the tour analysis).",
+    "context": "„More“ label of a bar row: metres climbed per hour on the climbing parts (m/h) (owner 2026-11-15, round 3 of the tour analysis).",
     "priority": 2,
     "confidence": "sicher"
   },
   "routes_review_downhill": {
     "area": "My routes – look back at a done tour",
-    "context": "Details sheet label: metres descended per hour on the descending parts (m/h); lower case in DE (owner 2026-11-15, round 3 of the tour analysis).",
-    "priority": 2,
-    "confidence": "sicher"
-  },
-  "routes_review_plan_note": {
-    "area": "My routes – look back at a done tour",
-    "context": "Details sheet small line: %1$s = planned time, %2$s = needed moving time, both h:mm (owner 2026-11-15, round 3 of the tour analysis).",
+    "context": "„More“ label of a bar row: metres descended per hour on the descending parts (m/h) (owner 2026-11-15, round 3 of the tour analysis).",
     "priority": 2,
     "confidence": "sicher"
   },
@@ -627,6 +621,42 @@
   "routes_review_export_plan_line": {
     "area": "My routes – look back at a done tour",
     "context": "Small line under \"Export plan\", %1$s = the file name (owner 2026-11-15, round 3 of the tour analysis).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_more_planned": {
+    "area": "My routes – the overview's „More“",
+    "context": "„More“: label of the planned-time bar (moving time the plan expected) (owner 2026-11-19).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_more_needed": {
+    "area": "My routes – the overview's „More“",
+    "context": "„More“: label of the needed-time bar (moving time on the followed route) (owner 2026-11-19).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_more_longer": {
+    "area": "My routes – the overview's „More“",
+    "context": "„More“: under the planned / needed bars, %1$s = how much longer it took („20 min“) (owner 2026-11-19).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_more_faster": {
+    "area": "My routes – the overview's „More“",
+    "context": "„More“: under the planned / needed bars, %1$s = how much faster („30 min“) (owner 2026-11-19).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_more_without_breaks": {
+    "area": "My routes – the overview's „More“",
+    "context": "„More“: after the planned / needed difference – both times leave the breaks out (owner 2026-11-19).",
+    "priority": 2,
+    "confidence": "sicher"
+  },
+  "routes_more_clock_desc": {
+    "area": "My routes – the overview's „More“",
+    "context": "Screen reader text of the time bar: %1$s = start clock time, %2$s = end clock time („10:12“) (owner 2026-11-19).",
     "priority": 2,
     "confidence": "sicher"
   }

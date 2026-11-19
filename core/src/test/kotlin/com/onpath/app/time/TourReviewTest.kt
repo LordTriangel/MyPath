@@ -48,6 +48,10 @@ class TourReviewTest {
         assertTrue("about 15 min: ${p.value}", p.value in 800.0..1000.0)
         assertEquals(1000.0, p.atM, 30.0)
         assertTrue(r.movingS!! < r.totalS!! - 700)
+        // „Mehr“'s time bar (owner 2026-11-19): the stop as a gap at its clock time
+        val span = r.pauseSpans.single()
+        assertTrue("starts at the stop: ${span.startMs - t0}", span.startMs - t0 in 900_000L..1_200_000L)
+        assertEquals(p.value * 1000, (span.endMs - span.startMs).toDouble(), 1000.0)
     }
 
     @Test fun anhaltenBetweenTwoPartsIsAPause() {
@@ -57,6 +61,7 @@ class TourReviewTest {
         assertEquals(1, r.pauseCount)
         assertEquals(25 * 60.0, r.longestPause!!.value, 1.0)
         assertEquals(1000.0, r.longestPause!!.atM, 5.0)
+        assertEquals(listOf(TourReview.Span(t0 + 1_000_000L, t0 + 1_000_000L + 25 * 60_000L)), r.pauseSpans)
     }
 
     @Test fun theRecordingsOwnTimesWinAndThePlanLineFollowsItsRule() {

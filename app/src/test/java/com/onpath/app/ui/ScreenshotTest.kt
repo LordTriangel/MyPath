@@ -1429,9 +1429,25 @@ class ScreenshotTest {
             onCancel = {}, onExportTrack = {}) }
     }
 
-    /** „Details ›“ of a done tour (owner 2026-11-15, round 3): the further numbers and the small line under them. */
-    @Test fun routesOverviewDoneDetails() = paparazzi.snapshot {
-        OnPathTheme { androidx.compose.material3.Surface(color = OnPathColors.Paper) { DetailsContent(reviewTour, sampleReview) } }
+    /**
+     * „Mehr ›“ of a done tour (owner 2026-11-19: only what the overview does not show, graphical): the time bar 10:12–14:47
+     * with the four pauses as gaps, the descent, bergauf / bergab as two bars, geplant / gebraucht with the difference, and
+     * the activity · rank line.
+     */
+    @Test fun routesOverviewDoneMore() = paparazzi.snapshot {
+        OnPathTheme { androidx.compose.material3.Surface(color = OnPathColors.Paper) { MoreContent(More.of(reviewTour, sampleReview)!!) } }
+    }
+
+    /** „Mehr ›“ of a done tour without pauses, without a plan and with only the climbing speed known: a whole bar, one rate. */
+    @Test fun routesOverviewDoneMoreNoPauses() = paparazzi.snapshot {
+        val r = sampleReview.copy(pauseS = 0.0, pauseCount = 0, pauseSpans = emptyList(), downMh = null, plannedS = null,
+            neededS = null, planPct = null, rank = null)
+        OnPathTheme { androidx.compose.material3.Surface(color = OnPathColors.Paper) { MoreContent(More.of(reviewTour, r)!!) } }
+    }
+
+    /** „Mehr ›“ of a planned route never done (owner 2026-11-19): only what makes sense – the descent and the activity. */
+    @Test fun routesOverviewPlannedMore() = paparazzi.snapshot {
+        OnPathTheme { androidx.compose.material3.Surface(color = OnPathColors.Paper) { MoreContent(More.of(tourList[0], null)!!) } }
     }
 
     /** The sketch's example hike (round 3): 12,4 km, ↑620 ↓640, 10:12–14:47, followed a plan. */
@@ -1449,6 +1465,9 @@ class ScreenshotTest {
             startMs = start, endMs = start + (4 * 3600L + 35 * 60) * 1000, avgKmh = 3.4, upMh = 410.0, downMh = 590.0,
             planPct = 12, plannedS = 4 * 3600.0 + 8 * 60, neededS = 3 * 3600.0 + 38 * 60,
             longestPause = com.onpath.app.time.TourReview.AtTrack(25 * 60.0, 6200.0),
+            // the four pauses, 57 min together: 10:58–11:06, 12:05–12:30 (the longest), 13:20–13:34, 14:05–14:15
+            pauseSpans = listOf(46 to 8, 113 to 25, 188 to 14, 233 to 10).map { (at, len) ->
+                com.onpath.app.time.TourReview.Span(start + at * 60_000L, start + (at + len) * 60_000L) },
             highest = com.onpath.app.time.TourReview.AtTrack(1890.0, 6100.0),
             fastestKm = com.onpath.app.time.TourReview.AtTrack(700.0, 9000.0),
             profile = profile, rank = com.onpath.app.time.TourReview.Rank(3, 14))
