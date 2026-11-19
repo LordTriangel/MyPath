@@ -42,6 +42,11 @@ a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines fo
 - Pending CI patch has 3 commits now (core paths + lint, state paths, `--continue`); local branch `umbau-workflow2`.
 - The planner lock bites as designed: after ANY edit of a core file or a core test the planner compiles → `python3 tools/dev/core_move.py lock`.
 
+## State 2026-11-19 ~14:30
+- Phase 2 piece 3 (`SaveSlice`, C18) on main (af2fb4bca), `MAX_LINES` 5,506; `CorePlanE2ETest` green on GitHub with it. Also on main: the lost wake-up fix in `MapCells.request` (the flaky `NoStaleDownloadsTest` was a real bug).
+- **Helpers get `docs/design/umbau-phase-2-brief.md`** + the piece's row. Running now: piece 4 (`SettingsSlice`, lane C) and piece 8 (`PlanRoute` I, lane A). Merge serially; the second rebases. Per merge: lower `MAX_LINES` to the new line count yourself.
+- Review prompt that works (Opus): compare each moved body old vs new via script, list every difference that is not a stated substitution; the store / host adapters' arguments; „which tests stay green if production breaks“; every old pin and what carries it now; `@Test` counts per module.
+
 ## Open, in this order
 1. **Tag `umbau-phase-0`:** needs one green full E2E run of main: push main's head to `ci/umbau-p0`, then
    `tools/ci/e2e_github.sh --ref ci/umbau-p0 --wait` (no `--tests`; a comma list of tests runs only the first). Red today

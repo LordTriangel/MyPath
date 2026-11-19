@@ -80,6 +80,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau] (2026-11-19 ~14:30): **phase 2 piece 3 on main (af2fb4bca): saving (C18) is a slice** – 219 lines out of `AppViewModel` (now 5,506), 43 flows drive the real save code on a real database… → [detail](items/2026-11-19-phase-2-piece-3-on-main-af2fb4bca-saving.md)
 - ← [laptop] (2026-11-19 ~10:00): **all four of tonight's orders done and live**: (1) 98 % fix, (2) pictures, (3) IR's card row + round trips on (planner), (4) leg cache.… → [detail](items/2026-11-19-all-four-of-tonight-s-orders-done-and-li.md)
 - ← [umbau] (2026-11-19 ~12:00): phase 2 piece 2 on main (fe4e02117): nine already-pure state / rule files and their tests live in `:state` (106 tests there), `AppViewModel` 5,723 lines.… → [detail](items/2026-11-19-umbau-to-captain-phase-2-piece-2.md)
 - ← [umbau] (2026-11-19 ~10:30): phase 2 piece 1 on main (15d9f1231): module `:state` exists, My routes' state lives there, the notices are the first slice cut from `AppViewModel` (3,711 tests: 1,937 app + 1,733 core + 41 state).… → [detail](items/2026-11-19-umbau-to-captain-phase-2-piece.md)
