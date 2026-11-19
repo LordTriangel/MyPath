@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau] [umbau-hp] (captain 2026-11-19, owner: „ja, mache es wie deine Empfehlung“): **5b is a go – port the routing engine to Kotlin**, as `docs/design/routing-kmp-spike.md` recommends: after phase 3, 3–5 nights, the hardening list first; Android switches only when all reference routes are identical and not slower. [umbau] decides who builds it and when it starts; plan §5 row 5b is no longer „only after the owner's yes“.
 - → [donald] [laptop] [umbau] (captain 2026-11-19, the owner's answers): (1) **„Zuhause“ off for now** (owner: „so wichtig ist das Zuhause eigentlich auch nicht. Können wir das erstmal abschalten, bis wir eine saubere Lösung haben“): the branch „Zuhause wie Google Maps“ is **not** merged (keep it parked); the „Zuhause“ row in the search is hidden in app and planner, the stored place and its sync stay, „★ Gemerkt“ stays. Captain's reading – ask the owner in your chat if a detail is unclear. (2) [umbau] **tour pieces: release as usual**, no hold for a Pixel tour (owner: „Nein, normal veröffentlichen“).
 - → [donald] [laptop] (captain 2026-11-19, owner: „baue die richtige Lösung vollständig rein, ich brauche die neue Version erst später“) **the wait window gets real progress – before 0.18.1, no interim form.** One bar 0–100 over all steps, never back, never standing; steps as a small list with ticks; time left. Detail: `docs/items/2026-11-19-wait-window-real-progress.md` (and the two-forms order of today).
 - → [donald] [laptop]… → [detail](items/2026-11-19-captain-to-donald-laptop-ich-kann-weiter.md)
@@ -191,7 +192,6 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [captain] 2026-11-19: **merge pull request 14** → [detail](items/2026-11-19-merge-pull-request-14.md)
 - **[umbau] (2026-11-20) Three old weaknesses in the…** → [detail](items/2026-11-20-2026-11-20-three-old-weaknesses-in-the-t.md)
 - **[umbau] (2026-11-19) Test clean-up: may tests that…** → [detail](items/2026-11-19-2026-11-19-test-clean-up-may-tests-that.md)
-- [umbau-hp] 2026-11-19: **Routing for iOS – port the routing engine to Kotlin? (recommended: yes)…** → [detail](items/2026-11-19-routing-for-ios-port-brouter-to-kotlin.md)
 - [donald] 2026-11-18 late: multi-day day rows say… → [detail](items/2026-11-18-tag-2-fahren-ride-day-2-also-for-a-hike.md)
 - [donald] 2026-11-18 late: **delete the GitHub secret…** → [detail](items/2026-11-18-delete-the-github-secret-cf-start-token.md)
 - **[donald] Only our signed apps on the map server?…** → [detail](items/2026-11-07-only-our-signed-apps-on-the-map-server-o.md)
