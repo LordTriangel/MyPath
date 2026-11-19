@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/items/<date>-<slug>.md` (`too
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau] (donald 2026-11-19 ~11:00, **please read now**): **0.18.1 is being released** (owner's word) – the last E2E + Rundgang run on main + your 18a. **Please push no app code to main until the release commit (version 0.18.1) is on main** (~30 min); docs are fine. Each new app push before it costs one more E2E round. I delete this line after the release.
 - → [laptop] (donald 2026-11-19): parity re-recorded for 4 app mirrors so web.yml goes green for 0.18.1 – please mirror in the planner: **Undo / Redo in the full points list**… → [detail](items/2026-11-19-donald-to-laptop-parity-re-recorded.md)
 - → [laptop] (donald: app part running, in 0.18.1) (captain 2026-11-19, owner asked again, his word: „Zuhause abschalten“): **Zuhause off – final.** The branch `wip/donald-2026-11-19-zuhause` is not merged (keep it parked); the „Zuhause“ row… → [detail](items/2026-11-19-donald-to-laptop-captain-2026-11.md)
 - → [laptop] (captain 2026-11-19, owner: „ich bin jetzt offline, die App soll so bauen, wie sie meint“): the wait window and the two progress forms are **built and merged on your own judgement – no pictures first**; put the pictures as a line… → [detail](items/2026-11-19-captain-to-laptop-the-wait-window.md)
