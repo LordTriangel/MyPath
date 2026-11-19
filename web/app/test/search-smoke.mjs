@@ -67,7 +67,7 @@ const box = (sel) => page.evaluate((s) => { const r = document.querySelector(s)?
 await pickFirst('Vellau');
 let rows = await menuRows();
 console.log('empty plan, menu:', rows.join(' · '));
-check(rows.join('|') === 'Start here|Go here|Add to favourites|Set as home|Open in Google Maps|Remove pin', `empty plan: the pin's menu opens by itself with the hold's rows + Remove pin (${rows.join(' · ')})`);
+check(rows.join('|') === 'Start here|Round trip from here|Go here|Add to favourites|Set as home|Open in Google Maps|Remove pin', `empty plan: the pin's menu opens by itself with the hold's rows + Remove pin (${rows.join(' · ')})`);
 check(await page.locator('#placecard #cadd, #placecard #cstart, .pinchip .pinadd').count() === 0, 'no old place card / "Hierhin" button');
 const pinBox = await box('.candidate'), menuBox = await box('.holdpopup.pinmenu');
 check(!!menuBox && menuBox.y + menuBox.h <= pinBox.y + 2, `wide map: the menu above the pin (menu bottom ${menuBox && Math.round(menuBox.y + menuBox.h)}, pin top ${Math.round(pinBox.y)})`);

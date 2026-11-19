@@ -91,7 +91,7 @@ const emptySearch = async (page) => {
 
   const vellau = await pickFirst(page, 'Vellau');
   let rows = await menuRows(page);
-  check(rows.join('|') === 'Start here|Go here|Add to favourites|Set as home|Open in Google Maps|Remove pin',
+  check(rows.join('|') === 'Start here|Round trip from here|Go here|Add to favourites|Set as home|Open in Google Maps|Remove pin',
     `found place's menu: the kept-place rows after the route rows, before Google (${rows.join(' · ')})`);
   check(await page.evaluate((sel) => [...document.querySelectorAll(sel)].some((d) =>
     d.nextElementSibling?.textContent.includes('Add to favourites')), '.pointmenu .menudivider'), 'a thin line before „Merken“');

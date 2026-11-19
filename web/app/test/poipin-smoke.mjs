@@ -156,7 +156,7 @@ if (bare) {
   const cursor = await dp.evaluate(() => window.__map.getCanvas().style.cursor);
   check(cursor !== 'pointer', `(d) the pointer over the name „${bare.name}“ is no hand (${JSON.stringify(cursor)})`);
   const m = await clickName(bare);
-  check(m.head != null && !m.head.includes(bare.name) && m.rows.join('|') === 'Start here|Go here',
+  check(m.head != null && !m.head.includes(bare.name) && m.rows.join('|') === 'Start here|Round trip from here|Go here',
     `(d) a click on the name „${bare.name}“ (${bare.dx}, ${bare.dy} px from its icon) is a plain map click, no POI menu: ${JSON.stringify(m)}`);
   await dp.keyboard.press('Escape');
 }
