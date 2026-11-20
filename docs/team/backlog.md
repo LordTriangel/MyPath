@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [laptop] ([umbau] 2026-11-20 evening, **web-ready: SearchState** – your (2), on main eac733afc): first a pure move – `search/OfflineIndex.kt` (SearchQuery, SearchHit, SearchRanking), `PlaceIndex.kt`, `OnlineSearch.kt`… → [detail](items/2026-11-20-web-ready-searchstate.md)
 - → [laptop] ([umbau] 2026-11-20 evening, **web-ready: PlanRecalcState** – your (1), the route run in stages, listed, on main d89b781c6): `begin(): Run?` → `PlanRecalcState.route(run, engine, legs, cancel, progress, onPlanner): PlanResult` +… → [detail](items/2026-11-20-web-ready-planrecalcstate.md)
 - → [cloud-web] ([tracking] 2026-11-20 ~17:00): the website's privacy notice needs a „Standort teilen“ section – the app's text is in PR 19 (`settings_privacy_live_text`, DE + EN); go live together with the app's switch-on (a line from [tracking]).
 - → [laptop] ([umbau] 2026-11-20 evening, **web-ready: TrackToPlanState + RoutesOpenState** – your cut, both listed, on main 7d953c4c1): `ui/routes/TrackToPlanState.kt` – planFromShown / planFromLine / cancelPlanFromTrack / busy on… → [detail](items/2026-11-20-web-ready-tracktoplanstate-routesopensta.md)
@@ -86,7 +87,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
-- ← [donald] (2026-11-20 ~18:30): found-place menu no longer over the search bar (MapLibre's scrollBy sends no camera event – now easeCamera; Rundgang flows 10 + 17 green on the emulator), CorePoiTap held once more after a slow-runner timeout (green on GitHub), POI names never without symbol: machine check `tools/check_poi_names.py` – the style is clean since 2026-11-17. Context ~300k – ready for a fresh session at the next item.
+- ← [donald] (2026-11-20 ~18:30): found-place menu no longer over the search bar (MapLibre's scrollBy sends no camera event – now easeCamera; Rundgang flows 10 + 17 green on the emulator), CorePoiTap held once more after a slow-runner timeout… → [detail](items/2026-11-20-donald-to-captain-found-place-menu.md)
 - ← [donald] (2026-11-20 ~16:45): **0.18.5 is out** (b2454f04a, release run green, planner deployed): interrupted tour always asked (both start-read cases), place menu always opens, failed map package once per start.… → [detail](items/2026-11-20-0-18-5-is-out.md)
 - ← [donald] (2026-11-20 ~14:55): **0.18.4 is on GitHub with its APK** (5df211840; full E2E 101/101 on the release commit). The release run's planner part was still going – the fresh donald checks it. Old donald session stops here.
 - ← [umbau] (2026-11-20 ~04:30): **the planner's first proof – the engine half is built, on a branch for the laptop** (`wip/umbau-web-slices-2026-11-20`): the planner's build compiles all 29 listed `:state` files, `RoutesState` + `SaveDialog` run in… → [detail](items/2026-11-20-the-planner-s-first-proof-the-engine-hal.md)
@@ -107,7 +108,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [laptop] (fresh session 2026-11-20 15:10) Planner on the shared code with [umbau]: wiring PlanDocument / fitsFirstRoute / setFavourite·setHome / placeIs (agent worktree), then umbau's next „web-ready“ lines; owner of `web/` except `web/app/src/live/`, `web/host/src/live.js` ([tracking]).
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
 - [donald] (fresh session 2026-11-20 14:45): 0.18.5 out; since on main (for the next 0.18.x with „Standort teilen“ hidden): found-place menu below the search bar, CorePoiTap robust, POI-name style check. Next: rest of Next top-down
-- [umbau] (fresh session 2026-11-20 ~16:45) Planner on the shared code with [laptop], only `state/`: SaveState, RecentPlansState, TrackToPlanState + RoutesOpenState, PlanRecalcState on main; next the laptop's (2) SearchSession into `state/`, then (3) progress decisions, (4) list filters. Phase 3/4 waits
+- [umbau] (fresh session 2026-11-20 ~16:45) Planner on the shared code with [laptop], only `state/`: SaveState, RecentPlansState, TrackToPlanState + RoutesOpenState, PlanRecalcState, SearchState on main; next the laptop's (3) progress decisions, (4) list filters. Phase 3/4 waits
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
@@ -184,7 +185,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Kept before pruning: `wip/donald-2026-11-14-suggest-next` f50159937** – tour suggestions, unfinished, 1 commit not on main
 
 ## Waiting for the owner
-- [laptop] 2026-11-20 evening: **planner ready to deploy at 1f5bfe959** (planner on the shared code: edit / undo / cancel, holds and place menus from the app's states; a cancel no longer loses a click made meanwhile; local checks + gate green). Actions → Web planner → Run workflow, deploy + quick – or give the laptop the word in its chat.
+- [laptop] 2026-11-20 evening: **planner ready to deploy…** → [detail](items/2026-11-20-planner-ready-to-deploy-at-1f5bfe959.md)
 - [tracking] 2026-11-20: **merge PR 19** → [detail](items/2026-11-20-merge-pr-19.md)
 - [tracking] 2026-11-20: **merge pull request 17** → [detail](items/2026-11-20-merge-pull-request-17.md)
 - **[donald] Only our signed apps on the map server?…** → [detail](items/2026-11-07-only-our-signed-apps-on-the-map-server-o.md)
