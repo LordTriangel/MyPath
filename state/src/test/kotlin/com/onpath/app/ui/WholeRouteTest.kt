@@ -200,13 +200,14 @@ class WholeRouteTest {
         // once per order: RouteRunTest.theFirstRouteIsFittedOnce
         assertTrue(sourceFile("ui/plan/PlanRecalcSlice.kt").readText().contains("if (take.fit) fitFirstRoute(it.points, pts, if (take.rises) SheetRise.FIT_WAIT_MS else 0L)")) // recalc moved to PlanRecalcSlice (piece 9b)
         // a plan link: following stops, the start camera keeps away, the route is fitted once computed
-        // (moved to RoutesGoSlice, piece 14; the ORDER is also a flow: RoutesFlowTest.aPlanFromALinkBecomesTheNewUnsavedPlanInTheOrderTheMapNeeds)
-        val go = sourceFile("ui/routes/RoutesGoSlice.kt").readText()
+        // (moved to RoutesGoSlice, piece 14, then to the web-ready RoutesOpenState – the host is its ports there; the ORDER is
+        // also a flow: RoutesFlowTest.aPlanFromALinkBecomesTheNewUnsavedPlanInTheOrderTheMapNeeds)
+        val go = sourceFile("ui/routes/RoutesOpenState.kt").readText()
         assertTrue("anchor found", go.contains("fun openSharedPlan("))
         val link = go.substringAfter("fun openSharedPlan(").substringBefore("\n    }\n")
-        assertTrue(link.contains("host.holdCameraForSharedPlace()"))
-        assertTrue(link.indexOf("host.followMe = false") in 0 until link.indexOf("camera.fit(load.points)"))
-        assertTrue(link.contains("host.routeEvent(RouteRun.Event.FitNext)"))
+        assertTrue(link.contains("ports.holdCameraForSharedPlace()"))
+        assertTrue(link.indexOf("ports.followMe = false") in 0 until link.indexOf("camera.fit(load.points)"))
+        assertTrue(link.contains("ports.routeEvent(RouteRun.Event.FitNext)"))
     }
 
     /** Field A-019 add-on (09d): after "Add as new destination" from the candidate's menu the map stayed on the place. */

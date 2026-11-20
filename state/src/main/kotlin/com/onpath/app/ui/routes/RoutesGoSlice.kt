@@ -222,8 +222,6 @@ class RoutesGoSlice(
 
     /** Puts a plan from a link into the plan: points, activity, T level, point names, pinned points – a new, unsaved plan. */
     fun openSharedPlan(plan: com.onpath.app.routing.SharedPlan, via: String = "after asking") = open.openSharedPlan(plan, via)
-    // the order (RoutesOpenState.openSharedPlan; WholeRouteTest pins it by name): host.holdCameraForSharedPlace(), host.followMe = false,
-    // host.freeLookAt = null, host.routeEvent(RouteRun.Event.FitNext), camera.fit(load.points)
 
     private val open = RoutesOpenState(plan, routes, save, camera, object : RoutesOpenPorts {
         override val touring: Boolean get() = host.touring
