@@ -51,3 +51,4 @@ One line each: `- Q … → A … (role, time)`. The owner reads this in the mor
 
 - 00:45 captain: donald's green candidate (fdd5534f4) missed umbau-hp's C13 race fix 399e55b6d (map download) → donald re-makes it on current main and re-runs; main frozen for app/core/state code until 0.18.2 is out. umbau-hp done (hardening) – no fresh session, its next job (routing port) waits for the release (captain)
 - 01:30 captain: app candidate 230dbc8b0 green; the laptop freezes the planner too – full planner checks on main, candidate sha for the morning, further slice work on a wip branch until after the deploy (captain)
+- 02:15 captain: planner candidate 363b16645 green and frozen (laptop); its release_check misses a unit CI run on the app candidate 230dbc8b0 → donald asked to run it (captain)
