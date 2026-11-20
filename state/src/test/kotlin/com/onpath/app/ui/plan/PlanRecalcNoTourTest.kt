@@ -101,7 +101,8 @@ class PlanRecalcNoTourTest {
     private fun run(askLong: Boolean = true): PlanRecalcState.Run? {
         val run = state.begin(askLong) ?: return null
         val result = runCatching { PlanRecalcState.route(run, engine, legs, planRun.routeCancel ?: RouteCancel(), { _, _ -> }).result }
-        state.taken(run, result, reach = null, tries = null, post = null, active = true)
+        val post = result.getOrNull()?.let { MapDataPort.None.postRoute(it.route, run.pts, run.act) }
+        state.taken(run, result, reach = null, tries = null, post = post, active = true)
         return run
     }
 

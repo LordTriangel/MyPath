@@ -267,7 +267,8 @@ open class PlanRecalcState(
      * Stage 1 (main thread, synchronous): the resets, the `Recalc` event and the stored line shown at once; null = nothing is
      * routed (fewer than two points, or a plan far beyond a day is asked about first). With a [Run] given, the run's
      * [RouteCancel] is [PlanRunSlice.routeCancel]. [askLong] false: a plan beyond a day is routed without the question (the
-     * planner's multi-day tour – owner 2026-11-18: its day rows show a long day).
+     * planner's multi-day tour – owner 2026-11-18: its day rows show a long day). Not kept: the host passes the same [askLong]
+     * on every [begin] of that plan, also the reruns of [RouteRun.Effect.Rerun] ("Weiter warten", "Plan anyway").
      */
     fun begin(askLong: Boolean = true): Run? {
         runCauses.start()

@@ -35,8 +35,9 @@ ui/MultiDayFlow.kt
 # PlanRunSlice: ports PlanRunHost (6 members: points, clearRoute, noCorridor, loadDeferredMaps, recalc, cancelRun) and Cancellable
 #   (1: cancel; the run's handle `routeJob`, set by the host's own recalc), plus the RunCause object of core (pure)
 ui/plan/PlanRunSlice.kt
-# PlanRecalcState: ports PlanRecalcPorts (20 members: runCauses, activity, sac, legCache, planFactors, withModelTime, activityBefore, spotsOpen, spotLine, spotsMemo, routeChangedNotice,
-#   planSize, followCancel, followEditedPlan, planBaseline, setSaved, followPlanned, fitFirstRoute, linkSnapped, recording), MapDataPort (6), PlanRecalcHost (10), Background (1: run);
+# PlanRecalcState: ports PlanRecalcPorts (15 members: runCauses, activity, sac, legCache, planFactors, withModelTime, activityBefore, spotsOpen, spotLine, spotsMemo, routeChangedNotice,
+#   planSize, setSaved, fitFirstRoute, linkSnapped), PlanTourPort (5: followCancel, followEditedPlan, planBaseline, followPlanned, recording; None = no tour),
+#   MapDataPort (6; None = no map data), PlanRecalcHost (10), Background (1: run);
 #   stages begin / route (companion, pure) / findReach (companion) / progress / share / slow / legsRouted / taken; PlanRecalcSlice (app) strings them with coroutines
 ui/plan/PlanRecalcState.kt
 # RoutingDataCheck: pure rules (differs: „the route changed noticeably“) – PlanRecalcState.taken asks it by its full name
