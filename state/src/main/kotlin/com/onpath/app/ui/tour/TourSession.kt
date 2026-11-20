@@ -160,16 +160,18 @@ class TourSession(
             try {
                 // L2 (fixed 2026-11-19): a read that fails is "no active tour found" (nothing is invented, nothing written) –
                 // the start mode is entered and known all the same; a cancellation is not a failure
-                val active = try {
+                var readFailed = false
+                suspend fun readActive(what: String) = try {
                     rows.findActiveRecording()
                 } catch (e: CancellationException) {
                     currentCoroutineContext().ensureActive() // our own cancellation propagates; a stray one is a failure like any other (reported without the throwable: Problems drops cancellations)
-                    Problems.error("app", "Active tour could not be read at start (stray cancellation); started as if none was found: ${e.message}")
-                    null
+                    Problems.error("app", "Active tour could not be read $what (stray cancellation); started as if none was found: ${e.message}")
+                    readFailed = true; null
                 } catch (e: Throwable) {
-                    Problems.error("app", "Active tour could not be read at start; started as if none was found", e)
-                    null
+                    Problems.error("app", "Active tour could not be read $what; started as if none was found", e)
+                    readFailed = true; null
                 }
+                var active = readActive("at start")
                 val start = AppMode.onStart(recording.state.value != null, active != null)
                 withContext(main) {
                     // the same order as always (enter, then known); a throwing enter is reported and the mode still becomes known
@@ -183,8 +185,19 @@ class TourSession(
                     }
                     map.startModeKnown = true
                 }
+                // [umbau]'s finding 2026-11-19: a read that failed once is tried again after the sticky wait, the start hold kept –
+                // else a new tour would close the interrupted one as „done“ without its question (RecordingService START)
+                val readAgain = active == null && readFailed && recording.state.value == null
+                if (readAgain) {
+                    delay(stickyWaitMs)
+                    active = readActive("again after ${stickyWaitMs} ms")
+                    if (active != null && recording.state.value == null) withContext(main) {
+                        Problems.info("app", "Active tour read on the second try: Navigate and its question")
+                        if (mode != AppMode.NAVIGATE) enter(AppMode.NAVIGATE)
+                    }
+                }
                 if (active != null && recording.state.value == null) {
-                    delay(stickyWaitMs) // the service may be restarting by itself (sticky)
+                    if (!readAgain) delay(stickyWaitMs) // the service may be restarting by itself (sticky)
                     if (recording.state.value == null) {
                         // drawn behind the question, so the user sees which tour it is (field bug 2026-10-31: empty map)
                         val line = runCatching { tours.loadSegments(active.id).map { seg -> seg.map { GeoPoint(it.lat, it.lon) } } }

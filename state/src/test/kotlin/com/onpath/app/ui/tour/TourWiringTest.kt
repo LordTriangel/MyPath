@@ -563,7 +563,7 @@ class TourWiringTest {
         assertEquals("the left-over check, the start-up check, startFailed, state, startJob", 5, count(sessionSlice, "scope.launchSafe("))
         assertEquals(1, count(sessionSlice, "scope.launchSafe(\"app\", \"start-up work\", io) {"))
         assertEquals(2, count(sessionSlice, ".collect"))
-        assertEquals("two returns to main by name, one non-cancellable", 2, count(sessionSlice, "withContext(main)"))
+        assertEquals("three returns to main by name (the start mode, the second read's Navigate, the question), one non-cancellable", 3, count(sessionSlice, "withContext(main)"))
         assertEquals(1, count(sessionSlice, "withContext(NonCancellable + main)"))
         assertEquals("the left-over check's read is on io by name", 1, count(sessionSlice, "withContext(io) {"))
         assertEquals("no GlobalScope, no own scope", 0, count(sessionSlice, "GlobalScope") + count(sessionSlice, "CoroutineScope("))

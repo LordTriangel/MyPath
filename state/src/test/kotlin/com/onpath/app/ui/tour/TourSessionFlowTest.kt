@@ -920,8 +920,10 @@ class TourSessionFlowTest {
         assertEquals("the start mode of the nothing-found case", AppMode.PLAN, session.mode)
         assertTrue("`enter(Plan)` ran", log.any { it.startsWith("clearHints [mode=PLAN") })
         assertNull("no question for a tour that could not be read", ctl.unfinished)
-        assertFalse("the hold is released", ctl.unfinishedPending)
+        assertTrue("held while it is read once more after the sticky wait", ctl.unfinishedPending)
         assertTrue("reported", problems.said("app").any { it.contains("Active tour could not be read") })
+        advance(1_500)
+        assertFalse("the hold is released", ctl.unfinishedPending)
         assertEquals("nothing sent to the service", emptyList<String>(), actions())
         advance(5_000)
         assertNull(ctl.unfinished)
@@ -942,21 +944,46 @@ class TourSessionFlowTest {
         assertEquals(mapOf<String, Any>(RecordingWire.EXTRA_ON to true), client.sent.last().extras)
     }
 
-    /** L2: an interrupted row exists but cannot be read – no question, the row is not touched, no command; asked at the next start. */
+    /**
+     * [umbau]'s finding 2026-11-19: an interrupted tour whose read failed once at start got no question – and a new tour then
+     * closed it as „done“ (`RecordingService` START → `finishOtherActive`). Now the read is tried once more after the sticky
+     * wait, with the start hold kept: found → Navigate and its question, as on a normal start.
+     */
+    @Test fun anInterruptedTourWhoseReadFailsOnceIsReadAgainAndAsked() {
+        val id = unfinishedId
+        create()
+        var reads = 0
+        onFindActive = { if (++reads == 1) throw java.io.IOException("database busy") }
+        ui { session.start() }
+        stepIo()
+        assertTrue("the start mode is known at once", map.startModeKnown)
+        assertNull(ctl.unfinished)
+        assertTrue("no new tour while it is read again", ctl.unfinishedPending)
+        advance(1_500); stepIo()
+        assertEquals("read again", 2, reads)
+        assertEquals("asked after the second read", id, ctl.unfinished!!.id)
+        assertEquals(AppMode.NAVIGATE, session.mode)
+        assertFalse(ctl.unfinishedPending)
+        assertEquals("the row is untouched", "active", db.getTour(id)!!.state)
+        assertTrue(problems.said("app").any { it.contains("Active tour could not be read at start") })
+    }
+
+    /** L2: the read fails twice – no question, the row is not touched, no command; asked at the next start. */
     @Test fun anInterruptedTourThatCouldNotBeReadIsAskedAtTheNextStart() {
         val id = unfinishedId
         create()
-        rows.failOn += "findActiveRecording"
+        onFindActive = { throw java.io.IOException("database busy") }
         assertFalse("the opposite first", map.startModeKnown)
         ui { session.start() }
-        stepIo(); advance(5_000)
+        stepIo(); advance(1_500); stepIo(); advance(5_000)
         assertTrue(map.startModeKnown)
         assertNull("no question for a tour that could not be read", ctl.unfinished)
         assertEquals("the row is still active", "active", db.getTour(id)!!.state)
         assertEquals("no command", emptyList<String>(), actions())
         assertFalse(ctl.unfinishedPending)
+        assertTrue(problems.said("app").any { it.contains("Active tour could not be read again") })
         // the next start (the failure is over): the question for that tour comes
-        rows.failOn -= "findActiveRecording"
+        onFindActive = null
         ui { session.start() }
         stepIo(); advance(1_500)
         assertEquals("asked at the next start", id, ctl.unfinished!!.id)
@@ -999,6 +1026,7 @@ class TourSessionFlowTest {
         stepIo()
         assertTrue(map.startModeKnown)
         assertTrue(problems.said("app").any { it.contains("stray cancellation") })
+        advance(1_500) // read once more after the sticky wait (fails the same way)
         assertFalse(ctl.unfinishedPending)
     }
 
