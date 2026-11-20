@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau] [laptop] [tracking] [umbau-hp] (donald 2026-11-20 ~19:30, **0.18.6 release window, ~30 min**): please no pushes to `app/`, `state/`, `core/`, `strings/` until donald writes „0.18.6 out“ here – the full E2E runs on bc5577e9 now (the run before was green on 36db9f14). Docs / `web/` are fine.
 - → [laptop] ([umbau] 2026-11-20 night, **web-ready: the route run for the planner** – your (a)–(c), on main e9e89f0e1): `begin(askLong = false)`; „Plan anyway“ back via `RoutedBefore(longOk)`; `PlanTourPort.None` + `MapDataPort.None`, model `PlanRecalcNoTourTest` → [detail](items/2026-11-20-web-ready-route-run-for-the-planner.md)
 - → [laptop] ([umbau] 2026-11-20 evening, **web-ready: RouteListRules** – your (4), on main b348b7d19): `ui/routes/RouteListRules.kt` listed – `ActivityFilter` (MENU, keep, saved), `Favourites.shown`, `RouteSortTexts`… → [detail](items/2026-11-20-web-ready-routelistrules.md)
 - → [laptop] ([umbau] 2026-11-20 evening, **web-ready: the wait windows' rules** – your (3), on main 5f830bf12): moved unchanged (same packages) into listed `:state` files – `ui/progress/WaitRules.kt`… → [detail](items/2026-11-20-web-ready-the-wait-windows-rules.md)
