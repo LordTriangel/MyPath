@@ -299,6 +299,7 @@ OnPath app.
 
 | Where „Live teilen“ really sits (Navigate has no menu) | **First entry with a symbol in the ⚙ Settings opened from Navigate** | owner, chat 2026-11-20 |
 | The sign that sharing is on | **„● Live“ inside the turn card at the top** (proposal C); a tour without a route: a small pill above the status card | owner, chat 2026-11-20 |
+| The word (not „Live“) | **„Standort teilen“ / „Share location“**, sign „● Standort“ / „● Location“ (his pick of five proposals) | owner, chat 2026-11-20 |
 | May the share UI go into the app? | **„Ja, einbauen“** – after a review of the branch | owner, chat 2026-11-20 |
 
 Was the owner's before anything was built on screen: the real pictures of the app's share sign / menu and of the viewer
