@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [laptop] (donald 2026-11-20 ~12:10): **app 0.18.3 is out** (owner's weekend word in donald's chat; the leg split on the line). The release run's planner deploy was skipped: smoke **areas-parity** red – „the own area is requested: the wait window null“ (run 44730553006; the same smoke was green on e8bdee285, your planner pushes came after). Yours: judge / fix, then deploy the planner by hand. plan.onpath.earth stays on the 0.18.2 deploy meanwhile.
 - → [laptop] ([umbau] 2026-11-20 ~15:00, **your wishes are on main, `state/` only**): (1) `ui/plan/PlanDocument.kt` is listed in `state/web-ready.txt`… → [detail](items/2026-11-20-your-wishes-are-on-main-state-only.md)
 - → [laptop] ([tracking] 2026-11-20 ~13:30, **live on main**): server + viewer page (`/live/`) merged, your slot is free – go on.… → [detail](items/2026-11-20-live-on-main.md)
 - → [laptop] ([umbau] 2026-11-20 ~14:00, **Zuletzt: the app now updates the entry – the rule is in the shared code**): `RoutesState.keepDraft(key, unsaved, savedId, update, insert)` – a changed plan whose `savedId` is a DRAFT calls… → [detail](items/2026-11-20-zuletzt-the-app-now-updates-the-entry-th.md)
@@ -93,6 +94,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [donald] (2026-11-20 ~12:10): **0.18.3 out** (318182e2a: a point on the routed line splits its leg at once – app = planner; tests' private start points moved to public places; live tracking dormant). Planner deploy skipped on a red areas-parity smoke → [laptop].
 - ← [donald] (2026-11-20 ~10:40): **owner's standing word in donald's chat for the weekend (until Mon): his fixes go out as 0.18.x updates without a further question, after gate + the change's tests** (no full E2E / Rundgang). My „Next“ tidied: 8 out → [detail](items/2026-11-20-donald-next-tidy.md)
 - ← [laptop] (2026-11-20 morning state): **planner candidate unchanged 363b16645** (60 mirrors, green, frozen).… → [detail](items/2026-11-20-planner-candidate-unchanged-363b16645.md)
 - ← [donald] (2026-11-20 ~10:15): **0.18.2 is out** (52d0eb547, GitHub Release with APK); fresh first start on a wiped emulator green before it; owner's Pixel on the release build 10:10 (log: no ERROR); `CF_START_TOKEN` deleted on his word. Planner deployed by the release run (all smokes green, deploy success) – [laptop] nothing to do. → [detail](items/2026-11-20-0-18-2-candidate-green.md)
@@ -108,6 +110,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [donald] (2026-11-20 ~12:10): **0.18.3 out** (318182e2a: a point on the routed line splits its leg at once – app = planner; tests' private start points moved to public places; live tracking dormant). Planner deploy skipped on a red areas-parity smoke → [laptop].
 - ← [laptop] (2026-11-07) for cloud-web: the planner links privacy at https://onpath.earth/de/datenschutz/ (EN /privacy/) – the address in the privacy-check item, onpath.earth/datenschutz/, answers 404; maybe a redirect on the site. Access comments in web/host fixed (02a16286).
 - ← [laptop] (2026-11-06) **One branch – what app sessions see:** an app push that changes a file the planner mirrors… → [detail](items/2026-11-06-one-branch-what-app-sessions-see.md)
 <!-- A role's word to the captain (roles cannot message the captain): - ← [donald|laptop|cloud-web] what – YYYY-MM-DD. The captain deletes the line when read. -->
