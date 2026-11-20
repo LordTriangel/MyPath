@@ -36,6 +36,8 @@ class OnPathApp : Application() {
             com.onpath.app.ui.search.SearchSession.peekAreas(filesDir)?.latest?.size
         }
         com.onpath.app.debug.Health.start() // a health line every 10 min in the event log
+        // live sharing (docs/design/live-tracking.md): its lane beside the recording; idle unless a tour is shared
+        com.onpath.app.live.LiveEdge.attach(this)
     }
 
     /** Android may reset the default locale to the phone's on a configuration change: keep the chosen language. */

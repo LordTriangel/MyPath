@@ -423,6 +423,22 @@ class TourDb internal constructor(context: Context, name: String = "onpath.db") 
             put("distance", distance); put("ascent", ascent); put("descent", descent); put("duration", duration)
         }, "id=?", arrayOf(tourId.toString())) > 0
 
+    // ---- live sharing (docs/design/live-tracking.md §7): reads only, on the WAL's reader connections ----
+
+    /** The points of [tourId] numbered above [seq], in the order of their numbers, at most [max]. */
+    fun livePointsAfter(tourId: Long, seq: Int, max: Int): List<com.onpath.app.live.LivePointRow> = readableDatabase.rawQuery(
+        com.onpath.app.live.LiveSql.POINTS_AFTER, arrayOf(tourId.toString(), seq.toString(), max.toString())
+    ).use { c -> buildList { while (c.moveToNext()) add(livePoint(c)) } }
+
+    /** The newest point of [tourId]; null = none yet. */
+    fun liveLastPoint(tourId: Long): com.onpath.app.live.LivePointRow? = readableDatabase.rawQuery(
+        com.onpath.app.live.LiveSql.LAST_POINT, arrayOf(tourId.toString())
+    ).use { c -> if (c.moveToFirst()) livePoint(c) else null }
+
+    private fun livePoint(c: Cursor) = com.onpath.app.live.LivePointRow(
+        c.getInt(0), c.getInt(1), c.getDouble(2), c.getDouble(3), if (c.isNull(4)) null else c.getDouble(4),
+        if (c.isNull(5)) null else c.getLong(5), if (c.isNull(6)) null else c.getDouble(6))
+
     /** Returns (next seq, last seg) so a recording can continue after a restart. */
     fun recordingCursor(tourId: Long): Pair<Int, Int> = readableDatabase.rawQuery(
         "SELECT MAX(seq), MAX(seg) FROM points WHERE tour_id=?", arrayOf(tourId.toString())
