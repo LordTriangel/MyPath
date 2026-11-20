@@ -97,3 +97,13 @@ Checked fine by the review: no crash / stall for users who never share, recompos
 the lane), a share from a previous process shows, the first-share flow, link / secret never logged, catch rules.
 Then: gate --full, merge to main, line for [laptop] (`node web/parity/check.mjs --update`: Prefs.kt + the two new strings
 files), line for [donald] „ready to ship“, the Pixel walk.
+
+## Owner's wish for the viewer page (2026-11-20, after the review) – not built, pictures first
+„Kann man die Ankunftszeit und einen Status – alles klar, alles im Plan – oben als erstes darstellen?“ Answered yes, proposal
+told to him: the top line becomes the verdict + arrival, e.g. „● Alles im Plan · Ankunft ca. 16:40“ (on the route, moving
+or a short pause, contact fresh); the other states keep their own line („Pause seit 12 Min. · Ankunft ca. 16:55“,
+„Abseits der geplanten Route“, „Kein Kontakt seit 25 Min. · letzter Ort 14:02“, „Tour beendet“). A tour without a plan has no
+arrival: „● Alles klar · unterwegs“. „Im Plan“ in time (later than planned by n min) needs the planned arrival at the start
+in the head – one new optional field; without it „im Plan“ only means „on the route“. It is the phone's own judgement,
+not a word from him – say so on the page if he wants. Rule in `LiveStatusLine` (`:core`, tested), texts in the web strings;
+show ≤ 3 pictures (gallery, public repo) before building. Open question to ask him with the pictures: does „im Plan“ include the time?
