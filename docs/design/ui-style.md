@@ -48,6 +48,11 @@ One colour = one kind of action, so the hand finds it the second time by colour:
 - **blue = edit** – change the route, you are editing (`ActionEdit`);
 - **red = stop** – end the process you are in (end the recording, clear the plan to start anew) (`ActionStop`).
 
+Owner 2026-11-06: "alles blau, und was zur Navigation geht, grün"; onpath.private#36: "Wir nehmen erstmal Walnuss" – the theme's primary
+(every button without a meaning of its own) is walnut, Navigate green, Plan blue (`flow-map.md` "Colour rule audit"). No test pins it
+since 2026-11-20 (owner: the pictures show it – `MessageCardGermanScreenshotTest_kinds.png` walnut, `GermanScreenshotTest_plan.png` blue,
+`GermanScreenshotTest_navigateLockOff.png` green).
+
 Today (owner 2026-11-07, "Anhalten" variant 5): Navigate's one bottom bar green "⏸ Anhalten" | blue "✎ Planen"; stopped green
 "▶ Weiter" (the widest) · dark green #0D3A27 "■ Tour beenden" · blue "✎ Planen", icons and words together, 56 dp; the
 stop is said in the status card ("⏸ Angehalten seit 14:32"), not in a band – no red at the stop (#27). The hold lock (owner
@@ -72,7 +77,7 @@ pill ("ROUTE ÄNDERN" during a tour), and the position sign while the route is c
 errors. Since 2026-11-12 (owner, variant F + "one rule"): **in Plan every big go button is plan ink blue with white
 words** (`OnPathColors.PlanGo` via `ActionButtons.planGo()`, 7.1:1) – "▶ Los geht's", "▲ Weiter geht's" back to
 Navigate, "Tour nachfahren" under a shown tour, the route overview's "Los geht's" / "Folgen"; **in Navigate everything
-stays green** (`ActionButtons.go()`, the bottom bar, the arrival and end sheets). `PlanColourTest` keeps the plan tokens out of Navigate.
+stays green** (`ActionButtons.go()`, the bottom bar, the arrival and end sheets). `PlanColourTest` keeps the plan colours readable.
 
 Add a token when a new meaning is needed (with a comment saying what it is for); `inverseSurface` and Snackbars stay
 out (`NoticesTest.noDarkBarAnyMore`).
