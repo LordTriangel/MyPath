@@ -464,6 +464,14 @@
         "web/app/src/progressmemory.ts"
       ],
       "blob": "ead6f018f243905f53d8e7a5c4ba1cba55e8fc09"
+    },
+    {
+      "app": "state/src/main/kotlin/com/onpath/app/ui/search/SearchState.kt",
+      "what": "remember (a pick goes to the recent list), clearRecent, showAllFavourites – the page keeps these itself (search.ts pickRow / renderStart; the web ports addRecent / clearRecent do nothing); the rest of SearchState runs as it is (WebSearch)",
+      "web": [
+        "web/app/src/search.ts"
+      ],
+      "blob": "b887a0a7eb6addb33da0d202308a864c07ad7eed"
     }
   ],
   "watch": [

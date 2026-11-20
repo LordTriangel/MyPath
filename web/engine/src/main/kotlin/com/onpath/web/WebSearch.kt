@@ -116,9 +116,14 @@ object WebSearch {
      * field bug 0.13.2). JSON list = the list to show.
      */
     fun search(text: String, lat: Double, lon: Double, route: String, category: String = ""): String {
-        val line = route.split(';').filter { it.isNotBlank() }.map { p ->
-            val (a, b) = p.split(','); GeoPoint(a.toDouble(), b.toDouble())
-        }.takeIf { it.size >= 2 }
+        val parts = route.split(';').filter { it.isNotBlank() }
+        val pts = parts.mapNotNull { p ->
+            val xy = p.split(',')
+            val a = xy.getOrNull(0)?.trim()?.toDoubleOrNull(); val b = xy.getOrNull(1)?.trim()?.toDoubleOrNull()
+            if (a != null && b != null) GeoPoint(a, b) else null
+        }
+        if (pts.size != parts.size) Problems.warn("search", "the planned line had ${parts.size - pts.size} unreadable points – searched without the line")
+        val line = pts.takeIf { it.size >= 2 && it.size == parts.size }
         ctx = SearchContext(lat, lon, line)
         State.set(text, categoryOf(category))
         val run = State.begin()
