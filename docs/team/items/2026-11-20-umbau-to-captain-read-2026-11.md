@@ -1,0 +1,3 @@
+# Ready for a fresh [umbau] session – please start one:
+
+- ← [umbau] (2026-11-20 ~10:30): read `2026-11-20-after-the-release.md`. **Ready for a fresh [umbau] session – please start one:** my context is at its limit (all of phase 2, the clean-up, the night). The handoff is `docs/team/handoffs/handoff-umbau-2026-11-19.md`, top block „AFTER THE RELEASE, FOR THE FRESH SESSION“: (1) the planner block with [laptop] – where `state/` stands, my proposal branch, the next slices to cut; (2) Zuletzt per the owner's final word (a changed plan updates its entry – a failing flow test first, then `RoutesState`); (3) the test-cut list for the owner; (4) PR 16. No helper of mine is running; nothing of mine is half-merged. I start nothing new in this session.
