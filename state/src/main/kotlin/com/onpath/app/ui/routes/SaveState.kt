@@ -220,7 +220,25 @@ open class SaveState(
         if (pts.size < 2 || saving) return
         saving = true
         val r = host.route
-        insertPlanned("saveRoute", { saving = false }, name, pts, r, then)
+        val end = { saving = false }
+        guardedStart("saveRoute", end) { insertPlanned("saveRoute", end, name, pts, r, then) }
+    }
+
+    /**
+     * The synchronous start of a flow, guarded as the coroutine it used to be ran: a failure is reported under `app` ("[what] failed",
+     * the wording of `launchSafe`), [end] releases the flow's guard, and a [VirtualMachineError] is reported and thrown on, as there.
+     */
+    private fun guardedStart(what: String, end: () -> Unit, start: () -> Unit) {
+        try {
+            start()
+        } catch (e: VirtualMachineError) {
+            Problems.error("app", "$what failed", e)
+            end()
+            throw e
+        } catch (e: Throwable) {
+            Problems.error("app", "$what failed", e)
+            end()
+        }
     }
 
     /**
@@ -395,13 +413,13 @@ open class SaveState(
         val end = { saving = false }
         val what = "saveNewPlanAtStart"
         // a plan from Zuletzt keeps its name
-        val kept = draft?.name?.let { RouteRules.newRouteName(it, dated, taken) }
+        val keptName = draft?.name
         val save = { name: String ->
             Problems.trace("plan", "Plan saved at the tour start as \"$name\" (${how.name.lowercase()}, ${pts.size} points)")
             insertPlanned(what, end, name, pts, r, null)
         }
-        if (kept != null) {
-            try { save(kept) } catch (e: Throwable) { Problems.error("app", "$what failed", e); end() }
+        if (keptName != null) {
+            guardedStart(what, end) { save(RouteRules.newRouteName(keptName, dated, taken)) }
         } else {
             var wentOn = false
             names.ask(what, pts, r, nameWaitMs, always = { if (!wentOn) end() }) { proposed ->

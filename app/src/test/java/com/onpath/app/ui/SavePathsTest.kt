@@ -44,6 +44,9 @@ class SavePathsTest {
         val keep = slice.substringAfter("fun keepAsDraft(why: String) {").substringBefore("\n    }\n")
         assertTrue(keep, keep.contains("recent.keep("))
         assertFalse("handed over at once, no background work before it", keep.contains("launch"))
+        // SaveState has no coroutines: deferring is `background.` (a write off the thread) or `names.` (a wait for the name)
+        assertFalse("handed over at once, nothing deferred (background)", keep.contains("background."))
+        assertFalse("handed over at once, no wait for a name (names)", keep.contains("names."))
     }
 
     /** Way 2: the ride summary has no plan part – nor does any end sheet now. */
