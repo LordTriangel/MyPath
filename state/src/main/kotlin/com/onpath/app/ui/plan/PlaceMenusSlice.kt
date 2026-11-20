@@ -14,8 +14,8 @@ interface PlaceMenusHost : PlaceMenusPorts {
 }
 
 /**
- * The app's place menus: the state and decisions of [PlaceMenusState] (web-ready – the planner takes that file as it
- * is, `state/web-ready.txt`) plus the one piece of background work, the lookup of the pinned points' POI kinds
+ * The app's place menus: the state and decisions of [PlaceMenusState] (coroutine-free – for the planner once its closure
+ * is listed in `state/web-ready.txt`) plus the one piece of background work, the lookup of the pinned points' POI kinds
  * ([refreshPinnedKinds]). The cut every slice with a coroutine gets (docs/design/web-ready-status.md): `XState` = plain
  * state + decisions + what a finished piece of work changes; `XSlice : XState` = the coroutines that drive it.
  */

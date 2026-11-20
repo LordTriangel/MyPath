@@ -82,7 +82,7 @@ state. The cut, the same for each – **no call site changes, in the app or in a
 - The planner constructs `XState` and drives the work itself (its own async on the page): `todo` → its lookup → `found`.
 
 Built: `ui/plan/PlaceMenusState.kt` (was `PlaceMenusSlice.kt`; the mirror entry in `parity.json` follows the file) +
-`PlaceMenusSlice.kt` (46 lines: the pinned POI kinds' lookup). **Not listed yet** – the closure, measured by a trial
+`PlaceMenusSlice.kt` (45 lines: the pinned POI kinds' lookup). **Not listed yet** – the closure, measured by a trial
 listing with `WebReadyRuleTest`:
 
 | File | What still stands in the way | Cut |
