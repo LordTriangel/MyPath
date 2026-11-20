@@ -14,7 +14,7 @@ private const val KEY_SUGGEST = "suggest_steps"
 @Volatile private var app: ProgressMemory? = null
 
 /** The app's one memory (the loading window, the sign beside and the notification read the same shares). */
-fun ProgressMemory.Companion.of(context: Context): ProgressMemory = app ?: synchronized(ProgressMemory) {
+fun progressMemoryOf(context: Context): ProgressMemory = app ?: synchronized(ProgressMemory) {
     app ?: Stored(context.applicationContext).also { app = it }
 }
 

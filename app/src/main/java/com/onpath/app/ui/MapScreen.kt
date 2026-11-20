@@ -1,6 +1,5 @@
 package com.onpath.app.ui
 
-import com.onpath.app.data.of
 import com.onpath.app.domain.AppMode
 import com.onpath.app.domain.LocateDistance
 import com.onpath.app.domain.OfflineReady
@@ -458,7 +457,7 @@ private fun PlanMode(
         com.onpath.app.ui.suggest.SuggestWishHost(vm) // the wish sheet of the round-trip suggestions while open
         // the round-trip search: the same wait window as a map load or a route (owner 2026-11-19) – its steps, Abbrechen;
         // the map takes no press under it
-        com.onpath.app.ui.progress.SuggestWaitWindow(com.onpath.app.data.ProgressMemory.of(androidx.compose.ui.platform.LocalContext.current),
+        com.onpath.app.ui.progress.SuggestWaitWindow(com.onpath.app.data.progressMemoryOf(androidx.compose.ui.platform.LocalContext.current),
             vm.suggest)
         com.onpath.app.ui.search.SearchHost(vm) // full-screen search view while open
     }
@@ -608,7 +607,7 @@ private fun PlanBottom(vm: AppViewModel, rec: RecState?, onStartNavigation: () -
         onLoadOnMobile = vm.mapData::loadModalOnMobile))
     vm.mapData.loadAsk?.let { LoadAskDialog(it.regions, it.bytes, onLoad = { vm.mapData.answerLoadAsk(true) }, onNotNow = { vm.mapData.answerLoadAsk(false) }) }
     // a route that takes a while: the wait window (form A, owner 2026-11-19) – the legs as steps, Cancel; not over a question
-    com.onpath.app.ui.progress.RouteWaitWindow(com.onpath.app.data.ProgressMemory.of(androidx.compose.ui.platform.LocalContext.current),
+    com.onpath.app.ui.progress.RouteWaitWindow(com.onpath.app.data.progressMemoryOf(androidx.compose.ui.platform.LocalContext.current),
         vm.planRun.routing, slow = vm.planRun.routingSlow && vm.planRun.slowPlanAsk == null && vm.planRun.longRouteAsk == null, vm.planRun.routeProgress, vm.planRun.routeShare,
         com.onpath.app.ui.progress.RouteWait.legLabels(rows, vm.plan.points.size, vm.planRun.routeProgress?.second), vm.planRun.routeRun.gen,
         onCancel = vm.planRun::cancelRouting)
