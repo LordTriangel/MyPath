@@ -270,7 +270,6 @@ class SearchSession(
     @Volatile override var onlineCentre: Pair<Double, Double>? = null
 
     companion object {
-        const val DEBOUNCE_MS = 350L
         /** While typing, the map areas are checked for changes at most this often (on open: always). */
         const val RECHECK_MS = 5_000L
         private val areaStores = HashMap<String, SearchAreas>()

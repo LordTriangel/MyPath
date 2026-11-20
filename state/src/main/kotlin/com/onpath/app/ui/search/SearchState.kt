@@ -103,6 +103,11 @@ abstract class SearchState(
     private val hasOnline: Boolean,
     protected val context: () -> SearchContext,
 ) {
+    companion object {
+        /** How long the online provider waits after the last keystroke before it is asked (ms). */
+        const val DEBOUNCE_MS = 350L
+    }
+
     var ui by mutableStateOf(SearchUi())
         protected set
 

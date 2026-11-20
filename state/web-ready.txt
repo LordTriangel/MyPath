@@ -91,3 +91,7 @@ ui/MapWaitRules.kt
 data/ProgressMemory.kt
 # RouteListRules: My routes' list rules – ActivityFilter (MENU, keep, saved), Favourites.shown, RouteSortTexts (the chips' texts); plain
 ui/routes/RouteListRules.kt
+# CellCards: the map-area strip card (CellCardUi, CellRow, MobileQuestion, CellCards, OverviewHintRule, MapUpdateUi, MapUpdates); the Composables stay in :app (CellCard.kt)
+ui/CellCards.kt
+# MapCredits: the full credits list (Settings -> About)
+ui/MapCredits.kt

@@ -31,12 +31,12 @@
       "blob": "9b22768c8abbd0ffa2633d9341f14bb0d8cfe120"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/search/SearchSession.kt",
-      "what": "DEBOUNCE_MS (the wait before the online search; the driver of SearchState's stages – the rules are in state/.../SearchState.kt)",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/search/SearchState.kt",
+      "what": "DEBOUNCE_MS (the wait before the online search; the driver of SearchState's stages – the rules are in state/.../SearchState.kt) – shared code since 2026-11-20 ([umbau]): the page can call it and drop the copy",
       "web": [
         "web/app/src/search.ts"
       ],
-      "blob": "cc547554a6696f07c8fa3a409cefdf65f5495ea7"
+      "blob": "bd9f5c746cff4986b5c285a705706aeddf63056a"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/search/PlaceCard.kt",
@@ -92,12 +92,12 @@
       "blob": "9674709c5f64d0e0385b4ccc665d5effde3ba38c"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/SettingsScreen.kt",
-      "what": "MAP_CREDITS (About)",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/MapCredits.kt",
+      "what": "MAP_CREDITS (About) – shared code since 2026-11-20 ([umbau]): the page can call it and drop the copy",
       "web": [
         "web/app/src/main.ts"
       ],
-      "blob": "cd1b90b37af7f21f2fe07fc5e06d4b05f768c800"
+      "blob": "421f30a128edc203cd0bdf1b49201778c5df30c5"
     },
     {
       "app": "app/src/main/java/com/onpath/app/map/OptionalSources.kt",
@@ -258,12 +258,12 @@
       "blob": "886e86d41b2349180ed5f39fd423734ce92026d9"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/CellCard.kt",
-      "what": "CellCards.build / name / rowState – the map-area strip (title, rows, more, failed, offline)",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/CellCards.kt",
+      "what": "CellCards.build / name / rowState – the map-area strip (title, rows, more, failed, offline) – shared code since 2026-11-20 ([umbau]): the page can call it and drop the copy",
       "web": [
         "web/app/src/areas.ts"
       ],
-      "blob": "53f801bbf7579623c537b5a2c50095b52adba229"
+      "blob": "34129537eb1137954a16ca8756837bbccb29ed06"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/cells/CellTriggers.kt",
@@ -318,12 +318,12 @@
       "blob": "44766be7b612a02c97418ebe75061e68209c3f75"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/map/RouteThumbs.kt",
-      "what": "ThumbRules: VERSION, TILE_DP 84, MARGIN, marker sizes, LINE_SCALE, region (square in Web Mercator) / project – the web keys pictures by line, not by sig / lineKey",
+      "app": "core/src/main/kotlin/com/onpath/app/map/ThumbRules.kt",
+      "what": "ThumbRules: VERSION, TILE_DP 84, MARGIN, marker sizes, LINE_SCALE, region (square in Web Mercator) / project – the web keys pictures by line, not by sig / lineKey – shared code since 2026-11-20 ([umbau]): the page can call it and drop the copy",
       "web": [
         "web/app/src/routethumbs.ts"
       ],
-      "blob": "d77d8825f303ed295c3f8efe02c12bad018f50bf"
+      "blob": "bc73cfafc52b58ba498d22cf1dcd2ab40bf1adc7"
     },
     {
       "app": "app/src/main/java/com/onpath/app/domain/routes/RoundTrip.kt",
@@ -453,7 +453,7 @@
       "web": [
         "web/app/src/search.ts"
       ],
-      "blob": "b887a0a7eb6addb33da0d202308a864c07ad7eed"
+      "blob": "bd9f5c746cff4986b5c285a705706aeddf63056a"
     }
   ],
   "watch": [
@@ -3195,8 +3195,10 @@
       ]
     },
     "state/src/main/kotlin/com/onpath/app/ui/search/SearchState.kt": {
-      "blob": "b887a0a7eb6addb33da0d202308a864c07ad7eed",
-      "perf": []
+      "blob": "bd9f5c746cff4986b5c285a705706aeddf63056a",
+      "perf": [
+        "const val DEBOUNCE_MS = 350L"
+      ]
     },
     "state/src/main/kotlin/com/onpath/app/ui/progress/WaitRules.kt": {
       "blob": "3650dcc72107063f4189023b7412f99cc4a9c73a",
@@ -3421,6 +3423,22 @@
     },
     "app/src/main/assets/style/f2/onpath.json": {
       "blob": "1c409cb28ff79aaf7c56578053c9e792a41f66c0",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/map/ThumbRules.kt": {
+      "blob": "bc73cfafc52b58ba498d22cf1dcd2ab40bf1adc7",
+      "perf": []
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/CellCards.kt": {
+      "blob": "34129537eb1137954a16ca8756837bbccb29ed06",
+      "perf": [
+        "const val MAX_ROWS = 3",
+        "val rows = ordered.take(MAX_ROWS).mapIndexed { i, c -> CellRow(name(c, job, i), rowState(s[c]!!), c == job.own) }",
+        "val rest = ordered.drop(MAX_ROWS)"
+      ]
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/MapCredits.kt": {
+      "blob": "421f30a128edc203cd0bdf1b49201778c5df30c5",
       "perf": []
     }
   }
