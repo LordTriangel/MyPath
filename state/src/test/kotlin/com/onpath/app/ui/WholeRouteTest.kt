@@ -25,6 +25,15 @@ class WholeRouteTest {
         assertNull(WholeRoute.source(plan, planned = false, shown = false, followed = false))
     }
 
+    /** The first route is fitted only when nothing moved on meanwhile – each of the four reasons alone stops it. */
+    @Test fun theFirstRouteIsFittedOnlyWhenNothingMovedOn() {
+        assertTrue(WholeRoute.fitsFirstRoute(touchedSince = false, mode = AppMode.PLAN, shown = false, sameLine = true))
+        assertFalse("the user took the map", WholeRoute.fitsFirstRoute(true, AppMode.PLAN, false, true))
+        assertFalse("Plan was left", WholeRoute.fitsFirstRoute(false, AppMode.NAVIGATE, false, true))
+        assertFalse("a track is shown instead", WholeRoute.fitsFirstRoute(false, AppMode.PLAN, true, true))
+        assertFalse("the route changed again", WholeRoute.fitsFirstRoute(false, AppMode.PLAN, false, false))
+    }
+
     @Test fun navigateShowsOnlyTheFollowedLine() {
         assertEquals(WholeRoute.Source.FOLLOWED, WholeRoute.source(nav, planned = true, shown = false, followed = true))
         // free recording: no line, no button (a plan in the background is not on the map in Navigate)

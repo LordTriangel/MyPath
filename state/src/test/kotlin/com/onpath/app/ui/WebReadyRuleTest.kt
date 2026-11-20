@@ -20,10 +20,11 @@ import java.io.File
  * (only `Problems` is checked by member name). The test reads the list from this module's folder (a Gradle test runs there).
  */
 class WebReadyRuleTest {
-    private val runtimeNames = setOf("mutableStateOf", "getValue", "setValue", "mutableStateListOf", "mutableIntStateOf")
+    private val runtimeNames = setOf("mutableStateOf", "getValue", "setValue", "mutableStateListOf", "mutableIntStateOf",
+        "snapshots.SnapshotStateList", "toMutableStateList")
     // what the engine brings besides the JDK (web/engine/build.gradle.kts, read 2026-11-19): `org.json:json` as a dependency and the
     // stand-in web/engine/src/main/kotlin/org/jetbrains/compose/resources/StringResource.kt (StringResource + PluralStringResource).
-    // SnapshotStateList / toMutableStateList are NOT here: the planner's Compose stand-in covers the five names above only.
+    // SnapshotStateList / toMutableStateList: in the planner's Compose stand-in since d82eb227 (laptop 2026-11-20), so allowed.
     private val allowedPrefixes = listOf(
         "com.onpath.app.", "com.onpath.strings.", "java.", "kotlin.", "org.json.",
         "org.jetbrains.compose.resources.StringResource", "org.jetbrains.compose.resources.PluralStringResource",

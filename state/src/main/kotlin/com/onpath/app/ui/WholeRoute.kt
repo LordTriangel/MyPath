@@ -27,6 +27,13 @@ object WholeRoute {
         AppMode.NAVIGATE -> if (followed) Source.FOLLOWED else null
     }
 
+    /**
+     * The plan's first route is fitted once the sheet has settled – unless the user took the map since it was asked
+     * ([touchedSince]), left Plan, a track is shown instead ([shown]) or the route changed again (not [sameLine]).
+     */
+    fun fitsFirstRoute(touchedSince: Boolean, mode: AppMode, shown: Boolean, sameLine: Boolean): Boolean =
+        !touchedSince && mode == AppMode.PLAN && !shown && sameLine
+
     /** The button shows: something to show, and not in the Points step (little map left; only Undo + locate there). */
     fun shows(mode: AppMode, pointsOpen: Boolean, planned: Boolean, shown: Boolean, followed: Boolean): Boolean =
         !pointsOpen && source(mode, planned, shown, followed) != null

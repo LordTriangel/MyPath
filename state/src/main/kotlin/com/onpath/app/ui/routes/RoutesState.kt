@@ -110,6 +110,12 @@ class RoutesState(private val store: RoutesStore, private val clock: () -> Long 
         private set
 
     /**
+     * The Zuletzt place as stored ([id], -1 = none): set as it is – nothing goes to the bin, [onRecent] is not called.
+     * For a host that keeps one instance and reads the place from its own store before each action (the planner).
+     */
+    fun placeIs(id: Long) { recentId = id }
+
+    /**
      * The plan [id] (a draft or a saved route) takes the Zuletzt place: every other draft goes to the recycle bin – the
      * replaced plan stays recoverable, never gone for good (owner 2026-11-12); a saved route is never touched. A draft
      * that waits in the bin because another plan took the place meanwhile (loaded from Zuletzt, then left unchanged)

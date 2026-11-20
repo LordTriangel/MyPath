@@ -1,7 +1,8 @@
 # Files of :state the planner may take as they are (docs/design/umbau-phase-2.md §2.2): paths below
 # state/src/main/kotlin/com/onpath/app/, one per line. WebReadyRuleTest checks each: imports only com.onpath.app.*,
 # com.onpath.strings.*, java.* / kotlin.*, org.json.*, StringResource / PluralStringResource and the five Compose runtime
-# names (mutableStateOf, getValue, setValue, mutableStateListOf, mutableIntStateOf); no coroutine, suspend, Thread, lock,
+# names (mutableStateOf, getValue, setValue, mutableStateListOf, mutableIntStateOf) + SnapshotStateList /
+# toMutableStateList; no coroutine, suspend, Thread, lock,
 # java.io.File or direct system clock; every :state file it uses is listed too; every :core file it uses is compiled by the planner.
 
 # -- slices (state + decisions; ports the planner implements: interface name (members)) ---------------------------------
@@ -12,6 +13,8 @@ ui/routes/RoutesState.kt
 ui/routes/SaveDialog.kt
 # KeptPlacesSlice: ports PlacesStore (4 members: saved, update, backupChanged, syncChanged) and KeptPlacesHost (2: searchMark, isCandidate)
 ui/plan/KeptPlacesSlice.kt
+# PlanDocument: the plan on the map (points, pins, undo, the saved route it belongs to); port PlanStore (what survives the process)
+ui/plan/PlanDocument.kt
 # NoticeBoard: no port to implement; it IS the Say port (1 member) and asks 3 lambdas (routesOpen, settingsOpen, mapShown: () -> Boolean)
 ui/NoticeBoard.kt
 # MultiDayFlow: port MultiDayPrefs (5 properties, see ports below) + a lambda linkedId: () -> Long; reads / writes JSON with org.json

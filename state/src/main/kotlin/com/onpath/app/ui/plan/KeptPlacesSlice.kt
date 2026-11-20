@@ -58,9 +58,22 @@ class KeptPlacesSlice(private val store: PlacesStore, private val host: KeptPlac
     /** „☆ Merken“ / „★ Gemerkt“ in a held place's menu: one tap sets / removes; the menu stays and shows the new state. */
     fun toggleFavouritePlace(poi: com.onpath.app.poi.Poi) {
         val p = placeOf(poi)
-        val on = !saved().isFavourite(p)
+        setFavourite(p, !saved().isFavourite(p))
+    }
+
+    /**
+     * The place [p] is / is no longer a favourite – the target state, not a toggle (the planner's rows say what they
+     * want; a row drawn before a sync brought the same change then changes nothing).
+     */
+    fun setFavourite(p: Place, on: Boolean) {
         keepPlaces { s -> if (s.isFavourite(p) != on) s.toggleFavourite(p) else s }
         Problems.trace("search", "Place menu: \"${p.title()}\" ${if (on) "kept as a favourite" else "no longer a favourite"}")
+    }
+
+    /** Zuhause is [p] (replaces the old home); null = no home any more. The target state, as [setFavourite]. */
+    fun setHome(p: Place?) {
+        keepPlaces { s -> s.withHome(p) }
+        Problems.trace("search", if (p != null) "Place menu: \"${p.title()}\" set as home" else "Place menu: home removed")
     }
 
     /** „⌂ Als Zuhause festlegen“ (replaces the old home) / „⌂ Zuhause entfernen“ on the place that is home. */

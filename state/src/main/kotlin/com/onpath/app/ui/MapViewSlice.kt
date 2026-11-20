@@ -317,7 +317,7 @@ class MapViewSlice(
         val asked = uptimeMs()
         scope.launchSafe("app", "fitFirstRoute") {
             delay(WholeRoute.SETTLE_MS + extraMs)
-            if (lastMapTouchMs > asked || mode != AppMode.PLAN || host.shown != null || host.routePoints != line) {
+            if (!WholeRoute.fitsFirstRoute(lastMapTouchMs > asked, mode, host.shown != null, host.routePoints == line)) {
                 Problems.trace("map", "First route not fitted: the map was touched or the plan moved on")
                 return@launchSafe
             }

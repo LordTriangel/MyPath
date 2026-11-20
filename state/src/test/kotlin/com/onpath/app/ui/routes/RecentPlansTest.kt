@@ -233,6 +233,17 @@ class RecentPlansTest {
         assertEquals(listOf("Zuletzt: the plan's entry could not be updated – kept as a new plan"), problems.said("routes", Problems.Level.WARN))
     }
 
+    /** A host that keeps one instance sets the place as stored: nothing goes to the bin, nobody is told. */
+    @Test fun thePlaceSetAsStoredMovesNothing() {
+        val d = saved("Entwurf", 51.0, 51.1, draft = true); val other = saved("Zweiter", 52.0, 52.1, draft = true, created = 20L)
+        var told = 0
+        routes.onRecent = { told++ }
+        routes.placeIs(d)
+        assertEquals(d, routes.recentId)
+        assertEquals("both drafts stay where they are", setOf(d, other), drafts().map { it.id }.toSet())
+        assertTrue(db.listDeleted().isEmpty()); assertEquals(0, told)
+    }
+
     /** A SAVED route opened from Zuletzt and changed is never overwritten: it stays as it is, the change is a draft. */
     @Test fun aChangedSavedRouteFromZuletztStaysAsItIsAndTheChangeIsADraft() {
         val id = saved("Feierabendrunde", 51.0, 51.1)

@@ -809,6 +809,22 @@ class PlaceMenusFlowTest {
         assertEquals(listOf("store.saved home=- favs=n1"), app.log)
     }
 
+    /** The planner's rows say the state they want (laptop 2026-11-20): asked twice it stays, no toggle back; home set / replaced / removed. */
+    @Test fun thePlaceSettersTakeTheTargetStateNotAToggle() {
+        val app = App(listOf(a))
+        val p = Place.fromPoi(hut)
+        app.kept.setFavourite(p, true); app.kept.setFavourite(p, true)
+        assertEquals("on, asked twice: still on", listOf(p), app.stored.favourites)
+        app.kept.setFavourite(p, false); app.kept.setFavourite(p, false)
+        assertTrue(app.stored.favourites.isEmpty())
+        app.kept.setHome(p)
+        assertTrue(app.stored.isHome(p)); assertTrue(app.kept.isHomePlace(hut))
+        assertEquals("Place menu: \"Hütte\" set as home", problems.traced("search").last())
+        app.kept.setHome(null)
+        assertFalse(app.stored.isHome(p))
+        assertEquals("Place menu: home removed", problems.traced("search").last())
+    }
+
     @Test fun aStoreThatCannotWriteReportsAndTellsNobodyAndKeepsWhatWasShown() {
         val app = App(listOf(a))
         assertFalse(app.kept.isFavouritePlace(hut))
