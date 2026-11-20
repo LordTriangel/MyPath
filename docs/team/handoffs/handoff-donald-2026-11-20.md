@@ -43,3 +43,5 @@ of „For the roles“): fresh session at ~350k context; helpers on Sonnet (set 
 - Website pictures: app side only I02 (onpath.private f0442c4); planner pictures → [laptop], build-in → [cloud-web] (backlog line).
 - Open for donald: the pin menu over the search bar (needs the emulator – no camera event after `panBy`), the interrupted-tour
   rest (both reads fail), I03 picture, the rest of Next.
+- **0.18.5 released** ~16:40 (b2454f04a): the batch above + the interrupted-tour rest (0ef237e65: both start reads failed → the next
+  tour start reads once more). Change E2E on GitHub green (CorePoiTap only on rerun – runner slow; Next item for the test).
