@@ -36,7 +36,7 @@ ui/MultiDayFlow.kt
 #   (1: cancel; the run's handle `routeJob`, set by the host's own recalc), plus the RunCause object of core (pure)
 ui/plan/PlanRunSlice.kt
 # PlanRecalcState: ports PlanRecalcPorts (20 members: runCauses, activity, sac, legCache, planFactors, withModelTime, activityBefore, spotsOpen, spotLine, spotsMemo, routeChangedNotice,
-#   planSize, followCancel, followEditedPlan, planBaseline, setSaved, followPlanned, fitFirstRoute, linkSnapped, recording), MapDataPort (6), PlanRecalcHost (9), Background (1: run);
+#   planSize, followCancel, followEditedPlan, planBaseline, setSaved, followPlanned, fitFirstRoute, linkSnapped, recording), MapDataPort (6), PlanRecalcHost (10), Background (1: run);
 #   stages begin / route (companion, pure) / findReach (companion) / progress / share / slow / legsRouted / taken; PlanRecalcSlice (app) strings them with coroutines
 ui/plan/PlanRecalcState.kt
 # PlanEditState: port PlanEditPorts (29 members: map menus / camera, the tour, search; PlanEditHost adds the suspend pointNames), PointNames (1: label)

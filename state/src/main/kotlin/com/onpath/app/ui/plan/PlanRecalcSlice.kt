@@ -135,7 +135,8 @@ class PlanRecalcSlice(
     fun recalc() {
         val run = begin() ?: return
         val gen = run.gen
-        val cancel = planRun.routeCancel ?: return
+        // begin() made it just now; never null – if it were, the run would stay "calculating" unseen
+        val cancel = planRun.routeCancel ?: run { com.onpath.app.debug.Problems.error("routing", "Route #$gen: no cancel signal after the head – not routed"); return }
         routeJob = scope.launchSafe("app", "recalc") {
             delay(150) // debounce quick taps
             // the Cancel button appears only when it takes a while (no flicker for normal routes)

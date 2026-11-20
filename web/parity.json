@@ -161,13 +161,13 @@
       "blob": "5260af0cde29ae8ee68776e88f60912738295107"
     },
     {
-      "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlanRecalcSlice.kt",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlanRecalcState.kt",
       "what": "recalc's head: the long-route ask (RouteRun.Event.Recalc -> LongAsked, nothing routed or loaded until the answer: the planner's longroute.ts / allowLongRoute in main.ts) – moved to PlanRecalcState.begin (listed, rebuild phase 2 piece 9b; PlanRecalcSlice keeps only the coroutines); the rest (the router coroutine on its threads, the wait card, snapToRoute's history and saved link, the tour's follow after a result) is the phone's",
       "web": [
         "web/app/src/main.ts",
         "web/app/src/longroute.ts"
       ],
-      "blob": "17e238510be4b5fc846ea63b96ef9a0b185b4d00"
+      "blob": "8694ac56f273d0545727c312b963f74ed92a1f1c"
     },
     {
       "app": "state/src/main/kotlin/com/onpath/app/ui/routes/RoutesSlice.kt",

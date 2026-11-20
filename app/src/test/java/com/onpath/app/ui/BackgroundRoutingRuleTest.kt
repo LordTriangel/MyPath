@@ -26,6 +26,8 @@ class BackgroundRoutingRuleTest {
         // the routing thread by name – PlanRecalcFlowTest sees the router called on the held routing thread only)
         val recalcSlice = com.onpath.app.testkit.sourceFile("ui/plan/PlanRecalcSlice.kt").readText()
         assertEquals(1, Regex("withContext\\(routingDispatcher\\)").findAll(recalcSlice).count())
+        // the engine and the leg cache are read on the routing thread too (the route itself is PlanRecalcState.route, plain)
+        assertTrue(recalcSlice.substringAfter("withContext(routingDispatcher) {").substringBefore("}.also").contains("PlanRecalcState.route(run, planRoute.routingEngine(), planRoute.legCache, cancel,"))
         assertEquals(0, Regex("withContext\\(routingDispatcher\\)").findAll(vm).count())
         assertTrue(vm.contains("scope = viewModelScope, routingDispatcher = planRoute.threads.routing, io = Dispatchers.IO, main = Dispatchers.Main, default = Dispatchers.Default,"))
         val edits = com.onpath.app.testkit.sourceFile("ui/tour/TourEdits.kt").readText()
