@@ -205,7 +205,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 ## Waiting for the owner
 - [donald] (owner 2026-11-20 morning: **„Gar nicht“** – the paper stays as it is, the try is dropped; owner's Pixel back to the release build when he says) 2026-11-20 night: **Papier warm, ~10 %…** → [detail](items/2026-11-20-papier-warm-10-dunkler-f2efe6-auf-deinem.md)
 - [donald] 2026-11-20 night: **may donald clear the app…** → [detail](items/2026-11-20-may-donald-clear-the-app-once-on-its-own.md)
-- [captain] 2026-11-19: **merge pull request 15** → [detail](items/2026-11-19-merge-pull-request-15.md)
+- [captain] (owner 2026-11-20 morning: **merges 15 himself now, after reading its two marked sentences; pull request 16 after 0.18.2 is out**) 2026-11-19: **merge pull request 15** → [detail](items/2026-11-19-merge-pull-request-15.md)
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)
 - **[laptop] For the owner to look at…** → [detail](items/2026-11-19-for-the-owner-to-look-at-no-answer-neede.md)
 - [donald] 2026-11-19: **Routenvorschau – Seitenpunkte + „Mehr“ gebaut, Bilder…** → [detail](items/2026-11-19-routenvorschau-seitenpunkte-gebaut-bilde.md)
