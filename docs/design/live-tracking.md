@@ -447,6 +447,17 @@ the box row. Cron: an hourly entry for
 `/live/v1/*`, rate-limit binding `LIVE_RATE` (120 / min / IP), the hourly cron – a config change, sent to the owner as
 a pull request together with the privacy text.
 
+**Built (piece 2, 2026-11-20, branch `feat/live-server` – on main after [laptop]'s go):** the wire format is the comment
+at the top of `live.js`. Where it differs from the above: the server hashes the bearer token itself, the claim's body
+carries only the read token's hash; no `bytes` column (summed per push, cannot drift); limits count Base64 characters
+(16,384 an item), at most 8 items a push; **`GET` is paged** (≤ 500 items, `more` – the page loops); an expired or
+stopped box answers 410 for 48 h, then 404 (the page reads 404 as „noch keine Daten / Link unbekannt“); a claim whose
+read hash equals the writer's is refused; the per-IP limiter uses the daily salted hash. Tests: `live.test.js` (15).
+**For the owner's `wrangler.toml` pull request** (without it the route is not reachable in production):
+`run_worker_first` + `"/live/v1/*"`; rate-limit binding `LIVE_RATE` (120 / 60 s, a new namespace id); an hourly cron
+beside the daily one (until then a finished tour can stay up to ~36 h instead of 12); optional var
+`LIVE_NEW_PER_IP_DAY`. Proven only on the fake D1 (Node's SQLite) – no deploy, no real D1 yet.
+
 ### 14.5 Viewer page (`web/app`)
 
 - `live/index.html` – a second Vite entry; `src/live/main.ts` (boot: read `#t=`, strip it from the address, keep the
