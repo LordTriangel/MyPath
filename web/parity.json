@@ -2699,56 +2699,6 @@
         "// keep parsed profiles of several activities in memory"
       ]
     },
-    "app/src/main/java/com/onpath/app/search/OfflineIndex.kt": {
-      "blob": "0df57e108f200416e2f1538aeaae11462aa88211",
-      "perf": [
-        "val limit: Int = 60,",
-        "* In-memory offline search index over one map folder: POIs (pois.geojson), peaks/passes and place names",
-        "private const val CACHE = \"search-places-v1.tsv\"",
-        "val cache = File(cacheDir, CACHE)",
-        "if (cache.isFile) try {",
-        "val lines = cache.readLines()",
-        "} catch (e: Exception) { Problems.warn(\"search\", \"Search place cache unreadable; reading the base map again\", e) }",
-        "val tmp = File(cacheDir, \"$CACHE.tmp\")",
-        "if (!tmp.renameTo(cache)) Problems.warn(\"search\", \"Search place cache not saved (rename failed); rebuilt on next start\")",
-        "} catch (e: Exception) { Problems.warn(\"search\", \"Search place cache not written; rebuilt on next start\", e) }",
-        "return withRoute.sortedWith(ORDER).take(q.limit)"
-      ]
-    },
-    "app/src/main/java/com/onpath/app/search/OnlineSearch.kt": {
-      "blob": "ac1ef13df9aa8aeacdce968c3b76739a8ede67e5",
-      "perf": [
-        "fun search(query: String, lat: Double, lon: Double, limit: Int = 10): List<Place>",
-        "fun url(query: String, lat: Double, lon: Double, limit: Int): String {",
-        "return \"$baseUrl?q=$q&lat=${f(lat)}&lon=${f(lon)}&zoom=12&location_bias_scale=0.3&limit=$limit&lang=de\"",
-        "fun placesUrl(query: String, lat: Double, lon: Double, limit: Int): String =",
-        "url(query, lat, lon, limit) + PLACE_LAYERS.joinToString(\"\") { \"&layer=$it\" }",
-        "override fun search(query: String, lat: Double, lon: Double, limit: Int): List<Place> {",
-        "val main = get(url(query, lat, lon, limit))",
-        "val places = try { get(placesUrl(query, lat, lon, PLACES_LIMIT)) } catch (e: Exception) {",
-        "const val PLACES_LIMIT = 5"
-      ]
-    },
-    "app/src/main/java/com/onpath/app/search/AddressSearch.kt": {
-      "blob": "295f1890c9c8a261201c71d5aaad43324c5697b2",
-      "perf": [
-        "* wins over a farm group next door. Null when none is near. Pure lookup in memory.",
-        "val cands = db.rows(\"SELECT DISTINCT w FROM word WHERE w >= ? AND w < ? LIMIT 20000\", head, upper(head))",
-        "db.rows(\"SELECT street FROM word WHERE w IN (${chunk.joinToString(\",\") { \"?\" }}) LIMIT 5000\", *chunk.toTypedArray())",
-        "private fun streetsWithPrefix(w: String, enough: Int = Int.MAX_VALUE): Set<Long> {",
-        "var page = if (enough == Int.MAX_VALUE) WORD_ROWS else 2 * enough",
-        "val rows = db.rows(\"SELECT street FROM word WHERE w >= ? AND w < ? ORDER BY w, street LIMIT $n OFFSET $offset\", w, upper(w))",
-        "val done = try { pool.invokeAll(tasks) } catch (e: InterruptedException) {",
-        "private val pool: ExecutorService by lazy {"
-      ]
-    },
-    "app/src/main/java/com/onpath/app/search/PlaceIndex.kt": {
-      "blob": "5652838f1e371c7a8ba844f0c2f86b85b5a46ed6",
-      "perf": [
-        "* The offline place index as the app uses it: [DiskIndex] (SQLite file, the app) or [OfflineIndex] (all in memory –",
-        "/** Prepares what [search] needs (reads the word index into memory), so the first keystroke answers fast. */"
-      ]
-    },
     "app/src/main/java/com/onpath/app/search/RouteNamer.kt": {
       "blob": "1bfff7ef95bf5f0e22dc4e814d9cefcb278f0ea3",
       "perf": [
@@ -3386,6 +3336,56 @@
     "app/src/main/assets/style/f2/onpath.json": {
       "blob": "1c409cb28ff79aaf7c56578053c9e792a41f66c0",
       "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/search/OfflineIndex.kt": {
+      "blob": "0df57e108f200416e2f1538aeaae11462aa88211",
+      "perf": [
+        "val limit: Int = 60,",
+        "* In-memory offline search index over one map folder: POIs (pois.geojson), peaks/passes and place names",
+        "private const val CACHE = \"search-places-v1.tsv\"",
+        "val cache = File(cacheDir, CACHE)",
+        "if (cache.isFile) try {",
+        "val lines = cache.readLines()",
+        "} catch (e: Exception) { Problems.warn(\"search\", \"Search place cache unreadable; reading the base map again\", e) }",
+        "val tmp = File(cacheDir, \"$CACHE.tmp\")",
+        "if (!tmp.renameTo(cache)) Problems.warn(\"search\", \"Search place cache not saved (rename failed); rebuilt on next start\")",
+        "} catch (e: Exception) { Problems.warn(\"search\", \"Search place cache not written; rebuilt on next start\", e) }",
+        "return withRoute.sortedWith(ORDER).take(q.limit)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/search/PlaceIndex.kt": {
+      "blob": "5652838f1e371c7a8ba844f0c2f86b85b5a46ed6",
+      "perf": [
+        "* The offline place index as the app uses it: [DiskIndex] (SQLite file, the app) or [OfflineIndex] (all in memory –",
+        "/** Prepares what [search] needs (reads the word index into memory), so the first keystroke answers fast. */"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/search/OnlineSearch.kt": {
+      "blob": "ac1ef13df9aa8aeacdce968c3b76739a8ede67e5",
+      "perf": [
+        "fun search(query: String, lat: Double, lon: Double, limit: Int = 10): List<Place>",
+        "fun url(query: String, lat: Double, lon: Double, limit: Int): String {",
+        "return \"$baseUrl?q=$q&lat=${f(lat)}&lon=${f(lon)}&zoom=12&location_bias_scale=0.3&limit=$limit&lang=de\"",
+        "fun placesUrl(query: String, lat: Double, lon: Double, limit: Int): String =",
+        "url(query, lat, lon, limit) + PLACE_LAYERS.joinToString(\"\") { \"&layer=$it\" }",
+        "override fun search(query: String, lat: Double, lon: Double, limit: Int): List<Place> {",
+        "val main = get(url(query, lat, lon, limit))",
+        "val places = try { get(placesUrl(query, lat, lon, PLACES_LIMIT)) } catch (e: Exception) {",
+        "const val PLACES_LIMIT = 5"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/search/AddressSearch.kt": {
+      "blob": "7457ae05710c53a61df776ef2deed2e6e8a73fb1",
+      "perf": [
+        "* wins over a farm group next door. Null when none is near. Pure lookup in memory.",
+        "val cands = db.rows(\"SELECT DISTINCT w FROM word WHERE w >= ? AND w < ? LIMIT 20000\", head, upper(head))",
+        "db.rows(\"SELECT street FROM word WHERE w IN (${chunk.joinToString(\",\") { \"?\" }}) LIMIT 5000\", *chunk.toTypedArray())",
+        "private fun streetsWithPrefix(w: String, enough: Int = Int.MAX_VALUE): Set<Long> {",
+        "var page = if (enough == Int.MAX_VALUE) WORD_ROWS else 2 * enough",
+        "val rows = db.rows(\"SELECT street FROM word WHERE w >= ? AND w < ? ORDER BY w, street LIMIT $n OFFSET $offset\", w, upper(w))",
+        "val done = try { pool.invokeAll(tasks) } catch (e: InterruptedException) {",
+        "private val pool: ExecutorService by lazy {"
+      ]
     }
   }
 }
