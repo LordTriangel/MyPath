@@ -31,13 +31,21 @@
       "blob": "9b22768c8abbd0ffa2633d9341f14bb0d8cfe120"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/search/SearchSession.kt",
-      "what": "DEBOUNCE_MS, offline-then-online flow; startLists / showAllFavourites / remember (kept places + Zuletzt gesucht, search.ts renderStart / pickRow)",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/search/SearchState.kt",
+      "what": "the search's state and decisions now live here (web-ready, the stages of a run: begin / offlineDone / onlineLoading / onlineDone; offline-then-online flow); startLists / showAllFavourites / remember (kept places + Zuletzt gesucht, search.ts renderStart / pickRow)",
       "web": [
         "web/app/src/search.ts",
         "web/engine/src/main/kotlin/com/onpath/web/WebKept.kt"
       ],
-      "blob": "36218a8cbe76bfeee6337d4bea31509237444254"
+      "blob": "b887a0a7eb6addb33da0d202308a864c07ad7eed"
+    },
+    {
+      "app": "app/src/main/java/com/onpath/app/ui/search/SearchSession.kt",
+      "what": "DEBOUNCE_MS (the wait before the online search; the driver of SearchState's stages – the rules are in state/.../SearchState.kt)",
+      "web": [
+        "web/app/src/search.ts"
+      ],
+      "blob": "cc547554a6696f07c8fa3a409cefdf65f5495ea7"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/search/PlaceCard.kt",
@@ -3386,6 +3394,10 @@
         "val done = try { pool.invokeAll(tasks) } catch (e: InterruptedException) {",
         "private val pool: ExecutorService by lazy {"
       ]
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/search/SearchState.kt": {
+      "blob": "b887a0a7eb6addb33da0d202308a864c07ad7eed",
+      "perf": []
     }
   }
 }

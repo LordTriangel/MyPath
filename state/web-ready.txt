@@ -76,3 +76,7 @@ ui/MapDimens.kt
 ui/MapSizes.kt
 ui/OverviewPillPlace.kt
 ui/SheetRise.kt
+# SearchState: port SearchPorts (5 members: saved, recent, addRecent, clearRecent, indexedPlace; blocking), plain-data types Search (the run's request from begin()) and OnlineAnswer;
+#   17 members: begin, onlineOff, current, offlineKeep, carried, offlineDone, onlineLoading, searchCentre, onlineAnswer, onlineDone + onQuery, onCategory, clear, remember, clearRecent, showAllFavourites, resolve;
+#   SearchSession (app) adds the coroutines, the index, the address files, the provider
+ui/search/SearchState.kt
