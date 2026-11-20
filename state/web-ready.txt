@@ -88,3 +88,5 @@ ui/progress/WaitRules.kt
 ui/MapWaitRules.kt
 # ProgressMemory: the learned shares' interface + InMemory + SUGGEST_DEFAULT (the preferences-backed one is in :app)
 data/ProgressMemory.kt
+# RouteListRules: My routes' list rules – ActivityFilter (MENU, keep, saved), Favourites.shown, RouteSortTexts (the chips' texts); plain
+ui/routes/RouteListRules.kt
