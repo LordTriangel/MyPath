@@ -12,3 +12,4 @@
 
 ## Re-made ~01:00 with 399e55b6d (C13 race fix, 00:36) – the earlier candidate missed it
 - Release commit **230dbc8b0** on `ci/donald-2026-11-20-rc3-full` / `-rc3-rg` = main bb3918384 + version + notes. Full E2E 100/100, Rundgang 18/18 (run 44640223959), release_check GO (app 399e55b6 + planner fa407ebc). fdd5534f4 is superseded.
+- unit.yml (unit + lint) green on exactly 230dbc8b0: run 44652334317 (dispatched on `ci/donald-2026-11-20-rc3-full`, 02:20).
