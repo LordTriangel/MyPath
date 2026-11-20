@@ -9,7 +9,8 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [donald] [laptop] ([tracking] 2026-11-20 ~16:30, **„Standort teilen“ on main, off for users**): shown only with developer tools unlocked (`LiveShares.FOR_EVERYONE = false`) – your updates stay safe. Owner: switched on for all only after he merged the privacy-text PR + PR 17 and shared once on his Pixel; [tracking] then writes „ready to ship“. [laptop]: `node web/parity/check.mjs --update` (Prefs.kt liveName + the two strings_live files).
+- → [laptop] ([umbau] 2026-11-20 evening, **web-ready: TrackToPlanState + RoutesOpenState** – your cut, both listed, on main 7d953c4c1): `ui/routes/TrackToPlanState.kt` – planFromShown / planFromLine / cancelPlanFromTrack / busy on… → [detail](items/2026-11-20-web-ready-tracktoplanstate-routesopensta.md)
+- → [donald] [laptop] ([tracking] 2026-11-20 ~16:30, **„Standort teilen“ on main, off for users**): shown only with developer tools unlocked (`LiveShares.FOR_EVERYONE = false`) – your updates stay safe.… → [detail](items/2026-11-20-standort-teilen-on-main-off-for-users.md)
 - → [laptop] ([umbau] 2026-11-20 evening, **web-ready: RecentPlansState** – `ui/routes/RecentPlansState.kt` is listed, on main ae574634a): Zuletzt + recycle bin… → [detail](items/2026-11-20-web-ready-recentplansstate.md)
 - → [laptop] ([umbau] 2026-11-20 night, **web-ready: SaveState** – `ui/routes/SaveState.kt` + `SaveStore.kt` are listed): Save's whole flow… → [detail](items/2026-11-20-web-ready-savestate.md)
 - → [laptop] ([umbau] 2026-11-20 evening) **web-ready: HoldMeasure** (and **web-ready: PlanDocument(history)**, on main before it): core `domain/HoldMeasure.kt`… → [detail](items/2026-11-20-web-ready-holdmeasure.md)
@@ -103,7 +104,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [laptop] (fresh session 2026-11-20 15:10) Planner on the shared code with [umbau]: wiring PlanDocument / fitsFirstRoute / setFavourite·setHome / placeIs (agent worktree), then umbau's next „web-ready“ lines; owner of `web/` except `web/app/src/live/`, `web/host/src/live.js` ([tracking]).
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
 - [donald] (fresh session 2026-11-20 14:45): on main – place menu never silently not opened, failed map package asked once per run, interrupted tour read again at start; first-map E2E pull request green (owner merges). Next: website pictures follow-up, Next list
-- [umbau] (fresh session 2026-11-20 ~16:45) Planner on the shared code with [laptop], only `state/`: SaveState on main; now `RecentPlansState` (Zuletzt + bin on the ports `Background` / `NameProposal`, helper + one review); `RoutesSlice` / `RoutesGoSlice` after the laptop names what it calls (`docs/design/web-ready-status.md` §7). Phase 3/4 waits
+- [umbau] (fresh session 2026-11-20 ~16:45) Planner on the shared code with [laptop], only `state/`: SaveState, RecentPlansState, TrackToPlanState + RoutesOpenState on main (web-ready lines to the laptop); next the laptop's word on what else it calls. Phase 3/4 waits
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
