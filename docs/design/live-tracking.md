@@ -426,6 +426,22 @@ line (`Say`, place = Navigate); nothing is offered when no tour records.
 | `live/LiveFiles.kt` | `LiveStore`; `files/live/` added to the backup exclusions |
 | wiring | `RecordingService` gets three lines (create the lane, forward start / pause / end events, destroy); `RecordingClient` gets `liveStart / liveStop / liveStatus` – the app's only way to it, as for everything else of the service. Phase 4's service split moves the lane with the recording engine unchanged. |
 
+**Built (piece 5, 2026-11-20) – differs from the table above, the code is right:** `RecordingService` is **not
+touched** (its file may only shrink – `FileSizeRuleTest`) and does not know the sharing. `LiveEdge.attach` in
+`OnPathApp.onCreate` makes one lane per process; it follows the service's published `RecState` (tour id, pause, alarm,
+arrived → an event step) and learns a shared tour's end from the tour's row; it outlives the service so the final
+„ended“ head or the DELETE can still go out. The app's way in is `LiveShareClient` (`:core`: the `live` snapshot flow,
+`liveStart(name)`, `liveStop()`, `liveSeen()`; the link comes in `LiveSnapshot.link`) – not `RecordingClient` (pinned by
+the planner's parity). `TourDb` got two read-only queries (`livePointsAfter`, `liveLastPoint`). **Nothing calls
+`liveStart` yet – dormant until the screens are agreed.** For every user it adds: one caught line at process start,
+one idle thread, a four-field compare per state change. Tests: `LiveLaneTest` (8, incl. a hanging server never holds
+up the recorder – on sqlite-jdbc in WAL mode with the app's exact SQL), `LiveEdgeTest` (9).
+**Open, for the Pixel walk:** Android's own SQLite under a long catch-up read (≤ 12,000 rows) while the recorder
+writes; network with the screen off; the lane's timer in device sleep (no wake lock of its own); **the final „ended“
+upload can be late** when „End tour“ comes < 30 s after the last upload (the service's wake lock is gone by then – the
+page shows „kein Kontakt“ until the phone next wakes; to fix before release: send the final head at once, ignoring the
+30-s floor); „Save tour“ after an interruption ends the share only at the next state change or process start.
+
 ### 14.4 Server (`web/host`)
 
 `migrations/0004_live.sql`:
