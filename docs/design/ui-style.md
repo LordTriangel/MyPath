@@ -26,7 +26,7 @@ buttons; a 10 dp walnut `edgeShadow` under Plan's top band and above the sheet).
 | `InkMuted` | secondary text: detail lines, explanations (Material `onSurfaceVariant`) |
 | `Paper`, `CardPaper` | the website's paper `#FAFAF6` (palette D "wie die Webseite", owner 2026-11-12): menus, dialogs, message boxes, cards (over the map and in lists, also inside a sage sheet) |
 | `MapGround` | the light sage `#EEF0E8` of what floats over the map in Plan and Navigate (owner 2026-11-12): Plan's top band, search pill (+ a fine `Line` edge) and ☰, the map column + undo, the plan sheet in every step, the activity chip, Navigate's status card |
-| `PaperDim` | the website's sage `#EEF0E8`: the page behind cards (My routes, Settings), boxes inside a paper surface |
+| `PaperDim` | the website's sage `#EEF0E8`: the page behind cards (My routes, Settings), boxes inside a paper surface – owner 2026-11-06: paper is the ground of every surface, white only for what floats over the map |
 | `PaperDeep` | a deeper sage `#E4E8DD`: the plan sheet's pill row, filled fields, a lifted row |
 | `Line` | fine lines `#D2DACD` (outlineVariant) |
 | `CardWhite` | cards over the map (message boxes, sheets), text on `Green` |
