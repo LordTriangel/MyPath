@@ -385,6 +385,17 @@ Order inside one `step`: claim if not claimed → route if its version changed �
 The cursor and chunk number are stored **after** the 200; a death in between re-sends the same names (harmless). 410 /
 403 = the box is gone → the share is forgotten, status `STOPPED_BY_SERVER`, one `Problems.warn`.
 
+**Built (piece 1, 2026-11-20) – where the code differs from the sketch above, the code is right:** `LiveState` is
+RECORDING / PAUSED / ENDED, „arrived“ is a flag on the head (the recording goes on after the plan's end); the head also
+carries `stillS` (how long the pause / standstill lasts – a duration, so no clock is compared); keys are `LiveKeys(secret)`
+/ `LiveKeys.of(link)`; a plain chunk is ≤ 12,000 bytes and ≤ 4,000 points so its Base64 text stays under the server's
+16 KiB; elevation in a chunk is all-or-none; `LivePolicy.nextUpload` returns the due time and knows „the network is
+back“ (10 s after the last try), a server's `retry-after` is kept (1–10 min); **„kein Kontakt“ starts at the larger of
+10 min and twice the head's `nextS`** (a resting phone uploads every 10 min – it must not flicker into „no contact“);
+a dead zone costs the page 9 requests in the first hour, then 6 an hour. Tests: `LiveFormatTest`, `LivePolicyTest`,
+`LiveStatusLineTest` (32). Proven for the web so far: the Kotlin compile of `web/engine`; the Wasm build comes with
+`WebLive.kt` (piece 3).
+
 ### 14.2 `:state` `ui/live/LiveShareSlice.kt`
 
 State for Navigate: `sign: LiveSign` (None / Live / Waiting), `menu: List<LiveAction>` (Share / ShareAgain / Stop),
