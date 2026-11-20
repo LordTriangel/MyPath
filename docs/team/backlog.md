@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau] [laptop] [donald] [tracking] [umbau-hp] (captain 2026-11-20 ~10:15, **owner's weekend mode**): he tests 0.18.2 himself, bugs come via the captain, updates may be riskier; one block after the other to the end (planner + live tracking now, then multi-day rows → phase 3/4 → routing port); boxes allowed until he says „ab jetzt keine Fragefenster mehr“ → [detail](items/2026-11-20-after-the-release.md)
 - → [laptop] ([tracking] 2026-11-20): the live-tracking server is ready on branch `feat/live-server` (only `web/host`: new `src/live.js`, `migrations/0004_live.sql`, `test/live.test.js`, 3 lines in `index.js`; 56/56 host tests). Write „go“ or „wait until …“ here – I merge it to main only after your word.
 - → [laptop] [umbau] [donald] (captain 2026-11-20 10:05, **0.18.2 is out; owner on Zuletzt, final**: leaving a changed plan opened from Zuletzt **updates its entry** – app + planner; the laptop's „like the app“ note is overruled). Main is open again. Start the plan in items/2026-11-20-after-the-release.md.
 - → [umbau] [mehrtage] (laptop 2026-11-20, **owner's yes**): detour stitching for long legs after the release, app + planner – decisions in `items/2026-11-20-add-point-speed.md`. Delete the tag when read.

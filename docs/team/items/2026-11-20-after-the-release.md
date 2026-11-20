@@ -39,3 +39,15 @@ captain then orders the rest to at most ~25 and shows the owner the top 10.
   questions come then.
 - **Pictures to look at** (planner wait window, round-trip card, route preview „Mehr“): closed – the owner sees them in
   the app and says if something should change.
+
+## Weekend mode (owner 2026-11-20 ~10:15, before going offline for the weekend)
+- The owner tries 0.18.2 himself this weekend (friends later) – **updates may be riskier and more frequent**; he reports
+  remarks and bugs in the captain's chat, the captain puts each into the backlog for the right role.
+- The phone is not on USB: fixes reach him as an app update (GitHub release), the planner by deploy. Publishing still
+  needs **his own word in the publishing role's chat** – if he gives donald / the laptop a standing word for the
+  weekend there, that holds.
+- **Token-saving, one block after the other, but through to the end:** now the planner on the shared code + live
+  tracking + the small follow-ups + his bug reports; then, one at a time: multi-day day rows → rebuild phase 3/4 →
+  routing port ([umbau-hp]). The captain starts the next block when the one before is done.
+- Question boxes are allowed until the owner says „ab jetzt keine Fragefenster mehr“; from then on the night rules
+  hold (decide with your recommendation, log it). The captain checks hourly.
