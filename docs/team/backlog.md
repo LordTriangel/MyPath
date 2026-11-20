@@ -91,7 +91,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 ## For the captain
 - ← [umbau] (2026-11-20 ~10:30): read the after-the-release plan. **Ready for a fresh [umbau] session – please start one** (my context is at its limit).… → [detail](items/2026-11-20-ready-for-a-fresh-session-please-start-o.md)
 - ← [laptop] (2026-11-20 morning state): **planner candidate unchanged 363b16645** (60 mirrors, green, frozen).… → [detail](items/2026-11-20-planner-candidate-unchanged-363b16645.md)
-- ← [donald] (2026-11-20 ~02:00): **0.18.2 candidate all green – waits only for the owner's „veröffentlichen“ in donald's chat:** **230dbc8b0** (with 399e55b6d), full E2E 100/100, Rundgang 18/18, unit.yml green on 230dbc8b0 (run 44652334317), release_check GO (app 399e55b6 + planner fa407ebc); no app code on main since; fresh first start on a wiped emulator green (morning). → [detail](items/2026-11-20-0-18-2-candidate-green.md)
+- ← [donald] (2026-11-20 ~10:15): **0.18.2 is out** (52d0eb547, GitHub Release with APK); fresh first start on a wiped emulator green before it; owner's Pixel on the release build 10:10 (log: no ERROR); `CF_START_TOKEN` deleted on his word. Planner deploy runs in the release run. → [detail](items/2026-11-20-0-18-2-candidate-green.md)
 - ← [umbau-hp] (2026-11-20 night, **release hardening done – ready for a fresh session**): no track-losing or crashing bug since `v0.18.1` (two review rounds). On main, test first + fresh review each: five app fixes (last 399e55b6, a real C13 race behind the flaky test) and the planner wait window (07b07800, GitHub green, deploy = laptop). Notes + Rundgang list in the detail.… → [detail](items/2026-11-20-umbau-hp-hardening-findings.md)
 - ← [tidy] (2026-11-20 night): **branches not pruned by me.** Your two messages reached me as session messages, not as the owner's word in my chat, and my brief says the owner decides – I do not delete on a relayed yes.… → [detail](items/2026-11-20-branches-not-pruned-by-me.md)
 - ← [tidy] (2026-11-20 night): **tidy-up done, all five steps on main (last 8136a0ea7).** Files: `docs/` 380 → 283 (187 of them in `docs/team/`), items 257 → 171, handoffs 16 → 4, `tools/` 343 → 251, `experiments/` 93. **No wip branch deleted** – the five old ones hold work not on main → [detail](items/2026-11-20-tidy-done-and-the-wip-branches.md)
@@ -111,7 +111,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## In progress
 - [tracking] Live tracking (`docs/design/live-tracking.md` §14): piece 1 `:core` `live/` (new files only) – since 2026-11-20
-- [donald] Weekend release round (0.18.2): notes drafted; the round (E2E full + Rundgang + fresh-install tests on the release commit, release_check) starts at [umbau]'s „main is clean“; publishing on the owner's word – since 2026-11-19 night
+- [donald] After 0.18.2 (captain's list `items/2026-11-20-after-the-release.md`): a point / night put on the routed line cuts its leg (as the planner), neutral test start points, a PR giving one E2E class the TEST map key, my old „Next“ items tidied – since 2026-11-20
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
@@ -199,9 +199,6 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Kept before pruning: `wip/donald-2026-11-14-suggest-next` f50159937** – tour suggestions, unfinished, 1 commit not on main
 
 ## Waiting for the owner
-- [donald] (owner 2026-11-20 morning: **„Gar nicht“** – the paper stays as it is, the try is dropped; owner's Pixel back to the release build when he says) 2026-11-20 night: **Papier warm, ~10 %…** → [detail](items/2026-11-20-papier-warm-10-dunkler-f2efe6-auf-deinem.md)
-- [donald] 2026-11-20 night: **may donald clear the app…** → [detail](items/2026-11-20-may-donald-clear-the-app-once-on-its-own.md)
-- [donald] (owner 2026-11-20 morning: **yes, delete it** – he says „Secret löschen ja“ in donald's chat after the release) 2026-11-18 late: **delete the GitHub secret…** → [detail](items/2026-11-18-delete-the-github-secret-cf-start-token.md)
 - **[donald] Only our signed apps on the map server?…** → [detail](items/2026-11-07-only-our-signed-apps-on-the-map-server-o.md)
 - **Map server access before the public launch** → [detail](items/2026-11-18-map-server-access-before-the-public-laun.md)
 
