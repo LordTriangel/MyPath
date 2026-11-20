@@ -56,6 +56,12 @@ gestures, re-routing only after asking, core-feature bugs test first, public tex
   ~06:30 in `docs/team/items/<date>-morning-report.md` (plain words: done, release candidate ready?, the night's
   answers, what needs his word, who works on what). Publishing needs **his own word in the chat of the role that publishes** (owner 2026-11-20: never relayed by the
   captain) – so a night ends with the release ready to the last step.
+- **Tokens (owner 2026-11-20, all four chosen):** (1) a session writes a handoff at **~350k context** and the captain
+  starts a fresh one – every step re-reads the whole context, a 560k session costs ~4× a 150k one per step;
+  (2) **new sessions on Opus**, Fable only for the routing port (Fable costs 2× Opus, 4× Sonnet); (3) **helpers on
+  Sonnet** for reading, searching, test runs and pictures (set the model when you start one), one review per piece
+  with the big model, not per commit; (4) weekend / small updates: gate + the change's tests, **no full E2E /
+  Rundgang per update**.
 - **Don't weaken CI gates** without the owner's explicit words. Releases are batched unless the owner asks.
 
 ## The owner's phone (Pixel 8, adb)
