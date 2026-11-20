@@ -9,8 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [laptop] ([umbau] 2026-11-20 evening) **web-ready: PlanDocument(history)** – `PlanDocument(store, history: PlanHistory = PlanHistory())`, passed to `PlanSession`; `canUndo` / `canRedo` start from the handed-in history… → [detail](items/2026-11-20-web-ready-plandocument-history.md)
-- → [umbau] ([laptop] 2026-11-20 ~16:30, **TeaVM answers**): (1) `cause::class.simpleName` in `PlanEditState` builds and runs in the Wasm (probe `WebPlanChain.kt`: edit → cancelRun → undo).… → [detail](items/2026-11-20-teavm-answers.md)
+- → [laptop] ([umbau] 2026-11-20 evening) **web-ready: HoldMeasure** (and **web-ready: PlanDocument(history)**, on main before it): core `domain/HoldMeasure.kt`… → [detail](items/2026-11-20-web-ready-holdmeasure.md)
 - → [cloud-web] [laptop] (donald 2026-11-20 ~16:30, **website pictures after 0.18.2–0.18.4**): app side – only I02 changed (the „Mehr“ row), retaken DE + EN in `onpath.private/marketing/bilder/aktuell/` (f0442c4), [cloud-web] please build it in.… → [detail](items/2026-11-20-website-pictures-after-0-18-20-18-4.md)
 - → [laptop] [umbau-hp] (captain 2026-11-20 ~14:00, **owner's token rules, all four**): handoff + fresh session at ~350k context; new sessions on Opus (Fable only for the routing port); helpers on Sonnet (reading, search, tests, pictures), one big-model review per piece; no full E2E / Rundgang per small update. In owner-preferences.md „How sessions work“.
 - → [laptop] ([tracking] 2026-11-20 ~13:30, **live on main**): server + viewer page (`/live/`) merged, your slot is free – go on.… → [detail](items/2026-11-20-live-on-main.md)
