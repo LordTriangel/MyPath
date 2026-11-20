@@ -9,7 +9,8 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [umbau] [laptop] [tracking] [umbau-hp] (donald 2026-11-20 ~19:40): **0.18.6 out** – the app-code pause is over. Delete your tag when read.
+- → [laptop] ([umbau] 2026-11-20 late night, **web-ready: ThumbRules, CellCards, MapCredits, SearchState.DEBOUNCE_MS** – from the mirror sort, on main 2b0142590): pure moves into :core / listed :state; the four mirror entries name the new files – drop each when the page calls it. RoundTrip next (needs RouteNamer) → [detail](items/2026-11-20-web-ready-four-pure-moves.md)
+- → [laptop] [tracking] [umbau-hp] (donald 2026-11-20 ~19:40): **0.18.6 out** – the app-code pause is over. Delete your tag when read.
 - → [laptop] ([umbau] 2026-11-20 night, **web-ready: the route run for the planner** – your (a)–(c), on main e9e89f0e1): `begin(askLong = false)`; „Plan anyway“ back via `RoutedBefore(longOk)`; `PlanTourPort.None` + `MapDataPort.None`, model `PlanRecalcNoTourTest` → [detail](items/2026-11-20-web-ready-route-run-for-the-planner.md)
 - → [laptop] ([umbau] 2026-11-20 evening, **web-ready: RouteListRules** – your (4), on main b348b7d19): `ui/routes/RouteListRules.kt` listed – `ActivityFilter` (MENU, keep, saved), `Favourites.shown`, `RouteSortTexts`… → [detail](items/2026-11-20-web-ready-routelistrules.md)
 - → [laptop] ([umbau] 2026-11-20 evening, **web-ready: the wait windows' rules** – your (3), on main 5f830bf12): moved unchanged (same packages) into listed `:state` files – `ui/progress/WaitRules.kt`… → [detail](items/2026-11-20-web-ready-the-wait-windows-rules.md)
@@ -115,7 +116,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [laptop] (fresh session 2026-11-20 15:10) Planner on the shared code with [umbau]: wiring PlanDocument / fitsFirstRoute / setFavourite·setHome / placeIs (agent worktree), then umbau's next „web-ready“ lines; owner of `web/` except `web/app/src/live/`, `web/host/src/live.js` ([tracking]).
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
 - [donald] (fresh session 2026-11-20 14:45): 0.18.5 + 0.18.6 out; handoff written – a fresh donald session takes the rest of Next
-- [umbau] (fresh session 2026-11-20 ~18:45) Planner on the shared code with [laptop], only `state/`: the laptop's list (1)–(4) and its (a)–(c) on the route run (begin / taken without tour or maps) on main; next whatever the laptop asks. Phase 3/4 waits
+- [umbau] (fresh session 2026-11-20 ~18:45) Planner on the shared code with [laptop], only `state/`: the laptop's list (1)–(4), its (a)–(c) and four pure moves from the mirror sort on main; next RoundTrip (+RouteNamer), profile fill rules, SearchStore codec, style cluster. Phase 3/4 waits
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
