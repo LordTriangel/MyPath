@@ -32,3 +32,14 @@ of „For the roles“): fresh session at ~350k context; helpers on Sonnet (set 
   `emulator -avd Rundgang … -wipe-data` (owner's yes 2026-11-20 morning); never a second emulator.
 - Branches `ci/donald-*`, `ci/legsplit-app`, `ci/neutral-test-points`, `try/*` are left on GitHub – delete only via
   `tools/dev/prune_branches.sh` after the owner's yes to the list.
+
+## Fresh session, 2026-11-20 ~14:45–17:00 (what changed since the list above)
+- 0.18.4's release run green (published, planner deployed).
+- **Pull request 18** (first-map E2E job with the TEST key) open – its job ran green on the branch (the first try was red only on a
+  main-thread stall warning of GitHub's emulator, now not counted: 8e0abce7f). Owner merges.
+- On main, not released yet (next 0.18.x): place menu never silently not opened (26c61cc88, CorePoiTapE2ETest green on GitHub
+  – the first try timed out once on the cold runner, the rerun green); a failed region package asked once per run (7a51d2913);
+  an interrupted tour whose start read fails once is read again (cc95c7f3b + review fixes 027653dc1); NoStaleDownloadsTest flake (2342a23e9).
+- Website pictures: app side only I02 (onpath.private f0442c4); planner pictures → [laptop], build-in → [cloud-web] (backlog line).
+- Open for donald: the pin menu over the search bar (needs the emulator – no camera event after `panBy`), the interrupted-tour
+  rest (both reads fail), I03 picture, the rest of Next.
