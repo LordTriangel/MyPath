@@ -47,7 +47,7 @@ class BackgroundRoutingRuleTest {
      * moved with the code to SaveSlice.)
      */
     @Test fun overwriteChecksTheStoredRouteFirst() {
-        val slice = com.onpath.app.testkit.sourceFile("ui/routes/SaveSlice.kt").readText()
+        val slice = com.onpath.app.testkit.sourceFile("ui/routes/SaveState.kt").readText()
         val over = slice.substringAfter("private fun overwriteSaved(").substringBefore("\n    }\n")
         assertTrue(over.indexOf("SaveRule.keepsOtherEdit") in 0 until over.indexOf("store.replacePlanned("))
     }

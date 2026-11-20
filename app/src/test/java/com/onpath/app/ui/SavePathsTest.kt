@@ -40,7 +40,7 @@ class SavePathsTest {
      * .aNameThatNeverComesLosesNothing); (SaveFlowTest.aReplacedUnsavedPlanIsKeptUnderZuletztAtOnce…); here only that the slice hands the plan over on the calling thread.
      */
     @Test fun thePlanIsHandedToZuletztBeforeItLeavesTheMap() {
-        val slice = com.onpath.app.testkit.sourceFile("ui/routes/SaveSlice.kt").readText() // keepAsDraft moved there (piece 3)
+        val slice = com.onpath.app.testkit.sourceFile("ui/routes/SaveState.kt").readText() // keepAsDraft moved there (piece 3)
         val keep = slice.substringAfter("fun keepAsDraft(why: String) {").substringBefore("\n    }\n")
         assertTrue(keep, keep.contains("recent.keep("))
         assertFalse("handed over at once, no background work before it", keep.contains("launch"))

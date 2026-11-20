@@ -142,14 +142,14 @@
       "blob": "18275cc0eac06353053d3382b71ab90d51c61df3"
     },
     {
-      "app": "state/src/main/kotlin/com/onpath/app/ui/routes/SaveSlice.kt",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/routes/SaveState.kt",
       "what": "Save's writes (C18): request / saveRoute / overwriteSaved (sync changed the stored route → a copy and a line; deleted meanwhile → a new route) / copyRoute / rename / setFavourite – plans.ts save, overwrite, copy (moved here from AppViewModel, rebuild phase 2 piece 3); the app-only parts (backup file, the tour start's save, Zuletzt) are not in the planner",
       "web": [
         "web/app/src/plans.ts",
         "web/app/src/main.ts",
         "web/app/src/recent.ts"
       ],
-      "blob": "132ad9c3944e85579350fa79d766a1ce24b2b146"
+      "blob": "a588bac7789c54f74c0174dda0b5128c21b8dc09"
     },
     {
       "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlanRunSlice.kt",
@@ -3153,8 +3153,10 @@
       "perf": []
     },
     "state/src/main/kotlin/com/onpath/app/ui/Ports.kt": {
-      "blob": "896e70760eb2b3fe8792c1d4ff833ca661b1f531",
-      "perf": []
+      "blob": "df8174145605e474e26c28ef93f6bf84b1c26e83",
+      "perf": [
+        "* [CoroutineBackground] (`launchSafe` + `withContext(io)`); the planner: [work] at once on its in-memory store, then [then]."
+      ]
     },
     "state/src/main/kotlin/com/onpath/app/ui/MultiDayPorts.kt": {
       "blob": "ef6a81c7b22e7bab7eae08e673706fab0b180727",
@@ -3369,6 +3371,14 @@
       "perf": [
         "* after a timeout or any failure, so a hold always gets its decision (core feature C1). One measure at a time: [start]"
       ]
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/routes/SaveState.kt": {
+      "blob": "a588bac7789c54f74c0174dda0b5128c21b8dc09",
+      "perf": []
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/routes/SaveStore.kt": {
+      "blob": "3f3576e54a435d5b3894938cd694df8e667ab233",
+      "perf": []
     }
   }
 }
