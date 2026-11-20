@@ -150,19 +150,28 @@ class RoutesState(private val store: RoutesStore, private val clock: () -> Long 
                     if (binned.draft) { store.setDeleted(binned.id, null); binned }
                     else { Problems.trace("routes", "Zuletzt: the plan is the route \"${binned.name}\" in the recycle bin – nothing kept twice"); return null }
                 }
-            if (own != null) { takePlace(own.id); return null }
-            Problems.trace("routes", "Zuletzt: the plan's tour $savedId is gone for good – kept as a new plan")
+            // "as it is" is the plan's word (its link's points): a draft whose ROW holds other points (updated from another
+            // version of this plan, review 2026-11-20) is written below – the plan on the map is never dropped for it
+            val stale = own != null && own.draft && update != null && keyOf(own) != key
+            if (own != null && !stale) { takePlace(own.id); return null }
+            if (own == null) Problems.trace("routes", "Zuletzt: the plan's tour $savedId is gone for good – kept as a new plan")
         }
         val same = store.listTours().firstOrNull { it.kind == TourKind.PLANNED && keyOf(it) == key }
         if (same != null) { takePlace(same.id); return null }
         if (!Drafts.keeps(key.size, unsaved = true)) return null
-        if (unsaved && savedId >= 0 && update != null) {
+        if (savedId >= 0 && update != null) {
             val binned = store.listDeleted().firstOrNull { it.id == savedId && it.draft }
             if (binned != null) store.setDeleted(savedId, null) // another plan took the place meanwhile: back out, then updated
-            if ((binned != null || store.listTours().any { it.id == savedId && it.draft }) && update(savedId)) {
-                Problems.trace("routes", "Zuletzt: the changed plan updates its entry $savedId")
-                takePlace(savedId)
-                return savedId
+            if (binned != null || store.listTours().any { it.id == savedId && it.draft }) {
+                val ok = try { update(savedId) } catch (e: Exception) {
+                    Problems.warn("routes", "Zuletzt: the plan's entry could not be updated – kept as a new plan", e); false
+                }
+                if (ok) {
+                    Problems.trace("routes", "Zuletzt: the changed plan updates its entry $savedId")
+                    takePlace(savedId)
+                    return savedId
+                }
+                if (binned != null) store.setDeleted(savedId, clock()) // not updated: back where it was, the plan is kept below
             }
         }
         val id = insert()

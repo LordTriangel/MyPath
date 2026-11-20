@@ -306,6 +306,16 @@ class RoutesFlowTest : RoutesFlowBase() {
         assertEquals("its name stays", d.name, now.name)
         assertTrue("nothing went to the recycle bin", db.listDeleted().isEmpty())
         assertEquals(d.id, app.routes.recentId)
+        // Undo of the clear: the plan is its entry as it is – not "changed"
+        app.plan.edit { clear(); addAll(listOf(c, a, b)) }
+        assertFalse("the entry holds exactly these points", app.plan.unsaved); assertEquals(d.id, app.plan.savedId)
+        // Undo further, back to the version it was opened as, then cleared: THAT version is what the entry must hold –
+        // never dropped because the plan's link still called it "saved as it is" (review 2026-11-20)
+        app.plan.edit { clear(); addAll(listOf(c, a)) }
+        app.save.keepAsDraft("cleared"); app.settle()
+        assertEquals("the plan that left the map last is under Zuletzt", listOf(c, a), app.drafts().single().waypoints.map { GeoPoint(it.lat, it.lon) })
+        assertEquals(d.id, app.drafts().single().id)
+        assertTrue(db.listDeleted().isEmpty())
     }
 
     // ---------------------------------------------------------------- open a done tour / track

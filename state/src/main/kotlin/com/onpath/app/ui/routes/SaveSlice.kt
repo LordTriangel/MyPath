@@ -193,8 +193,11 @@ class SaveSlice(
         val pts = plan.points.toList()
         if (pts.size < 2 || host.keepWhole()) return // a followed day: the whole multi-day tour goes under Zuletzt
         val r = host.route; val act = host.activity
-        recent.keep(RecentPlans.Leaving(pts, plan.unsaved, plan.savedId, r, act, host.sac, host.stops(pts), plan.pinnedIndices(),
+        val updated = recent.keep(RecentPlans.Leaving(pts, plan.unsaved, plan.savedId, r, act, host.sac, host.stops(pts), plan.pinnedIndices(),
             host.datedName(), host.days(pts)) { host.difficulty(r, act) }, why)
+        // its Zuletzt entry holds these points now: the plan is that entry "as it is" – an Undo back to them is not
+        // "changed", one back to an older version is, and updates the entry again (never dropped, review 2026-11-20)
+        if (updated != null) plan.setSaved(plan.linkName, updated, pts)
     }
 
     /**

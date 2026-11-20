@@ -65,8 +65,9 @@ class RecentPlansTest {
         override fun insertDraft(row: RecentPlans.DraftRow): Long =
             db.insertTour(TourKind.PLANNED, row.name, row.activity, row.sac, row.segments, row.waypoints, distance = row.distanceM,
                 createdMs = created++, draft = true)
+        var updateFails = false
         override fun updateDraft(id: Long, row: RecentPlans.DraftRow): Boolean =
-            db.replacePlanned(id, row.activity, row.sac, row.distanceM, row.ascentM, row.descentM, row.durationS, row.segments, row.waypoints,
+            if (updateFails) throw IllegalStateException("database or disk is full") else db.replacePlanned(id, row.activity, row.sac, row.distanceM, row.ascentM, row.descentM, row.durationS, row.segments, row.waypoints,
                 row.pinned, difficulty = row.difficulty, days = row.days, clearDays = row.days == null)
         override fun storeTimes(id: Long, route: PlannedRoute?, activity: Activity) { log += "times $id" }
         override suspend fun proposeName(points: List<GeoPoint>, route: PlannedRoute?): String? = if (neverNames) awaitCancellation() else name.await()
@@ -200,6 +201,36 @@ class RecentPlansTest {
         assertEquals(listOf(51.0 to 7.0, 51.2 to 7.0), RoutesState.keyOf(drafts().single()))
         assertEquals("exactly one plan under Zuletzt: the other one is in the bin, never gone", listOf(other), db.listDeleted().map { it.id })
         assertEquals(id, routes.recentId)
+    }
+
+    /**
+     * Review 2026-11-20: the plan says "saved as it is" by its own link, but the entry's row holds other points (an
+     * update the link did not follow): the plan on the map is written – never dropped for the row.
+     */
+    @Test fun aPlanCalledUnchangedWhoseEntryHoldsOtherPointsIsStillWritten() {
+        val r = recent()
+        r.keep(leaving(pts(51.0, 51.1, 51.2)), "cleared")
+        val id = drafts().single().id
+        r.keep(leaving(pts(51.0, 51.1), unsaved = false, savedId = id), "cleared")
+        assertEquals(id, drafts().single().id)
+        assertEquals(listOf(51.0 to 7.0, 51.1 to 7.0), RoutesState.keyOf(drafts().single()))
+        assertTrue(db.listDeleted().isEmpty())
+    }
+
+    /** The update fails (disk full): the plan is kept as a new draft, the entry goes back to the bin it came from – one draft, nothing lost. */
+    @Test fun anUpdateThatFailsKeepsThePlanAsANewDraft() {
+        val r = recent()
+        r.keep(leaving(pts(51.0, 51.1)), "cleared")
+        val id = drafts().single().id
+        r.keep(leaving(pts(52.0, 52.1)), "cleared") // another plan took the place: the entry waits in the bin
+        val other = drafts().single().id
+        host.updateFails = true
+        r.keep(leaving(pts(51.0, 51.2), unsaved = true, savedId = id), "cleared")
+        val kept = drafts().single()
+        assertTrue("a new draft", kept.id != id && kept.id != other)
+        assertEquals(listOf(51.0 to 7.0, 51.2 to 7.0), RoutesState.keyOf(kept))
+        assertEquals("both older ones are in the bin, never gone", setOf(id, other), db.listDeleted().map { it.id }.toSet())
+        assertEquals(listOf("Zuletzt: the plan's entry could not be updated – kept as a new plan"), problems.said("routes", Problems.Level.WARN))
     }
 
     /** A SAVED route opened from Zuletzt and changed is never overwritten: it stays as it is, the change is a draft. */

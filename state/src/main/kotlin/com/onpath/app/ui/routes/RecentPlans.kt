@@ -104,11 +104,12 @@ class RecentPlans(
      * points twice (Undo, clear again) make no second entry; exactly one plan stays under Zuletzt – this one, the one
      * worked on last, the draft before it goes to the recycle bin; a plan saved as it is takes the place as that saved
      * route (owner 2026-11-12, [RoutesState.keepDraft]). A plan opened from Zuletzt and changed updates its entry –
-     * no new draft, nothing to the bin (owner 2026-11-20).
+     * no new draft, nothing to the bin (owner 2026-11-20); returns that entry's id then (the caller links the plan to
+     * what the entry holds now), else null.
      */
-    fun keep(plan: Leaving, why: String) {
+    fun keep(plan: Leaving, why: String): Long? {
         val pts = plan.points
-        if (pts.size < 2) return
+        if (pts.size < 2) return null
         val r = plan.route
         val key = pts.map { it.lat to it.lon }
         // written NOW, under the date name, before the plan leaves the map (tester review 2026-11-07: it waited up to 5 s
@@ -126,7 +127,7 @@ class RecentPlans(
             }
         }.onFailure { Problems.error("db", "The plan could not be kept under Zuletzt", it) }.getOrNull()
         host.refreshTours() // the Zuletzt place changed hands either way (a draft replaced, a saved route there now)
-        if (id == null) return
+        if (id == null) return null
         Problems.trace("plan", if (updated) "Plan under Zuletzt updated ($why): entry $id, ${pts.size} points"
             else "Plan kept under Zuletzt ($why): \"${plan.dated}\", ${pts.size} points")
         // then the model times and the place name ("Algund → Meran"); nothing fits in time → the date name stays. An
@@ -141,6 +142,7 @@ class RecentPlans(
             }
             if (renamed) { Problems.trace("plan", "Zuletzt: \"${plan.dated}\" → \"$proposed\""); host.refreshTours() }
         }
+        return id.takeIf { updated }
     }
 
     /** The version of a saved route that a tour start just replaced: under Zuletzt with its name, line and points. */
