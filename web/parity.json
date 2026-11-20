@@ -218,7 +218,7 @@
         "web/app/src/poipin.ts",
         "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt"
       ],
-      "blob": "1fb6889ae02d2528538585c73bbf813c359bcb9b"
+      "blob": "562921303db8142e9b0c0ade09db44242c4c7616"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",

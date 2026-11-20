@@ -956,9 +956,28 @@ type HoldAnswer = { action: 'ADD'; index: number; why: string } | { action: 'ASK
  * the line the engine measures appending and inserting on the real paths for the plan's activity (owner 2026-11-17
  * „Always real paths“, at most ~1.5 s, straight lines on any failure) – in the worker, the page stays free.
  */
-async function holdAnswer(at: maplibregl.LngLat, lineSnapM: number): Promise<HoldAnswer> {
+async function holdAnswer(at: maplibregl.LngLat, lineSnapM: number, straight = false): Promise<HoldAnswer> {
+  // [straight]: no activity → the engine decides on the straight lines (WebApi.holdOnMap's „no activity“)
   return JSON.parse(await engine.call('holdOnMap', enc(state.points), at.lat, at.lng, state.roundTrip, lineSnapM,
-    state.activity, state.sac)) as HoldAnswer;
+    straight ? '' : state.activity, state.sac)) as HoldAnswer;
+}
+
+/**
+ * [holdAnswer] for the plan shown when it comes back (the app's PlaceAddSlice HoldTry, [umbau]'s finding 2026-11-20):
+ * an answer measured for a plan no longer shown (points, activity, level or round trip changed meanwhile) is never applied –
+ * the hold is decided again on the plan now shown, measured once more, after a second change on the straight lines; so a
+ * click always ends in a point or the menu.
+ */
+async function holdAnswerNow(at: maplibregl.LngLat, lineSnapM: number): Promise<HoldAnswer> {
+  const shown = () => [state.points, state.activity, state.sac, state.roundTrip] as const;
+  for (const straight of [false, false, true]) {
+    const before = shown();
+    const a = await holdAnswer(at, lineSnapM, straight);
+    const now = shown();
+    if (straight || before.every((v, i) => v === now[i])) return a;
+    console.info('[Problems] TRACE plan: Hold beside the plan: measured for a plan no longer shown – decided again on the plan now shown');
+  }
+  throw new Error('not reached');
 }
 
 /** 24 px on screen at [lat] in metres – the app's LINE_SNAP_DP („on the line“). */
@@ -997,7 +1016,7 @@ function addPoint(at: maplibregl.LngLat) {
   return queueEdit(async () => {
     const done = state.points.length >= 2 && !state.roundTrip ? measuringRing(at) : () => {};
     let a: HoldAnswer;
-    try { a = await holdAnswer(at, snap); } finally { done(); }
+    try { a = await holdAnswerNow(at, snap); } finally { done(); }
     if (a.action === 'ASK') { holdAddMenu(at, a, snap); return null; }
     const pts = state.points.slice(), meta = state.meta.slice();
     const i = Math.max(0, Math.min(a.index, pts.length));
