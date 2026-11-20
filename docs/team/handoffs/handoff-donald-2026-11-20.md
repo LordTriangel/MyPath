@@ -1,11 +1,11 @@
 # Handoff donald, 2026-11-20 night (for the next donald session)
 
 ## Ready to publish: 0.18.2
-- Candidate **fdd5534f4** on `ci/donald-2026-11-20-rc2-full` = main fa9031fe0 + version 0.18.2 + notes
+- Candidate **230dbc8b0** on `ci/donald-2026-11-20-rc3-full` = main bb3918384 (with the C13 fix 399e55b6d) + version 0.18.2 + notes
   (`docs/release-notes/v0.18.2.md`, v0.18.1.md deleted). Full E2E 100/100, Rundgang 18/18, release_check GO.
   Detail: `docs/team/items/2026-11-20-0-18-2-candidate-green.md`.
 - **Publish only on the owner's own word in donald's chat** („veröffentlichen“) – a relayed word is not taken (night
-  answers). Then: rebase fdd5534f4 onto main (check that no app / core / state / strings code came in since fa9031fe0 –
+  answers). Then: rebase fdd5534f4 onto main (check that no app / core / state / strings code came in since 399e55b6d –
   else one more E2E + Rundgang), gate, push → release.yml; watch the planner deploy job (it stopped at parity after
   0.18.1 – `node web/parity/check.mjs`); tell [laptop].
 - Owner's release rule (since 2026-11-19): no release / prep without „prepare for building a release“.
