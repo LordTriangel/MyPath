@@ -37,6 +37,18 @@ await looked('HIKE', 2);
 let v = await vis(IDS);
 check(Object.values(v).every((x) => x !== null), `the style has every layer the test reads (${JSON.stringify(v)})`);
 check(v['greenway-foot'] && v['routes-hike'] && v['access-no-dash-foot'], 'Hike T2: hiking green ways, hiking band, forbidden-for-walkers');
+// the planner's own route zooms (routezooms.ts, owner 2026-11-20): regional routes from z10, wider than on the phone
+const tiers = await page.evaluate(() => ['routes-bike-regional', 'routes-hike-regional'].map((id) => {
+  const m = window.__map, l = m.getStyle().layers.find((x) => x.id === id);
+  const w = m.getPaintProperty(id, 'line-width');
+  let at10 = typeof w === 'number' ? w : null;
+  if (Array.isArray(w) && w[0] === 'interpolate') { // linear between the stops around z10
+    for (let i = 3; i + 3 < w.length; i += 2) if (w[i] <= 10 && w[i + 2] >= 10) { at10 = w[i + 1] + (w[i + 3] - w[i + 1]) * (10 - w[i]) / ((w[i + 2] - w[i]) || 1); break; }
+    if (at10 === null && w[3] >= 10) at10 = w[4];
+  }
+  return { id, minzoom: l?.minzoom, at10 };
+}));
+for (const t of tiers) check(t.minzoom === 10 && t.at10 >= 1.8, `${t.id}: from z10, ≥ 1.8 px at z10 (${JSON.stringify(t)})`);
 check(!v['greenway-touring'] && !v['bike-oneway-streets'] && !v['surface-loose-path'] && !v['routes-bike'], 'Hike T2: no bike layers');
 
 await page.click('#activityChip');

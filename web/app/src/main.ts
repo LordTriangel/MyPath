@@ -60,6 +60,7 @@ import { MultiDay, endSymbol, type DayPlan } from './multiday';
 import { tourText, type Tour } from './tourtext';
 /** A track's segments as [lat, lon] lists (Meine Touren's line). */
 const trackSegs = (segs: [number, number, number | null][][]) => segs.map((g) => g.map(([la, lo]) => [la, lo] as [number, number]));
+import { plannerRouteZooms } from './routezooms';
 import './fonts/manrope.css';
 import './style.css';
 import manropeLicence from './fonts/manrope/OFL.txt?url';
@@ -379,6 +380,7 @@ map.on('load', () => {
 async function loadStyle(): Promise<StyleSpecification> {
   // cells: with the world overview below z10 when its files are deployed (overview.ts – the app's Overview.merge)
   const s: StyleSpecification = (useCells ? await overviewStyle(base, pmtiles) : null) ?? await (await fetch(base + 'style/onpath.json')).json();
+  plannerRouteZooms(s); // routes further out than on the phone (routezooms.ts, owner 2026-11-20)
   if (useCells) {
     s.glyphs = PACKED ? packedGlyphs(base) : base + 'fonts/{fontstack}/{range}.pbf';
     s.sprite = base + 'sprites/onpath';

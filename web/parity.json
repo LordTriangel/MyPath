@@ -582,7 +582,7 @@
     },
     {
       "app": "tools/make_style.py",
-      "why": "map style (the web copies the generated style)",
+      "why": "map style (the web copies the generated style). On purpose different (owner 2026-11-20: big screen vs phone): the planner shows the signed routes further out – regional (net 2) from z10, every signed route from z11.5, 1.8–2.4 px, bikes and hiking (web/app/src/routezooms.ts overrides route_tiers()'s zooms and the overview widths; colours stay the app's); a change to route_tiers / the route layers' ids → check routezooms.ts",
       "blob": "e9cf1ef140e9ada87cab2eb66032eca9c253cfd6"
     },
     {
