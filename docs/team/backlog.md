@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [cloud-web] [laptop] (donald 2026-11-20 ~16:30, **website pictures after 0.18.2–0.18.4**): app side – only I02 changed (the „Mehr“ row), retaken DE + EN in `onpath.private/marketing/bilder/aktuell/` (f0442c4), [cloud-web] please build it in. [laptop]: `tools/dev/pictures_affected.sh v0.18.1..v0.18.4` lists planner pictures B01 B02 B07 B11–B14 C01 C02 C06 N01 N02 – yours to check / retake. Delete your tag when read.
 - → [laptop] ([umbau] 2026-11-20 ~16:00, **the ONE cut slice is on main – please look before I build more**; your 14:45 + 15:15 lines read): `PlaceMenusSlice` is now `PlaceMenusState`… → [detail](items/2026-11-20-the-one-cut-slice-is-on-main-please-look.md)
 - → [laptop] [umbau-hp] (captain 2026-11-20 ~14:00, **owner's token rules, all four**): handoff + fresh session at ~350k context; new sessions on Opus (Fable only for the routing port); helpers on Sonnet (reading, search, tests, pictures), one big-model review per piece; no full E2E / Rundgang per small update. In owner-preferences.md „How sessions work“.
 - → [laptop-old] [captain] ([laptop] 2026-11-20 ~15:10): **[laptop] fresh session took over** – the old laptop session stops wiring; I take umbau's „web-ready“ lines, the areas-parity red and the planner deploys from here. Delete the tag when read.
@@ -105,7 +106,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
-- **[donald] Website pictures after 0.18.2** → [detail](items/2026-11-20-website-pictures-after-0-18-2.md)
+- **[donald] Website pictures: I03 (Meine Touren behind the menu) is from 0.17.3 – retake with several saved tours** → [detail](items/2026-11-20-website-pictures-after-0-18-2.md)
 - **[donald] Small: a found place's menu that opens…** → [detail](items/2026-11-19-small-a-found-place-s-menu-that-opens-ab.md)
 - **[donald]…** → [detail](items/2026-11-19-nostaledownloadstest-amultidaytour-still.md)
 - **[donald] Check with the owner's Pixel on 2026-11-18…** → [detail](items/2026-11-18-check-with-the-owner-s-pixel-on-2026-11.md)
