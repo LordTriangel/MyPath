@@ -126,11 +126,19 @@
     },
     {
       "app": "state/src/main/kotlin/com/onpath/app/ui/ProfileRules.kt",
-      "what": "the profile's look: ProfileFill (route colour fading, steeper a bit stronger), line colours by steepness, columnIndices – shared code since 2026-11-20 ([umbau]): the page can call it and drop the copy",
+      "what": "the profile's look: ProfileFill (route colour fading, steeper a bit stronger), columnIndices, ProfileAxis – shared code since 2026-11-20 ([umbau]): the page can call it and drop the copy",
       "web": [
         "web/app/src/profile.ts"
       ],
       "blob": "c801b063b1d3e094618ae7f3078da27e1521d2f2"
+    },
+    {
+      "app": "app/src/main/java/com/onpath/app/ui/ElevationProfile.kt",
+      "what": "the profile's line colours by steepness (steepColor / STEEP_COLORS – Compose Color, stays a mirror)",
+      "web": [
+        "web/app/src/profile.ts"
+      ],
+      "blob": "78737221d7c9da594794dfde9ab48faf89e5dc6c"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/TourBar.kt",
@@ -362,7 +370,7 @@
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/search/SearchLines.kt",
-      "what": "kept places' and Zuletzt gesucht's line (encode / decode – the page stores these lines as they are, keptplaces.ts) and addRecent (20, the same place once) – WebKept.kt; Android prefs → localStorage – shared code since 2026-11-20 ([umbau]): the page can call it and drop the copy",
+      "what": "kept places' and Zuletzt gesucht's line (encode / decode – the page stores these lines as they are, keptplaces.ts) and addRecent (20, the same place once) – WebKept.kt; Android prefs → localStorage – shared code since 2026-11-20 ([umbau]): the page can call decode / addRecent; encode uses String.format(Locale.ROOT) – WebKept avoids that for the same text on the JVM and in the browser, so check it before dropping that copy",
       "web": [
         "web/engine/src/main/kotlin/com/onpath/web/WebKept.kt",
         "web/app/src/keptplaces.ts"

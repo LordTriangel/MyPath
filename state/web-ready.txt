@@ -95,4 +95,5 @@ ui/routes/RouteListRules.kt
 ui/CellCards.kt
 # MapCredits: the full credits list (Settings -> About)
 ui/MapCredits.kt
+# ProfileRules: the elevation profile's fill (ProfileFill), column picks (columnIndices) and axis (ProfileAxis); the steepness colours stay in ElevationProfile.kt (Compose Color)
 ui/ProfileRules.kt
