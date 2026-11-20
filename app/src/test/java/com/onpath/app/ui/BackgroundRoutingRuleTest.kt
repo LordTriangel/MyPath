@@ -16,7 +16,7 @@ class BackgroundRoutingRuleTest {
         // browser plans after a pairing: routeSyncedPlans moved to SyncedRoutingSlice (piece 15); the flow
         // `SyncedRoutingFlowTest.aPlanFromTheBrowserIsRoutedOnTheBackgroundThreadAndStoredWithItsRealLine` runs it on the held background
         // thread (every router call is seen on "bg"), `SyncWiringTest.theBrowserPlansAreRoutedOnTheBackgroundRoutingThreadAndNeverTheUsersOwn` pins the slice
-        // "Plan a route from it" / a track made a plan: planFromLine moved to RoutesSlice (piece 13); the flow
+        // "Plan a route from it" / a track made a plan: planFromLine moved to RoutesSlice (piece 13), its logic to TrackToPlanState – the fit stays in RoutesSlice's CoroutineTrackFitter; the flow
         // `RoutesFlowTest.aDoneTourWithNoPlanBecomesAPlanThroughTheRouterOnTheBackgroundThread` runs it on the held background thread
         val slice = com.onpath.app.testkit.sourceFile("ui/routes/RoutesSlice.kt").readText()
         assertTrue("anchor", slice.contains("TrackToPlan.fit("))

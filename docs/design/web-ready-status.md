@@ -166,3 +166,13 @@ passes it to `SaveState` as it is. The app's `RecentPlans : RecentPlansState` ke
 `RecentPlans.Leaving` / `.DraftRow` (copied field by field – two `DraftRow`s in the package, the nested one is the app's);
 `CoroutineNameProposal` is the one name wait for Save and Zuletzt. Changed on purpose: `trimOnce`'s tail (`trimmed = true`,
 the list read again) runs on the main thread, not on io. `keep` still writes its row before it returns (`RecentPlansTest`).
+
+**Built 2026-11-20 evening, the laptop's cut of Routes (not the whole slices):** the planner calls only a track made a plan
+and the open rules, so two small listed states, the slices delegate (callers unchanged):
+- `TrackToPlanState.kt` – `planFromShown` / `planFromLine` / `cancelPlanFromTrack` / `busy` on `TrackFitter.fit(track, act,
+  level, cancel: RouteCancel, got)` (got = `TrackToPlan.Result?` on the caller's thread; the app: `CoroutineTrackFitter` in
+  `RoutesSlice.kt`, the fit on `planRoute.threads.background`) and `TrackToPlanPorts : Say` (8).
+- `RoutesOpenState.kt` – `navigating`, `requestOpen`, `undoNewPlan`, `openSharedPlan` and the top-level `unlessUnsaved` on
+  `RoutesOpenPorts` (21: mode, openTour, the tour's new-plan note, Undo, activity / T level, the link opened, the camera
+  hold). A planner without a tour: `touring = false`, `newPlanUndo = null`.
+- Tours, the route run, export, thumbs, sync marks and share stay the app's (`RoutesSlice` / `RoutesGoSlice`, unlisted).
