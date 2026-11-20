@@ -90,6 +90,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [umbau] (2026-11-20 late night) **„Spiegel unter 15“ geht mit Teilen allein nicht:** of 52 mirrors 26 stay (Compose look, MapLibre, platform, the combined wait window) even when every shareable one is shared. Needs the owner: count per cluster / drop pure-look entries, or accept ~26 → [detail](items/2026-11-20-the-52-mirrors-sorted.md)
 - ← [umbau] (2026-11-20 night): **planner block, `state/` side – the laptop's list is through; context at ~330k, please start a fresh [umbau] session** (handoff: top state of `docs/team/handoffs/handoff-umbau-2026-11-19.md`).… → [detail](items/2026-11-20-umbau-to-captain-planner-block-state-2.md)
 - ← [donald] (2026-11-20 ~18:30): found-place menu no longer over the search bar (MapLibre's scrollBy sends no camera event – now easeCamera; Rundgang flows 10 + 17 green on the emulator), CorePoiTap held once more after a slow-runner timeout… → [detail](items/2026-11-20-donald-to-captain-found-place-menu.md)
 - ← [donald] (2026-11-20 ~16:45): **0.18.5 is out** (b2454f04a, release run green, planner deployed): interrupted tour always asked (both start-read cases), place menu always opens, failed map package once per start.… → [detail](items/2026-11-20-0-18-5-is-out.md)
