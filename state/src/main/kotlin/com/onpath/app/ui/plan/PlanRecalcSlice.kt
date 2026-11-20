@@ -40,11 +40,9 @@ fun interface RouteSearchProgress {
 private class RecalcPorts(
     private val planRoute: PlanRouteSlice,
     private val planEdit: PlanEditSlice,
-    private val tourEdits: TourEdits,
     private val tourFollow: TourFollow,
     private val map: MapViewSlice,
     private val links: PlanLinkFlow,
-    private val recordingClient: RecordingClient,
 ) : PlanRecalcPorts {
     override val runCauses get() = planRoute.runCauses
     override val activity: Activity get() = planRoute.activity
@@ -70,6 +68,17 @@ private class RecalcPorts(
     override var planSize: PlanSize
         get() = planEdit.planSize
         set(v) { planEdit.planSize = v }
+    override fun setSaved(name: String?, id: Long, points: List<GeoPoint>?) = tourFollow.setSaved(name, id, points)
+    override fun fitFirstRoute(line: List<GeoPoint>, pts: List<GeoPoint>, extraMs: Long) = map.fitFirstRoute(line, pts, extraMs)
+    override fun linkSnapped(routed: List<GeoPoint>, snapped: List<GeoPoint>) = links.snapped(routed, snapped)
+}
+
+/** The app's [PlanTourPort]: the tour's edits / follow and the recording (read at call time, never at construction). */
+private class RecalcTour(
+    private val tourEdits: TourEdits,
+    private val tourFollow: TourFollow,
+    private val recordingClient: RecordingClient,
+) : PlanTourPort {
     override var followCancel: RouteCancel?
         get() = tourEdits.followCancel
         set(v) { tourEdits.followCancel = v }
@@ -77,10 +86,7 @@ private class RecalcPorts(
     override var planBaseline: List<GeoPoint>?
         get() = tourFollow.planBaseline
         set(v) { tourFollow.planBaseline = v }
-    override fun setSaved(name: String?, id: Long, points: List<GeoPoint>?) = tourFollow.setSaved(name, id, points)
     override fun followPlanned(checkNow: Boolean) = tourFollow.followPlanned(checkNow)
-    override fun fitFirstRoute(line: List<GeoPoint>, pts: List<GeoPoint>, extraMs: Long) = map.fitFirstRoute(line, pts, extraMs)
-    override fun linkSnapped(routed: List<GeoPoint>, snapped: List<GeoPoint>) = links.snapped(routed, snapped)
     override val recording: Boolean get() = recordingClient.state.value != null
 }
 
@@ -115,7 +121,7 @@ class PlanRecalcSlice(
     private val default: CoroutineDispatcher,
     /** Milliseconds of real time since boot (the app: `SystemClock.elapsedRealtime`). */
     private val elapsedMs: () -> Long,
-) : PlanRecalcState(plan, planRun, RecalcPorts(planRoute, planEdit, tourEdits, tourFollow, map, links, recording), mapData, say, host,
+) : PlanRecalcState(plan, planRun, RecalcPorts(planRoute, planEdit, tourFollow, map, links), RecalcTour(tourEdits, tourFollow, recording), mapData, say, host,
     CoroutineBackground(scope, io), elapsedMs) {
     private val ROUTING_SLOW_MS = 2_500L
     /** How often the wait bar asks the router how far it is (ms). */

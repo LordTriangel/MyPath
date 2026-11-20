@@ -442,10 +442,10 @@ class TourWiringTest {
         )) assertTrue("the view model says: $line", vm.contains(line))
         assertEquals("wayThereFrom is the slice's for both hosts", 2, count(vm, "override fun wayThereFrom(): GeoPoint? = tourEdits.wayThereFrom()"))
         assertEquals("the one field, volatile, is the slice's", 1, count(editsSlice, "@Volatile var followCancel: com.onpath.app.routing.RouteCancel? = null"))
-        assertEquals("recalc (piece 9b: the state's head) is the only code that touches it", 1, count(recalcState, "ports.followCancel?.cancel(); ports.followCancel = null // the tour's follow line of the old plan"))
+        assertEquals("recalc (piece 9b: the state's head) is the only code that touches it", 1, count(recalcState, "tour.followCancel?.cancel(); tour.followCancel = null // the tour's follow line of the old plan"))
         assertEquals("…through the slice's adapter", 1, count(recalcSlice, "get() = tourEdits.followCancel\n        set(v) { tourEdits.followCancel = v }"))
         assertEquals("…and the view model no longer does", 0, count(vm, "followCancel?.cancel()"))
-        assertEquals("the run asks the tour to follow the edited plan", 1, count(recalcState, "RouteRun.Effect.FollowEditedPlan -> ports.followEditedPlan()"))
+        assertEquals("the run asks the tour to follow the edited plan", 1, count(recalcState, "RouteRun.Effect.FollowEditedPlan -> tour.followEditedPlan()"))
         assertEquals("…through the slice's adapter", 1, count(recalcSlice, "override fun followEditedPlan() = tourEdits.followEditedPlan()"))
         assertEquals(0, count(vm, "\n        followCancel"))
     }

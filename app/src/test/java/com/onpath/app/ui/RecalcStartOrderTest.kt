@@ -26,7 +26,7 @@ class RecalcStartOrderTest {
     }
 
     private val headRange: IntRange get() {
-        val s = slice.indexOfFirst { it.trim() == "fun begin(): Run? {" }
+        val s = slice.indexOfFirst { it.trim() == "fun begin(askLong: Boolean = true): Run? {" }
         val e = slice.indexOfFirst { it.trim() == "routeCancel = RouteCancel()" }
         assertTrue("head found in the slice", s in 0 until e)
         return s..e

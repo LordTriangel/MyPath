@@ -110,7 +110,7 @@ class PlanRecalcWiringTest {
         assertEquals(1, count(slice, "scope.launchSafe(\"app\", \"showProgress\", main) {"))
         assertEquals(1, count(state, "background.run(\"aliasSnappedLegs\", { moved.count {"))
         assertEquals("…on the view model's scope and the io thread", 1, count(slice, "CoroutineBackground(scope, io)"))
-        assertEquals("the head's first statement", 1, count(state, "    fun begin(): Run? {\n        runCauses.start()\n"))
+        assertEquals("the head's first statement", 1, count(state, "    fun begin(askLong: Boolean = true): Run? {\n        runCauses.start()\n"))
         assertEquals("the slice's recalc starts with the head", 1, count(slice, "    fun recalc() {\n        val run = begin() ?: return\n"))
     }
 

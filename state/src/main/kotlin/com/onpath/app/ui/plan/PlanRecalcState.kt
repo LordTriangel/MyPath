@@ -46,6 +46,16 @@ interface MapDataPort {
     fun routeComputed(line: List<GeoPoint>, corridor: List<com.onpath.app.cells.CellId>?, dest: GeoPoint?, activity: Activity?)
     /** Newer map areas along a computed route. */
     fun freshenAlong(line: List<GeoPoint>, corridor: List<com.onpath.app.cells.CellId>?, activity: Activity?)
+
+    /** No map data on this side (a planner without offline maps): nothing is missing, nothing loads. */
+    object None : MapDataPort {
+        override fun postRoute(r: PlannedRoute, pts: List<GeoPoint>, activity: Activity?) = PostRoute(emptyList(), false, emptyList())
+        override fun routingForLine(keys: List<String>) = Unit
+        override val routingLoading: Boolean get() = false
+        override fun corridorFollowsPlan(line: List<GeoPoint>?, activity: Activity?) = Unit
+        override fun routeComputed(line: List<GeoPoint>, corridor: List<com.onpath.app.cells.CellId>?, dest: GeoPoint?, activity: Activity?) = Unit
+        override fun freshenAlong(line: List<GeoPoint>, corridor: List<com.onpath.app.cells.CellId>?, activity: Activity?) = Unit
+    }
 }
 
 /**
@@ -97,18 +107,40 @@ interface PlanRecalcPorts {
     var routeChangedNotice: String?
     /** The plan sheet's size. */
     var planSize: PlanSize
+    fun setSaved(name: String?, id: Long, points: List<GeoPoint>?)
+    fun fitFirstRoute(line: List<GeoPoint>, pts: List<GeoPoint>, extraMs: Long)
+    /** The router moved the plan's points onto their ways: what a plan link brought follows. */
+    fun linkSnapped(routed: List<GeoPoint>, snapped: List<GeoPoint>)
+}
+
+/**
+ * The tour's side of the route run ([PlanRecalcState]): the app's tour follows the plan, its recording keeps a failed run's line.
+ * A planner without a tour passes [None] (laptop's ask 2026-11-20).
+ */
+interface PlanTourPort {
     /** The tour's follow line of the old plan: stopped when a new run starts. */
     var followCancel: RouteCancel?
     /** The tour follows the plan as edited. */
     fun followEditedPlan()
+    /** The plan's baseline of a tour (an activity switched while navigating is not an edit). */
     var planBaseline: List<GeoPoint>?
-    fun setSaved(name: String?, id: Long, points: List<GeoPoint>?)
+    /** "Continue navigation": the tour follows the planned route. */
     fun followPlanned(checkNow: Boolean)
-    fun fitFirstRoute(line: List<GeoPoint>, pts: List<GeoPoint>, extraMs: Long)
-    /** The router moved the plan's points onto their ways: what a plan link brought follows. */
-    fun linkSnapped(routed: List<GeoPoint>, snapped: List<GeoPoint>)
     /** A tour is being recorded. */
     val recording: Boolean
+
+    /** No tour (the planner): nothing follows, nothing records. */
+    object None : PlanTourPort {
+        override var followCancel: RouteCancel?
+            get() = null
+            set(_) = Unit
+        override fun followEditedPlan() = Unit
+        override var planBaseline: List<GeoPoint>?
+            get() = null
+            set(_) = Unit
+        override fun followPlanned(checkNow: Boolean) = Unit
+        override val recording: Boolean get() = false
+    }
 }
 
 /**
@@ -131,6 +163,9 @@ open class PlanRecalcState(
     private val plan: PlanDocument,
     private val planRun: PlanRunSlice,
     private val ports: PlanRecalcPorts,
+    /** The tour's side; the planner: [PlanTourPort.None]. */
+    private val tour: PlanTourPort,
+    /** The map data; the planner: [MapDataPort.None]. */
     private val mapData: MapDataPort,
     private val say: Say,
     private val host: PlanRecalcHost,
@@ -192,10 +227,10 @@ open class PlanRecalcState(
         get() = ports.planSize
         set(v) { ports.planSize = v }
     private var planBaseline: List<GeoPoint>?
-        get() = ports.planBaseline
-        set(v) { ports.planBaseline = v }
+        get() = tour.planBaseline
+        set(v) { tour.planBaseline = v }
     private fun setSaved(name: String?, id: Long, points: List<GeoPoint>?) = ports.setSaved(name, id, points)
-    private fun followPlanned(checkNow: Boolean = false) = ports.followPlanned(checkNow)
+    private fun followPlanned(checkNow: Boolean = false) = tour.followPlanned(checkNow)
     private fun fitFirstRoute(line: List<GeoPoint>, pts: List<GeoPoint>, extraMs: Long = 0L) = ports.fitFirstRoute(line, pts, extraMs)
     private fun sayError(text: String, place: NoticePlace) = say.say(text, NoticeKind.ERROR, place)
     private val mode: AppMode get() = host.mode
@@ -231,9 +266,10 @@ open class PlanRecalcState(
     /**
      * Stage 1 (main thread, synchronous): the resets, the `Recalc` event and the stored line shown at once; null = nothing is
      * routed (fewer than two points, or a plan far beyond a day is asked about first). With a [Run] given, the run's
-     * [RouteCancel] is [PlanRunSlice.routeCancel].
+     * [RouteCancel] is [PlanRunSlice.routeCancel]. [askLong] false: a plan beyond a day is routed without the question (the
+     * planner's multi-day tour – owner 2026-11-18: its day rows show a long day).
      */
-    fun begin(): Run? {
+    fun begin(askLong: Boolean = true): Run? {
         runCauses.start()
         planRun.routeJob?.cancel(); planRun.routeJob = null
         highlight = null; spotLine = null; spotsOpen = false
@@ -243,13 +279,13 @@ open class PlanRecalcState(
         routeCancel?.cancel(); routeCancel = null // an older request stops at once
         planReach = null
         routeProgress = null; routeShare = null
-        ports.followCancel?.cancel(); ports.followCancel = null // the tour's follow line of the old plan: a new one comes with this run
+        tour.followCancel?.cancel(); tour.followCancel = null // the tour's follow line of the old plan: a new one comes with this run
         val act = activity; val level = sac
         // what this run is ([RouteRun.Event.Recalc]): fewer than two points → no route; a plan far beyond a day (a point in
         // another country by mistake, owner) is asked about first – nothing is routed or loaded until the answer; else
         // it is routed. A new run (an edit, an activity change …) starts at one time-limit period and drops an open
         // "Weiter warten?"; in Plan the time limit asks (SlowPlan), a run for Navigate keeps the straight lines
-        val effects = routeEvent(RouteRun.Event.Recalc(pts, act, planMode = mode == AppMode.PLAN, newPlan = SheetRise.resets(pts.size)))
+        val effects = routeEvent(RouteRun.Event.Recalc(pts, act, planMode = mode == AppMode.PLAN, newPlan = SheetRise.resets(pts.size), askLong = askLong))
         perform(effects)
         val start = effects.filterIsInstance<RouteRun.Effect.StartRouting>().firstOrNull() ?: return null
         val gen = start.gen; val rounds = start.rounds; val askAtLimit = start.askAtLimit
@@ -311,7 +347,7 @@ open class PlanRecalcState(
             // the plan's first route: the sheet rises once to its middle step (owner 2026-11-08, [SheetRise] – once per
             // plan is the run's: [RouteRun.sheetRisen])
             after = routeEvent(RouteRun.Event.Succeeded(gen, planMode = mode == AppMode.PLAN,
-                sheetCanRise = SheetRise.rises(risen = false, planSize, mode == AppMode.PLAN, ports.recording)))
+                sheetCanRise = SheetRise.rises(risen = false, planSize, mode == AppMode.PLAN, tour.recording)))
             val take = after.filterIsInstance<RouteRun.Effect.TakeRoute>().firstOrNull() ?: return@onSuccess
             if (take.rises) {
                 planSize = SheetRise.TO
@@ -354,7 +390,7 @@ open class PlanRecalcState(
                 if (RouteRun.Effect.ShowFailure !in after) return@onFailure
                 Problems.error("routing", "Route calculation failed", it)
                 // during a tour one failed run must not take the whole plan line off the map (fix-tour-edit-line.md)
-                if (!ports.recording) route = null
+                if (!tour.recording) route = null
                 // our own routing texts only – never an exception's raw text (review Arch 4)
                 routeError = com.onpath.app.debug.UserText.of(it, Txt.s(Res.string.msg_routing_failed))
                 mapData.corridorFollowsPlan(null)
@@ -365,7 +401,7 @@ open class PlanRecalcState(
                 if (route != null) followPlanned(checkNow = true) else sayError(Txt.s(Res.string.msg_no_new_route), NoticePlace.MAP)
             // an edit of the plan during a tour: the tour follows the new plan (owner rule, no question) – not a plan
             // re-computed for an activity switched while navigating (its baseline)
-            RouteRun.Effect.FollowEditedPlan -> ports.followEditedPlan()
+            RouteRun.Effect.FollowEditedPlan -> tour.followEditedPlan()
             else -> Unit
         }
         routeEvent(RouteRun.Event.Done(gen)) // "calculating" ends once the result is taken
