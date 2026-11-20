@@ -194,15 +194,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         it.onClosed = { notices.routesNote = null } // the line at the top lasts until My routes is left
         it.onRecent = { id -> prefs.zuletztId = id } // the Zuletzt row survives an app start
     }
-    /**
-     * Zuletzt and the recycle bin as the user's actions ([com.onpath.app.ui.routes.RecentPlans], cleanup piece 4): a plan
-     * that leaves the map is kept, Zuletzt → Speichern / Löschen, the bin's list, Restore, Delete now. The names below
-     * ([SaveSlice.keepAsDraft], [saveDraft], [recycleBin] …) forward to it.
-     */
+    /** Zuletzt and the recycle bin as the user's actions ([com.onpath.app.ui.routes.RecentPlans]): keep, save, delete, restore. */
     val recent: com.onpath.app.ui.routes.RecentPlans = com.onpath.app.ui.routes.RecentPlans(routes, routesStore, object : com.onpath.app.ui.routes.RecentPlansHost {
         override fun insertDraft(row: com.onpath.app.ui.routes.RecentPlans.DraftRow) =
             db.insertTour(TourKind.PLANNED, row.name, row.activity, row.sac, row.distanceM, row.ascentM, row.descentM, row.durationS,
                 row.segments, row.waypoints, pinned = row.pinned, draft = true, difficulty = row.difficulty, days = row.days)
+        override fun updateDraft(id: Long, row: com.onpath.app.ui.routes.RecentPlans.DraftRow) =
+            db.replacePlanned(id, row.activity, row.sac, row.distanceM, row.ascentM, row.descentM, row.durationS, row.segments, row.waypoints,
+                row.pinned, row.difficulty, row.days, clearDays = row.days == null)
         override fun storeTimes(id: Long, route: PlannedRoute?, activity: Activity) = planRoute.storePlanTimes(id, route, activity)
         override suspend fun proposeName(points: List<GeoPoint>, route: PlannedRoute?) = this@AppViewModel.proposeName(points, route)
         override fun tourChanged(id: Long) = Backups.tourChanged(getApplication(), id)

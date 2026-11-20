@@ -65,6 +65,9 @@ class RecentPlansTest {
         override fun insertDraft(row: RecentPlans.DraftRow): Long =
             db.insertTour(TourKind.PLANNED, row.name, row.activity, row.sac, row.segments, row.waypoints, distance = row.distanceM,
                 createdMs = created++, draft = true)
+        override fun updateDraft(id: Long, row: RecentPlans.DraftRow): Boolean =
+            db.replacePlanned(id, row.activity, row.sac, row.distanceM, row.ascentM, row.descentM, row.durationS, row.segments, row.waypoints,
+                row.pinned, difficulty = row.difficulty, days = row.days, clearDays = row.days == null)
         override fun storeTimes(id: Long, route: PlannedRoute?, activity: Activity) { log += "times $id" }
         override suspend fun proposeName(points: List<GeoPoint>, route: PlannedRoute?): String? = if (neverNames) awaitCancellation() else name.await()
         override fun tourChanged(id: Long) { log += "backup $id" }
@@ -159,6 +162,65 @@ class RecentPlansTest {
         assertTrue(second != first)
         assertEquals("the plan before is in the recycle bin, never gone", listOf(first), db.listDeleted().map { it.id })
         assertEquals(second, routes.recentId)
+    }
+
+    /**
+     * Owner 2026-11-20 (final, app + planner): a plan opened from Zuletzt and left CHANGED updates its entry – no new
+     * draft, nothing in the recycle bin; the entry keeps its name (the user may have given it).
+     */
+    @Test fun aChangedPlanOpenedFromZuletztUpdatesItsEntry() {
+        val r = recent()
+        r.keep(leaving(pts(51.0, 51.1)), "cleared")
+        val id = drafts().single().id
+        db.rename(id, "Meine Runde")
+        host.log.clear()
+        // opened from Zuletzt (the plan belongs to the draft), a point moved, left again
+        r.keep(leaving(pts(51.0, 51.2), unsaved = true, savedId = id, dated = "Route 18 Nov, 10:20"), "cleared")
+        settle()
+        val row = drafts().single()
+        assertEquals("the same entry", id, row.id)
+        assertEquals("with the new points", listOf(51.0 to 7.0, 51.2 to 7.0), RoutesState.keyOf(row))
+        assertEquals("and the new line", listOf(51.0, 51.2), db.loadSegments(id).single().map { it.lat })
+        assertEquals("its name stays", "Meine Runde", row.name)
+        assertTrue("nothing in the recycle bin", db.listDeleted().isEmpty())
+        assertEquals(id, routes.recentId)
+        assertEquals("the model times follow the new line; no name is asked for", listOf("times $id"), host.log)
+        assertTrue(problems.none())
+    }
+
+    /** The entry waits in the bin because another plan took the place meanwhile: it comes back out, updated – one plan stays. */
+    @Test fun aChangedPlanWhoseEntryWentToTheBinMeanwhileBringsItBackUpdated() {
+        val r = recent()
+        r.keep(leaving(pts(51.0, 51.1)), "cleared")
+        val id = drafts().single().id
+        r.keep(leaving(pts(52.0, 52.1)), "cleared") // another plan took the place
+        val other = drafts().single().id
+        r.keep(leaving(pts(51.0, 51.2), unsaved = true, savedId = id), "cleared")
+        assertEquals(id, drafts().single().id)
+        assertEquals(listOf(51.0 to 7.0, 51.2 to 7.0), RoutesState.keyOf(drafts().single()))
+        assertEquals("exactly one plan under Zuletzt: the other one is in the bin, never gone", listOf(other), db.listDeleted().map { it.id })
+        assertEquals(id, routes.recentId)
+    }
+
+    /** A SAVED route opened from Zuletzt and changed is never overwritten: it stays as it is, the change is a draft. */
+    @Test fun aChangedSavedRouteFromZuletztStaysAsItIsAndTheChangeIsADraft() {
+        val id = saved("Feierabendrunde", 51.0, 51.1)
+        recent().keep(leaving(pts(51.0, 51.2), unsaved = true, savedId = id), "cleared")
+        assertEquals(listOf(51.0 to 7.0, 51.1 to 7.0), RoutesState.keyOf(db.getTour(id)!!))
+        val draft = drafts().single()
+        assertTrue(draft.id != id); assertEquals(listOf(51.0 to 7.0, 51.2 to 7.0), RoutesState.keyOf(draft))
+        assertEquals(draft.id, routes.recentId)
+    }
+
+    /** The entry is gone for good (deleted in the bin meanwhile): the plan is kept as a new draft – never lost. */
+    @Test fun aChangedPlanWhoseEntryIsGoneForGoodIsKeptAnew() {
+        val r = recent()
+        r.keep(leaving(pts(51.0, 51.1)), "cleared")
+        val id = drafts().single().id
+        db.deleteTour(id)
+        r.keep(leaving(pts(51.0, 51.2), unsaved = true, savedId = id), "cleared")
+        assertEquals(listOf(51.0 to 7.0, 51.2 to 7.0), RoutesState.keyOf(drafts().single()))
+        assertTrue(problems.none())
     }
 
     /** A plan saved as it is makes no draft: its saved route takes the Zuletzt place; one with a saved route's points neither. */

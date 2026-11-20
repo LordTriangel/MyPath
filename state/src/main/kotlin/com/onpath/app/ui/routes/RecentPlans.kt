@@ -25,6 +25,11 @@ import kotlinx.coroutines.withTimeoutOrNull
 interface RecentPlansHost {
     /** Writes [row] as a plan under Zuletzt (TourDb.insertTour, kind PLANNED, draft); returns its id (blocking, may throw). */
     fun insertDraft(row: RecentPlans.DraftRow): Long
+    /**
+     * Writes [row] over the draft [id] – points, line, stats; its name and date stay (TourDb.replacePlanned). False when
+     * the draft is gone (blocking, may throw).
+     */
+    fun updateDraft(id: Long, row: RecentPlans.DraftRow): Boolean
     /** Keeps the model times of the kept plan [id] for the route list (blocking; reports its own failures). */
     fun storeTimes(id: Long, route: PlannedRoute?, activity: Activity)
     /** The place name proposed for a plan ("Algund → Meran"); null = none. */
@@ -98,7 +103,8 @@ class RecentPlans(
      * original stays as it is) goes under My routes → Zuletzt, no question ([com.onpath.app.domain.Drafts]). The same
      * points twice (Undo, clear again) make no second entry; exactly one plan stays under Zuletzt – this one, the one
      * worked on last, the draft before it goes to the recycle bin; a plan saved as it is takes the place as that saved
-     * route (owner 2026-11-12, [RoutesState.keepDraft]).
+     * route (owner 2026-11-12, [RoutesState.keepDraft]). A plan opened from Zuletzt and changed updates its entry –
+     * no new draft, nothing to the bin (owner 2026-11-20).
      */
     fun keep(plan: Leaving, why: String) {
         val pts = plan.points
@@ -108,20 +114,26 @@ class RecentPlans(
         // written NOW, under the date name, before the plan leaves the map (tester review 2026-11-07: it waited up to 5 s
         // for a place name in the background, and a kill in that window lost the plan). One row on the calling thread –
         // the plan points in the prefs go with the clear right after this, so the database must hold them first.
+        var updated = false
+        fun row() = DraftRow(plan.dated, plan.activity.name, plan.sac,
+            r?.distanceM ?: 0.0, r?.ascentM ?: 0.0, r?.descentM ?: 0.0, r?.durationS ?: 0.0,
+            listOf((r?.points ?: pts).map { TrackPoint(it.lat, it.lon, it.ele) }), plan.stops, plan.pins, plan.difficulty(), plan.days)
         val id = runCatching {
-            // not twice: no second draft with these points, none for a saved route with them (RoutesState)
-            routes.keepDraft(key, plan.unsaved, plan.savedId) {
-                host.insertDraft(DraftRow(plan.dated, plan.activity.name, plan.sac,
-                    r?.distanceM ?: 0.0, r?.ascentM ?: 0.0, r?.descentM ?: 0.0, r?.durationS ?: 0.0,
-                    listOf((r?.points ?: pts).map { TrackPoint(it.lat, it.lon, it.ele) }), plan.stops, plan.pins, plan.difficulty(), plan.days))
+            // not twice: no second draft with these points, none for a saved route with them; a changed plan opened from
+            // Zuletzt updates its entry (RoutesState)
+            routes.keepDraft(key, plan.unsaved, plan.savedId, update = { own -> host.updateDraft(own, row()).also { updated = it } }) {
+                host.insertDraft(row())
             }
         }.onFailure { Problems.error("db", "The plan could not be kept under Zuletzt", it) }.getOrNull()
         host.refreshTours() // the Zuletzt place changed hands either way (a draft replaced, a saved route there now)
         if (id == null) return
-        Problems.trace("plan", "Plan kept under Zuletzt ($why): \"${plan.dated}\", ${pts.size} points")
-        // then the model times and the place name ("Algund → Meran"); nothing fits in time → the date name stays
+        Problems.trace("plan", if (updated) "Plan under Zuletzt updated ($why): entry $id, ${pts.size} points"
+            else "Plan kept under Zuletzt ($why): \"${plan.dated}\", ${pts.size} points")
+        // then the model times and the place name ("Algund → Meran"); nothing fits in time → the date name stays. An
+        // updated entry keeps the name it has (the user may have given it): only its times follow the new line
         scope.launchSafe("app", "nameDraft") {
             withContext(io) { host.storeTimes(id, r, plan.activity) }
+            if (updated) return@launchSafe
             val proposed = withTimeoutOrNull(nameWaitMs) { host.proposeName(pts, r) }
             val renamed = withContext(io) {
                 runCatching { routes.renameDraft(id, plan.dated, proposed) }

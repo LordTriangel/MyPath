@@ -122,6 +122,9 @@ class SaveFlowTest {
 
         val recentHost = object : RecentPlansHost {
             var created = 1_000L
+            override fun updateDraft(id: Long, row: RecentPlans.DraftRow): Boolean =
+                db.replacePlanned(id, row.activity, row.sac, row.distanceM, row.ascentM, row.descentM, row.durationS, row.segments, row.waypoints,
+                    row.pinned, difficulty = row.difficulty, days = row.days, clearDays = row.days == null)
             override fun insertDraft(row: RecentPlans.DraftRow): Long =
                 db.insertTour(TourKind.PLANNED, row.name, row.activity, row.sac, row.segments, row.waypoints, distance = row.distanceM,
                     createdMs = created++, draft = true)

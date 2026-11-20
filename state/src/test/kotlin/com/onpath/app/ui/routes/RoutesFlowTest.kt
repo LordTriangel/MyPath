@@ -286,6 +286,28 @@ class RoutesFlowTest : RoutesFlowBase() {
         assertEquals(listOf(c, a), d.waypoints.map { GeoPoint(it.lat, it.lon) })
     }
 
+    /**
+     * Owner 2026-11-20 (final, app + planner): a plan opened from Zuletzt, changed and left again UPDATES its entry –
+     * no new draft, the old one not in the recycle bin. Through the real path: the opened draft links the plan
+     * ([PlanDocument.savedId]), [SaveSlice.keepAsDraft] hands that to [RoutesState.keepDraft].
+     */
+    @Test fun aPlanOpenedFromZuletztAndChangedUpdatesItsEntryWhenItLeaves() {
+        val app = App()
+        app.draw(c, a)
+        app.save.keepAsDraft("cleared"); app.plan.edit { clear() }; app.settle()
+        val d = app.drafts().single()
+        app.slice.openTour(d); app.settle()
+        assertEquals("the plan belongs to the entry it was opened from", d.id, app.plan.savedId)
+        app.plan.edit { add(b) }
+        app.save.keepAsDraft("cleared"); app.settle()
+        val now = app.drafts().single()
+        assertEquals("the same entry", d.id, now.id)
+        assertEquals("with the changed points", listOf(c, a, b), now.waypoints.map { GeoPoint(it.lat, it.lon) })
+        assertEquals("its name stays", d.name, now.name)
+        assertTrue("nothing went to the recycle bin", db.listDeleted().isEmpty())
+        assertEquals(d.id, app.routes.recentId)
+    }
+
     // ---------------------------------------------------------------- open a done tour / track
 
     @Test fun aDoneTourIsShownOnTheMapAndTheActivityFollowsIt() {

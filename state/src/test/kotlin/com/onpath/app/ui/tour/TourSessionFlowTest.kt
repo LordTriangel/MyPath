@@ -378,6 +378,7 @@ class TourSessionFlowTest {
         follow = TourFollow(plan, planRoute, client, files, followPrefs, rows, followHost, scope, held(pcEx))
         edits = TourEdits(plan, planEdit, planRoute, follow, client, Position { here }, history, editsHost, Say(::say), scope, planRoute.threads.routing)
         val recentHost = object : RecentPlansHost {
+            override fun updateDraft(id: Long, row: RecentPlans.DraftRow): Boolean = false
             override fun insertDraft(row: RecentPlans.DraftRow): Long = 0L
             override fun storeTimes(id: Long, route: PlannedRoute?, activity: Activity) = Unit
             override suspend fun proposeName(points: List<GeoPoint>, route: PlannedRoute?): String? = null

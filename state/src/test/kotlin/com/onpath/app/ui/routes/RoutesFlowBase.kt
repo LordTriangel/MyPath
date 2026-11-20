@@ -252,6 +252,9 @@ abstract class RoutesFlowBase {
         val routes = RoutesState(routesStore, clock = { 5_000L })
         val board = NoticeBoard(routesOpen = { routes.open }, settingsOpen = { false }, mapShown = { true })
         val recent = RecentPlans(routes, routesStore, object : RecentPlansHost {
+            override fun updateDraft(id: Long, row: RecentPlans.DraftRow): Boolean =
+                db.replacePlanned(id, row.activity, row.sac, row.distanceM, row.ascentM, row.descentM, row.durationS, row.segments, row.waypoints,
+                    row.pinned, difficulty = row.difficulty, days = row.days, clearDays = row.days == null)
             override fun insertDraft(row: RecentPlans.DraftRow): Long =
                 db.insertTour(TourKind.PLANNED, row.name, row.activity, row.sac, row.segments, row.waypoints, distance = row.distanceM, draft = true)
             override fun storeTimes(id: Long, route: PlannedRoute?, activity: Activity) {}

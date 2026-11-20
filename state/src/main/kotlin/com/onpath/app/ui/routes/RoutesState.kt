@@ -130,11 +130,16 @@ class RoutesState(private val store: RoutesStore, private val clock: () -> Long 
      * Zuletzt? One point is no plan – nothing. Saved as it is ([unsaved] false; [savedId] = the saved route or the draft
      * it was loaded from): that tour takes the place (a draft back out of the bin when needed; gone for good → kept
      * anew below). Else a draft with these points – unless one is there already, or a saved route with the same points
-     * (never a second entry): that one takes the place. [insert] writes the new draft (the view model knows name, route
-     * and times); the one draft before it goes to the recycle bin ([takePlace]). Returns the new id, null = no new
-     * draft (blocking).
+     * (never a second entry): that one takes the place. A changed plan that was opened from Zuletzt ([savedId] is a
+     * draft) UPDATES that entry (owner 2026-11-20, final, app + planner: no new draft, nothing to the bin) – [update]
+     * writes the plan over it (name and date stay; false = gone), a draft that waits in the bin comes back out first; a
+     * changed SAVED route is never overwritten, its change is a draft. [update] null = the caller cannot update (it
+     * keeps a new draft). [insert] writes the new draft (the view model knows name, route and times); the one draft
+     * before it goes to the recycle bin ([takePlace]). Returns the id written (new or updated), null = nothing written
+     * (blocking).
      */
-    fun keepDraft(key: List<Pair<Double, Double>>, unsaved: Boolean, savedId: Long = -1L, insert: () -> Long): Long? {
+    fun keepDraft(key: List<Pair<Double, Double>>, unsaved: Boolean, savedId: Long = -1L, update: ((Long) -> Boolean)? = null,
+                  insert: () -> Long): Long? {
         if (key.size < 2) return null
         if (!unsaved) {
             if (savedId < 0) return null // saved as it is, nowhere known: nothing to keep (as before)
@@ -151,6 +156,15 @@ class RoutesState(private val store: RoutesStore, private val clock: () -> Long 
         val same = store.listTours().firstOrNull { it.kind == TourKind.PLANNED && keyOf(it) == key }
         if (same != null) { takePlace(same.id); return null }
         if (!Drafts.keeps(key.size, unsaved = true)) return null
+        if (unsaved && savedId >= 0 && update != null) {
+            val binned = store.listDeleted().firstOrNull { it.id == savedId && it.draft }
+            if (binned != null) store.setDeleted(savedId, null) // another plan took the place meanwhile: back out, then updated
+            if ((binned != null || store.listTours().any { it.id == savedId && it.draft }) && update(savedId)) {
+                Problems.trace("routes", "Zuletzt: the changed plan updates its entry $savedId")
+                takePlace(savedId)
+                return savedId
+            }
+        }
         val id = insert()
         takePlace(id)
         return id
