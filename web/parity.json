@@ -3223,6 +3223,99 @@
       "perf": [
         "const val FIT_WAIT_MS = 500L"
       ]
+    },
+    "core/src/main/kotlin/com/onpath/app/live/LiveBytes.kt": {
+      "blob": "b9370f15698f0e51408ce92149373c3a9764f1b2",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/live/LiveChunker.kt": {
+      "blob": "7b91e2e5e2525a4b16ad02f253348b333104e182",
+      "perf": [
+        "const val MAX_POINTS = 4000",
+        "* The first chunk of [points] – as many as fit into [maxBytes] (at most [MAX_POINTS]) – or null when there are none.",
+        "fun next(points: List<LivePoint>, maxBytes: Int = LiveItem.MAX_PLAIN): Cut? {",
+        "val cap = minOf(points.size, MAX_POINTS)",
+        "val header = 3 + 3 // version, kind, flags + the count's varint (≤ MAX_POINTS → 2 bytes, one spare)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/live/LiveCode.kt": {
+      "blob": "e3515e95a94f8d772200e29262e2c4af742c9461",
+      "perf": [
+        "const val SECRET_BYTES = 32",
+        "require(secret.size == SECRET_BYTES) { \"live secret must be $SECRET_BYTES bytes\" }",
+        "if (b.size < 1 + SECRET_BYTES || b[0].toInt() != VERSION) return null",
+        "return b.copyOfRange(1, 1 + SECRET_BYTES)",
+        "init { require(secret.size == LiveCode.SECRET_BYTES) }"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/live/LiveItem.kt": {
+      "blob": "f9df6d90b74a837f90445547b1fde78a4c29b21f",
+      "perf": [
+        "const val MAX_NAME = 60",
+        "const val MAX_ACTIVITY = 32",
+        "const val MAX_ROUTE_POINTS = 2000",
+        "const val MAX_PLAIN = 12_000",
+        "private const val MAX_READ_POINTS = 50_000",
+        "clean(h.activity, MAX_ACTIVITY)?.let { out.field(13, it.encodeToByteArray()) }",
+        "clean(h.name, MAX_NAME)?.let { out.field(14, it.encodeToByteArray()) }",
+        "fun int() = num().coerceAtMost(Int.MAX_VALUE.toLong()).toInt()",
+        "13L -> h = h.copy(activity = clean(raw.decodeToString(), MAX_ACTIVITY).orEmpty())",
+        "14L -> h = h.copy(name = clean(raw.decodeToString(), MAX_NAME).orEmpty())",
+        "/** The followed [line] as a route item; a long line is thinned until it has at most [MAX_ROUTE_POINTS] points and fits. */",
+        "if (pts.size <= MAX_ROUTE_POINTS) break",
+        "while (pts.size > MAX_ROUTE_POINTS) pts = pts.filterIndexed { i, _ -> i % 2 == 0 || i == pts.size - 1 }",
+        "while (b.size > MAX_PLAIN && pts.size > 2) {",
+        "require(n in 0..minOf(MAX_READ_POINTS, r.left()).toLong())",
+        "require(seg in 0..Int.MAX_VALUE.toLong() && t >= 0)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/live/LivePolicy.kt": {
+      "blob": "861f1d406ce910e14518f24b89e58af78c2e6d10",
+      "perf": [
+        "* request wakes the phone's radio and counts against the server's daily budget, so both sides ask as rarely as the",
+        "const val EVENT_FLOOR_MS = 30_000L",
+        "const val RETRY_MS = 30_000L",
+        "const val MAX_RETRY_MS = 600_000L",
+        "const val BUSY_FLOOR_MS = 60_000L",
+        "const val NETWORK_BACK_FLOOR_MS = 10_000L",
+        "const val VIEWER_SLACK_MS = 10_000L",
+        "const val VIEWER_FLOOR_MS = 5_000L",
+        "val VIEWER_QUIET_MS = listOf(60_000L, 120_000L, 300_000L, 600_000L)",
+        "if (retryAfterMs != null) return lastTryMs + retryAfterMs.coerceIn(BUSY_FLOOR_MS, MAX_RETRY_MS)",
+        "if (networkBack) return lastTryMs + NETWORK_BACK_FLOOR_MS",
+        "if (lastUploadMs == null) return lastTryMs?.plus(EVENT_FLOOR_MS) ?: 0L",
+        "return if (event) minOf(planned, lastUploadMs + EVENT_FLOOR_MS) else planned",
+        "var w = RETRY_MS",
+        "repeat((failures - 1).coerceIn(0, 10)) { w = minOf(w * 2, MAX_RETRY_MS) }",
+        "if (retryAfterMs != null) return retryAfterMs.coerceIn(BUSY_FLOOR_MS, MAX_RETRY_MS)",
+        "val due = nextS.coerceIn(10, 3600) * 1000L + VIEWER_SLACK_MS - sinceLastWriteMs",
+        "if (due > 0) return maxOf(due, VIEWER_FLOOR_MS)",
+        "return VIEWER_QUIET_MS[(emptyAsks - 1).coerceIn(0, VIEWER_QUIET_MS.size - 1)]"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/live/LiveStatusLine.kt": {
+      "blob": "00c391bf3d79e0fb7bfd089625c5ca6906befcb7",
+      "perf": [
+        "const val NO_CONTACT_MS = 10 * 60_000L",
+        "const val NO_CONTACT_LONG_MS = 60 * 60_000L",
+        "const val PAUSE_MS = 5 * 60_000L",
+        "val quiet = maxOf(NO_CONTACT_MS, head.nextS.coerceIn(0, 3600) * 2000L)",
+        "return Line(Key.NO_CONTACT, minutes = ago, atMs = head.fix?.timeMs, amber = sinceLastWriteMs >= NO_CONTACT_LONG_MS)",
+        "if (head.state == LiveState.PAUSED || pause >= PAUSE_MS) return Line(Key.PAUSE, minutes = (pause / 60_000L).toInt())"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/live/LiveUploader.kt": {
+      "blob": "6eff7821592bbc1dd27f7a881536abbe536f04f8",
+      "perf": [
+        "/** The server's answer to one call: the HTTP status; 0 = no network / timeout / no answer. */",
+        "fun opt(s: String) = if (s == \"-\") ByteArray(0) else B64.decode(s)",
+        "if (secret == null || secret.size != LiveCode.SECRET_BYTES || f[3].isEmpty() || !f[3].all(B64::isCodeChar) ||",
+        "val s = LiveShare(random(LiveCode.SECRET_BYTES), B64.encode(random(32)), tourId, name.trim().take(LiveItem.MAX_NAME))",
+        "if (failures == 0 && (more || s.stopping)) return lastTryMs?.plus(CATCH_UP_MS) ?: 0L",
+        "val max = CHUNKS_PER_PUSH * LiveChunker.MAX_POINTS",
+        "/** The memory copy is the truth for this process; the store is written through (a failed write is reported, not fatal). */",
+        "const val CATCH_UP_MS = 1_000L"
+      ]
     }
   }
 }
