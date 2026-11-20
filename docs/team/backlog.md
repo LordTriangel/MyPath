@@ -116,7 +116,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## In progress
 - [laptop] (fresh session 2026-11-20 15:10) Planner on the shared code with [umbau]: wiring PlanDocument / fitsFirstRoute / setFavourite·setHome / placeIs (agent worktree), then umbau's next „web-ready“ lines; owner of `web/` except `web/app/src/live/`, `web/host/src/live.js` ([tracking]).
-- [tracking] Live tracking: all but the app's share UI on main (dormant); UI on `feat/live-share-ui` waits for the owner's yes to pictures; state + next steps `docs/team/handoffs/handoff-tracking-2026-11-20.md` – since 2026-11-20
+- [tracking] Live tracking: all but the app's share UI on main (dormant); UI on `feat/live-share-ui-2` waits for the owner's yes to pictures; state + next steps `docs/team/handoffs/handoff-tracking-2026-11-20.md` – since 2026-11-20
 - [donald] (handed over 2026-11-20 ~14:15 → fresh donald session, `handoffs/handoff-donald-2026-11-20.md`): place menu's silent drop, the first-map workflow patch PR, website pictures – since 2026-11-20
 - [umbau] (fresh session 2026-11-20 12:40) After 0.18.2: (1) planner on the shared code with [laptop] – only `state/`: the laptop's wishes… → [detail](items/2026-11-20-after-0-18-2-1-planner-on-the-shared-cod.md)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->

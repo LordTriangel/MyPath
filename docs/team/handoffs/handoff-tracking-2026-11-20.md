@@ -12,16 +12,19 @@ dann `docs/design/live-tracking.md` (Design, Entscheidungen §12, Bauplan §14 m
   by the laptop: page 200, API answers (401 / 404), tables exist. **No tour has ever been uploaded to the online server.**
 
 ## Open branches / pull requests
-- **`feat/live-share-ui`** (pushed; a helper is still working in its worktree
-  `.claude/worktrees/agent-a84441c86e57a214b`): slice `LiveShareSlice` + UI. The owner's decisions for it:
-  1. „Live teilen“ sits **in the ⚙ Settings opened from Navigate, as the first entry with a symbol** (his words: „In der
-     Navigation bei den Einstellungen, als erster Eintrag mit Symbol“) – not in the status card (first build, being removed).
-  2. The sign that sharing is on: **„oben bei den Richtungen anzeigen“** – he wants **proposals (≤ 3) as pictures he can
-     see from the cloud**. The helper builds variants + a gallery `docs/design/live-app-pictures.md` on the branch (the repo
-     is public: GitHub renders it; raw image URLs open without login).
-  The UI goes to main **only after his yes to the pictures** (sketch before build). Merging makes sharing reachable for
-  every user. After the merge: `node web/parity/check.mjs --update` is the laptop's (Prefs.kt mirror + new strings files) –
-  write him a line; then a line for donald „ready to ship“ (owner's weekend mode: donald releases updates).
+- **`feat/live-share-ui-2`** (pushed, 97eecb765, rebased on main 1365b8a94, gate --full green there; the older
+  `feat/live-share-ui` is the first version – superseded, not force-pushed): slice `LiveShareSlice` + UI, built to the
+  owner's two decisions:
+  1. „Live teilen“ as the **first entry with a symbol in the ⚙ Settings opened from Navigate** (a card at the top, only
+     while a tour records; sharing: state row, „Link nochmal teilen“, „Teilen beenden“, „Name auf der Seite“).
+  2. The sign that sharing is on **„oben bei den Richtungen“**: three proposals pictured (A pill above the turn card, B a
+     dot chip, C „● Live“ inside the turn card – recommended, the branch's code carries C; a free tour falls back to A).
+  Gallery for the owner (public repo): https://github.com/happychriss/OnPath/blob/feat/live-share-ui-2/docs/design/live-app-pictures.md
+  – also linked in the cloud doc. **He has not chosen yet.** The UI goes to main only after his yes (sketch before
+  build); merging makes sharing reachable for every user. Before the merge: a big-model review of the branch (recording
+  is a core feature), the non-chosen variants removed. After it: `node web/parity/check.mjs --update` is the laptop's
+  (Prefs.kt mirror + two new strings files) – a line for him; then a line for donald „ready to ship“. Known gaps: the
+  Settings card stays if the tour ends while the page is open; the Android glue (share sheet, collector) has no test.
 - **Pull request 17** (`pr/live-host-config`): `wrangler.toml` (per-IP limit `LIVE_RATE`, hourly clean-up cron,
   `run_worker_first`, `LIVE_NEW_PER_IP_DAY`) + `web.yml` (live-smoke in CI). Waits for the owner (backlog „Waiting“).
 - `feat/live-server`, `feat/live-viewer`: merged content, kept only for the viewer pictures
@@ -29,10 +32,9 @@ dann `docs/design/live-tracking.md` (Design, Entscheidungen §12, Bauplan §14 m
 
 ## Waiting for the owner
 - His remarks on the viewer page's look (he answered „Passt, aber Kleinigkeiten“ **before he could see the pictures** –
-  not a yes). Cloud doc with links: https://claude.ai/artifact/PbX86VASovbaNPWDXY2FYn (its two upper sections are still
-  placeholders: fill with the gallery link + recommendation when the helper's pictures are there).
+  not a yes). Cloud doc with links: https://claude.ai/artifact/PbX86VASovbaNPWDXY2FYn (complete: gallery link, the three sign proposals, the Settings pictures).
 - Pull request 17.
-- The Live-sign proposals (coming).
+- His choice of the Live sign (A / B / C) and his yes to the Settings entry.
 
 ## Still to do (design §10 / §14.7)
 - Pixel walk before any release of the feature: screen-off network for hours, battery beside a walk without sharing,
