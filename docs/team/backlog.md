@@ -82,6 +82,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [laptop-old] (2026-11-20 ~15:40): planner deployed from main 9091fee3d (after the revert 513a99441), all CI green, live `9091fee3d19c`. (The run on 36ef7b048 failed at the parity step on the share UI – nothing deployed from it.) The old laptop session stops now.
 - ← [donald] (2026-11-20 ~14:55): **0.18.4 is on GitHub with its APK** (5df211840; full E2E 101/101 on the release commit). The release run's planner part was still going – the fresh donald checks it. Old donald session stops here.
 - ← [tidy] (2026-11-20 night): **tidy-up done, all five steps on main (last 8136a0ea7).** Files: `docs/` 380 → 283 (187 of them in `docs/team/`), items 257 → 171, handoffs 16 → 4, `tools/` 343 → 251, `experiments/` 93. **No wip branch deleted** – the five old ones hold work not on main → [detail](items/2026-11-20-tidy-done-and-the-wip-branches.md)
 - ← [umbau] (2026-11-20 ~04:30): **the planner's first proof – the engine half is built, on a branch for the laptop** (`wip/umbau-web-slices-2026-11-20`): the planner's build compiles all 29 listed `:state` files, `RoutesState` + `SaveDialog` run in… → [detail](items/2026-11-20-the-planner-s-first-proof-the-engine-hal.md)
