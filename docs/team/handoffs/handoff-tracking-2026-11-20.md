@@ -107,3 +107,22 @@ arrival: „● Alles klar · unterwegs“. „Im Plan“ in time (later than pl
 in the head – one new optional field; without it „im Plan“ only means „on the route“. It is the phone's own judgement,
 not a word from him – say so on the page if he wants. Rule in `LiveStatusLine` (`:core`, tested), texts in the web strings;
 show ≤ 3 pictures (gallery, public repo) before building. Open question to ask him with the pictures: does „im Plan“ include the time?
+
+## Fresh session 2026-11-20 afternoon (Opus) – the 12 fixes done, share UI on main (dev tools only)
+- All 12 review fixes built, tests first where a test could show it: uploader keeps a stopped share's box as a
+  `LiveLeftover` line in the stored state and deletes it first (`aStopStillOnTheWayIsNotDroppedBySharingAgain`); the lane
+  publishes right after start / stop and steps while `uploader.cleaning` even for an interrupted tour
+  (`LiveLaneTest.startAndStopShowBeforeTheServerAnswers`, `aStopKeptBehindANewShareIs…`); the slice follows the recording
+  (`onRecording`) and the clock (`tick`, every 30 s only while sharing), a share from an earlier process is grey until
+  its first upload, „ended by the server“ is a grey line in the Settings card until shown there (then `liveSeen`),
+  `settingsClosed()` closes the name question; slice kept by the view model (`ViewModel.addCloseable`, made in
+  `MainActivity.onCreate`), TalkBack: the turn card's cleared semantics cover only the instruction. Words: „Standort
+  teilen“ / „● Standort“ / „Verfolge meine Tour: …“ / page title „OnPath – geteilter Standort“. A / B removed; gallery
+  `docs/design/live-app-pictures.md` refreshed. `liveName` stays in the backed-up `onpath.xml` (the user's own setting;
+  the share secret is never backed up) – told to the owner.
+- **Owner 2026-11-20 (box): „Main, Update danach“.** On main c477ef74b, but `LiveShares.FOR_EVERYONE = false`: shown only
+  with developer tools unlocked. Switch to true (+ line for donald „ready to ship“) only after: the privacy-text PR
+  (`pr/live-privacy`, being built) and PR 17 (hourly clean-up – today only the daily 03:17 cron runs `purgeLive`, so
+  expiry can be up to a day late) are merged by him, and he shared once on his Pixel (first real upload ever).
+- Open: the website's privacy page needs the same text (line for cloud-web); the owner's viewer-page wish (verdict +
+  arrival first, above) – pictures first; the Pixel walk list above.
