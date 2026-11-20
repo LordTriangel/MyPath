@@ -76,12 +76,23 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
         waitUntil("a plan of two points") { waypointCount() == 2 }
         waitFor("the route drawn") { read { !it.planRun.routing && it.route != null } }
         val s = drawnPoiSymbol(POI_ID, POI_LAT, POI_LON, ICON_LAYER)
-        com.onpath.app.debug.Problems.clear()
-        hold(s.first, s.second, takeAddMenu = false) // waits for the measure (waitHoldMeasured)
-        waitFor("the POI menu after the measure") { read { it.placeMenus.poiMenu?.id } == POI_ID }
-        val rows = read { vm -> vm.placeMenus.poiMenu?.let(vm.placeMenus::placeMenu)?.main }
-        val trace = com.onpath.app.debug.Problems.events().map { it.message }
-        val line = trace.firstOrNull { it.startsWith("Place menu of a") }
+        fun holdAndRead(): Triple<List<com.onpath.app.domain.PlaceAddMenu.Item>?, List<String>, String?> {
+            com.onpath.app.debug.Problems.clear()
+            hold(s.first, s.second, takeAddMenu = false) // waits for the measure (waitHoldMeasured)
+            waitFor("the POI menu after the measure") { read { it.placeMenus.poiMenu?.id } == POI_ID }
+            val rows = read { vm -> vm.placeMenus.poiMenu?.let(vm.placeMenus::placeMenu)?.main }
+            val trace = com.onpath.app.debug.Problems.events().map { it.message }
+            return Triple(rows, trace, trace.firstOrNull { it.startsWith("Place menu of a") })
+        }
+        var (rows, trace, line) = holdAndRead()
+        // GitHub's emulator is sometimes ~5× slower (2026-11-20: the route 5.4 s instead of 1.1 s) and the app's 1.5 s limit
+        // then falls back to straight lines – by design. Held once more (the legs are cached now) so the paths are still checked.
+        if (realRouting && line?.contains("paths failed: timeout") == true) {
+            android.util.Log.i("OnPathE2E", "POI hold while planning: the first measure timed out on a slow emulator – held once more: $line")
+            scenario.onActivity { vm(it).placeMenus.closeMapOverlays("e2e: hold once more") }
+            waitUntil("the menu closed") { read { it.placeMenus.poiMenu } == null }
+            val again = holdAndRead(); rows = again.first; trace = again.second; line = again.third
+        }
         android.util.Log.i("OnPathE2E", "POI hold while planning: rows $rows, realRouting $realRouting: $line")
         assertEquals("only „Neues Ziel“ – $line", listOf(com.onpath.app.domain.PlaceAddMenu.Item.NEW_DESTINATION), rows)
         assertTrue("the decision says how it measured – $trace", line != null && (line.contains("paths: ") || line.contains("paths failed")))
