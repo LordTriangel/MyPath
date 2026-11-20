@@ -59,3 +59,41 @@ dann `docs/design/live-tracking.md` (Design, Entscheidungen §12, Bauplan §14 m
   `web.yml` on the push (`gh run list --workflow "Web planner"`); a newer push cancels the older run.
 - Token rules (owner, 2026-11-20): helpers on Sonnet for reading / search / tests / pictures, one big-model review per
   piece; handoff at ~350k.
+
+## Incident 2026-11-20 afternoon – the share UI was on main for ~1 h, unreviewed (reverted)
+The read-only reviewer ran `git checkout --detach origin/feat/live-share-ui-2` **in the main session's worktree**; my next
+`pull --rebase` + push (36ef7b048) carried the branch's two commits (7a8e888f2, ca4196310) to main. Reverted without
+history rewrite (two revert commits, main 513a99441, gate --full green; app / core / state / strings equal to before).
+**No release contains it** (v0.18.3 and v0.18.4 checked: no `LiveShareUi.kt`). Lesson: a helper that only reads gets
+`isolation: worktree` too, or the brief says „`git show` / `git diff` only, never checkout“; and look at `git status -sb`
+before a push.
+
+## Next step for the fresh session: fix on a new branch from `feat/live-share-ui-2`, then merge (the owner said „Ja, einbauen“)
+Review (big model, 2026-11-20) – verdict „merge after fixes“. To fix before the merge:
+1. **Leak:** `LiveShareWiring.kt` – the weak map's value holds its key (prefs / host / notices capture the view model) →
+   every view model stays forever. Remove the entry in `vm.addCloseable { … }` or keep the slice in a holder the view model owns.
+2. **„Teilen wurde beendet“ is never seen in Navigate** (INFO at `NoticePlace.MAP` is log-only outside Plan) but is marked
+   seen. Show it where Navigate / Settings shows lines, or do not call `liveSeen()` before it was shown; the test must check
+   what the user sees.
+3. **Privacy (uploader, on main):** „Teilen beenden“ offline, then sharing again → `LiveUploader.start` drops the old share
+   that is still stopping; its box lives up to 48 h and the first link still shows the way up to the stop. Keep the pending
+   DELETE(s) (a list of boxes still to delete in the stored share) – test first.
+4. **Share / Stop wait for the network before the UI changes** (`LiveLane.start/stop` publish only after `step()`, up to
+   ~25 s on a weak network; the share sheet pops up late). Publish the snapshot right after `uploader.start/stop`, before `step()`.
+5. The Settings card is not recomposed when the tour ends (`host.recording()` reads a plain `StateFlow.value`) – collect it
+   as state.
+6. The 12-min „fresh“ rule is only evaluated on recomposition, and `lastOkMs == null` after a process restart counts as
+   green – a small ticker / treat null as waiting. Design §2 says „< 5 min“: the code's 12 min is right, fix the doc.
+7. Slice created and collector started inside `remember` during composition – create outside composition (with fix 1).
+8. TalkBack: the turn card's `clearAndSetSemantics` wipes the sign's role – the menu is unreachable there (Settings has both actions).
+9. `askName` survives Settings being closed by code → `nameCancelled()` in `onDispose`.
+10. `liveName` lies in `onpath.xml`, which is in Android's cloud backup – exclude the key or tell the owner.
+11. **The owner's words:** „Standort teilen“ / „Share location“, sign „● Standort“ / „● Location“, waiting „Standort · wartet
+    auf Netz“; share text „Verfolge meine Tour: ‹link›“; viewer title „OnPath – geteilter Standort“ (app `strings_live.xml`
+    + web `strings_live.xml`); re-record pictures, check the longer word inside the turn card (DE, EN, large font).
+12. Delete what was only for pictures: `LiveSignLook` (B dot, the `look` parameter), screenshot tests `aLive / aWaiting /
+    bLive / bWaiting` + their PNGs, the A / B parts of the gallery; `LiveMenuItems` private. Keep C + the free-tour pill.
+Checked fine by the review: no crash / stall for users who never share, recomposition cost, threading (UI only queues on
+the lane), a share from a previous process shows, the first-share flow, link / secret never logged, catch rules.
+Then: gate --full, merge to main, line for [laptop] (`node web/parity/check.mjs --update`: Prefs.kt + the two new strings
+files), line for [donald] „ready to ship“, the Pixel walk.
