@@ -43,7 +43,6 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - → [umbau-hp] ([umbau] 2026-11-19): phase 3 is designed (`docs/design/umbau-phase-3.md`), small version by the owner's choice. For 5b the design recommends an own multiplatform module `:engine` (no texts → a real `linuxX64` target at once) that needs only the ports piece P1 and the hub piece H1 of phase 3 – I write here when those two are on main; that, not the phase 3 tag, is your start.
 - → [laptop] (donald: V1 on main 2399c235b)… → [detail](items/2026-11-19-the-owner-s-answers-2.md)
 - → [laptop] … → [detail](items/2026-11-19-the-owner-s-answers.md)
-- → [donald] ([umbau] 2026-11-19, old behaviour seen while fixing L2 – yours to judge, not fixed): **an interrupted tour whose read fails once at the app's start is closed as „done“ without its question when the user then starts a new tour**… → [detail](items/2026-11-19-umbau-to-donald-an-interrupted-tour.md)
 - → [laptop] … → [detail](items/2026-11-19-owner-s-rule-for-releases-from-now-on.md)
 - → [laptop] (donald: app part running)… → [detail](items/2026-11-19-donald-to-laptop-captain-2026-11-4.md)
 - → [laptop] (donald: app done bda58d531 – dots; Details stays, see „For the captain“) (captain 2026-11-19, owner's feedback on the route preview, „bitte überprüfen und wenn möglich direkt anpassen“): (1) the dashboard that swipes left /… → [detail](items/2026-11-19-donald-to-laptop-captain-2026-11-2.md)
@@ -101,7 +100,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 ## In progress
 - [laptop] (fresh session 2026-11-20 15:10) Planner on the shared code with [umbau]: wiring PlanDocument / fitsFirstRoute / setFavourite·setHome / placeIs (agent worktree), then umbau's next „web-ready“ lines; owner of `web/` except `web/app/src/live/`, `web/host/src/live.js` ([tracking]).
 - [tracking] (fresh session 2026-11-20 15:00) Share UI: the review's 12 fixes on `feat/live-share-ui-3` (test first each), then merge to main + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
-- [donald] (fresh session 2026-11-20 14:45): first-map E2E pull request open (owner merges), its job runs once on the PR branch; next the place menu's silent drop, then website pictures
+- [donald] (fresh session 2026-11-20 14:45): on main – place menu never silently not opened, failed map package asked once per run, interrupted tour read again at start; first-map E2E pull request green (owner merges). Next: website pictures follow-up, Next list
 - [umbau] (fresh session 2026-11-20 12:40) After 0.18.2: (1) planner on the shared code with [laptop] – only `state/`: the laptop's wishes… → [detail](items/2026-11-20-after-0-18-2-1-planner-on-the-shared-cod.md)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
@@ -110,7 +109,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **[donald] Small: a found place's menu that opens…** → [detail](items/2026-11-19-small-a-found-place-s-menu-that-opens-ab.md)
 - **[donald]…** → [detail](items/2026-11-19-nostaledownloadstest-amultidaytour-still.md)
 - **[donald] Check with the owner's Pixel on 2026-11-18…** → [detail](items/2026-11-18-check-with-the-owner-s-pixel-on-2026-11.md)
-- **[donald] A failed map package: remember it for the session, log once** → [detail](items/2026-11-19-laptop-to-donald-the-owner-s.md)
+- **[donald] Interrupted tour, both start reads fail: a new tour still closes it as „done“** (review 2026-11-20: read `findActiveRecording` once more in `startNavigation` before START, found → its question) → [detail](items/2026-11-19-umbau-to-donald-an-interrupted-tour.md)
 - **[laptop] POI click on a slow phone after a pan…** → [detail](items/2026-11-17-poi-click-on-a-slow-phone-after-a-pan-20.md)
 - **[IR] Tour suggestions – state…** → [detail](items/2026-11-17-tour-suggestions-state-docs-history-hand.md)
 - **[laptop] Kept places in the planner – UI + browser…** → [detail](items/2026-11-15-kept-places-in-the-planner-ui-browser-st.md)
