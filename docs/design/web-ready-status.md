@@ -187,3 +187,14 @@ main thread) → `taken(run, result, reach, tries, post, active)` (Returned / Su
 the tour does next, Done). Ports: `PlanRecalcPorts` (20), `PlanRecalcHost` (10), `MapDataPort` (6), `Background`. `Run` holds
 no cancel, lambda or port; note for a codec: `PlannedRoute.points` and three `PlanResult` fields are `by lazy` caches –
 encode the constructor fields, the lazies follow. Text tests that pinned the moved lines read `PlanRecalcState.kt` now.
+
+**Built 2026-11-20 evening, the laptop's (2): the search – `SearchState.kt` listed** (`ui/search`, `:state`). First a pure
+move: `search/OfflineIndex.kt` (`SearchQuery`, `SearchHit`, `SearchRanking`), `PlaceIndex.kt`, `OnlineSearch.kt`
+(`OnlineRanking`, `PhotonProvider`) and `AddressSearch.kt` went from `:app` to `:core` as whole files (byte-identical;
+`AndroidAddressDb` stays in `:app`); the web engine already compiled them via `app/web-shared-files.txt`, now via the core
+folder. Then the cut: `SearchUi` / `SearchContext` / `OnlineState` and the decisions – `onQuery`, `onCategory`, `clear`,
+`remember`, `clearRecent`, `showAllFavourites`, `startLists`, `resolve`, the list that keeps shown rows (`shownList`), and
+`run()` as stages `begin(): Search?` → (offline: the index + address search, then `offlineKeep` / `carried`) →
+`offlineDone`; (online, after `DEBOUNCE_MS`, 3+ letters) `onlineLoading` → `searchCentre` / provider / `onlineAnswer` →
+`onlineDone` (generation checks where they were). Ports `SearchPorts` (5: saved, recent, addRecent, clearRecent,
+indexedPlace). `SearchSession : SearchState` keeps the index, the address files, the provider and the coroutines.
