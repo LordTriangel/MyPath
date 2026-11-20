@@ -200,6 +200,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Kept before pruning: `wip/donald-2026-11-14-suggest-next` f50159937** – tour suggestions, unfinished, 1 commit not on main
 
 ## Waiting for the owner
+- [tracking] 2026-11-20: **merge pull request 17** (live tracking: per-IP limit, hourly clean-up, live smoke in CI) – recommended: yes; and his remarks on the viewer page's look (pictures: branch `feat/live-viewer`, `docs/design/img/live/`)
 - **[donald] Only our signed apps on the map server?…** → [detail](items/2026-11-07-only-our-signed-apps-on-the-map-server-o.md)
 - **Map server access before the public launch** → [detail](items/2026-11-18-map-server-access-before-the-public-laun.md)
 
