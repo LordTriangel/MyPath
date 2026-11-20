@@ -100,7 +100,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [laptop] (fresh session 2026-11-20 15:10) Planner on the shared code with [umbau]: wiring PlanDocument / fitsFirstRoute / setFavourite·setHome / placeIs (agent worktree), then umbau's next „web-ready“ lines; owner of `web/` except `web/app/src/live/`, `web/host/src/live.js` ([tracking]).
 - [tracking] (fresh session 2026-11-20 15:00) Share UI: the review's 12 fixes on `feat/live-share-ui-3` (test first each), then merge to main + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
 - [donald] (fresh session 2026-11-20 14:45): on main – place menu never silently not opened, failed map package asked once per run, interrupted tour read again at start; first-map E2E pull request green (owner merges). Next: website pictures follow-up, Next list
-- [umbau] Planner on the shared code with [laptop], only `state/`: Zuletzt update rule, the laptop's wishes and the `XState` cut of PlaceMenus / PlanEdit / PlaceAdd are on main; next `SaveSlice` / `RoutesSlice` the same way on the laptop's word (`docs/design/web-ready-status.md` §6). Phase 3/4 waits – since 2026-11-20
+- [umbau] (fresh session 2026-11-20 ~16:45) Planner on the shared code with [laptop], only `state/`: SaveState on main; now `RecentPlansState` (Zuletzt + bin on the ports `Background` / `NameProposal`, helper + one review); `RoutesSlice` / `RoutesGoSlice` after the laptop names what it calls (`docs/design/web-ready-status.md` §7). Phase 3/4 waits
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
