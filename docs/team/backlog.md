@@ -184,6 +184,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Kept before pruning: `wip/donald-2026-11-14-suggest-next` f50159937** – tour suggestions, unfinished, 1 commit not on main
 
 ## Waiting for the owner
+- [laptop] 2026-11-20 evening: **planner ready to deploy at 1f5bfe959** (planner on the shared code: edit / undo / cancel, holds and place menus from the app's states; a cancel no longer loses a click made meanwhile; local checks + gate green). Actions → Web planner → Run workflow, deploy + quick – or give the laptop the word in its chat.
 - [tracking] 2026-11-20: **merge PR 19** → [detail](items/2026-11-20-merge-pr-19.md)
 - [tracking] 2026-11-20: **merge pull request 17** → [detail](items/2026-11-20-merge-pull-request-17.md)
 - **[donald] Only our signed apps on the map server?…** → [detail](items/2026-11-07-only-our-signed-apps-on-the-map-server-o.md)
