@@ -91,7 +91,7 @@ enum class AddRole { SMART, START, DESTINATION }
  * real paths, the places added from the menu / the card, and the first-point menu. Every add is ONE [PlanEditSlice.change]
  * and writes [PlanEditSlice.pinTaken] after it. The decisions are rules in :core (WaypointInsertion, PlaceAddMenu,
  * HoldPaths, TakenPin, WholeRoute). The POI / point / pin menus, the place card and the kept places are [PlaceMenusSlice] and
- * [KeptPlacesSlice] (piece 12); this slice reaches them behind [PlaceAddHost]. Constructed with the view model (no work).
+ * [KeptPlacesSlice] (piece 12); this slice reaches them behind [PlaceAddPorts]. Constructed with the view model (no work).
  * Coroutine-free (for the planner): the measure's thread and scope arrive inside [holdPaths] ([PlaceAddSlice] builds it).
  */
 open class PlaceAddState(

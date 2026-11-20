@@ -218,7 +218,7 @@
         "web/app/src/poipin.ts",
         "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt"
       ],
-      "blob": "08cf410e7ab37d30bfc5dc9c5c57877472932b1c"
+      "blob": "96e1736786dd787b583e1b9edb5f288ab2b8c963"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -3341,6 +3341,28 @@
     "state/src/main/kotlin/com/onpath/app/ui/plan/PlanDocument.kt": {
       "blob": "303b39d9244d515b606f01c6140c11de880ae04e",
       "perf": []
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/plan/PlanEditState.kt": {
+      "blob": "4374855aca4fb2f6d89f1c6cfed82b08de749a1d",
+      "perf": [
+        "// meanwhile (followFromPlan lives in memory only; Pixel 2026-11-01: a blue line without points stayed). A shown"
+      ]
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddState.kt": {
+      "blob": "96e1736786dd787b583e1b9edb5f288ab2b8c963",
+      "perf": [
+        "* The router [PlaceAddSlice] measures a hold beside the plan on (the engine, its leg cache and the Planner stay in :app).",
+        "* The routed length [a] → [b] for [act] / [level] in metres: from the leg cache, else one leg by the planner (then in the",
+        "* cache for the run after the decision). Throws when the leg has no route (a straight leg: no routing data, no way near the",
+        "* and inserting are measured on the router's paths off the main thread ([HoldPaths], the legs from the leg cache and into",
+        "* decides on those numbers. A timeout or a failure keeps the straight lines [straight]; a newer hold, Undo, an edit"
+      ]
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceMenusState.kt": {
+      "blob": "040060d5fb4f02a5bcdce728bcbc8994447c4fc1",
+      "perf": [
+        "* place ([PlaceAddSlice.holdMeasuring], same time limit, fallback and cancel as the hold's measure) – the menu opens with"
+      ]
     }
   }
 }

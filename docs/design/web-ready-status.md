@@ -96,3 +96,9 @@ So the three list together after two more small cuts (order: `PlanEditState`, `P
 take it, then `PlaceAddState` asks a small `HoldMeasure` port instead).
 `PlanRunSlice` (listed) needs no cut: its host's `recalc()` is a plain call – the planner's host implements it with
 its own run (`PlanRunHost`, 6 members); what is missing is on the page side, not in `state/`.
+
+**2026-11-20 evening: built and listed.** `PlanEditState.kt`, `PlaceAddState.kt`, `PlaceMenusState.kt` are in
+`state/web-ready.txt` (ports 29 / 21 / 9 members); the app's `PlanEditSlice` / `PlaceAddSlice` / `PlaceMenusSlice`
+extend them with the coroutines only. The engine's `test generateWasmGC` is green – but nothing calls the three classes
+yet, so two things are untested in the browser build until the page drives them: `cause::class.simpleName`
+(`PlanEditState`) and core's `HoldPaths` (coroutines) behind `PlaceAddState`.
