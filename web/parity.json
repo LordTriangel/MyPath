@@ -162,12 +162,12 @@
     },
     {
       "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlanRecalcSlice.kt",
-      "what": "recalc's head: the long-route ask (RouteRun.Event.Recalc -> LongAsked, nothing routed or loaded until the answer: the planner's longroute.ts / allowLongRoute in main.ts) – moved here from AppViewModel, rebuild phase 2 piece 9b; the rest (the router coroutine on its threads, the wait card, snapToRoute's history and saved link, the tour's follow after a result) is the phone's",
+      "what": "recalc's head: the long-route ask (RouteRun.Event.Recalc -> LongAsked, nothing routed or loaded until the answer: the planner's longroute.ts / allowLongRoute in main.ts) – moved to PlanRecalcState.begin (listed, rebuild phase 2 piece 9b; PlanRecalcSlice keeps only the coroutines); the rest (the router coroutine on its threads, the wait card, snapToRoute's history and saved link, the tour's follow after a result) is the phone's",
       "web": [
         "web/app/src/main.ts",
         "web/app/src/longroute.ts"
       ],
-      "blob": "77a4514b959e8500d6b9db84b6acc65a7c005c60"
+      "blob": "17e238510be4b5fc846ea63b96ef9a0b185b4d00"
     },
     {
       "app": "state/src/main/kotlin/com/onpath/app/ui/routes/RoutesSlice.kt",
@@ -3394,6 +3394,19 @@
     "state/src/main/kotlin/com/onpath/app/ui/routes/RoutesOpenState.kt": {
       "blob": "fe9813106e1d73d4adebde496906733e4fbfc41e",
       "perf": []
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/plan/PlanRecalcState.kt": {
+      "blob": "8694ac56f273d0545727c312b963f74ed92a1f1c",
+      "perf": [
+        "*  2. [route] / [findReach] (the routing thread; pure: engine, leg cache and cancel signal are passed in).",
+        "// it is routed. A new run (an edit, an activity change …) starts at one time-limit period and drops an open",
+        "// \"Weiter warten?\"; in Plan the time limit asks (SlowPlan), a run for Navigate keeps the straight lines",
+        "if (take.fit) fitFirstRoute(it.points, pts, if (take.rises) SheetRise.FIT_WAIT_MS else 0L)",
+        "// the time limit in Plan: ask (the box stays until answered); the points and the line stay as",
+        "Problems.info(\"routing\", \"Plan reached its time limit after ${it.rounds} period(s) – asking to wait on\")",
+        "* computation the web planner shares. Pure: the engine, the leg cache and the cancel signal are passed in. [onPlanner]",
+        "// askAtLimit: in Plan the time limit asks \"Weiter warten?\" (SlowPlan); a run for Navigate keeps the straight lines"
+      ]
     }
   }
 }
