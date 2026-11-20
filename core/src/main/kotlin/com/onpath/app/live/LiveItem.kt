@@ -49,6 +49,11 @@ data class LiveHead(
     val counter: Int = 0,
     /** Seconds to the phone's next planned upload – the viewer page paces its questions by it ([LivePolicy.viewerNext]). */
     val nextS: Int = LivePolicy.MOVING_S,
+    /**
+     * How many track chunks count ("t0000" … below this number); null = not said. A chunk at or above it is a leftover
+     * of an upload whose answer got lost and was cut differently the second time – the page ignores it.
+     */
+    val chunks: Int? = null,
 )
 
 /** A recorded point in a track chunk; [seg] counts the track's segments (a new one after a pause or GPS loss). */
@@ -62,7 +67,7 @@ data class LivePoint(val seg: Int, val lat: Double, val lon: Double, val eleM: I
  * - **Head:** then only fields until the end – tag (varint), length (varint), bytes. 1 state, 2 fix (zigzag lat, zigzag
  *   lon in 1e-5°, time ms, flags: bit 0 elevation, bit 1 accuracy, then those as zigzag m / varint m), 3 flags (bit 0
  *   GPS lost, bit 1 arrived), 4 off-route m, 5 distance m, 6 ascent m, 7 moving s, 8 started ms, 9 to go m, 10 arrival
- *   ms, 11 still for s, 12 battery %, 13 activity (UTF-8), 14 name (UTF-8), 15 counter, 16 next upload s.
+ *   ms, 11 still for s, 12 battery %, 13 activity (UTF-8), 14 name (UTF-8), 15 counter, 16 next upload s, 17 chunks that count.
  * - **Route:** flags (bit 0 = elevation), point count, per point lat / lon in 1e-5° as zigzag deltas (with elevation
  *   also whole metres as a zigzag delta); then fields (none yet).
  * - **Chunk:** flags (bit 0 = elevation), point count, per point: segment as a delta (never back), lat / lon as zigzag
@@ -136,6 +141,7 @@ object LiveItem {
         clean(h.name, MAX_NAME)?.let { out.field(14, it.encodeToByteArray()) }
         out.number(15, h.counter.toLong())
         out.number(16, h.nextS.toLong())
+        h.chunks?.let { out.number(17, it.toLong()) }
         return out.toArray()
     }
 
@@ -173,6 +179,7 @@ object LiveItem {
                 14L -> h = h.copy(name = clean(raw.decodeToString(), MAX_NAME).orEmpty())
                 15L -> h = h.copy(counter = int())
                 16L -> h = h.copy(nextS = int())
+                17L -> h = h.copy(chunks = int())
                 else -> Unit // a field from a newer app: skip it
             }
         }
