@@ -357,28 +357,93 @@ class PlaceAddFlowTest {
         assertTrue(app.trace().last(), app.trace().last().contains("paths failed: "))
     }
 
-    /** Each thing that makes the plan on screen a different one drops a finished measure unapplied. */
-    @Test fun aMeasureForAPlanNoLongerShownAddsNothing() {
-        val changes = listOf<Pair<String, App.() -> Unit>>(
-            "the plan changed" to { plan.edit { add(b) } },
-            "left Plan" to { planMode = false },
-            "a tour started" to { touring = true },
-            "another activity" to { activity = Activity.EBIKE },
-            "another level" to { sac = 3 },
+    /**
+     * [umbau]'s finding 2026-11-20 (owner: never lose the user's input silently): a hold while the first route still snaps
+     * the plan was measured on the plan before the snap and its result dropped – nothing added, no word. A measure for a
+     * plan no longer shown is measured again on the plan now shown and ends in a point or the menu; only leaving Plan drops it.
+     */
+    @Test fun aMeasureForAPlanChangedMeanwhileIsMeasuredAgainOnThePlanNowShown() {
+        val snappedB = at(b, 8.0, 0.0)
+        letters[snappedB] = "B"
+        val changes = listOf<Triple<String, App.() -> Unit, String>>(
+            Triple("the first route snapped a point", { plan.moveSnapped(listOf(a, b, c), listOf(a, snappedB, c)) }, "aBcS"),
+            Triple("another activity", { activity = Activity.EBIKE }, "abcS"),
+            Triple("another level", { sac = 3 }, "abcS"),
         )
-        for ((why, change) in changes) {
+        for ((why, change, added) in changes) {
             val app = App(listOf(a, b, c))
             app.scriptPaths(beside, append = 300.0, insert = 900.0)
             app.slice.holdOnMap(beside, 30.0)
             app.change()
-            val stored = app.stored()
+            app.worker.runNext() // the first measure finds its plan gone: measured again, the ring stays on the spot
+            assertEquals("$why: the ring stays while measuring again", beside, app.slice.holdMeasuring)
+            assertTrue("$why: said so: ${app.trace()}", app.trace().last().startsWith(
+                "Hold beside the plan: measured for a plan no longer shown – measured again on the plan now shown (paths: insert"))
             app.measure()
-            assertEquals("$why: nothing added", stored, app.stored())
+            assertEquals("$why: the point is added on the plan now shown", added, app.stored())
             assertNull("$why: the ring is off", app.slice.holdMeasuring)
-            assertNull("$why: no menu", app.slice.holdAddMenu)
-            assertTrue("$why: said so: ${app.trace().last()}",
-                app.trace().last().startsWith("Hold beside the plan: measured for a plan no longer shown – nothing added (paths: insert"))
+            assertTrue("$why: ${app.trace().last()}",
+                app.trace().last().startsWith("New point by a hold: appending clearly shorter, the new goal at once (line "))
+            // the second measure asked the router for the plan now shown
+            assertEquals("$why: ${app.routed}", "c→S ${app.activity.name} T${app.sac}", app.routed.last { it.startsWith("c→S") })
         }
+        // a tour started meanwhile: the tour's zone decides at once (no second measure) – here the menu asks
+        val tour = App(listOf(a, b, c))
+        tour.scriptPaths(beside, append = 300.0, insert = 900.0)
+        tour.slice.holdOnMap(beside, 30.0)
+        tour.touring = true
+        tour.measure()
+        assertEquals(0, tour.worker.size)
+        assertNull(tour.slice.holdMeasuring)
+        assertEquals(beside, tour.slice.holdAddMenu!!.p)
+        assertEquals("abc", tour.stored())
+    }
+
+    /** Leaving Plan while the measure ran: nothing is added (the user went elsewhere), and the trace says so. */
+    @Test fun aMeasureAfterLeavingPlanAddsNothing() {
+        val app = App(listOf(a, b, c))
+        app.scriptPaths(beside, append = 300.0, insert = 900.0)
+        app.slice.holdOnMap(beside, 30.0)
+        app.planMode = false
+        app.measure()
+        assertEquals("abc", app.stored())
+        assertNull(app.slice.holdMeasuring)
+        assertNull(app.slice.holdAddMenu)
+        assertEquals(0, app.worker.size)
+        assertTrue(app.trace().last(),
+            app.trace().last().startsWith("Hold beside the plan: measured, but Plan was left – nothing added (paths: insert"))
+    }
+
+    /** The plan changes again while it is measured again: the straight lines on the plan now shown decide – still a point. */
+    @Test fun aSecondRaceStillEndsInAPointOnTheStraightLines() {
+        val app = App(listOf(a, b, c))
+        app.scriptPaths(beside, append = 900.0, insert = 300.0) // the paths would say: a stop – the straight lines say: the new goal
+        app.slice.holdOnMap(beside, 30.0)
+        app.activity = Activity.EBIKE
+        app.worker.runNext() // the first measure: its plan is gone, measured again
+        assertEquals(beside, app.slice.holdMeasuring)
+        app.sac = 3
+        app.measure()
+        assertEquals("abcS", app.stored())
+        assertNull(app.slice.holdMeasuring)
+        assertEquals(0, app.worker.size)
+        assertTrue(app.trace().last(),
+            app.trace().last().startsWith("New point by a hold: appending clearly shorter, the new goal at once (line "))
+        assertTrue(app.trace().toString(), app.trace().any {
+            it.startsWith("Hold beside the plan: measured again for a plan no longer shown – the straight lines on the plan now shown decide")
+        })
+
+        // the second measure times out: its own 1.5 s limit gives the straight lines too
+        val slow = App(listOf(a, b, c))
+        slow.scriptPaths(beside, append = 900.0, insert = 300.0)
+        slow.slice.holdOnMap(beside, 30.0)
+        slow.activity = Activity.EBIKE
+        slow.worker.runNext()
+        assertEquals(beside, slow.slice.holdMeasuring)
+        slow.main.advance(com.onpath.app.domain.HoldPaths.TIMEOUT_MS)
+        assertEquals("abcS", slow.stored())
+        assertNull(slow.slice.holdMeasuring)
+        assertTrue(slow.trace().last(), slow.trace().last().contains("paths failed: timeout after 1500 ms ("))
     }
 
     @Test fun aNewerHoldStopsTheOlderMeasureAndAnEditStopsIt() {

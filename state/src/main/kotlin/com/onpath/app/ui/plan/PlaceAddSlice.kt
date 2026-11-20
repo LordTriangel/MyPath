@@ -225,6 +225,17 @@ class PlaceAddSlice(
      */
     fun holdOnMap(p: GeoPoint, lineSnapM: Double) {
         host.closeMapOverlays("hold on the map (new point)")
+        decideHold(p, lineSnapM, HoldTry.FIRST)
+    }
+
+    /**
+     * Which decision of one hold this is ([umbau]'s finding 2026-11-20, owner: never lose the user's input silently): the
+     * first measure, the one again after the plan changed under it (the first route's snap), then the straight lines.
+     */
+    private enum class HoldTry { FIRST, AGAIN, STRAIGHT }
+
+    /** [holdOnMap]'s decision on the plan shown now; [tryNo] says whether the paths may still be measured. */
+    private fun decideHold(p: GeoPoint, lineSnapM: Double, tryNo: HoldTry) {
         val n = waypoints.size
         val touring = host.touring()
         if (n < 2) {
@@ -250,7 +261,9 @@ class PlaceAddSlice(
                 Problems.trace("plan", "New point by a hold: on the line, set at once (line ${lineDp.toInt()} dp, $n points)")
                 addPoint(p, lineSnapM); return
             }
-            measureHold(p, lineSnapM, lineDp, d)
+            if (tryNo == HoldTry.STRAIGHT) applyPlanningHold(p, lineSnapM, lineDp, d, "line ${lineDp.toInt()} dp, straight lines" +
+                ", insert +${d.insertM.toInt()} m, append ${d.appendM.toInt()} m, $n points")
+            else measureHold(p, lineSnapM, lineDp, d, tryNo)
             return
         }
         holdAddMenu = HoldAdd(p, menu, lineSnapM)
@@ -267,17 +280,29 @@ class PlaceAddSlice(
      * A hold beside the plan while planning, not on the line (owner 2026-11-17 „Always real paths“, F-PLAN-15): appending
      * and inserting are measured on the router's paths off the main thread ([HoldPaths], the legs from the leg cache and into
      * it – the plan run after the decision finds them); a ring turns on the spot meanwhile. Then [PlaceAddMenu.planningHold]
-     * decides on those numbers. A timeout or a failure keeps the straight lines [straight]; a newer hold, Undo, a plan
-     * change or leaving Plan stops it, and a result for a plan no longer shown is never applied.
+     * decides on those numbers. A timeout or a failure keeps the straight lines [straight]; a newer hold, Undo, an edit
+     * or leaving Plan stops it. A result for a plan no longer shown (the first route snapped its points, another activity
+     * or level, a tour started) is never applied: the hold is decided again on the plan now shown – measured once more,
+     * after a second such change on the straight lines – so it always ends in a point or the menu ([umbau] 2026-11-20).
      */
-    private fun measureHold(p: GeoPoint, lineSnapM: Double, lineDp: Double, straight: PlaceAddMenu.Detours) {
+    private fun measureHold(p: GeoPoint, lineSnapM: Double, lineDp: Double, straight: PlaceAddMenu.Detours, tryNo: HoldTry) {
         val pts = waypoints.toList()
         val act = host.activity(); val level = host.sac()
         holdMeasuring = p
         holdPaths.start(pts, p, straight, { a, b, cancel -> router.routedLength(a, b, act, level, cancel) }) { o ->
             holdMeasuring = null
-            if (waypoints.toList() != pts || !host.planMode() || host.touring() || host.activity() != act || host.sac() != level) {
-                Problems.trace("plan", "Hold beside the plan: measured for a plan no longer shown – nothing added (${o.describe()})")
+            if (!host.planMode()) {
+                Problems.trace("plan", "Hold beside the plan: measured, but Plan was left – nothing added (${o.describe()})")
+                return@start
+            }
+            if (waypoints.toList() != pts || host.touring() || host.activity() != act || host.sac() != level) {
+                if (tryNo == HoldTry.FIRST) {
+                    Problems.trace("plan", "Hold beside the plan: measured for a plan no longer shown – measured again on the plan now shown (${o.describe()})")
+                    decideHold(p, lineSnapM, HoldTry.AGAIN)
+                } else {
+                    Problems.trace("plan", "Hold beside the plan: measured again for a plan no longer shown – the straight lines on the plan now shown decide (${o.describe()})")
+                    decideHold(p, lineSnapM, HoldTry.STRAIGHT)
+                }
                 return@start
             }
             val d = o.detours
@@ -285,22 +310,27 @@ class PlaceAddSlice(
                 (if (o.onPaths) "; straight +${straight.insertM.toInt()} / ${straight.appendM.toInt()} m" else
                     ", insert +${d.insertM.toInt()} m" + (d.earlyInsertM?.let { " (earlier legs +${it.toInt()} m)" } ?: "") +
                         ", append ${d.appendM.toInt()} m") + ", ${pts.size} points"
-            when (PlaceAddMenu.planningHold(lineDp, d)) {
-                PlaceAddMenu.HoldAction.ON_LINE -> addPoint(p, lineSnapM) // not reached: on the line is set before measuring
-                PlaceAddMenu.HoldAction.NEW_GOAL -> {
-                    Problems.trace("plan", "New point by a hold: appending clearly shorter, the new goal at once ($why)")
-                    asNewDestination(p)
-                }
-                PlaceAddMenu.HoldAction.STOP -> {
-                    Problems.trace("plan", "New point by a hold: inserting clearly shorter, a stop at once ($why)")
-                    insertAsStop(p, lineSnapM)
-                }
-                PlaceAddMenu.HoldAction.ASK -> {
-                    Problems.trace("plan", "Hold on the map in doubt ($why)")
-                    val menu = PlaceAddMenu.planningMenu(d)
-                    holdAddMenu = HoldAdd(p, menu, lineSnapM)
-                    Problems.trace("plan", "Hold on the map: asks ${menu.main.joinToString(" / ")}")
-                }
+            applyPlanningHold(p, lineSnapM, lineDp, d, why)
+        }
+    }
+
+    /** [PlaceAddMenu.planningHold] on the detours [d] (measured or straight): a point at once or the small menu. */
+    private fun applyPlanningHold(p: GeoPoint, lineSnapM: Double, lineDp: Double, d: PlaceAddMenu.Detours, why: String) {
+        when (PlaceAddMenu.planningHold(lineDp, d)) {
+            PlaceAddMenu.HoldAction.ON_LINE -> addPoint(p, lineSnapM) // not reached: on the line is set before measuring
+            PlaceAddMenu.HoldAction.NEW_GOAL -> {
+                Problems.trace("plan", "New point by a hold: appending clearly shorter, the new goal at once ($why)")
+                asNewDestination(p)
+            }
+            PlaceAddMenu.HoldAction.STOP -> {
+                Problems.trace("plan", "New point by a hold: inserting clearly shorter, a stop at once ($why)")
+                insertAsStop(p, lineSnapM)
+            }
+            PlaceAddMenu.HoldAction.ASK -> {
+                Problems.trace("plan", "Hold on the map in doubt ($why)")
+                val menu = PlaceAddMenu.planningMenu(d)
+                holdAddMenu = HoldAdd(p, menu, lineSnapM)
+                Problems.trace("plan", "Hold on the map: asks ${menu.main.joinToString(" / ")}")
             }
         }
     }

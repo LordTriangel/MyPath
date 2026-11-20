@@ -101,9 +101,9 @@ class CoreFieldE2ETest : E2EBase() {
         hold(w * 0.5f, h * 0.25f)
         clickText(Txt.s(Res.string.plan_go_here))
         waitUntil("route from my location", 20_000) { waypointCount() == 2 }
-        // the route (and its snap) first: a hold beside the plan is measured against the plan it was made on, and its
-        // result is dropped when the plan changed meanwhile ("measured for a plan no longer shown – nothing added",
-        // seen 2026-11-19 on a slow emulator: the hold fell into the snap of the first route)
+        // the route (and its snap) first, so the hold is measured once: a hold that falls into the snap of the first route
+        // (seen 2026-11-19 on a slow emulator) is measured again on the snapped plan (PlaceAddFlowTest
+        // .aMeasureForAPlanChangedMeanwhileIsMeasuredAgainOnThePlanNowShown) – it took a few seconds longer there
         routeSettled()
         hold(w * 0.30f, h * 0.30f)
         waitUntil("a stop added", 20_000) { waypointCount() == 3 }
