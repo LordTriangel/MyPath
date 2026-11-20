@@ -1,5 +1,6 @@
 package com.onpath.app.cells
 
+import com.onpath.app.data.of
 import com.onpath.strings.*
 import android.app.Notification
 import android.app.NotificationChannel

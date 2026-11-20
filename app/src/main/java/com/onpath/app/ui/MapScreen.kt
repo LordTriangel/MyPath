@@ -1,5 +1,6 @@
 package com.onpath.app.ui
 
+import com.onpath.app.data.of
 import com.onpath.app.domain.AppMode
 import com.onpath.app.domain.LocateDistance
 import com.onpath.app.domain.OfflineReady

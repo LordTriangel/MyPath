@@ -82,3 +82,9 @@ ui/SheetRise.kt
 #   17 members: begin, onlineOff, current, offlineKeep, carried, offlineDone, onlineLoading, searchCentre, onlineAnswer, onlineDone + onQuery, onCategory, clear, remember, clearRecent, showAllFavourites, resolve;
 #   SearchSession (app) adds the coroutines, the index, the address files, the provider
 ui/search/SearchState.kt
+# The wait windows' rules (the planner's WebWait mirrors them): RouteWait + RouteWaitUi, WaitSign, WaitWindowUi, WaitButton, BesideRow (ui/progress/WaitRules.kt)
+ui/progress/WaitRules.kt
+# The map wait window's words and decisions: MapLoadUi, MapLoads, MapLoadWait, MapLoadCancel (MapWait, the measuring class, stays in :app – it reads RoutingDataLoader.Status)
+ui/MapWaitRules.kt
+# ProgressMemory: the learned shares' interface + InMemory + SUGGEST_DEFAULT (the preferences-backed one is in :app)
+data/ProgressMemory.kt

@@ -419,13 +419,23 @@
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapLoad.kt",
-      "what": "the wait window for the map of a place (form A, owner 2026-11-19): MapLoadUi's steps and words („vorbereitet · lädt Karte + Routendaten · einfügen“, wait_* / maps_phase_*), MapWait's measurement per step (prepare = the server's time left, download = bytes, join), the ONE bar (OneBar), when it shows and closes, Cancel – the planner's WebWait.kt (map part) + loadoverlay.ts; MapLoadWait.waits (own point / search, or a view without detailed map) – areas.ts show()",
+      "what": "the wait window for the map of a place (form A, owner 2026-11-19): MapLoadUi's steps and words („vorbereitet · lädt Karte + Routendaten · einfügen“, wait_* / maps_phase_*), MapWait's measurement per step (prepare = the server's time left, download = bytes, join), the ONE bar (OneBar), when it shows and closes, Cancel – the planner's WebWait.kt (map part) + loadoverlay.ts; MapLoadWait.waits (own point / search, or a view without detailed map) – areas.ts show() (MapWait stays here; MapLoadUi + MapLoadWait/Cancel/Loads moved to :state ui/MapWaitRules.kt, web-ready)",
       "web": [
         "web/engine/src/main/kotlin/com/onpath/web/WebWait.kt",
         "web/app/src/loadoverlay.ts",
         "web/app/src/areas.ts"
       ],
-      "blob": "b202038204528fb5c641498c6a2ec80616fd7cb9"
+      "blob": "8aec61b436c9960c0038446ba229aa1a2aa25d9c"
+    },
+    {
+      "app": "state/src/main/kotlin/com/onpath/app/ui/MapWaitRules.kt",
+      "what": "(moved from ui/MapLoad.kt, web-ready) MapLoadUi's steps and words, MapLoadWait.waits, MapLoadCancel, MapLoads sizes – WebWait.kt (map part), loadoverlay.ts, areas.ts",
+      "web": [
+        "web/engine/src/main/kotlin/com/onpath/web/WebWait.kt",
+        "web/app/src/loadoverlay.ts",
+        "web/app/src/areas.ts"
+      ],
+      "blob": "8f7fd6dad9c7597c0714c8c2fd9587b8f1a9816f"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/progress/WaitWindow.kt",
@@ -434,17 +444,17 @@
         "web/app/src/loadoverlay.ts",
         "web/app/src/style.css"
       ],
-      "blob": "1bf5cae50727817b39568c62c46b212e0fff7f58"
+      "blob": "99d0c48310f375a17d24a4d6a6dda35b97c52e0b"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/progress/RouteWait.kt",
-      "what": "the route's wait (form A): the legs the router works on + „prüfen“ as steps, their shares (RouteShares), the check's time learned at the end, the legs' names „A → B“ (legLabels), the window after a slow second – WebWait.kt (route part), loadoverlay.ts plan(), main.ts planRun",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/progress/WaitRules.kt",
+      "what": "(moved to :state, web-ready: RouteWait, RouteWaitUi, WaitSign, WaitWindowUi, WaitButton, BesideRow) the route's wait (form A): the legs the router works on + „prüfen“ as steps, their shares (RouteShares), the check's time learned at the end, the legs' names „A → B“ (legLabels), the window after a slow second – WebWait.kt (route part), loadoverlay.ts plan(), main.ts planRun",
       "web": [
         "web/engine/src/main/kotlin/com/onpath/web/WebWait.kt",
         "web/app/src/loadoverlay.ts",
         "web/app/src/main.ts"
       ],
-      "blob": "2f9b5879d8ebac57a3ac164b024eb03577c724ca"
+      "blob": "3650dcc72107063f4189023b7412f99cc4a9c73a"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/progress/BesideSign.kt",
@@ -454,15 +464,15 @@
         "web/engine/src/main/kotlin/com/onpath/web/WebWait.kt",
         "web/app/src/style.css"
       ],
-      "blob": "292e64b59c756f08c7370f434c44704422d93124"
+      "blob": "b5df7392655c8fa02e0745eb2d17144859dfa81d"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/data/ProgressMemory.kt",
-      "what": "the learned shares of the wait window kept per phone (map steps „v1:…“, the route's check „r1:…“), defaults on failure, reported – progressmemory.ts (localStorage, per browser; the planner's route part „p1:…“ too)",
+      "app": "state/src/main/kotlin/com/onpath/app/data/ProgressMemory.kt",
+      "what": "(the interface + InMemory moved to :state, web-ready; the preferences-backed one stays in app/…/data/ProgressMemory.kt) the learned shares of the wait window kept per phone (map steps „v1:…“, the route's check „r1:…“), defaults on failure, reported – progressmemory.ts (localStorage, per browser; the planner's route part „p1:…“ too)",
       "web": [
         "web/app/src/progressmemory.ts"
       ],
-      "blob": "da1d33ab5bfedc46ee10574f2fde5ed6cab94cd9"
+      "blob": "ead6f018f243905f53d8e7a5c4ba1cba55e8fc09"
     }
   ],
   "watch": [
@@ -3398,6 +3408,31 @@
     "state/src/main/kotlin/com/onpath/app/ui/search/SearchState.kt": {
       "blob": "b887a0a7eb6addb33da0d202308a864c07ad7eed",
       "perf": []
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/progress/WaitRules.kt": {
+      "blob": "3650dcc72107063f4189023b7412f99cc4a9c73a",
+      "perf": [
+        "class RouteWait(private val memory: ProgressMemory) {",
+        "val check = memory.routeCheck",
+        "memory.routeCheck = RouteShares.learn(memory.routeCheck, checkFromMs - startMs, now - checkFromMs)",
+        "* [points] (none from the cache: [total] = points − 1); else null (they are counted: \"Abschnitt 2\")."
+      ]
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/MapWaitRules.kt": {
+      "blob": "8f7fd6dad9c7597c0714c8c2fd9587b8f1a9816f",
+      "perf": [
+        "const val ESTIMATED_REGION_BYTES = 9L * 1_048_576",
+        "/** Total size: known sizes, [ESTIMATED_REGION_BYTES] for the rest. */",
+        "cells.sumOf { knownBytes(states[it], sizes[it]) ?: ESTIMATED_REGION_BYTES }"
+      ]
+    },
+    "state/src/main/kotlin/com/onpath/app/data/ProgressMemory.kt": {
+      "blob": "ead6f018f243905f53d8e7a5c4ba1cba55e8fc09",
+      "perf": [
+        "* session goes on with what it learned in memory. Thread-safe.",
+        "* places of a [StepShares]; start [SUGGEST_DEFAULT]. Default accessors: a memory that keeps none uses the start values.",
+        "/** For tests and when nothing can be stored: in memory only. */"
+      ]
     }
   }
 }
