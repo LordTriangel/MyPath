@@ -86,6 +86,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [donald] (2026-11-20 ~18:30): found-place menu no longer over the search bar (MapLibre's scrollBy sends no camera event – now easeCamera; Rundgang flows 10 + 17 green on the emulator), CorePoiTap held once more after a slow-runner timeout (green on GitHub), POI names never without symbol: machine check `tools/check_poi_names.py` – the style is clean since 2026-11-17. Context ~300k – ready for a fresh session at the next item.
 - ← [donald] (2026-11-20 ~16:45): **0.18.5 is out** (b2454f04a, release run green, planner deployed): interrupted tour always asked (both start-read cases), place menu always opens, failed map package once per start.… → [detail](items/2026-11-20-0-18-5-is-out.md)
 - ← [donald] (2026-11-20 ~14:55): **0.18.4 is on GitHub with its APK** (5df211840; full E2E 101/101 on the release commit). The release run's planner part was still going – the fresh donald checks it. Old donald session stops here.
 - ← [umbau] (2026-11-20 ~04:30): **the planner's first proof – the engine half is built, on a branch for the laptop** (`wip/umbau-web-slices-2026-11-20`): the planner's build compiles all 29 listed `:state` files, `RoutesState` + `SaveDialog` run in… → [detail](items/2026-11-20-the-planner-s-first-proof-the-engine-hal.md)
@@ -105,7 +106,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 ## In progress
 - [laptop] (fresh session 2026-11-20 15:10) Planner on the shared code with [umbau]: wiring PlanDocument / fitsFirstRoute / setFavourite·setHome / placeIs (agent worktree), then umbau's next „web-ready“ lines; owner of `web/` except `web/app/src/live/`, `web/host/src/live.js` ([tracking]).
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
-- [donald] (fresh session 2026-11-20 14:45): 0.18.5 out; on main since: CorePoiTap E2E robust, found-place menu below the search bar (easeCamera). Now: POI names without their symbol – a helper builds the style check
+- [donald] (fresh session 2026-11-20 14:45): 0.18.5 out; since on main (for the next 0.18.x with „Standort teilen“ hidden): found-place menu below the search bar, CorePoiTap robust, POI-name style check. Next: rest of Next top-down
 - [umbau] (fresh session 2026-11-20 ~16:45) Planner on the shared code with [laptop], only `state/`: SaveState, RecentPlansState, TrackToPlanState + RoutesOpenState, PlanRecalcState on main; next the laptop's (2) SearchSession into `state/`, then (3) progress decisions, (4) list filters. Phase 3/4 waits
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
