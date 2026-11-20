@@ -509,7 +509,7 @@ class PlaceAddFlowTest {
 
     @Test fun duringATourANewGoalReplacesTheOldOneAndPlanningKeepsIt() {
         val app = App(listOf(a, b, c))
-        app.slice.holdAddMenu = PlaceAddSlice.HoldAdd(beside, PlaceAddMenu.Menu(listOf(PlaceAddMenu.Item.NEW_DESTINATION)), 30.0)
+        app.slice.holdAddMenu = PlaceAddState.HoldAdd(beside, PlaceAddMenu.Menu(listOf(PlaceAddMenu.Item.NEW_DESTINATION)), 30.0)
         app.touring = true
         app.slice.holdAsNewDestination()
         assertEquals("abS", app.stored())
@@ -517,7 +517,7 @@ class PlaceAddFlowTest {
         // an empty plan just gets it
         val empty = App()
         empty.touring = true
-        empty.slice.holdAddMenu = PlaceAddSlice.HoldAdd(beside, PlaceAddMenu.Menu(listOf(PlaceAddMenu.Item.NEW_DESTINATION)), 30.0)
+        empty.slice.holdAddMenu = PlaceAddState.HoldAdd(beside, PlaceAddMenu.Menu(listOf(PlaceAddMenu.Item.NEW_DESTINATION)), 30.0)
         empty.slice.holdAsNewDestination()
         assertEquals("S", empty.stored())
     }
@@ -579,7 +579,7 @@ class PlaceAddFlowTest {
         // "Einfügen" on a tour is the stop-only insertion among the points ahead: the goal stays last
         val stop = App(listOf(a, b, c))
         stop.touring = true; stop.passed = setOf(0, 1); stop.position = at(b, 0.0, 700.0)
-        stop.slice.holdAddMenu = PlaceAddSlice.HoldAdd(nearA, PlaceAddMenu.Menu(listOf(PlaceAddMenu.Item.ADD_STOP)), 30.0)
+        stop.slice.holdAddMenu = PlaceAddState.HoldAdd(nearA, PlaceAddMenu.Menu(listOf(PlaceAddMenu.Item.ADD_STOP)), 30.0)
         stop.slice.holdAsStop()
         assertEquals(c, stop.store.points.last())
         assertTrue(stop.store.points.indexOf(nearA) >= 2)

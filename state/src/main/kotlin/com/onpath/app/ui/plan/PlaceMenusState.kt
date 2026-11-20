@@ -59,7 +59,7 @@ interface PlaceMenusPorts {
 open class PlaceMenusState(
     private val plan: PlanDocument,
     private val planRun: PlanRunSlice,
-    private val placeAdd: PlaceAddSlice,
+    private val placeAdd: PlaceAddState,
     private val host: PlaceMenusPorts,
     /** The router a held place's rows are measured on (the same as the hold's). */
     private val router: HoldRouter,

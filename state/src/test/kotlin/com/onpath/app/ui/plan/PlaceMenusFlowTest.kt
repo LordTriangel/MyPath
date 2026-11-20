@@ -310,7 +310,7 @@ class PlaceMenusFlowTest {
     @Test fun aPlaceMenuOnASmallPlanOpensAtOnceAfterTheOtherMenusClosed() {
         val app = App(listOf(a))
         app.menus.openPointMenu(0)
-        app.add.holdAddMenu = PlaceAddSlice.HoldAdd(b, PlaceAddMenu.menu(2, false, null), 30.0)
+        app.add.holdAddMenu = PlaceAddState.HoldAdd(b, PlaceAddMenu.menu(2, false, null), 30.0)
         app.add.firstPointMenu = c
         val traced = app.trace().size
         app.menus.openPoiMenu(hut)
@@ -505,7 +505,7 @@ class PlaceMenusFlowTest {
         val app = App(listOf(a, b, c))
         app.menus.planPoi = hut
         app.picked = place("n1", "Hütte")
-        app.add.holdAddMenu = PlaceAddSlice.HoldAdd(beside, PlaceAddMenu.menu(3, false, PlaceAddMenu.Zone.GOAL), 30.0)
+        app.add.holdAddMenu = PlaceAddState.HoldAdd(beside, PlaceAddMenu.menu(3, false, PlaceAddMenu.Zone.GOAL), 30.0)
         assertTrue(app.menus.mapOverlayOpen)
         app.menus.closeMapOverlays("a tap")
         assertNull(app.menus.planPoi)
@@ -521,7 +521,7 @@ class PlaceMenusFlowTest {
         app.menus.poiMenu = hut; assertTrue(app.menus.mapOverlayOpen); app.menus.poiMenu = null
         app.menus.openPointMenu(1); assertTrue(app.menus.mapOverlayOpen); app.menus.closePointMenu("test")
         app.add.firstPointMenu = a; assertTrue(app.menus.mapOverlayOpen); app.add.firstPointMenu = null
-        app.add.holdAddMenu = PlaceAddSlice.HoldAdd(beside, PlaceAddMenu.menu(3, false, null), 30.0); assertTrue(app.menus.mapOverlayOpen); app.add.holdAddMenu = null
+        app.add.holdAddMenu = PlaceAddState.HoldAdd(beside, PlaceAddMenu.menu(3, false, null), 30.0); assertTrue(app.menus.mapOverlayOpen); app.add.holdAddMenu = null
         app.menus.planPoi = hut; assertTrue(app.menus.mapOverlayOpen); app.menus.planPoi = null
         assertFalse(app.menus.mapOverlayOpen)
     }

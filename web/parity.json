@@ -211,14 +211,14 @@
       "blob": "d256fb5e5afa75c8efb1777bc83b3a04f0b3c5d3"
     },
     {
-      "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddSlice.kt",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddState.kt",
       "what": "addPlace; poiAsNewDestination (appends while planning – PlaceAddMenu.keepsOldGoal; the planner has no tour, main.ts placeAsNewDestination); holdOnMap (F-PLAN-15: on the line / new goal / stop at once, else the hold menu – PlaceAddMenu.planningHold, the engine's WebApi.holdOnMap; a round trip by the zone); holdAsStop / holdAsNewDestination (main.ts holdAddMenu) – moved here from AppViewModel, rebuild phase 2 piece 11; the measuring of the hold on the paths (HoldPaths on the hold's router thread) and the tour hooks (a place added during a tour is a stop between, \"Go here\" from my location, the followed plan) are the phone's: the planner has no router thread and no tour; the web adds one cut (owner 2026-11-20): a candidate leg over 30 km straight (WebApi.LONG_LEG_M, measureOrStraight; the hold and a held place's rows in placeMenu) → the straight lines decide at once, no path measure (on such legs the 1.5 s cap was always hit) – the app does not have it yet",
       "web": [
         "web/app/src/main.ts",
         "web/app/src/poipin.ts",
         "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt"
       ],
-      "blob": "562921303db8142e9b0c0ade09db44242c4c7616"
+      "blob": "08cf410e7ab37d30bfc5dc9c5c57877472932b1c"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -436,7 +436,7 @@
         "web/app/src/main.ts",
         "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt"
       ],
-      "blob": "2abc637fe7b169b1f25c10d18205dca4a1ba0fda"
+      "blob": "040060d5fb4f02a5bcdce728bcbc8994447c4fc1"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapLoad.kt",
