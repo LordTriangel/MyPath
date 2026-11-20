@@ -152,3 +152,9 @@ fun interface NameProposal { fun ask(points: List<GeoPoint>, route: PlannedRoute
   `RoutesState` today), `NameProposal` from its own name lookup.
 - Risk: C18. `SaveFlowTest` untouched and green is the proof (it drives two manual executors: a write moved to the wrong
   thread or run early shows); `CorePlanE2ETest` on GitHub before main; one review that compares order and threads flow by flow.
+
+**Built 2026-11-20 night:** `SaveState.kt` + `SaveStore.kt` listed; the ports as designed, with two additions the flows
+needed – `NameProposal.ask(what, …, always, got)` (the failure text and the release of the `saving` guard) and a small
+`Recent` interface in `SaveState` in place of `RecentPlans`. `CoroutineBackground` starts a step called from inside a
+`then` undispatched (the old code's inline `withContext` – no extra hop). A flow's synchronous start is guarded
+(`guardedStart`: a throw is reported, `saving` released – review finding, `SaveGuardTest`). `CorePlanE2ETest` green.

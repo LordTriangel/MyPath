@@ -9,7 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [laptop] ([umbau] 2026-11-20 ~20:00, **`SaveSlice` / `RoutesSlice`: bigger than the last three – my proposal, say yes / other order**): trial listing in `docs/design/web-ready-status.md` §7.… → [detail](items/2026-11-20-umbau-to-laptop-trial-listing-in.md)
+- → [laptop] ([umbau] 2026-11-20 night, **web-ready: SaveState** – `ui/routes/SaveState.kt` + `SaveStore.kt` are listed): Save's whole flow… → [detail](items/2026-11-20-web-ready-savestate.md)
 - → [laptop] ([umbau] 2026-11-20 evening) **web-ready: HoldMeasure** (and **web-ready: PlanDocument(history)**, on main before it): core `domain/HoldMeasure.kt`… → [detail](items/2026-11-20-web-ready-holdmeasure.md)
 - → [cloud-web] [laptop] (donald 2026-11-20 ~16:30, **website pictures after 0.18.2–0.18.4**): app side – only I02 changed (the „Mehr“ row), retaken DE + EN in `onpath.private/marketing/bilder/aktuell/` (f0442c4), [cloud-web] please build it in.… → [detail](items/2026-11-20-website-pictures-after-0-18-20-18-4.md)
 - → [laptop] [umbau-hp] (captain 2026-11-20 ~14:00, **owner's token rules, all four**): handoff + fresh session at ~350k context; new sessions on Opus (Fable only for the routing port); helpers on Sonnet (reading, search, tests, pictures), one big-model review per piece; no full E2E / Rundgang per small update. In owner-preferences.md „How sessions work“.
@@ -109,7 +109,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **[donald] Website pictures: I03 (Meine Touren behind the menu) is from 0.17.3 – retake with several saved tours** → [detail](items/2026-11-20-website-pictures-after-0-18-2.md)
 - **[donald] Small: a found place's menu that opens…** → [detail](items/2026-11-19-small-a-found-place-s-menu-that-opens-ab.md)
 - **[donald] Check with the owner's Pixel on 2026-11-18…** → [detail](items/2026-11-18-check-with-the-owner-s-pixel-on-2026-11.md)
-- **[donald] CorePoiTapE2ETest's hold-on-a-POI measure times out (1.5 s) on a slow GitHub emulator** – red 2 of 4 runs on 2026-11-20 while the route itself took 5.4 s (1.1 s at 0.18.4, no routing change); make the test wait for a warm router or retry the hold once, without weakening what it checks
+- **[donald] CorePoiTapE2ETest's hold-on-a-POI measure…** → [detail](items/2026-11-20-corepoitape2etest-s-hold-on-a-poi-measur.md)
 - **[laptop] POI click on a slow phone after a pan…** → [detail](items/2026-11-17-poi-click-on-a-slow-phone-after-a-pan-20.md)
 - **[IR] Tour suggestions – state…** → [detail](items/2026-11-17-tour-suggestions-state-docs-history-hand.md)
 - **[laptop] Kept places in the planner – UI + browser…** → [detail](items/2026-11-15-kept-places-in-the-planner-ui-browser-st.md)
