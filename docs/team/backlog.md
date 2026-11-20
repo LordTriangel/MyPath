@@ -109,6 +109,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **[donald] Website pictures: I03 (Meine Touren behind the menu) is from 0.17.3 – retake with several saved tours** → [detail](items/2026-11-20-website-pictures-after-0-18-2.md)
 - **[donald] Small: a found place's menu that opens…** → [detail](items/2026-11-19-small-a-found-place-s-menu-that-opens-ab.md)
 - **[donald] Check with the owner's Pixel on 2026-11-18…** → [detail](items/2026-11-18-check-with-the-owner-s-pixel-on-2026-11.md)
+- **[donald] CorePoiTapE2ETest's hold-on-a-POI measure times out (1.5 s) on a slow GitHub emulator** – red 2 of 4 runs on 2026-11-20 while the route itself took 5.4 s (1.1 s at 0.18.4, no routing change); make the test wait for a warm router or retry the hold once, without weakening what it checks
 - **[laptop] POI click on a slow phone after a pan…** → [detail](items/2026-11-17-poi-click-on-a-slow-phone-after-a-pan-20.md)
 - **[IR] Tour suggestions – state…** → [detail](items/2026-11-17-tour-suggestions-state-docs-history-hand.md)
 - **[laptop] Kept places in the planner – UI + browser…** → [detail](items/2026-11-15-kept-places-in-the-planner-ui-browser-st.md)
