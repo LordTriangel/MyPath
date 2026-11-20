@@ -14,6 +14,9 @@ ui/routes/SaveDialog.kt
 # SaveState: ports SavePorts (17 members + Say: route, activity, sac, stops, difficulty, days, keepWhole, overwriteWhole, datedName, storeTimes, forgetTimes, copyTimes, tourChanged, syncChanged, refreshTours, saved, shownRenamed), SaveStore (6: getTour, loadSegments, insertPlanned, replacePlanned, rename, setFavourite; blocking),
 #   Recent (2: keep, keepReplaced), Background (1: run) and NameProposal (1: ask); SaveSlice (app) adds the coroutines and `suspend proposeName`
 ui/routes/SaveState.kt
+# RecentPlansState: ports RecentPlansPorts (9 members: insertDraft, updateDraft, storeTimes, tourChanged, purged, syncChanged, refreshTours, problem, trimmed), Background (1: run) and NameProposal (1: ask); RoutesStore as above;
+#   RecentPlans (app) adds the coroutines and `suspend proposeName`
+ui/routes/RecentPlansState.kt
 ui/routes/SaveStore.kt
 # KeptPlacesSlice: ports PlacesStore (4 members: saved, update, backupChanged, syncChanged) and KeptPlacesHost (2: searchMark, isCandidate)
 ui/plan/KeptPlacesSlice.kt

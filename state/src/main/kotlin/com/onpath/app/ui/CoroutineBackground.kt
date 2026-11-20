@@ -4,7 +4,10 @@ import com.onpath.app.debug.launchSafe
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
+import com.onpath.app.routing.GeoPoint
+import com.onpath.app.routing.PlannedRoute
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * The app's [Background]: a coroutine on the view model's [scope] (failures reported under `app` / [Background.run]'s `what`),
@@ -24,6 +27,21 @@ class CoroutineBackground(private val scope: CoroutineScope, private val io: Cor
                 inThen++
                 try { then(result) } finally { inThen-- }
             } finally { always() }
+        }
+    }
+}
+
+/**
+ * The app's [NameProposal]: a coroutine on [scope] that waits at most `maxMs` for [propose] (null = none in time), then calls
+ * `got` on the scope's thread; `always` after either. A failure is reported under `app` / the `what` asked.
+ */
+class CoroutineNameProposal(
+    private val scope: CoroutineScope,
+    private val propose: suspend (List<GeoPoint>, PlannedRoute?) -> String?,
+) : NameProposal {
+    override fun ask(what: String, points: List<GeoPoint>, route: PlannedRoute?, maxMs: Long, always: () -> Unit, got: (String?) -> Unit) {
+        scope.launchSafe("app", what) {
+            try { got(withTimeoutOrNull(maxMs) { propose(points, route) }) } finally { always() }
         }
     }
 }

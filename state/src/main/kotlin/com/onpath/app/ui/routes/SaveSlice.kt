@@ -1,14 +1,12 @@
 package com.onpath.app.ui.routes
 
-import com.onpath.app.debug.launchSafe
 import com.onpath.app.routing.GeoPoint
 import com.onpath.app.routing.PlannedRoute
 import com.onpath.app.ui.CoroutineBackground
-import com.onpath.app.ui.NameProposal
+import com.onpath.app.ui.CoroutineNameProposal
 import com.onpath.app.ui.plan.PlanDocument
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.withTimeoutOrNull
 
 /** [SavePorts] and the one suspending member: the place name proposed for a plan (the app: the search index / plan link title). */
 interface SaveHost : SavePorts {
@@ -29,18 +27,5 @@ class SaveSlice(
     scope: CoroutineScope,
     io: CoroutineDispatcher,
     nameWaitMs: Long = RecentPlans.NAME_WAIT_MS,
-) : SaveState(plan, routes, RecentAsPorts(recent), store, host, CoroutineBackground(scope, io),
-    NameProposal { what, pts, r, maxMs, always, got ->
-        scope.launchSafe("app", what) {
-            try { got(withTimeoutOrNull(maxMs) { host.proposeName(pts, r) }) } finally { always() }
-        }
-    }, nameWaitMs)
-
-/** [RecentPlans] as the [Recent] port of [SaveState]. */
-private class RecentAsPorts(private val recent: RecentPlans) : Recent {
-    override fun keep(plan: LeavingPlan, why: String): Long? =
-        recent.keep(RecentPlans.Leaving(plan.points, plan.unsaved, plan.savedId, plan.route, plan.activity, plan.sac, plan.stops, plan.pins,
-            plan.dated, plan.days, plan.difficulty), why)
-
-    override fun keepReplaced(old: com.onpath.app.data.Tour, segments: List<List<com.onpath.app.gpx.TrackPoint>>) = recent.keepReplaced(old, segments)
-}
+) : SaveState(plan, routes, recent, store, host, CoroutineBackground(scope, io),
+    CoroutineNameProposal(scope) { pts, r -> host.proposeName(pts, r) }, nameWaitMs)
