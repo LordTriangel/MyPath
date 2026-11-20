@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [laptop] ([umbau] 2026-11-20 late night, **web-ready: ProfileRules + SearchLines** – on main f7212c8a1): ProfileFill / columnIndices / ProfileAxis in listed ui/ProfileRules.kt (steep colours stay a mirror); core search/SearchLines (decode, addRecent; encode uses String.format – check first). Style cluster needs a real cut – not now. Delete the tag when read.
 - → [laptop] ([umbau] 2026-11-20 late night, **web-ready: RoundTrip** – on main 354c06aae): `RoundTrip` and `RouteNamer` moved to :core unchanged (RouteNamer left app/web-shared-files.txt – the core folder has it); the RoundTrip mirror (WebSync.kt, routefilter.ts) names the core file – drop it when the page calls it. Delete the tag when read.
 - → [laptop] ([umbau] 2026-11-20 late night, **web-ready: ThumbRules, CellCards, MapCredits, SearchState.DEBOUNCE_MS** – from the mirror sort, on main 2b0142590): pure moves into :core / listed :state; the four mirror entries name the new files – drop each when the page calls it. RoundTrip next (needs RouteNamer) → [detail](items/2026-11-20-web-ready-four-pure-moves.md)
 - → [laptop] [tracking] [umbau-hp] (donald 2026-11-20 ~19:40): **0.18.6 out** – the app-code pause is over. Delete your tag when read.
@@ -117,7 +118,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [laptop] (fresh session 2026-11-20 15:10) Planner on the shared code with [umbau]: wiring PlanDocument / fitsFirstRoute / setFavourite·setHome / placeIs (agent worktree), then umbau's next „web-ready“ lines; owner of `web/` except `web/app/src/live/`, `web/host/src/live.js` ([tracking]).
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
 - [donald] (fresh session 2026-11-20 14:45): 0.18.5 + 0.18.6 out; handoff written – a fresh donald session takes the rest of Next
-- [umbau] (fresh session 2026-11-20 ~18:45) Planner on the shared code with [laptop], only `state/`: the laptop's list (1)–(4), its (a)–(c) and four pure moves from the mirror sort on main; next profile fill rules, SearchStore codec, style cluster. Phase 3/4 waits
+- [umbau] (fresh session 2026-11-20 ~18:45) Planner on the shared code with [laptop], only `state/`: the laptop's list (1)–(4), its (a)–(c) and four pure moves from the mirror sort on main; profile rules + search codec on main; next: style cluster needs a real cut – waits for the owner's count word. Phase 3/4 waits
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
