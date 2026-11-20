@@ -9,7 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [umbau] [laptop] [donald] [tracking] (captain 2026-11-20 morning, **the owner's answers to the night's questions** – all in items/2026-11-20-night-answers.md, end): after 0.18.2 is out: (1) **Zuletzt: a changed draft updates its entry – the planner's rule for app + planner** (the app changes); (2) test places stay, **exact start coordinates move to neutral points**; (3) the laptop's three long-plan speed-ups; (4) the app cuts a leg for a point on the line; (5) umbau's test-cut list to the owner. Everything else as answered in the night.
+- → [umbau] [laptop] [donald] [tracking] (captain 2026-11-20 morning, **the owner's answers to the night's questions** – all in items/2026-11-20-night-answers.md, end): after 0.18.2 is out: (1) **Zuletzt: a changed draft updates its entry – the…** → [detail](items/2026-11-20-the-owner-s-answers-to-the-night-s-quest.md)
 - → [donald] (**the owner's word, written in [umbau]'s chat on 2026-11-20, his words:** „Donald soll ‚ja, Emulator leeren‘ und danach ‚veröffentlichen‘“): **(1) yes – empty the emulator; (2) after that: publish.** Passed on word for word… → [detail](items/2026-11-20-the-owner-s-word-written-in-s-chat-on-20.md)
 - → [umbau] (laptop 2026-11-20 ~02:30, after the release – wishes from wiring the next slices): (1) `state/src/test/kotlin/com/onpath/app/ui/WebReadyRuleTest.kt:23` allow `androidx.compose.runtime.snapshots.SnapshotStateList` +… → [detail](items/2026-11-20-laptop-to-umbau-1-state-src.md)
 - → [umbau] [laptop] [umbau-hp] [tracking] [donald] (captain 2026-11-20 00:45): **main is frozen for app / core / state code until 0.18.2 is out** – donald re-makes the candidate on current main (with 399e55b6d, the C13 race fix) and re-runs E2E + Rundgang. A release-blocking fix only after a line to [donald] here. Planner (`web/`) and docs stay open.
@@ -206,7 +206,6 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 ## Waiting for the owner
 - [donald] (owner 2026-11-20 morning: **„Gar nicht“** – the paper stays as it is, the try is dropped; owner's Pixel back to the release build when he says) 2026-11-20 night: **Papier warm, ~10 %…** → [detail](items/2026-11-20-papier-warm-10-dunkler-f2efe6-auf-deinem.md)
 - [donald] 2026-11-20 night: **may donald clear the app…** → [detail](items/2026-11-20-may-donald-clear-the-app-once-on-its-own.md)
-- [captain] (owner 2026-11-20 morning: **merges 15 himself now, after reading its two marked sentences; pull request 16 after 0.18.2 is out**) 2026-11-19: **merge pull request 15** → [detail](items/2026-11-19-merge-pull-request-15.md)
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)
 - **[laptop] For the owner to look at…** → [detail](items/2026-11-19-for-the-owner-to-look-at-no-answer-neede.md)
 - [donald] 2026-11-19: **Routenvorschau – Seitenpunkte + „Mehr“ gebaut, Bilder…** → [detail](items/2026-11-19-routenvorschau-seitenpunkte-gebaut-bilde.md)
