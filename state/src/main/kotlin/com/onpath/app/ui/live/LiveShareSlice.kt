@@ -13,9 +13,9 @@ import com.onpath.strings.Txt
 import com.onpath.strings.live_ended_by_server
 import com.onpath.strings.live_share_text
 
-/** The state of the sharing as its row in the on-the-way Settings shows it. */
+/** The small sign on Navigate while a tour is shared. */
 enum class LiveSign {
-    /** Not sharing. */
+    /** Not sharing: no sign. */
     NONE,
     /** The last upload went through not long ago: the green dot. */
     LIVE,
@@ -43,11 +43,10 @@ interface LiveShareHost {
 }
 
 /**
- * Live sharing as the Settings opened from Navigate show it (docs/design/live-tracking.md §2, §14.2; owner 2026-11-20:
- * "in der Navigation bei den Einstellungen, als erster Eintrag mit Symbol"): the state, the actions, the name question –
- * over [LiveShareClient], whose snapshot the app hands in with [onSnapshot] (the lane publishes it; the slice never
- * touches the uploader). Sharing never asks anything during the tour and never shows an error box: trouble is the grey
- * state; only a sharing the server ended is said once, as a quiet line.
+ * Live sharing as Navigate shows it (docs/design/live-tracking.md §2, §14.2): the sign, the actions, the one-time name
+ * question – over [LiveShareClient], whose snapshot the app hands in with [onSnapshot] (the lane publishes it; the slice
+ * never touches the uploader). Sharing never asks anything during the tour and never shows an error box: trouble is the
+ * grey sign; only a sharing the server ended is said once, as a quiet line.
  */
 class LiveShareSlice(
     private val client: LiveShareClient,
@@ -58,22 +57,15 @@ class LiveShareSlice(
     private var snapshot by mutableStateOf(LiveSnapshot.OFF)
     /** "Live teilen" was tapped and the link has not been handed to the share sheet yet. */
     private var linkWanted = false
-    private var storedName by mutableStateOf(prefs.liveName)
 
-    /** The name question is open – before the first share, or from the "Name" row ([editName]). */
+    /** The one-time name question is open. */
     var askName by mutableStateOf(false)
         private set
-    /** The open name question only changes the name ([editName]); it starts no sharing. */
-    var editingName by mutableStateOf(false)
-        private set
 
-    /** The name was asked before (the "Name" row is shown then). */
-    val nameKnown: Boolean get() = storedName != null
+    /** The name to propose in the question (what was stored, else empty). */
+    val name: String get() = prefs.liveName.orEmpty()
 
-    /** The name as stored (empty when none). */
-    val name: String get() = storedName.orEmpty()
-
-    /** The state; [LiveSign.WAITING] also when the last good upload is older than [FRESH_MS] (read with the host's clock). */
+    /** The sign; [LiveSign.WAITING] also when the last good upload is older than [FRESH_MS] (read with the host's clock). */
     val sign: LiveSign get() {
         val s = snapshot
         return when {
@@ -95,29 +87,25 @@ class LiveShareSlice(
     fun share() {
         if (snapshot.sharing) { shareAgain(); return }
         if (!host.recording()) return
-        if (storedName == null) { editingName = false; askName = true; return }
-        start(storedName.orEmpty())
+        if (prefs.liveName == null) { askName = true; return }
+        start(prefs.liveName.orEmpty())
     }
 
-    /** The name question answered: [name] is kept (trimmed, may be empty); before the first share the sharing starts. */
+    /** The name question answered ("Teilen"): [name] is kept (trimmed, may be empty) and the sharing starts. */
     fun nameGiven(name: String) {
-        val edit = editingName
-        askName = false; editingName = false
+        askName = false
         val n = name.trim().take(MAX_NAME)
-        prefs.liveName = n; storedName = n
-        if (!edit && host.recording() && !snapshot.sharing) start(n)
+        prefs.liveName = n
+        if (host.recording()) start(n)
     }
 
     /** The name question closed without an answer: nothing is shared, nothing stored – it is asked again next time. */
-    fun nameCancelled() { askName = false; editingName = false }
-
-    /** The "Name" row: change the name for the next share (a running share keeps the name it started with). */
-    fun editName() { editingName = true; askName = true }
+    fun nameCancelled() { askName = false }
 
     /** "Link nochmal teilen": the same link for a second person. */
     fun shareAgain() { snapshot.link?.let(::send) }
 
-    /** "Teilen beenden": the state goes at once, the server's copy is deleted. */
+    /** "Teilen beenden": the sign goes at once, the server's copy is deleted. */
     fun stop() {
         linkWanted = false
         client.liveStop()
