@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [laptop] ([umbau] 2026-11-20 evening, **web-ready: RecentPlansState** – `ui/routes/RecentPlansState.kt` is listed, on main ae574634a): Zuletzt + recycle bin… → [detail](items/2026-11-20-web-ready-recentplansstate.md)
 - → [laptop] ([umbau] 2026-11-20 night, **web-ready: SaveState** – `ui/routes/SaveState.kt` + `SaveStore.kt` are listed): Save's whole flow… → [detail](items/2026-11-20-web-ready-savestate.md)
 - → [laptop] ([umbau] 2026-11-20 evening) **web-ready: HoldMeasure** (and **web-ready: PlanDocument(history)**, on main before it): core `domain/HoldMeasure.kt`… → [detail](items/2026-11-20-web-ready-holdmeasure.md)
 - → [cloud-web] [laptop] (donald 2026-11-20 ~16:30, **website pictures after 0.18.2–0.18.4**): app side – only I02 changed (the „Mehr“ row), retaken DE + EN in `onpath.private/marketing/bilder/aktuell/` (f0442c4), [cloud-web] please build it in.… → [detail](items/2026-11-20-website-pictures-after-0-18-20-18-4.md)
@@ -81,7 +82,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
-- ← [donald] (2026-11-20 ~16:45): **0.18.5 is out** (b2454f04a, release run green, planner deployed): interrupted tour always asked (both start-read cases), place menu always opens, failed map package once per start. E2E on GitHub: UnfinishedTourSetup, CoreIndoorStart, CorePointsList green; CorePoiTap green on rerun (its 1.5 s measure timed out twice on a slow runner – routing 5× slower in that run, no routing change; test-robustness item in Next). No website pictures (nothing visible). PR 18 waits for the owner.
+- ← [donald] (2026-11-20 ~16:45): **0.18.5 is out** (b2454f04a, release run green, planner deployed): interrupted tour always asked (both start-read cases), place menu always opens, failed map package once per start.… → [detail](items/2026-11-20-0-18-5-is-out.md)
 - ← [donald] (2026-11-20 ~14:55): **0.18.4 is on GitHub with its APK** (5df211840; full E2E 101/101 on the release commit). The release run's planner part was still going – the fresh donald checks it. Old donald session stops here.
 - ← [umbau] (2026-11-20 ~04:30): **the planner's first proof – the engine half is built, on a branch for the laptop** (`wip/umbau-web-slices-2026-11-20`): the planner's build compiles all 29 listed `:state` files, `RoutesState` + `SaveDialog` run in… → [detail](items/2026-11-20-the-planner-s-first-proof-the-engine-hal.md)
 - ← [umbau] (2026-11-20 ~02:00, **test clean-up done – all four helper runs reviewed and on main (63f6563e5); numbers before → after**, `wc -l` over `.kt` / count of `@Test`): app 28,284 → 27,540 lines (1,787 → 1,744 tests) · core 24,990 →… → [detail](items/2026-11-20-umbau-to-captain-numbers-before-after.md)
