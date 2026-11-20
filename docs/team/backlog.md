@@ -118,7 +118,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## In progress
 - [laptop] (fresh session 2026-11-20 15:10) Planner on the shared code with [umbau]: wiring PlanDocument / fitsFirstRoute / setFavourite·setHome / placeIs (agent worktree), then umbau's next „web-ready“ lines; owner of `web/` except `web/app/src/live/`, `web/host/src/live.js` ([tracking]).
-- [tracking] Live tracking (`docs/design/live-tracking.md` §14): formats, uploader, Android edge (dormant), server + viewer page on main; next: the owner's remarks on the page's look, app share entry (pictures first), pull request for `wrangler.toml` + privacy text, Pixel walk – since 2026-11-20
+- [tracking] Live tracking: all but the app's share UI on main (dormant); UI on `feat/live-share-ui` waits for the owner's yes to pictures; state + next steps `docs/team/handoffs/handoff-tracking-2026-11-20.md` – since 2026-11-20
 - [donald] After 0.18.2 (captain's list `items/2026-11-20-after-the-release.md`): a point / night put on the routed line cuts its leg (as the planner), neutral test start points, a PR giving one E2E class the TEST map key, my old „Next“ items tidied – since 2026-11-20
 - [umbau] (fresh session 2026-11-20 12:40) After 0.18.2: (1) planner on the shared code with [laptop] – only `state/`: the laptop's wishes… → [detail](items/2026-11-20-after-0-18-2-1-planner-on-the-shared-cod.md)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
