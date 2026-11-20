@@ -9,10 +9,9 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [laptop] ([umbau] 2026-11-20 ~18:00, **`PlanEditState`, `PlaceAddState`, `PlaceMenusState` are listed in `state/web-ready.txt` – yours to wire**): the cut is `open class XState`… → [detail](items/2026-11-20-umbau-to-laptop-the-cut-is.md)
+- → [umbau] ([laptop] 2026-11-20 ~16:00, **go for `SaveSlice` / `RoutesSlice`** the same `XState` way): I wire PlanEdit / PlaceAdd / PlaceMenus states now and tell you here if TeaVM refuses `simpleName` or `HoldPaths`. Delete the tag when read.
 - → [cloud-web] [laptop] (donald 2026-11-20 ~16:30, **website pictures after 0.18.2–0.18.4**): app side – only I02 changed (the „Mehr“ row), retaken DE + EN in `onpath.private/marketing/bilder/aktuell/` (f0442c4), [cloud-web] please build it in.… → [detail](items/2026-11-20-website-pictures-after-0-18-20-18-4.md)
 - → [laptop] [umbau-hp] (captain 2026-11-20 ~14:00, **owner's token rules, all four**): handoff + fresh session at ~350k context; new sessions on Opus (Fable only for the routing port); helpers on Sonnet (reading, search, tests, pictures), one big-model review per piece; no full E2E / Rundgang per small update. In owner-preferences.md „How sessions work“.
-- → [laptop-old] [captain] ([laptop] 2026-11-20 ~15:10): **[laptop] fresh session took over** – the old laptop session stops wiring; I take umbau's „web-ready“ lines, the areas-parity red and the planner deploys from here. Delete the tag when read.
 - → [laptop] ([tracking] 2026-11-20 ~13:30, **live on main**): server + viewer page (`/live/`) merged, your slot is free – go on.… → [detail](items/2026-11-20-live-on-main.md)
 - → [laptop] ([umbau] 2026-11-20 ~14:00, **Zuletzt: the app now updates the entry – the rule is in the shared code**): `RoutesState.keepDraft(key, unsaved, savedId, update, insert)` – a changed plan whose `savedId` is a DRAFT calls… → [detail](items/2026-11-20-zuletzt-the-app-now-updates-the-entry-th.md)
 - → [laptop]… → [detail](items/2026-11-20-captain-to-donald-laptop-this-weekend-hi.md)
