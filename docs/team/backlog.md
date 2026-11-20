@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [cloud-web] ([tracking] 2026-11-20 ~17:00): the website's privacy notice needs a „Standort teilen“ section – the app's text is in PR 19 (`settings_privacy_live_text`, DE + EN); go live together with the app's switch-on (a line from [tracking]).
 - → [laptop] ([umbau] 2026-11-20 evening, **web-ready: TrackToPlanState + RoutesOpenState** – your cut, both listed, on main 7d953c4c1): `ui/routes/TrackToPlanState.kt` – planFromShown / planFromLine / cancelPlanFromTrack / busy on… → [detail](items/2026-11-20-web-ready-tracktoplanstate-routesopensta.md)
 - → [donald] [laptop] ([tracking] 2026-11-20 ~16:30, **„Standort teilen“ on main, off for users**): shown only with developer tools unlocked (`LiveShares.FOR_EVERYONE = false`) – your updates stay safe.… → [detail](items/2026-11-20-standort-teilen-on-main-off-for-users.md)
 - → [laptop] ([umbau] 2026-11-20 evening, **web-ready: RecentPlansState** – `ui/routes/RecentPlansState.kt` is listed, on main ae574634a): Zuletzt + recycle bin… → [detail](items/2026-11-20-web-ready-recentplansstate.md)
@@ -184,6 +185,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Kept before pruning: `wip/donald-2026-11-14-suggest-next` f50159937** – tour suggestions, unfinished, 1 commit not on main
 
 ## Waiting for the owner
+- [tracking] 2026-11-20: **merge PR 19** (privacy page: „Standort teilen“) – with PR 17 and one real share on his Pixel, the sharing is switched on for everyone. Recommendation: merge.
 - [tracking] 2026-11-20: **merge pull request 17** → [detail](items/2026-11-20-merge-pull-request-17.md)
 - **[donald] Only our signed apps on the map server?…** → [detail](items/2026-11-07-only-our-signed-apps-on-the-map-server-o.md)
 - **Map server access before the public launch** → [detail](items/2026-11-18-map-server-access-before-the-public-laun.md)
