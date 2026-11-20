@@ -390,6 +390,7 @@ class PlaceAddSlice(
         if (idx >= 0) { host.openPointMenu(idx, via = "POI that is a stop"); return }
         val p = GeoPoint(poi.lat, poi.lon)
         host.rememberPlaceName(p, com.onpath.app.search.Place.fromPoi(poi).title())
+        host.rememberPoiKind(p, poi.kind) // the symbol at once, not only after the 5 m index lookup ([umbau]'s finding 2026-11-19)
         val pin = host.takePin(poi.lat, poi.lon)
         val before = waypoints.size
         if (candidate) fittingPlaceAdd { addPoint(p, lineSnapM, onPoi = true) } else addPoint(p, lineSnapM, onPoi = true)

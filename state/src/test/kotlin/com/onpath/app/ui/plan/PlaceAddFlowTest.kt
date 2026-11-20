@@ -718,8 +718,8 @@ class PlaceAddFlowTest {
         assertNull(plain.edit.pinTaken)
         assertEquals(listOf(hutAt to "Hütte"), plain.names)
         assertTrue("the plain add pins it too", hutAt in plain.plan.pinned)
-        // known gap since 2026-11-10 (ed7310756): the kind arrives later by the 5 m index lookup; reported to donald
-        assertTrue("no kind kept by this entry", plain.kinds.isEmpty())
+        // the POI keeps its kind at once (was a gap since 2026-11-10: the symbol came only later by the 5 m index lookup)
+        assertEquals("the POI's kind is kept with the point", listOf(hutAt to hut.kind), plain.kinds)
     }
 
     /** While a reroute runs the shown line belongs to older points: best fit only, and the hold's line distance is on the straight legs. */
