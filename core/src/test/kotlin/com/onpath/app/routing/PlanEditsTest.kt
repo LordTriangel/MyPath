@@ -103,7 +103,7 @@ class PlanEditsTest {
         val slice = java.io.File("../state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddSlice.kt").readText()
         val add = slice.substringAfter("    fun addPlace(").substringBefore("\n    }")
         assertTrue(add, add.contains("AddRole.START -> startAtPoint(idx)"))
-        val menus = java.io.File("../state/src/main/kotlin/com/onpath/app/ui/plan/PlaceMenusSlice.kt").readText()
+        val menus = java.io.File("../state/src/main/kotlin/com/onpath/app/ui/plan/PlaceMenusState.kt").readText()
         assertTrue("the slice's makeStartFromMenu was found", menus.contains("    fun makeStartFromMenu() {"))
         val menu = menus.substringAfter("    fun makeStartFromMenu() {").substringBefore("\n    }")
         assertTrue(menu, menu.contains("placeAdd.startAtPoint(index)"))

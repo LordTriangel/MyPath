@@ -75,7 +75,7 @@ class PlaceAddAdaptersTest {
     @Test fun theMenusAreReadingTheSliceAndTheSliceTheirs() {
         // piece 12: the POI menu, the place menu, the label, the card and closing the menus moved to PlaceMenusSlice and read this
         // slice there (PlaceMenusAdaptersTest pins the view model's side); the anchors must be found
-        val menus = sourceFile("ui/plan/PlaceMenusSlice.kt").readText()
+        val menus = sourceFile("ui/plan/PlaceMenusState.kt").readText()
         fun body(start: String): String { assertTrue("$start was found", menus.contains(start)); return menus.substringAfter(start).substringBefore("\n    }\n") }
         val poiMenu = body("    fun openPoiMenu(")
         assertTrue(poiMenu, poiMenu.contains("PlaceMenuMeasure.start(placeAdd.holdPaths, pts, p, placeAdd.lineDpOf(p, lineSnapM), PlaceAddMenu.detours(pts, p)!!,"))

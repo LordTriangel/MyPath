@@ -66,3 +66,33 @@ grep -rlE 'kotlinx.coroutines|\bsuspend\b' $R | wc -l         # 21 with coroutin
 # members of a host: count the `fun` / `val` / `var` lines inside its interface, e.g.
 awk '/^interface PlanEditHost/{c=1;next} c&&/^}/{exit} c&&/^    (fun|val|var|suspend fun) /{n++} END{print n}' $R/ui/plan/PlanEditSlice.kt
 ```
+
+## 6. The cut for slices with a coroutine: `XState` + `XSlice : XState` (2026-11-20, first one built: place menus)
+
+The 13 planner-feature slices are not listed because of a few lines of background work each, not because of their
+state. The cut, the same for each – **no call site changes, in the app or in a flow test**:
+
+- `XState.kt` (listed, `open class`): everything but the coroutines – the state, the decisions, and for each piece of
+  background work two or three plain members: **what is to do** (`…Todo()`), **the blocking work on its input**
+  (`find…(todo, port)`), **what a finished run changes** (`…Found(todo, result)`). Its host interface `XPorts` has no
+  `suspend` member.
+- `XSlice.kt` (app only, not listed): `class XSlice(…, io, scope) : XState(…)` with the `Job`, `launchSafe`,
+  `withContext` – it calls the three members in the old order. Its host `XHost : XPorts` adds the suspending members.
+  Name, constructor and members are the old ones, so `AppViewModel`, the screens and the flow tests stay as they are.
+- The planner constructs `XState` and drives the work itself (its own async on the page): `todo` → its lookup → `found`.
+
+Built: `ui/plan/PlaceMenusState.kt` (was `PlaceMenusSlice.kt`; the mirror entry in `parity.json` follows the file) +
+`PlaceMenusSlice.kt` (46 lines: the pinned POI kinds' lookup). **Not listed yet** – the closure, measured by a trial
+listing with `WebReadyRuleTest`:
+
+| File | What still stands in the way | Cut |
+| --- | --- | --- |
+| `PlaceMenusState.kt` | takes a `PlaceAddSlice` | lists as soon as `PlaceAddState` exists (type in its constructor changes) |
+| `PlaceAddSlice.kt` (480 lines) | builds `HoldPaths(scope, holdWorker)` itself (2 coroutine imports); takes a `PlanEditSlice` | `PlaceAddState(…, holdPaths: HoldPaths)`; `PlaceAddSlice` builds the `HoldPaths` and passes it up |
+| `PlanEditSlice.kt` | `refreshPointNames` (one coroutine, `suspend fun pointNames()` in the host) – nothing else, its own closure is clean | as place menus: `pointNamesTodo()` / `findPointNames` / `pointNamesFound` |
+
+So the three list together after two more small cuts (order: `PlanEditState`, `PlaceAddState`, then the three lines in
+`web-ready.txt`). `HoldPaths` is `:core` (the planner compiles it; it uses coroutines – [laptop]: say if TeaVM cannot
+take it, then `PlaceAddState` asks a small `HoldMeasure` port instead).
+`PlanRunSlice` (listed) needs no cut: its host's `recalc()` is a plain call – the planner's host implements it with
+its own run (`PlanRunHost`, 6 members); what is missing is on the page side, not in `state/`.
