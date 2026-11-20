@@ -35,3 +35,10 @@ Gravelbike“ auf den Knöpfen, der Papierkorb-Hinweis ohne Pronomen, „Kompass
 Die eigentliche Last ist aber eine andere: wenn sich Fußleiste, Knopfspalte oder obere Leiste ändern, müssen ~170 ganze
 Bildschirme neu aufgenommen werden. Das wird nur kleiner, wenn die Tests den Plan-Bildschirm über das Gerüst der App
 zeichnen – das ist App-Code und gehört zu Phase 4 (wartet).
+
+## Die Antworten des Owners (2026-11-20 nachmittags, einzeln gefragt in [umbau]s Chat)
+1. Englische Bilder mit größter Schrift: **ja, streichen** (~61).
+2. Englische Zwillinge der Menüs / Fenster: **ja, alle 36**.
+3. Farb-Tests: **die drei Farb-Pins streichen** (Kompassfarbe, Farbregel ganz; bei den Planfarben nur die festen
+   Farbwerte). Die Prüfungen auf Lesbarkeit (Kontrast) und alle Lage-Tests bleiben. Vorschlag 3 der Bilder (deutsch
+   normal weg) wurde nicht gefragt – bleibt.
