@@ -203,7 +203,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Kept before pruning: `wip/donald-2026-11-14-suggest-next` f50159937** – tour suggestions, unfinished, 1 commit not on main
 
 ## Waiting for the owner
-- [donald] 2026-11-20 night: **Papier warm, ~10 %…** → [detail](items/2026-11-20-papier-warm-10-dunkler-f2efe6-auf-deinem.md)
+- [donald] (owner 2026-11-20 morning: **„Gar nicht“** – the paper stays as it is, the try is dropped; owner's Pixel back to the release build when he says) 2026-11-20 night: **Papier warm, ~10 %…** → [detail](items/2026-11-20-papier-warm-10-dunkler-f2efe6-auf-deinem.md)
 - [donald] 2026-11-20 night: **may donald clear the app…** → [detail](items/2026-11-20-may-donald-clear-the-app-once-on-its-own.md)
 - [captain] 2026-11-19: **merge pull request 15** → [detail](items/2026-11-19-merge-pull-request-15.md)
 - [donald] 2026-11-19: **Rundtour-Karte V1 gebaut…** → [detail](items/2026-11-19-rundtour-karte-v1-gebaut-bilder-ansehen.md)
