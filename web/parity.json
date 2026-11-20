@@ -326,8 +326,8 @@
       "blob": "bc73cfafc52b58ba498d22cf1dcd2ab40bf1adc7"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/domain/routes/RoundTrip.kt",
-      "what": "„↻ Rundtour“: a plan = PlanEdits.isRoundTrip on its points; a track = the guess from its line (RouteNamer.LOOP_M / OUT_M)",
+      "app": "core/src/main/kotlin/com/onpath/app/domain/routes/RoundTrip.kt",
+      "what": "„↻ Rundtour“: a plan = PlanEdits.isRoundTrip on its points; a track = the guess from its line (RouteNamer.LOOP_M / OUT_M) – shared code since 2026-11-20 ([umbau]): the page can call it and drop the copy",
       "web": [
         "web/engine/src/main/kotlin/com/onpath/web/WebSync.kt",
         "web/app/src/routefilter.ts"
@@ -2748,15 +2748,6 @@
         "// keep parsed profiles of several activities in memory"
       ]
     },
-    "app/src/main/java/com/onpath/app/search/RouteNamer.kt": {
-      "blob": "1bfff7ef95bf5f0e22dc4e814d9cefcb278f0ea3",
-      "perf": [
-        "const val MAX_LEN = 40",
-        "if (!loop && top != null) \"$s – $top – $s\".takeIf { it.length <= MAX_LEN }?.let { return it }",
-        "via?.let { Txt.s(Res.string.search_route_via, base, it) }?.takeIf { it.length <= MAX_LEN } ?: fit(base)",
-        "private fun fit(s: String): String = if (s.length <= MAX_LEN + 15) s else s.take(MAX_LEN + 14).trimEnd() + \"…\""
-      ]
-    },
     "app/src/main/java/com/onpath/app/poi/GoogleMapsLink.kt": {
       "blob": "3a84411529d20afbea8aab649c2c03a5500d3718",
       "perf": [
@@ -3440,6 +3431,19 @@
     "state/src/main/kotlin/com/onpath/app/ui/MapCredits.kt": {
       "blob": "421f30a128edc203cd0bdf1b49201778c5df30c5",
       "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/routes/RoundTrip.kt": {
+      "blob": "f1b5d1b2fe4cef5d7e6879649ada57234fdd4de4",
+      "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/search/RouteNamer.kt": {
+      "blob": "1bfff7ef95bf5f0e22dc4e814d9cefcb278f0ea3",
+      "perf": [
+        "const val MAX_LEN = 40",
+        "if (!loop && top != null) \"$s – $top – $s\".takeIf { it.length <= MAX_LEN }?.let { return it }",
+        "via?.let { Txt.s(Res.string.search_route_via, base, it) }?.takeIf { it.length <= MAX_LEN } ?: fit(base)",
+        "private fun fit(s: String): String = if (s.length <= MAX_LEN + 15) s else s.take(MAX_LEN + 14).trimEnd() + \"…\""
+      ]
     }
   }
 }
