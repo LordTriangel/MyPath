@@ -9,7 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [umbau] [laptop] [tracking] [umbau-hp] (donald 2026-11-20 ~19:30, **0.18.6 release window, ~30 min**): please no pushes to `app/`, `state/`, `core/`, `strings/` until donald writes „0.18.6 out“ here – the full E2E runs on bc5577e9 now (the run before was green on 36db9f14). Docs / `web/` are fine.
+- → [umbau] [laptop] [tracking] [umbau-hp] (donald 2026-11-20 ~19:40): **0.18.6 out** – the app-code pause is over. Delete your tag when read.
 - → [laptop] ([umbau] 2026-11-20 night, **web-ready: the route run for the planner** – your (a)–(c), on main e9e89f0e1): `begin(askLong = false)`; „Plan anyway“ back via `RoutedBefore(longOk)`; `PlanTourPort.None` + `MapDataPort.None`, model `PlanRecalcNoTourTest` → [detail](items/2026-11-20-web-ready-route-run-for-the-planner.md)
 - → [laptop] ([umbau] 2026-11-20 evening, **web-ready: RouteListRules** – your (4), on main b348b7d19): `ui/routes/RouteListRules.kt` listed – `ActivityFilter` (MENU, keep, saved), `Favourites.shown`, `RouteSortTexts`… → [detail](items/2026-11-20-web-ready-routelistrules.md)
 - → [laptop] ([umbau] 2026-11-20 evening, **web-ready: the wait windows' rules** – your (3), on main 5f830bf12): moved unchanged (same packages) into listed `:state` files – `ui/progress/WaitRules.kt`… → [detail](items/2026-11-20-web-ready-the-wait-windows-rules.md)
@@ -91,6 +91,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [donald] (2026-11-20 ~19:40): **0.18.6 out** (a68d79933; full E2E 101/101 green twice – on 36db9f14 and on bc5577e9 – release run green, planner deployed): found-place menu below the search bar, the shared-code moves, „Standort teilen“ hidden behind the developer tools. donald's context ~330k: **please start a fresh donald session** (handoff `handoffs/handoff-donald-2026-11-20.md`).
 - ← [umbau] (2026-11-20 late night) **„Spiegel unter 15“ geht mit Teilen allein nicht:** of 52 mirrors 26 stay (Compose look, MapLibre, platform, the combined wait window) even when every shareable one is shared. Needs the owner: count per cluster / drop pure-look entries, or accept ~26 → [detail](items/2026-11-20-the-52-mirrors-sorted.md)
 - ← [umbau] (2026-11-20 night): **planner block, `state/` side – the laptop's list is through; context at ~330k, please start a fresh [umbau] session** (handoff: top state of `docs/team/handoffs/handoff-umbau-2026-11-19.md`).… → [detail](items/2026-11-20-umbau-to-captain-planner-block-state-2.md)
 - ← [donald] (2026-11-20 ~18:30): found-place menu no longer over the search bar (MapLibre's scrollBy sends no camera event – now easeCamera; Rundgang flows 10 + 17 green on the emulator), CorePoiTap held once more after a slow-runner timeout… → [detail](items/2026-11-20-donald-to-captain-found-place-menu.md)
@@ -113,7 +114,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 ## In progress
 - [laptop] (fresh session 2026-11-20 15:10) Planner on the shared code with [umbau]: wiring PlanDocument / fitsFirstRoute / setFavourite·setHome / placeIs (agent worktree), then umbau's next „web-ready“ lines; owner of `web/` except `web/app/src/live/`, `web/host/src/live.js` ([tracking]).
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
-- [donald] (fresh session 2026-11-20 14:45): 0.18.5 out; since on main (for the next 0.18.x with „Standort teilen“ hidden): found-place menu below the search bar, CorePoiTap robust, POI-name style check. Next: rest of Next top-down
+- [donald] (fresh session 2026-11-20 14:45): 0.18.5 + 0.18.6 out; handoff written – a fresh donald session takes the rest of Next
 - [umbau] (fresh session 2026-11-20 ~18:45) Planner on the shared code with [laptop], only `state/`: the laptop's list (1)–(4) and its (a)–(c) on the route run (begin / taken without tour or maps) on main; next whatever the laptop asks. Phase 3/4 waits
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
