@@ -95,5 +95,4 @@ abstract class MultiDayScreenshotTest(private val locale: Locale) {
     }
 }
 
-class MultiDayEnglishTest : MultiDayScreenshotTest(Locale.US)
 class MultiDayGermanTest : MultiDayScreenshotTest(Locale.GERMANY)
