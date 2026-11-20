@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.onpath.app.data.Geo
 import com.onpath.app.debug.Problems
-import com.onpath.app.domain.HoldPaths
+import com.onpath.app.domain.HoldMeasure
 import com.onpath.app.domain.PlaceAddMenu
 import com.onpath.app.domain.TakenPin
 import com.onpath.app.domain.plan.RouteRun
@@ -92,7 +92,7 @@ enum class AddRole { SMART, START, DESTINATION }
  * and writes [PlanEditSlice.pinTaken] after it. The decisions are rules in :core (WaypointInsertion, PlaceAddMenu,
  * HoldPaths, TakenPin, WholeRoute). The POI / point / pin menus, the place card and the kept places are [PlaceMenusSlice] and
  * [KeptPlacesSlice] (piece 12); this slice reaches them behind [PlaceAddPorts]. Constructed with the view model (no work).
- * Coroutine-free (for the planner): the measure's thread and scope arrive inside [holdPaths] ([PlaceAddSlice] builds it).
+ * Coroutine-free (for the planner): the measure sits behind the port [HoldMeasure] ([holdPaths]; the app's [PlaceAddSlice] hands in core's `HoldPaths`, the planner its worker's).
  */
 open class PlaceAddState(
     private val plan: PlanDocument,
@@ -101,7 +101,7 @@ open class PlaceAddState(
     private val host: PlaceAddPorts,
     private val router: HoldRouter,
     /** The measure of a hold beside the plan ([measureHold]) and of a held place ([PlaceMenuMeasure], [PlaceMenusSlice.openPoiMenu]). */
-    val holdPaths: HoldPaths,
+    val holdPaths: HoldMeasure,
 ) {
     private val waypoints: List<GeoPoint> get() = plan.points
 

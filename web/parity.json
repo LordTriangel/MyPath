@@ -218,7 +218,7 @@
         "web/app/src/poipin.ts",
         "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt"
       ],
-      "blob": "96e1736786dd787b583e1b9edb5f288ab2b8c963"
+      "blob": "6dc71f697e1849a3e7fd5859f267aba8f8657082"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
@@ -928,7 +928,7 @@
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/domain/HoldPaths.kt": {
-      "blob": "7ef44dd649025899f15a6518c97f791588af2d20",
+      "blob": "c25620e456c9c40dadc7205746a561ff6733d8ae",
       "perf": [
         "* timeout or any failure (no routing data, an engine error, a spot on an island) gives the straight-line numbers back",
         "private val timeoutMs: Long = TIMEOUT_MS,",
@@ -968,7 +968,7 @@
       ]
     },
     "core/src/main/kotlin/com/onpath/app/domain/PlaceMenuMeasure.kt": {
-      "blob": "7f0444aeafff427be701477d112aaf9807c16124",
+      "blob": "5907fe493883b457df33fb050d4cf750823f6660",
       "perf": [
         "* are measured on the paths ([HoldPaths]: off the main thread, at most its time limit, the straight lines on a timeout or"
       ]
@@ -3349,7 +3349,7 @@
       ]
     },
     "state/src/main/kotlin/com/onpath/app/ui/plan/PlaceAddState.kt": {
-      "blob": "96e1736786dd787b583e1b9edb5f288ab2b8c963",
+      "blob": "6dc71f697e1849a3e7fd5859f267aba8f8657082",
       "perf": [
         "* The router [PlaceAddSlice] measures a hold beside the plan on (the engine, its leg cache and the Planner stay in :app).",
         "* The routed length [a] → [b] for [act] / [level] in metres: from the leg cache, else one leg by the planner (then in the",
@@ -3362,6 +3362,12 @@
       "blob": "040060d5fb4f02a5bcdce728bcbc8994447c4fc1",
       "perf": [
         "* place ([PlaceAddSlice.holdMeasuring], same time limit, fallback and cancel as the hold's measure) – the menu opens with"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/domain/HoldMeasure.kt": {
+      "blob": "2ad67d5fbda4dbce2760a238dc37fa905303e277",
+      "perf": [
+        "* after a timeout or any failure, so a hold always gets its decision (core feature C1). One measure at a time: [start]"
       ]
     }
   }
