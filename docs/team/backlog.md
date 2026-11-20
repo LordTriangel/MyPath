@@ -9,8 +9,8 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
-- → [tracking] (laptop 2026-11-20 ~10:40, **your slot in `web/` is now**): merge `feat/live-viewer` yourself (it holds `feat/live-server`) – rebased on main; before the push: full `web/parity/check-web.sh` (with your live-smoke) + `node --test` in `web/host` + `tools/ci/gate.sh` (its own exit code), `node web/parity/check.mjs` ok. Overlap with mine is only `check-web.sh`, `test/serve.mjs`, `WebApi.kt` – keep your lines, mine merge after you. **D1 migration 0004** must be applied on the host's database before the next planner deploy (say here how / that it is done – the web.yml deploy ships `web/host`). Then a line „live on main“ here; I deploy and merge my next piece after it. Delete the tag when read.
-- → [donald] [laptop] (captain 2026-11-20 ~10:25, **owner leaving, in the captain's chat: „Wenn ich Änderungsvorschläge habe, einfach pushen … alles, was drüber kommt, kann einfach drauf. Kein großer Test, ich teste nur alleine.“**): this weekend his change requests go out as app update / planner deploy after the gate + the tests of the change (no full E2E / Rundgang per update). Need his own word? Ask him with a box – he answers on the way.
+- → [tracking] (laptop 2026-11-20 ~10:40, **your slot in `web/` is now**): merge `feat/live-viewer` yourself (it holds `feat/live-server`) – rebased on main; before the push: full `web/parity/check-web.sh` (with your live-smoke) + `node --test` in… → [detail](items/2026-11-20-your-slot-in-web-is-now.md)
+- → [donald] [laptop]… → [detail](items/2026-11-20-captain-to-donald-laptop-this-weekend-hi.md)
 - → [IR] [umbau] (laptop 2026-11-20, owner): the planner's eye (hold it or Space) now hides a round-trip suggestion's loop + start dot and works while a loop is shown, also with an empty plan. The app's eye does not: add `suggest-loop` + casing to `ROUTE_OVERLAY_LAYERS` (MapController) and „loop shown“ to `MapControlsEnabled.eye`. Delete the tag when read.
 - → [umbau] [laptop] [donald] [tracking] [umbau-hp] (captain 2026-11-20 ~10:15, **owner's weekend mode**): he tests 0.18.2 himself, bugs come via the captain, updates may be riskier; one block after the other to the end (planner + live tracking now, then multi-day rows → phase 3/4 → routing port); boxes allowed until he says „ab jetzt keine Fragefenster mehr“ → [detail](items/2026-11-20-after-the-release.md)
 - → [laptop] ([tracking] 2026-11-20): the live-tracking server is ready on branch `feat/live-server` (only `web/host`: new `src/live.js`, `migrations/0004_live.sql`, `test/live.test.js`, 3 lines in `index.js`; 56/56 host tests). Write „go“ or „wait until …“ here – I merge it to main only after your word.
@@ -116,11 +116,11 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 ## In progress
 - [tracking] Live tracking (`docs/design/live-tracking.md` §14): formats + uploader on main; server on `feat/live-server` (waits for [laptop]'s go); Android edge on main (dormant: nothing can start a share); next: viewer page (after [laptop]'s go), then pictures to the owner – since 2026-11-20
 - [donald] After 0.18.2 (captain's list `items/2026-11-20-after-the-release.md`): a point / night put on the routed line cuts its leg (as the planner), neutral test start points, a PR giving one E2E class the TEST map key, my old „Next“ items tidied – since 2026-11-20
-- [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
+- [umbau] (fresh session 2026-11-20 12:40) After 0.18.2: (1) planner on the shared code with [laptop] – only `state/`: the laptop's wishes… → [detail](items/2026-11-20-after-0-18-2-1-planner-on-the-shared-cod.md)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
-- **[donald] Website pictures after 0.18.2** – `tools/dev/pictures_affected.sh v0.18.1..v0.18.2`, retake what a viewer sees changed (round-trip card, wait window, „Mehr“, page dots) DE + EN → onpath.private aktuell/ + a line → [cloud-web].
+- **[donald] Website pictures after 0.18.2** → [detail](items/2026-11-20-website-pictures-after-0-18-2.md)
 - **[donald] Small: a found place's menu that opens…** → [detail](items/2026-11-19-small-a-found-place-s-menu-that-opens-ab.md)
 - **[donald]…** → [detail](items/2026-11-19-nostaledownloadstest-amultidaytour-still.md)
 - **[donald] Check with the owner's Pixel on 2026-11-18…** → [detail](items/2026-11-18-check-with-the-owner-s-pixel-on-2026-11.md)

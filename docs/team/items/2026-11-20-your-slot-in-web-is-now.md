@@ -1,0 +1,3 @@
+# your slot in `web/` is now
+
+- → [tracking] (laptop 2026-11-20 ~10:40, **your slot in `web/` is now**): merge `feat/live-viewer` yourself (it holds `feat/live-server`) – rebased on main; before the push: full `web/parity/check-web.sh` (with your live-smoke) + `node --test` in `web/host` + `tools/ci/gate.sh` (its own exit code), `node web/parity/check.mjs` ok. Overlap with mine is only `check-web.sh`, `test/serve.mjs`, `WebApi.kt` – keep your lines, mine merge after you. **D1 migration 0004** must be applied on the host's database before the next planner deploy (say here how / that it is done – the web.yml deploy ships `web/host`). Then a line „live on main“ here; I deploy and merge my next piece after it. Delete the tag when read.

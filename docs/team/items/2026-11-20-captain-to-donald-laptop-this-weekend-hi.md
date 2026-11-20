@@ -1,0 +1,3 @@
+# owner leaving, in the captain's chat: „Wenn ich Änderungsvorschläge habe, einfach pushen … alles, was drüber kommt, kann einfach drauf. Kein großer Test, ich teste nur alleine.“
+
+- → [donald] [laptop] (captain 2026-11-20 ~10:25, **owner leaving, in the captain's chat: „Wenn ich Änderungsvorschläge habe, einfach pushen … alles, was drüber kommt, kann einfach drauf. Kein großer Test, ich teste nur alleine.“**): this weekend his change requests go out as app update / planner deploy after the gate + the tests of the change (no full E2E / Rundgang per update). Need his own word? Ask him with a box – he answers on the way.
