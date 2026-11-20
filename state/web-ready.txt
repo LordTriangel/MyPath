@@ -95,3 +95,4 @@ ui/routes/RouteListRules.kt
 ui/CellCards.kt
 # MapCredits: the full credits list (Settings -> About)
 ui/MapCredits.kt
+ui/ProfileRules.kt

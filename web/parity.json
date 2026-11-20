@@ -125,12 +125,12 @@
       "blob": "5dde7651b7225d3d2a7e34ee4cd1dfcb560a86bd"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/ui/ElevationProfile.kt",
-      "what": "the profile's look: ProfileFill (route colour fading, steeper a bit stronger), line colours by steepness, columnIndices",
+      "app": "state/src/main/kotlin/com/onpath/app/ui/ProfileRules.kt",
+      "what": "the profile's look: ProfileFill (route colour fading, steeper a bit stronger), line colours by steepness, columnIndices – shared code since 2026-11-20 ([umbau]): the page can call it and drop the copy",
       "web": [
         "web/app/src/profile.ts"
       ],
-      "blob": "779ccbaab4470a8f2fcfb5a4ee95f7f999fcdce7"
+      "blob": "c801b063b1d3e094618ae7f3078da27e1521d2f2"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/TourBar.kt",
@@ -361,13 +361,13 @@
       "blob": "3fe621fbbe60a8efa52619b1dc48397c725c532e"
     },
     {
-      "app": "app/src/main/java/com/onpath/app/search/SearchStore.kt",
-      "what": "kept places' and Zuletzt gesucht's line (encode / decode – the page stores these lines as they are, keptplaces.ts) and addRecent (20, the same place once) – WebKept.kt; Android prefs → localStorage",
+      "app": "core/src/main/kotlin/com/onpath/app/search/SearchLines.kt",
+      "what": "kept places' and Zuletzt gesucht's line (encode / decode – the page stores these lines as they are, keptplaces.ts) and addRecent (20, the same place once) – WebKept.kt; Android prefs → localStorage – shared code since 2026-11-20 ([umbau]): the page can call it and drop the copy",
       "web": [
         "web/engine/src/main/kotlin/com/onpath/web/WebKept.kt",
         "web/app/src/keptplaces.ts"
       ],
-      "blob": "de789779337b119b71b8d5e234f7d5b2d493efd1"
+      "blob": "032fc65db00cc3f06b5f9dfbaece58bbd02491f9"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/search/SearchScreen.kt",
@@ -3433,6 +3433,22 @@
         "if (!loop && top != null) \"$s – $top – $s\".takeIf { it.length <= MAX_LEN }?.let { return it }",
         "via?.let { Txt.s(Res.string.search_route_via, base, it) }?.takeIf { it.length <= MAX_LEN } ?: fit(base)",
         "private fun fit(s: String): String = if (s.length <= MAX_LEN + 15) s else s.take(MAX_LEN + 14).trimEnd() + \"…\""
+      ]
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/ProfileRules.kt": {
+      "blob": "c801b063b1d3e094618ae7f3078da27e1521d2f2",
+      "perf": [
+        "* where the way is steep up to [MAX_EXTRA_ALPHA] more. The slope is taken over [WINDOW_M] around each point (so a DEM",
+        "const val MAX_EXTRA_ALPHA = 0.22f",
+        "fun alpha(level: Int): Float = MAX_EXTRA_ALPHA * level / (LEVELS - 1)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/search/SearchLines.kt": {
+      "blob": "032fc65db00cc3f06b5f9dfbaece58bbd02491f9",
+      "perf": [
+        "const val MAX_RECENT = 20",
+        "/** [p] first, the same place not twice, at most [MAX_RECENT]. */",
+        "(listOf(p) + recent.filter { it.id != p.id && !SearchMerge.samePlace(it, p) }).take(MAX_RECENT)"
       ]
     }
   }
