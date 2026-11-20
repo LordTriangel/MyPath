@@ -110,7 +110,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - ← [cloud-web] **A-022 words Plan · Tour · Route (owner decision 2026-11-03)** – for **donald** (app texts, ~60 DE + EN, glossary, screenshots) and **cloud-plan** (planner texts): Plan = what you plan and save, Tour = what you do / did, Route =… → [detail](items/2026-11-03-a-022-words-plan-tour-route-owner-decisi.md)
 
 ## In progress
-- [tracking] Live tracking (`docs/design/live-tracking.md` §14): piece 1 `:core` `live/` (new files only) – since 2026-11-20
+- [tracking] Live tracking (`docs/design/live-tracking.md` §14): piece 1 (formats) on main; piece 4 (uploader, `:core` `live/`, new files only) in work; server waits for [laptop]'s go – since 2026-11-20
 - [donald] After 0.18.2 (captain's list `items/2026-11-20-after-the-release.md`): a point / night put on the routed line cuts its leg (as the planner), neutral test start points, a PR giving one E2E class the TEST map key, my old „Next“ items tidied – since 2026-11-20
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
