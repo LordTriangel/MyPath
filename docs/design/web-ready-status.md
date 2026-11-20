@@ -176,3 +176,14 @@ and the open rules, so two small listed states, the slices delegate (callers unc
   `RoutesOpenPorts` (21: mode, openTour, the tour's new-plan note, Undo, activity / T level, the link opened, the camera
   hold). A planner without a tour: `touring = false`, `newPlanUndo = null`.
 - Tours, the route run, export, thumbs, sync marks and share stay the app's (`RoutesSlice` / `RoutesGoSlice`, unlisted).
+
+**Built 2026-11-20 evening, the laptop's (1): the route run in stages – `PlanRecalcState.kt` listed** (`PlanRecalcSlice` keeps
+only the coroutines: debounce, slow timer, the wait bar's poll, the threads). Stages, in the order the driver calls them:
+`begin(): Run?` (the head: resets, the long-route ask via `RouteRun.Event.Recalc`, the stored line shown, the `RouteCancel`
+stored in `planRun.routeCancel`) → companion `route(run, engine, legs, cancel, progress, onPlanner): PlanResult` and
+`findReach(…)` (blocking, on the routing thread; read nothing of the page – the planner's worker calls them) →
+`progress(gen, done, total)` / `share(gen, share)` / `slow(gen)` while it runs → `legsRouted()` → (the app: `postRoute` off the
+main thread) → `taken(run, result, reach, tries, post, active)` (Returned / Superseded, the trace, snap, take or fail, what
+the tour does next, Done). Ports: `PlanRecalcPorts` (20), `PlanRecalcHost` (10), `MapDataPort` (6), `Background`. `Run` holds
+no cancel, lambda or port; note for a codec: `PlannedRoute.points` and three `PlanResult` fields are `by lazy` caches –
+encode the constructor fields, the lazies follow. Text tests that pinned the moved lines read `PlanRecalcState.kt` now.
