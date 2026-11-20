@@ -104,14 +104,13 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 ## In progress
 - [laptop] (fresh session 2026-11-20 15:10) Planner on the shared code with [umbau]: wiring PlanDocument / fitsFirstRoute / setFavourite·setHome / placeIs (agent worktree), then umbau's next „web-ready“ lines; owner of `web/` except `web/app/src/live/`, `web/host/src/live.js` ([tracking]).
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
-- [donald] (fresh session 2026-11-20 14:45): on main – place menu never silently not opened, failed map package asked once per run, interrupted tour read again at start; first-map E2E pull request green (owner merges). Next: website pictures follow-up, Next list
+- [donald] (fresh session 2026-11-20 14:45): 0.18.5 out; on main since: CorePoiTap E2E robust, found-place menu below the search bar (easeCamera). Now: POI names without their symbol – a helper builds the style check
 - [umbau] (fresh session 2026-11-20 ~16:45) Planner on the shared code with [laptop], only `state/`: SaveState, RecentPlansState, TrackToPlanState + RoutesOpenState on main (web-ready lines to the laptop); next the laptop's word on what else it calls. Phase 3/4 waits
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
 - **[donald] Website pictures: I03 (Meine Touren behind the menu) is from 0.17.3 – retake with several saved tours** → [detail](items/2026-11-20-website-pictures-after-0-18-2.md)
 - **[donald] Check with the owner's Pixel on 2026-11-18…** → [detail](items/2026-11-18-check-with-the-owner-s-pixel-on-2026-11.md)
-- **[donald] CorePoiTapE2ETest's hold-on-a-POI measure…** → [detail](items/2026-11-20-corepoitape2etest-s-hold-on-a-poi-measur.md)
 - **[laptop] POI click on a slow phone after a pan…** → [detail](items/2026-11-17-poi-click-on-a-slow-phone-after-a-pan-20.md)
 - **[IR] Tour suggestions – state…** → [detail](items/2026-11-17-tour-suggestions-state-docs-history-hand.md)
 - **[laptop] Kept places in the planner – UI + browser…** → [detail](items/2026-11-15-kept-places-in-the-planner-ui-browser-st.md)
