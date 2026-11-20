@@ -53,7 +53,11 @@ export interface SuggestHost {
   fitPadding(): maplibregl.PaddingOptions;
   /** before the wish opens: menus closed, the plan empty or kept (the caller decides) */
   closeMenus(): void;
+  /** a loop appeared on the map or went (the eye follows it – it can hide the loop, owner 2026-11-20) */
+  loopChanged?(): void;
 }
+/** The suggestion's map drawings – what the eye hides while held (main.ts peek). */
+export const SUGGEST_LAYERS = ['suggest-loop-casing', 'suggest-loop', 'suggest-start'] as const;
 
 interface Pill { t: string; c: string }
 interface Card { id: number; name: string; badge: string | null; loopKm: number | null; km: number; hours: number; ascent: number;
@@ -110,6 +114,7 @@ export function setupSuggest(host: SuggestHost) {
         map.fitBounds([[Math.min(...lo), Math.min(...la)], [Math.max(...lo), Math.max(...la)]], { padding: padding(), maxZoom: 15, duration: 300 });
       }
     } catch (e) { problem('suggest', 'loop not drawn', e); }
+    host.loopChanged?.();
   }
 
   /** The planner's fit padding, its bottom clear of the cards' strip (the loop above it, never under it). */
@@ -138,6 +143,7 @@ export function setupSuggest(host: SuggestHost) {
     unmount();
     cards = []; chosen = -1;
     (map.getSource('suggest-loop') as GeoJSONSource | undefined)?.setData(empty());
+    host.loopChanged?.();
   }
 
   function mount(html: string): HTMLElement {
@@ -385,7 +391,7 @@ export function setupSuggest(host: SuggestHost) {
     return [...items.slice(0, startIndex + 1), menuRow(at, name), ...items.slice(startIndex + 1)];
   }
 
-  return { menuRow, withRow, close, active: () => panel != null, openWish };
+  return { menuRow, withRow, close, active: () => panel != null, openWish, loopShown: () => !!cards[chosen] };
 }
 
 export type SuggestUi = ReturnType<typeof setupSuggest>;

@@ -131,6 +131,21 @@ try {
       const l2 = await lines();
       check(on[1] && on.filter(Boolean).length === 1 && l2.length === 1 && l2[0] !== l1[0], 'a click on another card shows its loop, alone');
     }
+    // the eye with a suggestion shown and an empty plan (owner 2026-11-20): usable; Space held hides the loop and its
+    // start dot (the cards stay), let go shows them again
+    {
+      const vis = () => page.evaluate(() => ['suggest-loop-casing', 'suggest-loop', 'suggest-start']
+        .map((id) => window.__map.getLayoutProperty(id, 'visibility') ?? 'visible'));
+      check(await page.evaluate(() => window.__state.points.length === 0) && await page.isEnabled('#eye'), 'suggestion shown, empty plan: the eye is usable');
+      await page.evaluate(() => (document.activeElement)?.blur?.());
+      await page.keyboard.down(' ');
+      const held = await vis();
+      const cardsHeld = await page.isVisible('#suggestStrip .sgcard.on');
+      await page.keyboard.up(' ');
+      const back = await vis();
+      check(held.every((v) => v === 'none') && cardsHeld, `Space held: the loop hidden, the cards stay (${held.join(', ')})`);
+      check(back.every((v) => v === 'visible'), `Space let go: the loop back (${back.join(', ')})`);
+    }
     // „Übernehmen“ → a normal plan, round trip
     await page.click('#suggestStrip .sgcard.on .sgtake');
     const planned = await page.waitForFunction(() => !document.getElementById('suggestStrip') && document.querySelector('#summary .big')

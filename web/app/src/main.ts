@@ -55,7 +55,7 @@ import { keepStats, planKey, trackKey, statsText } from './planstats';
 import { keepShape } from './routeshape';
 import { RouteReveal } from './routereveal';
 import { isPoiKind, poiFeatureAt, poiKindAt, poiPin } from './poipin';
-import { installSuggestSwitch, setupSuggest, suggestOn, type SuggestUi } from './suggest';
+import { installSuggestSwitch, setupSuggest, SUGGEST_LAYERS, suggestOn, type SuggestUi } from './suggest';
 import { MultiDay, endSymbol, type DayPlan } from './multiday';
 import { tourText, type Tour } from './tourtext';
 /** A track's segments as [lat, lon] lists (Meine Touren's line). */
@@ -2042,7 +2042,8 @@ function renderFabs() {
   c.innerHTML = needle(b);
   const what = Math.abs(b) > 1 ? t('web_compass_turned') : t('web_compass_north');
   c.title = what; c.setAttribute('aria-label', what);
-  $<HTMLButtonElement>('eye').disabled = !state.plan || state.points.length < 2;
+  // the eye: the plan's line, or a round-trip suggestion's loop on the map (also with an empty plan, owner 2026-11-20)
+  $<HTMLButtonElement>('eye').disabled = !(state.plan && state.points.length >= 2) && !suggestUi?.loopShown();
   $<HTMLButtonElement>('undo').disabled = !state.canUndo;
   $<HTMLButtonElement>('redo').disabled = !state.canRedo;
   // the app's MapControlsEnabled.undoPill: the pill only while one of them can act (owner 2026-11-08)
@@ -2142,11 +2143,12 @@ function routeBounds(): maplibregl.LngLatBounds | null {
   return b;
 }
 $('fitRoute').onclick = fitRoute;
-/** Eye: hold to hide the route and the markers, release shows them again (the app's EyeControl). */
+/** Eye: hold to hide the route and the markers, release shows them again (the app's EyeControl) – also a round-trip
+ *  suggestion's loop and start dot, to see the path under it (owner 2026-11-20; the cards stay). */
 function peek(on: boolean) {
   if (hidden === on) return;
   hidden = on;
-  for (const id of ['planned-route-casing', 'planned-route', 'planned-straight', 'planned-route-arrows']) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'none' : 'visible');
+  for (const id of ['planned-route-casing', 'planned-route', 'planned-straight', 'planned-route-arrows', ...SUGGEST_LAYERS]) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', on ? 'none' : 'visible');
   markers.forEach((m) => { m.getElement().style.visibility = on ? 'hidden' : ''; });
   $('eye').innerHTML = icon(on ? 'eyeOff' : 'eye');
   $('eye').classList.toggle('on', on);
@@ -2749,6 +2751,7 @@ if (suggestOn()) {
       plan: async (points, title) => { state.title = title; forgetSaved(); await commit(points); },
       fitPadding,
       closeMenus: () => { closeMenu(); closeMenus(); },
+      loopChanged: () => renderFabs(),
     });
     document.body.dataset.suggest = 'on';
   } catch (e) { problem('suggest', 'round-trip suggestions not set up', e); }
