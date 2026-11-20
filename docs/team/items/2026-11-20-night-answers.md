@@ -50,3 +50,4 @@ One line each: `- Q … → A … (role, time)`. The owner reads this in the mor
 - Q The fix made `MapCells.kt` four lines longer than its size rule allows – raise the cap? → A no: the fix was reshaped to fit (two checks on existing lines); the cap stays (umbau-hp)
 
 - 00:45 captain: donald's green candidate (fdd5534f4) missed umbau-hp's C13 race fix 399e55b6d (map download) → donald re-makes it on current main and re-runs; main frozen for app/core/state code until 0.18.2 is out. umbau-hp done (hardening) – no fresh session, its next job (routing port) waits for the release (captain)
+- 01:30 captain: app candidate 230dbc8b0 green; the laptop freezes the planner too – full planner checks on main, candidate sha for the morning, further slice work on a wip branch until after the deploy (captain)
