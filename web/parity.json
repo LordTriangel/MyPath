@@ -499,7 +499,7 @@
     {
       "app": "app/src/main/java/com/onpath/app/ui/MapScreen.kt",
       "why": "plan screen wiring, dialogs",
-      "blob": "d48f3251ad0958c30e75d92692bc0daddabfc917"
+      "blob": "a1269575b910181d0183180c7a3c80e55f0b84bc"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/domain/PlanGuidance.kt",
@@ -2232,9 +2232,52 @@
       "blob": "cfa5a52bb938cc4abd03cf41c11e8d5af801989f",
       "perf": []
     },
+    "core/src/main/kotlin/com/onpath/app/search/AddressSearch.kt": {
+      "blob": "7457ae05710c53a61df776ef2deed2e6e8a73fb1",
+      "perf": [
+        "* wins over a farm group next door. Null when none is near. Pure lookup in memory.",
+        "val cands = db.rows(\"SELECT DISTINCT w FROM word WHERE w >= ? AND w < ? LIMIT 20000\", head, upper(head))",
+        "db.rows(\"SELECT street FROM word WHERE w IN (${chunk.joinToString(\",\") { \"?\" }}) LIMIT 5000\", *chunk.toTypedArray())",
+        "private fun streetsWithPrefix(w: String, enough: Int = Int.MAX_VALUE): Set<Long> {",
+        "var page = if (enough == Int.MAX_VALUE) WORD_ROWS else 2 * enough",
+        "val rows = db.rows(\"SELECT street FROM word WHERE w >= ? AND w < ? ORDER BY w, street LIMIT $n OFFSET $offset\", w, upper(w))",
+        "val done = try { pool.invokeAll(tasks) } catch (e: InterruptedException) {",
+        "private val pool: ExecutorService by lazy {"
+      ]
+    },
     "core/src/main/kotlin/com/onpath/app/search/BaseMapPlaces.kt": {
       "blob": "cf8e84875a59b5b107238aaacabdf2aefb1698ed",
       "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/search/OfflineIndex.kt": {
+      "blob": "0df57e108f200416e2f1538aeaae11462aa88211",
+      "perf": [
+        "val limit: Int = 60,",
+        "* In-memory offline search index over one map folder: POIs (pois.geojson), peaks/passes and place names",
+        "private const val CACHE = \"search-places-v1.tsv\"",
+        "val cache = File(cacheDir, CACHE)",
+        "if (cache.isFile) try {",
+        "val lines = cache.readLines()",
+        "} catch (e: Exception) { Problems.warn(\"search\", \"Search place cache unreadable; reading the base map again\", e) }",
+        "val tmp = File(cacheDir, \"$CACHE.tmp\")",
+        "if (!tmp.renameTo(cache)) Problems.warn(\"search\", \"Search place cache not saved (rename failed); rebuilt on next start\")",
+        "} catch (e: Exception) { Problems.warn(\"search\", \"Search place cache not written; rebuilt on next start\", e) }",
+        "return withRoute.sortedWith(ORDER).take(q.limit)"
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/search/OnlineSearch.kt": {
+      "blob": "ac1ef13df9aa8aeacdce968c3b76739a8ede67e5",
+      "perf": [
+        "fun search(query: String, lat: Double, lon: Double, limit: Int = 10): List<Place>",
+        "fun url(query: String, lat: Double, lon: Double, limit: Int): String {",
+        "return \"$baseUrl?q=$q&lat=${f(lat)}&lon=${f(lon)}&zoom=12&location_bias_scale=0.3&limit=$limit&lang=de\"",
+        "fun placesUrl(query: String, lat: Double, lon: Double, limit: Int): String =",
+        "url(query, lat, lon, limit) + PLACE_LAYERS.joinToString(\"\") { \"&layer=$it\" }",
+        "override fun search(query: String, lat: Double, lon: Double, limit: Int): List<Place> {",
+        "val main = get(url(query, lat, lon, limit))",
+        "val places = try { get(placesUrl(query, lat, lon, PLACES_LIMIT)) } catch (e: Exception) {",
+        "const val PLACES_LIMIT = 5"
+      ]
     },
     "core/src/main/kotlin/com/onpath/app/search/Place.kt": {
       "blob": "ebb393015d5f4da107e0fc2a60e627c220375ea0",
@@ -2243,6 +2286,13 @@
     "core/src/main/kotlin/com/onpath/app/search/PlaceGeocoder.kt": {
       "blob": "e6ad1f0f18e84f2be5b254e6c37f79e84a8a3ade",
       "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/search/PlaceIndex.kt": {
+      "blob": "5652838f1e371c7a8ba844f0c2f86b85b5a46ed6",
+      "perf": [
+        "* The offline place index as the app uses it: [DiskIndex] (SQLite file, the app) or [OfflineIndex] (all in memory –",
+        "/** Prepares what [search] needs (reads the word index into memory), so the first keystroke answers fast. */"
+      ]
     },
     "core/src/main/kotlin/com/onpath/app/search/SavedPlaces.kt": {
       "blob": "bad38bba5a4a70205769eaa8c57a464066f97f32",
@@ -3034,6 +3084,10 @@
         "// askAtLimit: in Plan the time limit asks \"Weiter warten?\" (SlowPlan); a run for Navigate keeps the straight lines"
       ]
     },
+    "state/src/main/kotlin/com/onpath/app/data/RoutingDataCheck.kt": {
+      "blob": "516e963dc754012dda71e68c1a757be5e074f82e",
+      "perf": []
+    },
     "state/src/main/kotlin/com/onpath/app/ui/plan/PlanEditState.kt": {
       "blob": "4374855aca4fb2f6d89f1c6cfed82b08de749a1d",
       "perf": [
@@ -3157,6 +3211,35 @@
       "blob": "491cc1bf96edf04d6296847c06b1a3011bea48da",
       "perf": [
         "const val FIT_WAIT_MS = 500L"
+      ]
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/search/SearchState.kt": {
+      "blob": "b887a0a7eb6addb33da0d202308a864c07ad7eed",
+      "perf": []
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/progress/WaitRules.kt": {
+      "blob": "3650dcc72107063f4189023b7412f99cc4a9c73a",
+      "perf": [
+        "class RouteWait(private val memory: ProgressMemory) {",
+        "val check = memory.routeCheck",
+        "memory.routeCheck = RouteShares.learn(memory.routeCheck, checkFromMs - startMs, now - checkFromMs)",
+        "* [points] (none from the cache: [total] = points − 1); else null (they are counted: \"Abschnitt 2\")."
+      ]
+    },
+    "state/src/main/kotlin/com/onpath/app/ui/MapWaitRules.kt": {
+      "blob": "8f7fd6dad9c7597c0714c8c2fd9587b8f1a9816f",
+      "perf": [
+        "const val ESTIMATED_REGION_BYTES = 9L * 1_048_576",
+        "/** Total size: known sizes, [ESTIMATED_REGION_BYTES] for the rest. */",
+        "cells.sumOf { knownBytes(states[it], sizes[it]) ?: ESTIMATED_REGION_BYTES }"
+      ]
+    },
+    "state/src/main/kotlin/com/onpath/app/data/ProgressMemory.kt": {
+      "blob": "ead6f018f243905f53d8e7a5c4ba1cba55e8fc09",
+      "perf": [
+        "* session goes on with what it learned in memory. Thread-safe.",
+        "* places of a [StepShares]; start [SUGGEST_DEFAULT]. Default accessors: a memory that keeps none uses the start values.",
+        "/** For tests and when nothing can be stored: in memory only. */"
       ]
     },
     "app/src/main/java/btools/router/OnPathHints.java": {
@@ -3354,85 +3437,6 @@
     "app/src/main/assets/style/f2/onpath.json": {
       "blob": "1c409cb28ff79aaf7c56578053c9e792a41f66c0",
       "perf": []
-    },
-    "core/src/main/kotlin/com/onpath/app/search/OfflineIndex.kt": {
-      "blob": "0df57e108f200416e2f1538aeaae11462aa88211",
-      "perf": [
-        "val limit: Int = 60,",
-        "* In-memory offline search index over one map folder: POIs (pois.geojson), peaks/passes and place names",
-        "private const val CACHE = \"search-places-v1.tsv\"",
-        "val cache = File(cacheDir, CACHE)",
-        "if (cache.isFile) try {",
-        "val lines = cache.readLines()",
-        "} catch (e: Exception) { Problems.warn(\"search\", \"Search place cache unreadable; reading the base map again\", e) }",
-        "val tmp = File(cacheDir, \"$CACHE.tmp\")",
-        "if (!tmp.renameTo(cache)) Problems.warn(\"search\", \"Search place cache not saved (rename failed); rebuilt on next start\")",
-        "} catch (e: Exception) { Problems.warn(\"search\", \"Search place cache not written; rebuilt on next start\", e) }",
-        "return withRoute.sortedWith(ORDER).take(q.limit)"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/search/PlaceIndex.kt": {
-      "blob": "5652838f1e371c7a8ba844f0c2f86b85b5a46ed6",
-      "perf": [
-        "* The offline place index as the app uses it: [DiskIndex] (SQLite file, the app) or [OfflineIndex] (all in memory –",
-        "/** Prepares what [search] needs (reads the word index into memory), so the first keystroke answers fast. */"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/search/OnlineSearch.kt": {
-      "blob": "ac1ef13df9aa8aeacdce968c3b76739a8ede67e5",
-      "perf": [
-        "fun search(query: String, lat: Double, lon: Double, limit: Int = 10): List<Place>",
-        "fun url(query: String, lat: Double, lon: Double, limit: Int): String {",
-        "return \"$baseUrl?q=$q&lat=${f(lat)}&lon=${f(lon)}&zoom=12&location_bias_scale=0.3&limit=$limit&lang=de\"",
-        "fun placesUrl(query: String, lat: Double, lon: Double, limit: Int): String =",
-        "url(query, lat, lon, limit) + PLACE_LAYERS.joinToString(\"\") { \"&layer=$it\" }",
-        "override fun search(query: String, lat: Double, lon: Double, limit: Int): List<Place> {",
-        "val main = get(url(query, lat, lon, limit))",
-        "val places = try { get(placesUrl(query, lat, lon, PLACES_LIMIT)) } catch (e: Exception) {",
-        "const val PLACES_LIMIT = 5"
-      ]
-    },
-    "core/src/main/kotlin/com/onpath/app/search/AddressSearch.kt": {
-      "blob": "7457ae05710c53a61df776ef2deed2e6e8a73fb1",
-      "perf": [
-        "* wins over a farm group next door. Null when none is near. Pure lookup in memory.",
-        "val cands = db.rows(\"SELECT DISTINCT w FROM word WHERE w >= ? AND w < ? LIMIT 20000\", head, upper(head))",
-        "db.rows(\"SELECT street FROM word WHERE w IN (${chunk.joinToString(\",\") { \"?\" }}) LIMIT 5000\", *chunk.toTypedArray())",
-        "private fun streetsWithPrefix(w: String, enough: Int = Int.MAX_VALUE): Set<Long> {",
-        "var page = if (enough == Int.MAX_VALUE) WORD_ROWS else 2 * enough",
-        "val rows = db.rows(\"SELECT street FROM word WHERE w >= ? AND w < ? ORDER BY w, street LIMIT $n OFFSET $offset\", w, upper(w))",
-        "val done = try { pool.invokeAll(tasks) } catch (e: InterruptedException) {",
-        "private val pool: ExecutorService by lazy {"
-      ]
-    },
-    "state/src/main/kotlin/com/onpath/app/ui/search/SearchState.kt": {
-      "blob": "b887a0a7eb6addb33da0d202308a864c07ad7eed",
-      "perf": []
-    },
-    "state/src/main/kotlin/com/onpath/app/ui/progress/WaitRules.kt": {
-      "blob": "3650dcc72107063f4189023b7412f99cc4a9c73a",
-      "perf": [
-        "class RouteWait(private val memory: ProgressMemory) {",
-        "val check = memory.routeCheck",
-        "memory.routeCheck = RouteShares.learn(memory.routeCheck, checkFromMs - startMs, now - checkFromMs)",
-        "* [points] (none from the cache: [total] = points − 1); else null (they are counted: \"Abschnitt 2\")."
-      ]
-    },
-    "state/src/main/kotlin/com/onpath/app/ui/MapWaitRules.kt": {
-      "blob": "8f7fd6dad9c7597c0714c8c2fd9587b8f1a9816f",
-      "perf": [
-        "const val ESTIMATED_REGION_BYTES = 9L * 1_048_576",
-        "/** Total size: known sizes, [ESTIMATED_REGION_BYTES] for the rest. */",
-        "cells.sumOf { knownBytes(states[it], sizes[it]) ?: ESTIMATED_REGION_BYTES }"
-      ]
-    },
-    "state/src/main/kotlin/com/onpath/app/data/ProgressMemory.kt": {
-      "blob": "ead6f018f243905f53d8e7a5c4ba1cba55e8fc09",
-      "perf": [
-        "* session goes on with what it learned in memory. Thread-safe.",
-        "* places of a [StepShares]; start [SUGGEST_DEFAULT]. Default accessors: a memory that keeps none uses the start values.",
-        "/** For tests and when nothing can be stored: in memory only. */"
-      ]
     }
   }
 }
