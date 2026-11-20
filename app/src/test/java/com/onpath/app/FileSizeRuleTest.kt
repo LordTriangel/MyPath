@@ -53,7 +53,7 @@ class FileSizeRuleTest {
             "com/onpath/app/recording/RecordingService.kt" to 1_798,
             "com/onpath/app/ui/NavigateScreen.kt" to 1_340,
             "com/onpath/app/cells/MapCells.kt" to 1_296,
-            "com/onpath/app/map/MapController.kt" to 1_263,
+            "com/onpath/app/map/MapController.kt" to 1_262,
             "com/onpath/app/ui/Screens.kt" to 1_065,
             "com/onpath/app/ui/SettingsScreen.kt" to 1_040,
             "com/onpath/app/ui/MapDataFlow.kt" to 992,
