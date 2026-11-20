@@ -3316,6 +3316,18 @@
         "/** The memory copy is the truth for this process; the store is written through (a failed write is reported, not fatal). */",
         "const val CATCH_UP_MS = 1_000L"
       ]
+    },
+    "core/src/main/kotlin/com/onpath/app/live/LiveShareClient.kt": {
+      "blob": "51b4aa7b5c7969d79736e3836a7b6e9f0b3940b9",
+      "perf": [
+        "* points numbered above a cursor in order (tour, cursor, limit), and the newest point. Columns: seq, seg, lat, lon,",
+        "const val POINTS_AFTER = \"SELECT seq, seg, lat, lon, ele, time, acc FROM points WHERE tour_id=? AND seq>? ORDER BY seq LIMIT ?\"",
+        "const val LAST_POINT = \"SELECT seq, seg, lat, lon, ele, time, acc FROM points WHERE tour_id=? ORDER BY seq DESC LIMIT 1\""
+      ]
+    },
+    "core/src/main/kotlin/com/onpath/app/live/LiveSnapshot.kt": {
+      "blob": "d0072e1a7c4fb1e49cd30ef55847f4ed896bb72c",
+      "perf": []
     }
   }
 }
