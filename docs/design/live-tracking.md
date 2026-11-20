@@ -396,6 +396,18 @@ a dead zone costs the page 9 requests in the first hour, then 6 an hour. Tests: 
 `LiveStatusLineTest` (32). Proven for the web so far: the Kotlin compile of `web/engine`; the Wasm build comes with
 `WebLive.kt` (piece 3).
 
+**Built (piece 4, 2026-11-20, `LiveUploader.kt`) – again the code is right where it differs:** only `step` ever makes a
+request – `end()` / `stop()` just mark the share (stored), the next steps send the final head / the DELETE until it
+lands; the store holds one text line (`LiveShare.toText` / `parse`); the share also keeps name, counter and the last
+head that reached the server (the „ended“ head can be built after a kill); **the head carries `chunks`** – how many
+track chunks count – and the page draws only those (a push stored whose answer was lost can leave a stale higher
+chunk); 404 counts as gone like 410 / 403; dropping the plan sends one empty route; a full box (413 / 507) is a plain
+failure with back-off. `LiveUploaderTest` (16, incl. 300 seeded random sequences with lost answers and kills: no point
+twice, none missing). **For the Android edge:** the uploader has no locks – every call on the one live lane, the UI
+reads a snapshot the lane publishes; the lane stays alive while `pending` (final head / DELETE still to send);
+`LiveTrack.pointsAfter` needs a stable increasing point number per tour; `LiveNeverBlocksRecordingTest` belongs to the
+edge (it needs the real lane and reader).
+
 ### 14.2 `:state` `ui/live/LiveShareSlice.kt`
 
 State for Navigate: `sign: LiveSign` (None / Live / Waiting), `menu: List<LiveAction>` (Share / ShareAgain / Stop),
