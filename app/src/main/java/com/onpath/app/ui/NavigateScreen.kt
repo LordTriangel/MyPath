@@ -372,8 +372,8 @@ fun NavigateOverlay(
                 var profileOpen by rememberSaveable { mutableStateOf(false) }
                 NavStatusCard(ui, onResume, profileOpen, onToggleProfile = { profileOpen = !profileOpen }, onActivity = onActivity,
                     onProfileScrub = onProfileScrub, onProfileRelease = onProfileRelease,
-                    // no tour buttons in the card (owner 2026-11-06, [TourBottomBar]); live sharing's row ([LiveShareLayer])
-                    actions = LocalNavCardExtra.current)
+                    // the lock off (owner 2026-11-06): no buttons in the card – Pause | Planen at the bottom ([TourBottomBar])
+                    actions = null)
             }
             download?.let { BackgroundDownloadChip(it, onDownload, Modifier.align(Alignment.End)) }
             sim?.let { Box(Modifier.align(Alignment.End)) { it() } }
