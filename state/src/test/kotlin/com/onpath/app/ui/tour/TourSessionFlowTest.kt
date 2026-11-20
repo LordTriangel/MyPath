@@ -1018,6 +1018,43 @@ class TourSessionFlowTest {
         assertEquals("asked at the next start", id, ctl.unfinished!!.id)
     }
 
+    /**
+     * Review 2026-11-20 (the rest of [umbau]'s finding): both start reads failed, then the user starts a new tour – the active
+     * tour is read once more before START (which would close it as „done“, `finishOtherActive`): found → its question, no START.
+     */
+    @Test fun bothStartReadsFailedThenANewTourReadsOnceMoreAndAsks() {
+        val id = unfinishedId
+        create(); routeNow = routeFor(plan.points.toList())
+        var fail = true
+        onFindActive = { if (fail) throw java.io.IOException("database busy") }
+        ui { session.start() }
+        stepIo(); advance(1_500); stepIo()
+        assertNull(ctl.unfinished)
+        assertFalse(ctl.unfinishedPending)
+        fail = false
+        ui { session.startNavigation() }
+        assertTrue("held while it reads", ctl.unfinishedPending)
+        assertEquals("nothing sent before the read", emptyList<String>(), actions())
+        stepIo()
+        assertEquals("its question instead of a new tour", id, ctl.unfinished!!.id)
+        assertEquals("no START", emptyList<String>(), actions())
+        assertFalse(ctl.unfinishedPending)
+        assertEquals("the row is untouched", "active", db.getTour(id)!!.state)
+    }
+
+    /** The same, but the read before the tour fails again or finds nothing: the tour starts (a tour is never refused) – once. */
+    @Test fun bothStartReadsFailedAndTheReadBeforeTheTourFailsTooTheTourStarts() {
+        create(); routeNow = routeFor(plan.points.toList())
+        onFindActive = { throw java.io.IOException("database busy") }
+        ui { session.start() }
+        stepIo(); advance(1_500); stepIo()
+        ui { session.startNavigation() }
+        stepIo()
+        assertEquals("the tour starts", listOf("START"), actions())
+        assertFalse(ctl.unfinishedPending)
+        assertTrue(problems.said("app").any { it.contains("Active tour could not be read before a new tour") })
+    }
+
     /** L2: `enter(start)` itself throws – reported, and the start mode is still known. */
     @Test fun aThrowingEnterAtStartStillMakesTheStartModeKnown() {
         create()

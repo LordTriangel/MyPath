@@ -131,6 +131,8 @@ class TourSession(
     var straightAsk by mutableStateOf(false)
 
     private var startJob: Job? = null
+    /** The start's reads of the active tour both failed: not known whether an interrupted tour waits ([readBeforeNewTour]). */
+    private var activeUnread = false
 
     /**
      * The start-up work of the view model's big `init`, in its old order: the followed line left over with an empty plan, the
@@ -162,7 +164,7 @@ class TourSession(
                 // the start mode is entered and known all the same; a cancellation is not a failure
                 var readFailed = false
                 suspend fun readActive(what: String) = try {
-                    rows.findActiveRecording()
+                    rows.findActiveRecording().also { readFailed = false }
                 } catch (e: CancellationException) {
                     currentCoroutineContext().ensureActive() // our own cancellation propagates; a stray one is a failure like any other (reported without the throwable: Problems drops cancellations)
                     Problems.error("app", "Active tour could not be read $what (stray cancellation); started as if none was found: ${e.message}")
@@ -214,6 +216,8 @@ class TourSession(
                         withContext(main) { tour.showUnfinished(active, line) }
                     }
                 }
+                // both reads failed: the next tour start reads once more first ([readBeforeNewTour])
+                if (readFailed && recording.state.value == null) withContext(main) { activeUnread = true }
             } finally {
                 withContext(NonCancellable + main) { tour.unfinishedPending = false }
             }
@@ -311,6 +315,7 @@ class TourSession(
         // an interrupted tour still checked / asked about: its question decides first (TourController.canStartNew) –
         // nothing started, the plan untouched; the question shows or is already there
         if (!tour.canStartNew) { Problems.trace("tour", "Tour start held: an interrupted tour is still checked / asked about"); return }
+        if (activeUnread) { activeUnread = false; readBeforeNewTour(force, recordOnly); return }
         val s = shown
         if (!recordOnly && s == null && !force && planHasStraightLegs()) { straightAsk = true; return }
         // PlanStart: the sheet's button says "Start recording" exactly when nothing is followed here
@@ -329,6 +334,37 @@ class TourSession(
             val started = withTimeoutOrNull(startTimeoutMs) { recording.state.filterNotNull().first() } != null
             if (started) enter(AppMode.NAVIGATE)
             else if (errorCard == null) sayError(Txt.s(Res.string.msg_recording_not_started), NoticePlace.MAP)
+        }
+    }
+
+    /**
+     * Both start reads failed (review 2026-11-20, the rest of [umbau]'s finding): before a new tour – whose START closes an
+     * interrupted one as „done“ (`finishOtherActive`) – the active tour is read once more, the start hold kept. Found → Navigate
+     * and its question, no START; none, or the read fails again → the tour starts (a tour is never refused).
+     */
+    private fun readBeforeNewTour(force: Boolean, recordOnly: Boolean) {
+        tour.unfinishedPending = true
+        scope.launchSafe("app", "read the active tour before a new tour", io) {
+            try {
+                val t = try { rows.findActiveRecording() } catch (e: CancellationException) {
+                    currentCoroutineContext().ensureActive()
+                    Problems.error("app", "Active tour could not be read before a new tour (stray cancellation); the tour starts: ${e.message}"); null
+                } catch (e: Throwable) { Problems.error("app", "Active tour could not be read before a new tour; the tour starts", e); null }
+                val line = if (t == null) emptyList() else runCatching { tours.loadSegments(t.id).map { seg -> seg.map { GeoPoint(it.lat, it.lon) } } }
+                    .onFailure { Problems.warn("db", "Track of the unfinished tour could not be read – not drawn", it) }.getOrDefault(emptyList())
+                withContext(main) {
+                    tour.unfinishedPending = false
+                    if (t != null && recording.state.value == null) {
+                        Problems.info("app", "Active tour found before a new tour: its question instead of the start")
+                        try { if (mode != AppMode.NAVIGATE) enter(AppMode.NAVIGATE) } catch (e: CancellationException) {
+                            currentCoroutineContext().ensureActive(); Problems.error("app", "Entering Navigate for the tour found failed (stray cancellation): ${e.message}")
+                        } catch (e: Throwable) { Problems.error("app", "Entering Navigate for the tour found failed; its question still comes", e) }
+                        tour.showUnfinished(t, line)
+                    } else startNavigation(force, recordOnly)
+                }
+            } finally {
+                withContext(NonCancellable + main) { tour.unfinishedPending = false }
+            }
         }
     }
 
