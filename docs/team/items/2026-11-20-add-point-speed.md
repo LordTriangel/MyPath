@@ -42,5 +42,5 @@ Anchors 3–5 km gave wrong detours on hikes (+4–7 km, up to +744 m) – 10 km
 - Detour stitching: **yes, after the release** – ≤ 2 km from the line, legs > 60 km, anchors 10 km before / after; the
   detour is a field of the point (goes when the point goes); „Ganz neu berechnen“ in the plan's menu; a picture of the
   button to the owner before it is built. Format change → app + planner together ([umbau] / [mehrtage] / laptop).
-- Zuletzt: leaving a plan opened from Zuletzt behaves **like the app** (new draft, the old one to the bin) – planner
-  follows on the wip branch.
+- Zuletzt: ~~like the app~~ – **corrected by the owner 10:05 in the captain's chat: a changed plan UPDATES its entry, for app
+  and planner** (no new draft, nothing to the bin); the planner keeps its rule, the app changes ([umbau], `RoutesState`).
