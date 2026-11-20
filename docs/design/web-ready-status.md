@@ -125,3 +125,30 @@ strings the stages together with its coroutines, the planner with its promises. 
 3. `RoutesSlice` / `RoutesGoSlice` only after ports for the tour and the route run (`TourController`, `PlanRouteSlice`
    behind interfaces) – the planner has no tour; most of `RoutesGoSlice` („Los geht's“) is not its feature at all.
 Each of 1–2 is a piece of its own: design by the lead (which stages, what each returns), a helper builds, one review.
+
+### 7.1 The cut for `SaveSlice` (design, 2026-11-20 evening): two ports instead of stages
+
+Read through, every coroutine in `SaveSlice` is one of two shapes: (a) „do this blocking write off the main thread, then
+go on here with its result“ (`withContext(io) { … }` inside a `launchSafe`), (b) „ask for the place name, at most
+`nameWaitMs`“. So the slice needs no stage objects – it needs two ports (in `ui/Ports.kt`, listed):
+
+```kotlin
+/** Blocking work off the caller's thread, its result back on it. The app: launchSafe(area, what) + withContext(io). */
+interface Background {
+    /** Runs [work] (blocking; may throw – the failure is reported under [what] and [then] is not called), then [then] with its result on the caller's thread; [always] after either. */
+    fun <T> run(what: String, work: () -> T, always: () -> Unit = {}, then: (T) -> Unit)
+}
+/** The place name proposed for a plan, at most [maxMs] late; null = none in time. [got] on the caller's thread, exactly once. */
+fun interface NameProposal { fun ask(points: List<GeoPoint>, route: PlannedRoute?, maxMs: Long, got: (String?) -> Unit) }
+```
+
+- `SaveState` (listed): today's `SaveSlice` body with `scope.launchSafe { … withContext(io) { X } … }` rewritten as
+  `background.run(what, { X }) { result -> … }`, nested where a flow has two or three writes in a row (`overwriteSaved`:
+  read → replace → maybe insert). Same order of writes, same thread for each, same `saving` guard (`always = { saving = false }`).
+- `SaveSlice(plan, routes, recent, store, host, scope, io, nameWaitMs) : SaveState(…, CoroutineBackground(scope, io), …)`
+  – the old constructor, so `AppViewModel` and `SaveFlowTest` stay as they are. `CoroutineBackground` (not listed) is the
+  one place with `launchSafe` / `withContext`; `RecentPlans` and the later slices use the same two ports.
+- The planner: `Background` that runs `work` at once on its in-memory store and calls `then` (as it does for
+  `RoutesState` today), `NameProposal` from its own name lookup.
+- Risk: C18. `SaveFlowTest` untouched and green is the proof (it drives two manual executors: a write moved to the wrong
+  thread or run early shows); `CorePlanE2ETest` on GitHub before main; one review that compares order and threads flow by flow.
