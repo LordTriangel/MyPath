@@ -190,10 +190,18 @@ class TourSession(
                 val readAgain = active == null && readFailed && recording.state.value == null
                 if (readAgain) {
                     delay(stickyWaitMs)
-                    active = readActive("again after ${stickyWaitMs} ms")
+                    if (recording.state.value == null) active = readActive("again after ${stickyWaitMs} ms") // else the service owns its tour
                     if (active != null && recording.state.value == null) withContext(main) {
                         Problems.info("app", "Active tour read on the second try: Navigate and its question")
-                        if (mode != AppMode.NAVIGATE) enter(AppMode.NAVIGATE)
+                        // guarded like the first `enter`: a throw here must not cost the question (review 2026-11-20)
+                        try {
+                            if (mode != AppMode.NAVIGATE) enter(AppMode.NAVIGATE)
+                        } catch (e: CancellationException) {
+                            currentCoroutineContext().ensureActive()
+                            Problems.error("app", "Entering Navigate for the tour read again failed (stray cancellation); its question still comes: ${e.message}")
+                        } catch (e: Throwable) {
+                            Problems.error("app", "Entering Navigate for the tour read again failed; its question still comes", e)
+                        }
                     }
                 }
                 if (active != null && recording.state.value == null) {

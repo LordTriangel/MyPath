@@ -968,6 +968,35 @@ class TourSessionFlowTest {
         assertTrue(problems.said("app").any { it.contains("Active tour could not be read at start") })
     }
 
+    /** Review 2026-11-20: switching to Navigate after the second read throws – reported, and the question still comes. */
+    @Test fun aThrowingEnterAfterTheSecondReadStillAsks() {
+        val id = unfinishedId
+        create()
+        var reads = 0
+        onFindActive = { if (++reads == 1) throw java.io.IOException("database busy") }
+        ui { session.start() }
+        stepIo()
+        failClearHints = true
+        advance(1_500); stepIo()
+        assertEquals(id, ctl.unfinished!!.id)
+        assertFalse(ctl.unfinishedPending)
+        assertTrue(problems.said("app").any { it.contains("Entering Navigate for the tour read again failed") })
+    }
+
+    /** The service comes back by itself during the wait (sticky): the second read finds its tour – no question, no command. */
+    @Test fun aServiceBackDuringTheSecondWaitIsNotAskedAbout() {
+        create(); routeNow = routeFor(plan.points.toList())
+        var reads = 0
+        onFindActive = { if (++reads == 1) throw java.io.IOException("database busy") }
+        ui { session.start() }
+        stepIo()
+        serviceTakes()
+        advance(1_500); stepIo()
+        assertNull(ctl.unfinished)
+        assertFalse(ctl.unfinishedPending)
+        assertEquals("not read again: the service owns its tour", 1, reads)
+    }
+
     /** L2: the read fails twice – no question, the row is not touched, no command; asked at the next start. */
     @Test fun anInterruptedTourThatCouldNotBeReadIsAskedAtTheNextStart() {
         val id = unfinishedId
