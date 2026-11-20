@@ -13,7 +13,7 @@ import kotlinx.coroutines.withTimeoutOrNull
  * The app's [Background]: a coroutine on the view model's [scope] (failures reported under `app` / [Background.run]'s `what`),
  * the blocking [work] on [io]. A `run` called from inside a `then` is the next step of the same flow – it used to be the next
  * lines of one coroutine, so it starts undispatched (no extra hop through the scope's dispatcher); one called from anywhere
- * else is a new coroutine as before.
+ * else – also from a [NameProposal]'s `got`, which runs in the proposal's own coroutine – is a new, dispatched coroutine.
  */
 class CoroutineBackground(private val scope: CoroutineScope, private val io: CoroutineDispatcher) : Background {
     /** > 0 while a `then` runs (always on the scope's thread). */

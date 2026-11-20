@@ -110,7 +110,7 @@ Trial: the four files of `ui/routes/` added to `web-ready.txt`, `WebReadyRuleTes
 | File | Coroutine use | Unlisted `:state` files it needs |
 | --- | --- | --- |
 | `SaveSlice.kt` (383 lines) | `withContext` / `withTimeoutOrNull` INSIDE its flows (`private suspend fun insertPlanned`, the name proposal with a time limit, `suspend fun proposeName` in the host) | `SaveStore.kt` (`SaveStore`, `PlannedRow` – plain, can simply be listed) |
-| `RecentPlans.kt` | `keep`'s name job (`withTimeoutOrNull`), save / delete / restore each a `launch` + `withContext(io)`; host `suspend fun proposeName` | – |
+| `RecentPlans.kt` (cut 2026-11-20 evening → `RecentPlansState`, listed) | `keep`'s name job (`withTimeoutOrNull`), save / delete / restore each a `launch` + `withContext(io)`; host `suspend fun proposeName` | – |
 | `RoutesSlice.kt` (358 lines) | `private suspend fun loadStoredLine`, host `suspend fun share` | `ToursStore.kt` (plain), **`PlanRouteSlice`**, **`TourController`** |
 | `RoutesGoSlice.kt` | `snapshotFlow` + `first`, `withTimeoutOrNull`, two `suspend fun` | `ToursStore.kt`, **`PlanRouteSlice`**, **`PlanLinkFlow`**, **`TourController`** |
 
@@ -158,3 +158,11 @@ needed – `NameProposal.ask(what, …, always, got)` (the failure text and the 
 `Recent` interface in `SaveState` in place of `RecentPlans`. `CoroutineBackground` starts a step called from inside a
 `then` undispatched (the old code's inline `withContext` – no extra hop). A flow's synchronous start is guarded
 (`guardedStart`: a throw is reported, `saving` released – review finding, `SaveGuardTest`). `CorePlanE2ETest` green.
+
+**Built 2026-11-20 evening (fresh [umbau]):** `RecentPlansState.kt` listed – Zuletzt and the recycle bin (keep, keepReplaced,
+saveDraft, deleteDraft, trimOnce, bin / openBin, restore, deleteForever) on the same two ports, host `RecentPlansPorts`
+(9 members, blocking, no `suspend`), rows as the top-level `DraftRow`; it implements `SaveState`'s `Recent`, so the planner
+passes it to `SaveState` as it is. The app's `RecentPlans : RecentPlansState` keeps the old constructor, `RecentPlansHost`,
+`RecentPlans.Leaving` / `.DraftRow` (copied field by field – two `DraftRow`s in the package, the nested one is the app's);
+`CoroutineNameProposal` is the one name wait for Save and Zuletzt. Changed on purpose: `trimOnce`'s tail (`trimmed = true`,
+the list read again) runs on the main thread, not on io. `keep` still writes its row before it returns (`RecentPlansTest`).
