@@ -54,8 +54,8 @@ gestures, re-routing only after asking, core-feature bugs test first, public tex
   „For the captain“, each session's state), wakes stopped sessions with their next step, unblocks a session stuck on a
   box (interrupt + its recommendation as the answer), logs a line only when it acted; (4) **a German morning report** at
   ~06:30 in `docs/team/items/<date>-morning-report.md` (plain words: done, release candidate ready?, the night's
-  answers, what needs his word, who works on what). Publishing needs his word – given for a night, it is in the
-  backlog's „For the roles“.
+  answers, what needs his word, who works on what). Publishing needs **his own word in the chat of the role that publishes** (owner 2026-11-20: never relayed by the
+  captain) – so a night ends with the release ready to the last step.
 - **Don't weaken CI gates** without the owner's explicit words. Releases are batched unless the owner asks.
 
 ## The owner's phone (Pixel 8, adb)

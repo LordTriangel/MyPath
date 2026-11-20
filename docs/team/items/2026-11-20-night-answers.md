@@ -53,3 +53,15 @@ One line each: `- Q … → A … (role, time)`. The owner reads this in the mor
 - 01:30 captain: app candidate 230dbc8b0 green; the laptop freezes the planner too – full planner checks on main, candidate sha for the morning, further slice work on a wip branch until after the deploy (captain)
 - 02:15 captain: planner candidate 363b16645 green and frozen (laptop); its release_check misses a unit CI run on the app candidate 230dbc8b0 → donald asked to run it (captain)
 - 04:00 captain: laptop idle since 02:06 – woken to go on with the slices on its wip branch (main stays frozen), state line by 06:15 (captain)
+
+## The owner's morning answers (2026-11-20 ~09:30, in the captain's chat, one by one)
+- Version 0.18.2 → yes. Tests: no more cutting tonight, umbau brings the list of candidates after the release → yes.
+- Planner Save with a blank name takes the place proposal like the app → yes.
+- **Zuletzt: leaving a changed draft UPDATES that entry – the planner's rule for both**; the app changes after the release (no new draft + old one to the bin).
+- A night / point on the routed line cuts the leg; the app follows after the release → yes.
+- Long multi-day plans: all three of the laptop's proposals after the release (skip the click measure on long legs; stitch within ~2 km; long halves in pieces later, with the „same route everywhere“ check) → yes.
+- Rundgang flow 17 red once = flaky → yes.
+- **Publishing only on the owner's own word in the publishing role's chat**, never relayed by the captain → kept.
+- **Test places (Hilden, Neuss, Zons …) stay, but exact start coordinates go** – moved to neutral points (not at a door) after the release.
+- Live tracking: battery level on the viewer page + the name asked once (may stay empty) → yes.
+- Darker paper → not at all, the try is dropped. Pull request 15 → the owner merges it now; 16 after the release.
