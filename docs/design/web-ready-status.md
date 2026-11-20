@@ -102,3 +102,26 @@ its own run (`PlanRunHost`, 6 members); what is missing is on the page side, not
 extend them with the coroutines only. The engine's `test generateWasmGC` is green – but nothing calls the three classes
 yet, so two things are untested in the browser build until the page drives them: `cause::class.simpleName`
 (`PlanEditState`) and core's `HoldPaths` (coroutines) behind `PlaceAddState`.
+
+## 7. `SaveSlice` / `RoutesSlice` – the trial listing (2026-11-20 evening): a different size than §6
+
+Trial: the four files of `ui/routes/` added to `web-ready.txt`, `WebReadyRuleTest` run, list restored. Result:
+
+| File | Coroutine use | Unlisted `:state` files it needs |
+| --- | --- | --- |
+| `SaveSlice.kt` (383 lines) | `withContext` / `withTimeoutOrNull` INSIDE its flows (`private suspend fun insertPlanned`, the name proposal with a time limit, `suspend fun proposeName` in the host) | `SaveStore.kt` (`SaveStore`, `PlannedRow` – plain, can simply be listed) |
+| `RecentPlans.kt` | `keep`'s name job (`withTimeoutOrNull`), save / delete / restore each a `launch` + `withContext(io)`; host `suspend fun proposeName` | – |
+| `RoutesSlice.kt` (358 lines) | `private suspend fun loadStoredLine`, host `suspend fun share` | `ToursStore.kt` (plain), **`PlanRouteSlice`**, **`TourController`** |
+| `RoutesGoSlice.kt` | `snapshotFlow` + `first`, `withTimeoutOrNull`, two `suspend fun` | `ToursStore.kt`, **`PlanRouteSlice`**, **`PlanLinkFlow`**, **`TourController`** |
+
+So this is not „one lookup out“: in these slices the background steps ARE the flow (write on the IO thread, wait for a
+name at most n seconds, then go on on the main thread), and `RoutesSlice` / `RoutesGoSlice` hang on the tour and on the
+route run. The cut that fits is the second form of §2.2 – **plain state + a step function per stage**: `XState` holds
+the state and one plain member per stage (`begin…(): Request?`, `…Written(result)`, `…Named(name?)`); the app's `XSlice`
+strings the stages together with its coroutines, the planner with its promises. Order by what the planner gains:
+1. `SaveSlice` (+ list `SaveStore.kt`): the planner's Save already runs `SaveDialog` + `RouteRules.saveMode`; the flow
+   around it (request → name → write → after-saved → Zuletzt) is what `plans.ts` still mirrors.
+2. `RecentPlans`: the same stages for keep / save / delete / restore (the planner calls `RoutesState` directly today).
+3. `RoutesSlice` / `RoutesGoSlice` only after ports for the tour and the route run (`TourController`, `PlanRouteSlice`
+   behind interfaces) – the planner has no tour; most of `RoutesGoSlice` („Los geht's“) is not its feature at all.
+Each of 1–2 is a piece of its own: design by the lead (which stages, what each returns), a helper builds, one review.
