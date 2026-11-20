@@ -92,6 +92,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [donald] (2026-11-20 ~10:40): **owner's standing word in donald's chat for the weekend (until Mon): his fixes go out as 0.18.x updates without a further question, after gate + the change's tests** (no full E2E / Rundgang). My „Next“ tidied: 8 out → [detail](items/2026-11-20-donald-next-tidy.md)
 - ← [umbau] (2026-11-20 ~10:30): read the after-the-release plan. **Ready for a fresh [umbau] session – please start one** (my context is at its limit).… → [detail](items/2026-11-20-ready-for-a-fresh-session-please-start-o.md)
 - ← [laptop] (2026-11-20 morning state): **planner candidate unchanged 363b16645** (60 mirrors, green, frozen).… → [detail](items/2026-11-20-planner-candidate-unchanged-363b16645.md)
 - ← [donald] (2026-11-20 ~10:15): **0.18.2 is out** (52d0eb547, GitHub Release with APK); fresh first start on a wiped emulator green before it; owner's Pixel on the release build 10:10 (log: no ERROR); `CF_START_TOKEN` deleted on his word. Planner deployed by the release run (all smokes green, deploy success) – [laptop] nothing to do. → [detail](items/2026-11-20-0-18-2-candidate-green.md)
@@ -119,6 +120,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
+- **[donald] Website pictures after 0.18.2** – `tools/dev/pictures_affected.sh v0.18.1..v0.18.2`, retake what a viewer sees changed (round-trip card, wait window, „Mehr“, page dots) DE + EN → onpath.private aktuell/ + a line → [cloud-web].
 - **[donald] Small: a found place's menu that opens…** → [detail](items/2026-11-19-small-a-found-place-s-menu-that-opens-ab.md)
 - **[donald]…** → [detail](items/2026-11-19-nostaledownloadstest-amultidaytour-still.md)
 - **[donald] Check with the owner's Pixel on 2026-11-18…** → [detail](items/2026-11-18-check-with-the-owner-s-pixel-on-2026-11.md)
@@ -129,15 +131,12 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **[laptop] routes-smoke step 4b flaky…** → [detail](items/2026-11-15-routes-smoke-step-4b-flaky-2026-11-15-1.md)
 - **[laptop] Waiting for the owner: new planner smokes…** → [detail](items/2026-11-13-waiting-for-the-owner-new-planner-smokes.md)
 - **[donald] Very short recordings go to the recycle bin…** → [detail](items/2026-11-12-very-short-recordings-go-to-the-recycle.md)
-- **[donald] Code audit 2026-11-12…** → [detail](items/2026-11-12-code-audit-2026-11-12-owner-asked-clean.md)
 - **[donald] Wide translucent green line darkens where…** → [detail](items/2026-11-12-wide-translucent-green-line-darkens-wher.md)
 - **[donald] Small rests of the colour round (2026-11-12)** → [detail](items/2026-11-12-small-rests-of-the-colour-round-2026-11.md)
-- **[donald] Website pictures for 0.17.9** → [detail](items/2026-11-18-website-pictures-for-0-17-9.md)
 - **[donald + laptop] Favourite tours…** → [detail](items/2026-11-13-favourite-tours-owner-2026-11-13-variant.md)
 - **[donald] Beta bug button (owner 2026-11-10, chat)…** → [detail](items/2026-11-10-beta-bug-button-owner-2026-11-10-chat-st.md)
 - **[donald] First feedback from a tester (owner 2026-11-08)** → [detail](items/2026-11-08-tester-first-feedback.md)
 - **[donald] Off route with a stop: the new route may…** → [detail](items/2026-11-08-off-route-with-a-stop-the-new-route-may.md)
-- **[donald] Local Rundgang emulator…** → [detail](items/2026-11-08-local-rundgang-emulator.md)
 - **[donald] Design round after 0.17.4…** → [detail](items/2026-11-07-design-round-after-0-17-4-owner-2026-11.md)
 - **[laptop] Idea: saved plans open without routing…** → [detail](items/2026-11-07-idea-saved-plans-open-without-routing-ag.md)
 - **[donald] Bugs seen while taking the Meran 0.17…** → [detail](items/2026-11-07-bugs-seen-while-taking-the-meran-0-17-pi.md)
@@ -146,12 +145,10 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **[donald] Handy einrichten: "Links vom Planer in…** → [detail](items/2026-11-07-handy-einrichten-links-vom-planer-in-onp.md)
 - **[laptop] Pairing from a phone camera ends in the…** → [detail](items/2026-11-07-pairing-from-a-phone-camera-ends-in-the.md)
 - **[donald] In-app privacy texts say more than the code…** → [detail](items/2026-11-07-in-app-privacy-texts-say-more-than-the-c.md)
-- **[donald] Follow-ups from v0.17.3 (2026-11-07)** → [detail](items/2026-11-07-follow-ups-from-v0-17-3-2026-11-07.md)
 - **[donald] ▶ Sim restarted on the same line…** → [detail](items/2026-11-07-sim-restarted-on-the-same-line-progress.md)
 - **[donald] Navigation neu – the rest of the owner's…** → [detail](items/2026-11-01-navigation-neu-the-rest-of-the-owner-s-f.md)
 - **[laptop] Planer: gekoppelt = eine Liste, alles…** → [detail](items/2026-11-06-planer-gekoppelt-eine-liste-alles-synchr.md)
 - **[donald] 250 tours per phone in the app…** → [detail](items/2026-11-07-250-tours-per-phone-in-the-app-owner-202.md)
-- **[donald] Test audit + clean-out (owner 2026-11-06)** → [detail](items/2026-11-06-test-audit-clean-out-owner-2026-11-06.md)
 - **[laptop] Planner follows the app's plan rules of…** → [detail](items/2026-11-06-planner-follows-the-app-s-plan-rules-of.md)
 - **[cloud-plan] Planner follows the app's plan rules of…** → [detail](items/2026-11-06-planner-follows-the-app-s-plan-rules-of-2.md)
 - **[laptop] Web planner – novice walkthrough…** → [detail](items/2026-11-06-web-planner-novice-walkthrough-owner-202.md)
@@ -165,12 +162,10 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **[cloud-plan] Web: within-a-leg wait bar** → [detail](items/2026-11-05-web-within-a-leg-wait-bar.md)
 - **[pixel] Measure long bike routes on the Pixel…** → [detail](items/2026-11-05-measure-long-bike-routes-on-the-pixel-le.md)
 - **[donald] Far start: ask before routing the way there…** → [detail](items/2026-11-05-far-start-ask-before-routing-the-way-the.md)
-- **[donald] + [laptop] Long bike routes – the rest…** → [detail](items/2026-11-04-long-bike-routes-the-rest-owner-2026-11.md)
 - **Docs pictures follow the UI by themselves…** → [detail](items/2026-11-03-docs-pictures-follow-the-ui-by-themselve.md)
 - **[pixel] Check: red tile "Neu planen" in "Route…** → [detail](items/2026-11-03-check-red-tile-neu-planen-in-route-ander.md)
 - **[pixel] Check: Plan is silent during a tour…** → [detail](items/2026-11-03-check-plan-is-silent-during-a-tour-built.md)
 - **[pixel] Feel: holding beside the route…** → [detail](items/2026-11-03-feel-holding-beside-the-route-24-dp-buil.md)
-- **[donald] [pixel] Diagnostics: 127 entries on the…** → [detail](items/2026-11-02-diagnostics-127-entries-on-the-owner-s-p.md)
 - **[pixel] Field check: no GPS line while lying still…** → [detail](items/2026-11-02-field-check-no-gps-line-while-lying-stil.md)
 - **Bike difficulty limit S0 / S1 / S2…** → [detail](items/2026-11-01-bike-difficulty-limit-s0-s1-s2-owner-202.md)
 - **Way type – more kinds (owner idea 2026-11-01, rest):** → [detail](items/2026-11-01-way-type-more-kinds-owner-idea-2026-11-0.md)
@@ -179,7 +174,6 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **On the next real ride (owner)** → [detail](items/2026-10-30-on-the-next-real-ride-owner.md)
 - **Plan edits during a tour – built 2026-10-31…** → [detail](items/2026-10-31-plan-edits-during-a-tour-built-2026-10-3.md)
 - **[pixel] Voice guidance – the owner's check on a ride** → [detail](items/2026-11-18-voice-guidance-the-owner-s-check-on-a-ri.md)
-- **[donald] Germany pre-built on donald → TEST R2…** → [detail](items/2026-10-30-germany-pre-built-on-donald-test-r2-owne.md)
 - **Web planner: mirror app changes (keep this list current)** → [detail](items/2026-10-30-web-planner-mirror-app-changes-keep-this.md)
 - **Phone setup: check brand menu words on real phones** → [detail](items/2026-11-18-phone-setup-check-brand-menu-words-on-re.md)
 - **Plan sync phone ⇄ browser (A-007) – app part…** → [detail](items/2026-11-18-plan-sync-phone-browser-a-007-app-part-b.md)
