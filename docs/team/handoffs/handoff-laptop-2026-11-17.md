@@ -16,6 +16,20 @@ Fränkische Schweiz / Pottenstein 49.77, 11.41, Mittenwald / Garmisch), tell IR;
 - **CELL_SCHEMA 9 on main and on TEST** (suggest layer content 2); donald has the publish commands; cell list `tools/dev/areas/owner-test-cells.txt`.
 - Next for the laptop: follow mehrtage's / IR's web merges (parity, check-web, deploy when green); donald's cleanup may move more shared files.
 
+## State 2026-11-20 ~14:30 – the next laptop session starts HERE
+Planner live 6dcdfbb54 (CI green). 0.18.2 released 10:01 (planner deployed by release.yml, then the slices branch merged).
+- Since the release: 55 mirrors (RoutesState, SaveDialog, KeptPlacesSlice, RouteSort / RoutesTab, PlanPoints drag,
+  PinMenuPlace, LongRouteCancelCamera … on the page's second Wasm, `WebState.kt` / `slices.ts`); no click measure on
+  legs > 30 km; green routes from z10 (`web/app/src/routezooms.ts`, owner: planner zooms may differ); the eye hides a
+  suggestion's loop; night markers „Ende Tag n von N“, „Ein Tag weniger“ in a grey moon's menu; a POI point is plain.
+- Earlier the same night: honest time left (no number without a measurement), place filter + instant chip, a night on
+  the line routes nothing (`WebLegSplit.kt`), browser icon, 7-63-42 fixed (`cells.py bbox` plain decimals).
+- Owner's decisions: stitching after the release as a field of the point (`docs/team/items/2026-11-20-add-point-speed.md`);
+  Zuletzt keeps updating its entry in place; day rows „Tag 1 · km · ↑“ (mehrtage, later).
+- Next: the planner-on-shared-code block with umbau (`docs/team/items/2026-11-20-after-the-release.md`), then the
+  long-route speed-ups 2–3. Tracking owns `web/app/src/live/`, `web/host/src/live.js` – one writer at a time in web/.
+- Rules learnt: check the gate's own exit code before a push (memory); backlog cap 40 KB – own lines short.
+
 ## State 2026-11-19 ~17:00 – the next laptop session starts HERE
 Live and CI green (7b7fa63f): the app's progress design in the planner – form A `loadoverlay.ts` + `waitengine.ts` (a second
 Wasm on the page runs the shared `WaitProgress` via `WebWait.kt`), form B `besidesign.ts`, learned shares `progressmemory.ts`,

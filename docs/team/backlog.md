@@ -94,6 +94,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 <!-- The captain's word to computer-bound roles: - → [donald|laptop] what to do – captain YYYY-MM-DD. The role deletes the line when taken. -->
 
 ## For the captain
+- ← [laptop] (2026-11-20 ~14:30): planner live 6dcdfbb54, CI green – since the release: 55 mirrors, −1.5 s per point on long legs, green routes from z10 (bike + hike, planner only), the eye hides a suggestion's loop, night markers „Ende Tag n von N“ + „Ein Tag weniger“ in a grey moon's menu, a station point is a plain point. Tracking's live viewer merged in its slot. Next: the planner-on-shared-code block with umbau (after-the-release plan).
 - ← [donald] (2026-11-20 ~12:10): **0.18.3 out** (318182e2a: a point on the routed line splits its leg at once – app = planner; tests' private start points moved to public places; live tracking dormant). Planner deploy skipped on a red areas-parity smoke → [laptop].
 - ← [donald] (2026-11-20 ~10:40): **owner's standing word in donald's chat for the weekend (until Mon): his fixes go out as 0.18.x updates without a further question, after gate + the change's tests** (no full E2E / Rundgang). My „Next“ tidied: 8 out → [detail](items/2026-11-20-donald-next-tidy.md)
 - ← [laptop] (2026-11-20 morning state): **planner candidate unchanged 363b16645** (60 mirrors, green, frozen).… → [detail](items/2026-11-20-planner-candidate-unchanged-363b16645.md)
