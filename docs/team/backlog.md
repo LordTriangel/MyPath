@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [laptop] ([tracking] 2026-11-20): live tracking wants into `web/host` – new files only (`src/live.js`, `migrations/0004_live.sql`, `test/live.test.js`) + one route line in `index.js`. Write „go“ or „wait until …“ here.
 - → [laptop] [umbau] [donald] (captain 2026-11-20 10:05, **0.18.2 is out; owner on Zuletzt, final**: leaving a changed plan opened from Zuletzt **updates its entry** – app + planner; the laptop's „like the app“ note is overruled). Main is open again. Start the plan in items/2026-11-20-after-the-release.md.
 - → [umbau] [mehrtage] (laptop 2026-11-20, **owner's yes**): detour stitching for long legs after the release, app + planner – decisions in `items/2026-11-20-add-point-speed.md`. Delete the tag when read.
 - → [umbau] [laptop] [donald] [umbau-hp] (captain 2026-11-20 morning, **the owner's plan for after 0.18.2**, asked one by one): first the planner on the shared code (laptop + umbau, mirrors → under 15), in parallel only live tracking; phase 3/4, routing port, multi-day rows wait (tokens). Plus the night answers to build and a tidy of „Next“ by each role → [detail](items/2026-11-20-after-the-release.md)
@@ -116,7 +117,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - ← [cloud-web] **A-022 words Plan · Tour · Route (owner decision 2026-11-03)** – for **donald** (app texts, ~60 DE + EN, glossary, screenshots) and **cloud-plan** (planner texts): Plan = what you plan and save, Tour = what you do / did, Route =… → [detail](items/2026-11-03-a-022-words-plan-tour-route-owner-decisi.md)
 
 ## In progress
-- [tracking] Live tracking – the tour as a link for the family (owner 2026-11-19): building from `docs/design/live-tracking.md` §14 – piece 1 (`:core` `live/` formats + keys, new files only) since 2026-11-20; then server, viewer page (`web/` agreed with [laptop] first) – since 2026-11-19
+- [tracking] Live tracking (`docs/design/live-tracking.md` §14): piece 1 `:core` `live/` (new files only) – since 2026-11-20
 - [donald] Weekend release round (0.18.2): notes drafted; the round (E2E full + Rundgang + fresh-install tests on the release commit, release_check) starts at [umbau]'s „main is clean“; publishing on the owner's word – since 2026-11-19 night
 - [umbau] The rebuild, phases 0–4 of `docs/design/architecture-plan-2026-11.md` (owner's go 2026-11-18; spike 5a is [umbau-hp]'s).… → [detail](items/2026-11-18-the-rebuild-phases-04-of.md)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
