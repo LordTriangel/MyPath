@@ -17,12 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.onpath.app.cells.CellId
-import com.onpath.app.cells.CellJob
-import com.onpath.app.cells.CellState
-import com.onpath.app.cells.CellWhy
-import com.onpath.app.cells.label
-import kotlin.math.atan2
 
 class CellCardCallbacks(
     val onMobileYes: () -> Unit = {},

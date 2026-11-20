@@ -1,7 +1,6 @@
 package com.onpath.app.map
 
 import com.onpath.app.data.AtomicFiles
-import com.onpath.app.data.Tour
 import com.onpath.app.debug.Problems
 import java.io.File
 
