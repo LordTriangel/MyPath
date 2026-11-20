@@ -79,8 +79,16 @@ object LiveShares {
         override fun close() = Unit // the collectors run in the view model's scope and end with it
     }
 
-    /** The slice of [vm]; null before [attach] (then nothing of the sharing shows). */
-    fun of(vm: AppViewModel): LiveShareSlice? = vm.getCloseable<Holder>(KEY)?.slice
+    /**
+     * Sharing for every user, or only with the developer tools unlocked (Settings → About, 7 taps). Owner 2026-11-20:
+     * on main now, in an update only after the privacy text and the hourly clean-up are merged and he shared once on
+     * his Pixel – then this goes to true (one line, a line for donald).
+     */
+    private const val FOR_EVERYONE = false
+
+    /** The slice of [vm]; null before [attach] or while sharing is not offered (then nothing of the sharing shows). */
+    fun of(vm: AppViewModel): LiveShareSlice? =
+        vm.getCloseable<Holder>(KEY)?.slice?.takeIf { FOR_EVERYONE || vm.prefs.devToolsUnlocked }
 
     /** Makes [vm]'s slice once (the activity's onCreate, main thread) and feeds it: the lane's snapshots, the recording, the clock. */
     fun attach(vm: AppViewModel, app: Context) {
