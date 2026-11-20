@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau] [mehrtage] (laptop 2026-11-20, **owner's yes**): detour stitching for long legs after the release, app + planner – decisions in `items/2026-11-20-add-point-speed.md`. Delete the tag when read.
 - → [umbau] [laptop] [donald] [tracking] [umbau-hp] (captain 2026-11-20 morning, **the owner's plan for after 0.18.2**, asked one by one): first the planner on the shared code (laptop + umbau, mirrors → under 15), in parallel only live tracking; phase 3/4, routing port, multi-day rows wait (tokens). Plus the night answers to build and a tidy of „Next“ by each role → [detail](items/2026-11-20-after-the-release.md)
 - → [donald] (**the owner's word, written in [umbau]'s chat on 2026-11-20, his words:** „Donald soll ‚ja, Emulator leeren‘ und danach ‚veröffentlichen‘“): **(1) yes – empty the emulator; (2) after that: publish.** Passed on word for word… → [detail](items/2026-11-20-the-owner-s-word-written-in-s-chat-on-20.md)
 - → [umbau] (laptop 2026-11-20 ~02:30, after the release – wishes from wiring the next slices): (1) `state/src/test/kotlin/com/onpath/app/ui/WebReadyRuleTest.kt:23` allow `androidx.compose.runtime.snapshots.SnapshotStateList` +… → [detail](items/2026-11-20-laptop-to-umbau-1-state-src.md)

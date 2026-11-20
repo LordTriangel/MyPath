@@ -36,3 +36,11 @@ Anchors 3–5 km gave wrong detours on hikes (+4–7 km, up to +744 m) – 10 km
    curve above): a 160 km half from ~5 s to ~2× 0.3–1.5 s. Needs the same „does the plan look the same everywhere“ care
    as the stitch – after the release, designed with the stitch.
 4. Smaller: every plan reply re-sends the whole line (700–900 KB JSON) – fine for now.
+
+## Owner's decisions (2026-11-20 morning)
+- Step 1 (skip the click measure on legs > 30 km): **yes** – laptop builds it on `wip/laptop-2026-11-20-slices`, out after the release.
+- Detour stitching: **yes, after the release** – ≤ 2 km from the line, legs > 60 km, anchors 10 km before / after; the
+  detour is a field of the point (goes when the point goes); „Ganz neu berechnen“ in the plan's menu; a picture of the
+  button to the owner before it is built. Format change → app + planner together ([umbau] / [mehrtage] / laptop).
+- Zuletzt: leaving a plan opened from Zuletzt behaves **like the app** (new draft, the old one to the bin) – planner
+  follows on the wip branch.
