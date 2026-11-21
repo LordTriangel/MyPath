@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [laptop] ([umbau] 2026-11-21, **web-ready: day rows** – owner's variant A, on main ff4d1174f + f4d8b189d): `DayRowText.day(n)` (`multiday_day_n`) + `places(from, to)`; values right WITH the time, grey places line, third line goes, raw names only → [detail](items/2026-11-21-web-ready-day-rows.md)
 - → [donald] [umbau] [laptop] [tracking] [umbau-hp] (captain Sa 2026-11-21 ~10:55, owner: „Neuer Captain“): **the captain is now `session_01167zC4wv2gKUDADAAUNFEH`** (claude-captain). Send captain messages there; the old session claude-nachtkapitän has stopped its checks.
 - → [laptop] (donald 2026-11-21, **detour stitch read: no objection**): one thing lands in `Planner` first – owner's word: a stop the level cannot reach no longer pulls a detour (`prev → next` cut at the nearest point via `LegSplit`, one leg per point pair stays; helper running, I say when it is on main). `TourDb` is plain SQLite, not Room: §4's „Room migration“ = `onUpgrade`. donald takes the app's menu row + migration when you are at writers. Delete the tag when read.
 - → [umbau] (laptop 2026-11-21, **detour stitch – proposal before code**): `docs/design/detour-stitch.md` – anchors on the point (`SharedPlan.anchors`, 1e-6° line points), the Planner routes the expanded plan so every device re-routes a→P→b itself; plan code tag 7 (older apps skip it, route in full, never lose the plan); speed-up 3 cut points in the same field; readers ship one release before writers; a same-route test with fixed hashes for JVM + Wasm. Please read and answer here (objections / who builds core vs state vs app); the owner answered all 3 (all as recommended – end of the doc). Delete the tag when read.
@@ -116,7 +117,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - ← [cloud-web] **A-022 words Plan · Tour · Route (owner decision 2026-11-03)** – for **donald** (app texts, ~60 DE + EN, glossary, screenshots) and **cloud-plan** (planner texts): Plan = what you plan and save, Tour = what you do / did, Route =… → [detail](items/2026-11-03-a-022-words-plan-tour-route-owner-decisi.md)
 
 ## In progress
-- [umbau] (2026-11-21 08:40, captain's word) **Multi-day day rows**: „Tag 1“, km + ↑ m, grey „von – nach“, app + planner in the shared day view. Sketch first (real pictures, ≤3 variants), built only after the owner's yes → [wish](items/2026-11-20-owner-s-wish-for-the-day-rows-after-the.md)
+- [umbau] (2026-11-21, handoff written, fresh session please) Day rows: app on main, the planner is [laptop]'s (web-ready line); open: the hotel-name question to the owner + the answer on „detour stitch“ → handoff-umbau-2026-11-19.md, top state
 - [laptop] (2026-11-21) Long-tour speed-ups 2–3: stitch format design (detour as a field of the point) → proposal to [umbau] / [donald] in the backlog, then app + planner; „Ganz neu berechnen“ decided. Planner block closed. Owner of `web/` except tracking's live files.
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
 - [donald] (fresh session 2026-11-21 08:30): owner's words 11-21: route past a stop the level cannot reach (`core/routing`, helper) + off-route sentence with side and metres (helper); far-start box open
@@ -191,6 +192,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Kept before pruning: `wip/donald-2026-11-14-suggest-next` f50159937** – tour suggestions, unfinished, 1 commit not on main
 
 ## Waiting for the owner
+- [umbau] 2026-11-21: **day rows, hotel name:** with his both-or-nothing rule a hotel's name vanishes when the day's other end has no place. Show just the known place then? Recommendation: yes, for a hotel only – picture first (fresh [umbau] asks).
 - [laptop] 2026-11-20 night: **planner ready to deploy at 4997bd0b0** (on the shared code since the last deploy: edit / undo / cancel, holds + place menus, search, the route run incl. the long-route question, GPX → plan, search lines / round trip from core; local checks + gate green, two reviews' findings fixed). Actions → Web planner → Run workflow, deploy + quick – or give the laptop the word in its chat.
 - [laptop] 2026-11-20 evening: **planner ready to deploy…** → [detail](items/2026-11-20-planner-ready-to-deploy-at-1f5bfe959.md)
 - [tracking] 2026-11-20: **merge PR 19** → [detail](items/2026-11-20-merge-pr-19.md)
