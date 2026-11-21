@@ -51,18 +51,23 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
     }
 
     /**
-     * a2) the list of shown POIs is empty / stale (cause on the owner's phone 2026-11-21 unproven): a tap and a hold on the
-     * drawn symbol still work – on an idle map the tap asks the map itself once (ShownPois.atOrQuery).
+     * a2) a symbol the map draws but the list does not have (cause on the owner's phone 2026-11-21 unproven): drawn after
+     * the last read, with no camera move, so nothing reads the list again. A tap and a hold on it still work – the press
+     * waits for the map's next idle and asks the map there.
      */
-    @Test fun aTapOnADrawnSymbolWorksWithAnEmptyList() {
-        scenario.onActivity { com.onpath.app.poi.ShownPois.current!!.dropListForTest() }
-        press(symbol.first, symbol.second, 60)
-        waitFor("the POI details with an empty list, tap at ${at(symbol)}") { read { it.selectedPoi?.id } == POI_ID }
+    @Test fun aSymbolMissingFromTheListStillAnswersATapAndAHold() {
+        val dp = android.content.res.Resources.getSystem().displayMetrics.density
+        com.onpath.app.debug.Problems.clear()
+        val first = drawUnlistedPoi("unlisted-1", (symbol.first + 80 * dp) to symbol.second)
+        press(first.first, first.second, 60)
+        waitFor("the details of a symbol the list lacks, tap at ${at(first)}") { read { it.selectedPoi?.id } == "unlisted-1" }
+        assertTrue("the field log says the list missed it", listMissedLogged())
         device.pressBack()
         waitFor("the details closed") { read { it.selectedPoi } == null }
-        scenario.onActivity { com.onpath.app.poi.ShownPois.current!!.dropListForTest() }
-        hold(symbol.first, symbol.second)
-        waitFor("the POI menu with an empty list, hold at ${at(symbol)}") { read { it.placeMenus.poiMenu?.id } == POI_ID }
+        val second = drawUnlistedPoi("unlisted-2", (symbol.first + 80 * dp) to (symbol.second + 90 * dp))
+        hold(second.first, second.second)
+        waitFor("the POI menu of a symbol the list lacks, hold at ${at(second)}") { read { it.placeMenus.poiMenu?.id } == "unlisted-2" }
+        assertNull("the POI menu, not the plain first-point menu", read { it.placeAdd.firstPointMenu })
     }
 
     /** b) a real hold on the drawn symbol in Plan → the POI menu; „Start here“ there sets the plan's start on the POI. */
@@ -158,7 +163,7 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
     // ------------------------------------------------------------------------------------------------ helpers
 
     /** Whether MapLibre drew a feature of [layer] within 4 dp of the screen point [p] (device pixels). */
-    private fun drawnAround(p: Pair<Float, Float>, layer: String): Boolean {
+    private fun drawnAround(p: Pair<Float, Float>, layer: String, id: String = POI_ID): Boolean {
         val dp = android.content.res.Resources.getSystem().displayMetrics.density
         var hit = false
         val done = java.util.concurrent.CountDownLatch(1)
@@ -168,13 +173,44 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
             mv.getMapAsync { m ->
                 val x = p.first - loc[0]; val y = p.second - loc[1]
                 hit = m.queryRenderedFeatures(android.graphics.RectF(x - 4 * dp, y - 4 * dp, x + 4 * dp, y + 4 * dp), layer)
-                    .any { it.getStringProperty("id") == POI_ID }
+                    .any { it.getStringProperty("id") == id }
                 done.countDown()
             }
         }
         done.await(5, java.util.concurrent.TimeUnit.SECONDS)
         return hit
     }
+
+    /**
+     * Draws one more POI symbol at the screen point [p] in a layer of its own named like the style's POI layers – no camera
+     * move and no style change, so the app's list of shown POIs does not learn of it. Returns where it is drawn.
+     */
+    private fun drawUnlistedPoi(id: String, p: Pair<Float, Float>): Pair<Float, Float> {
+        scenario.onActivity { a ->
+            val mv = mapView(a)!!
+            val loc = IntArray(2).also { mv.getLocationOnScreen(it) }
+            mv.getMapAsync { m ->
+                val ll = m.projection.fromScreenLocation(android.graphics.PointF(p.first - loc[0], p.second - loc[1]))
+                val style = m.style!!
+                val icon = "e2e-$id"
+                style.addImage(icon, android.graphics.Bitmap.createBitmap(48, 48, android.graphics.Bitmap.Config.ARGB_8888).apply { eraseColor(android.graphics.Color.RED) })
+                val f = org.maplibre.geojson.Feature.fromGeometry(org.maplibre.geojson.Point.fromLngLat(ll.longitude, ll.latitude)).apply {
+                    addStringProperty("id", id); addStringProperty("kind", "restaurant"); addStringProperty("name", "Unlisted $id")
+                }
+                style.addSource(org.maplibre.android.style.sources.GeoJsonSource("e2e-src-$id", f))
+                style.addLayer(org.maplibre.android.style.layers.SymbolLayer("poi-e2e-$id", "e2e-src-$id").withProperties(
+                    org.maplibre.android.style.layers.PropertyFactory.iconImage(icon),
+                    org.maplibre.android.style.layers.PropertyFactory.iconAllowOverlap(true),
+                    org.maplibre.android.style.layers.PropertyFactory.iconIgnorePlacement(true)))
+            }
+        }
+        waitFor("the extra symbol $id drawn at ${at(p)}") { drawnAround(p, "poi-e2e-$id", id) }
+        pause(1_500, "the map is idle again; nothing read the list")
+        return p
+    }
+
+    private fun listMissedLogged(): Boolean = com.onpath.app.debug.Problems.events().any { it.message.startsWith(com.onpath.app.poi.PoiHit.LIST_MISSED) } ||
+        com.onpath.app.debug.Problems.snapshot().any { it.message.startsWith(com.onpath.app.poi.PoiHit.LIST_MISSED) }
 
     /** The POI data of [format]: `pois.geojson`; format 2 adds the cells' overlays file and POI tiles. */
     private fun writePois(dir: java.io.File) {

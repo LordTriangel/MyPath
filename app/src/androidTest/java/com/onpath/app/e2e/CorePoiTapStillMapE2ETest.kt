@@ -1,12 +1,14 @@
 package com.onpath.app.e2e
 
+import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
 
 /**
  * CORE FEATURE C19, owner 2026-11-21 (0.18.6): after a pan with a real finger the map stands still (no repaint at
  * all); a tap on the drawn POI symbol at its NEW place must still show the details – the list of shown POIs is read
- * once after every camera stop, also when the map's idle comes before the camera's idle.
+ * once after every camera stop, also when the map's idle comes before the camera's idle. A press the list misses still
+ * finds the symbol by asking the map, so this test checks the list itself: that path must not have run (its field-log line).
  */
 class CorePoiTapStillMapE2ETest : E2EBase() {
     @Before fun setUp() {
@@ -19,6 +21,7 @@ class CorePoiTapStillMapE2ETest : E2EBase() {
         val y = s.second.toInt() + 250
         val dx = (90 * dp).toInt()
         val x0 = s.first.toInt() - dx
+        com.onpath.app.debug.Problems.clear()
         for (i in 1..8) { // pans back and forth over cached tiles, slow and fast; each ends on a map that stands still
             val steps = if (i % 2 == 0) 4 else 30
             val right = symbolOnScreen().first < mapSize().first / 2 // always toward the middle, the symbol stays on screen
@@ -30,10 +33,15 @@ class CorePoiTapStillMapE2ETest : E2EBase() {
             android.util.Log.i("OnPathE2E", "TEST tap at $p")
             press(p.first, p.second, 60)
             waitUntil("swipe $i: the POI details after a tap on the symbol at ${p.first.toInt()}, ${p.second.toInt()}", 6_000) { poiId() == CorePoiTapE2ETest.POI_ID }
+            assertFalse("swipe $i: the list of shown POIs had the symbol – ${listMissed()}", listMissed().isNotEmpty())
             device.pressBack()
             waitUntil("swipe $i: the details closed", 5_000) { poiId() == null }
         }
     }
+
+    /** The field log's lines of a press that found a drawn POI missing from the list. */
+    private fun listMissed(): List<String> = (com.onpath.app.debug.Problems.events().map { it.message } +
+        com.onpath.app.debug.Problems.snapshot().map { it.message }).filter { it.startsWith(com.onpath.app.poi.PoiHit.LIST_MISSED) }
 
     private fun symbolOnScreen(): Pair<Float, Float> {
         var r = 0f to 0f

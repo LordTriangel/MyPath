@@ -110,15 +110,44 @@ class PoiHitTest {
         assertTrue(t.mapIdle(ready = true))
     }
 
-    @Test fun theMapIsAskedOnlyWhenTheListMissesAndTheMapIsIdle() {
+    @Test fun idleEndsWithACameraMoveOrAStyleChange() {
         val t = PoiHit.IdleTracker()
         assertFalse("before the first idle", t.idleNow())
         t.became(); assertTrue(t.idleNow())
-        t.moved(); assertFalse("a camera move: busy until the next idle", t.idleNow())
+        t.moved(); assertFalse("a camera move / style change: busy until the next idle", t.idleNow())
         t.became(); assertTrue(t.idleNow())
-        assertTrue(PoiHit.mayQueryMap(listHit = false, mapIdle = true))
-        assertFalse("the list has it", PoiHit.mayQueryMap(listHit = true, mapIdle = true))
-        assertFalse("a moving map is never queried", PoiHit.mayQueryMap(listHit = false, mapIdle = false))
+    }
+
+    /** A press the list missed waits once; whoever comes first finishes it, and it is finished exactly once. */
+    @Test fun aWaitingPressIsFinishedExactlyOnce() {
+        val w = PoiHit.PressWait<String>()
+        assertNull("nothing waits", w.take())
+        val (t1, none) = w.put("hold")
+        assertNull(none)
+        assertEquals("the idle comes first", "hold", w.take())
+        assertNull("the time-out after it finds nothing", w.expire(t1))
+
+        val (t2, _) = w.put("tap")
+        assertEquals("no idle within the bound: a plain press", "tap", w.expire(t2))
+        assertNull(w.take())
+
+        val (t3, _) = w.put("first")
+        val (t4, older) = w.put("second")
+        assertEquals("a newer press hands back the older one", "first", older)
+        assertNull("the older press's time-out does not end the newer one", w.expire(t3))
+        assertEquals("second", w.expire(t4))
+    }
+
+    /** One repaint at a time, none while the camera follows, and a lost idle cannot block repaints for good. */
+    @Test fun repaintOnlyWhenNotFollowingAndNotAlreadyOnItsWay() {
+        val g = PoiHit.RepaintGate(staleMs = 1_000)
+        assertFalse("following: the map repaints by itself", g.mayAsk(0, following = true))
+        assertTrue(g.mayAsk(0, following = false))
+        assertFalse("one is on its way", g.mayAsk(10, following = false))
+        g.idleCame()
+        assertTrue("its idle came", g.mayAsk(20, following = false))
+        assertFalse(g.mayAsk(1_019, following = false))
+        assertTrue("no idle came for a second: not stuck", g.mayAsk(1_020, following = false))
     }
 
     @Test fun readRunsNoTimer() {
@@ -126,16 +155,20 @@ class PoiHitTest {
         for (timer in listOf("postDelayed", "Timer(", "schedule", "delay(")) assertFalse(timer, tap.contains(timer))
     }
 
-    /** No tap / hold path asks MapLibre for rendered features on the main thread. */
+    /** No tap / hold path asks MapLibre for rendered features: a list miss waits, the map is asked on its idle only. */
     @Test fun tapAndHoldNeverQueryTheRenderedMap() {
         val host = File("src/main/java/com/onpath/app/ui/MapHost.kt").readText()
         assertFalse(host.contains("queryRenderedFeatures"))
         assertFalse(host.contains("findPoiAt"))
-        assertTrue("the finger-down buzz (every touch) stays on the list", host.contains("shownPois.at(map, at.x, at.y)"))
-        assertFalse(host.contains("shownPois.atOrQuery(map, at.x"))
+        assertTrue(host.contains("shownPois.at("))
         val tap = File("src/main/java/com/onpath/app/poi/PoiTap.kt").readText()
-        val lookup = tap.substringAfter("fun at(").substringBefore("fun atOrQuery(")
-        assertFalse("ShownPois.at reads only its own list", lookup.contains("queryRenderedFeatures"))
+        val press = tap.substringAfter("fun at(").substringBefore("private fun resolveWaitingPress(")
+        assertTrue("the press path is there", press.contains("fun askMapAtNextIdle("))
+        assertFalse("a press reads only the list", press.contains("queryRenderedFeatures") || press.contains("queryAtFinger"))
+        val onIdle = tap.substringAfter("fun onMapIdle(").substringBefore("fun at(")
+        assertTrue("the map is asked on its idle", onIdle.contains("resolveWaitingPress(map)"))
+        assertEquals("and from nowhere else", 2, Regex("resolveWaitingPress\\(").findAll(tap).count())
+        assertFalse("no test hook in production", tap.contains("ForTest") || tap.contains("var current"))
     }
 
     /**

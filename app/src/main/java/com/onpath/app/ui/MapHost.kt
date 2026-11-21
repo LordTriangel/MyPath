@@ -206,6 +206,7 @@ fun MapHost(
             map.addOnCameraMoveListener { shownPois.cameraMoving(); onCamera(map) }
             // The user moved the map: the start camera (StartCamera) must not jump to the position any more.
             map.addOnCameraMoveStartedListener { reason ->
+                shownPois.cameraMoving()
                 if (reason == MapLibreMap.OnCameraMoveStartedListener.REASON_API_GESTURE) {
                     vm.map.userMovedMap = true; vm.mapGesture(true); gestureFrames?.started()
                 }
@@ -221,6 +222,7 @@ fun MapHost(
             // move the map – else holding a point can add a new one instead of opening its menu).
             var downMarker = -1
             fun handle(ll: LatLng, press: MapGestures.Press): Boolean {
+                shownPois.finishWaitingPress() // an older press that still waits for the map goes first
                 val c = myCtrl[0]
                 val screen = try { map.projection.toScreenLocation(ll) } catch (e: Exception) {
                     com.onpath.app.debug.Problems.warn("map", "Map press ignored: screen position unknown", e); return false
@@ -251,30 +253,42 @@ fun MapHost(
                         com.onpath.app.map.CandidateMarker.hit((screen.x - s.x) / dp, (screen.y - s.y) / dp)
                     } == true
                 }
-                // a hold on a route point is the point's (its menu); a tap on a POI that is a route point shows the POI
-                val poi = if (marker >= 0 && press == MapGestures.Press.HOLD) null else mark?.toPoi() ?: shownPois.atOrQuery(map, screen.x, screen.y)
                 // ~24 dp around the planned line counts as "on the line" (smart insertion into that leg).
                 val snap = c?.let { it.dpToPx(PlaceAddMenu.LINE_SNAP_DP.toFloat()) * it.metersPerPixel() } ?: 30.0
                 val p = GeoPoint(ll.latitude, ll.longitude)
-                return when (val a = MapGestures.decide(edit, press, vm.placeMenus.mapOverlayOpen, marker, poi != null, vm.plan.points.isEmpty())) {
-                    is MapGestures.Action.PointMenu -> { vm.placeMenus.openPointMenu(a.index, dpOf(a.index)); true }
-                    MapGestures.Action.PoiMenu -> { poi?.let { vm.placeMenus.openPoiMenu(it, snap) }; true }
-                    MapGestures.Action.FirstPointMenu -> { vm.placeAdd.openFirstPointMenu(p); true }
-                    // set at once in a clear case, the small „Einfügen“ / „Neues Ziel“ menu in doubt (owner 2026-11-15)
-                    MapGestures.Action.AddPoint -> { vm.placeAdd.holdOnMap(p, snap); true }
-                    MapGestures.Action.CloseMenu -> { vm.placeMenus.closeMapOverlays(if (press == MapGestures.Press.TAP) "tap outside" else "hold outside"); true }
-                    MapGestures.Action.PoiDetails -> {
-                        if (vm.placeMenus.mapOverlayOpen) vm.placeMenus.closeMapOverlays("tap on a POI (its details instead)")
-                        vm.selectedPoi = poi; true
-                    }
-                    MapGestures.Action.None -> {
-                        // a tap on the open map in Plan: "hold to set a point here" in the sheet (owner 2026-11-03)
-                        if (MapGestures.tapShowsHoldHint(edit, press, MapGestures.Action.None, poi != null, marker, pts.isEmpty())) vm.showTapHoldHint()
-                        // a short tap on the world map where there is no detailed map: ask to load it
-                        if (press == MapGestures.Press.TAP && poi == null) vm.mapData.mapTapped(p)
-                        edit
+                fun act(poi: com.onpath.app.poi.Poi?): Boolean {
+                    if (vm.routePeek || vm.suggest.searching) return true // began while this press waited for the map
+                    return when (val a = MapGestures.decide(edit, press, vm.placeMenus.mapOverlayOpen, marker, poi != null, vm.plan.points.isEmpty())) {
+                        is MapGestures.Action.PointMenu -> { vm.placeMenus.openPointMenu(a.index, dpOf(a.index)); true }
+                        MapGestures.Action.PoiMenu -> { poi?.let { vm.placeMenus.openPoiMenu(it, snap) }; true }
+                        MapGestures.Action.FirstPointMenu -> { vm.placeAdd.openFirstPointMenu(p); true }
+                        // set at once in a clear case, the small „Einfügen“ / „Neues Ziel“ menu in doubt (owner 2026-11-15)
+                        MapGestures.Action.AddPoint -> { vm.placeAdd.holdOnMap(p, snap); true }
+                        MapGestures.Action.CloseMenu -> { vm.placeMenus.closeMapOverlays(if (press == MapGestures.Press.TAP) "tap outside" else "hold outside"); true }
+                        MapGestures.Action.PoiDetails -> {
+                            if (vm.placeMenus.mapOverlayOpen) vm.placeMenus.closeMapOverlays("tap on a POI (its details instead)")
+                            vm.selectedPoi = poi; true
+                        }
+                        MapGestures.Action.None -> {
+                            // a tap on the open map in Plan: "hold to set a point here" in the sheet (owner 2026-11-03)
+                            if (MapGestures.tapShowsHoldHint(edit, press, MapGestures.Action.None, poi != null, marker, pts.isEmpty())) vm.showTapHoldHint()
+                            // a short tap on the world map where there is no detailed map: ask to load it
+                            if (press == MapGestures.Press.TAP && poi == null) vm.mapData.mapTapped(p)
+                            edit
+                        }
                     }
                 }
+                // a hold on a route point is the point's (its menu); a tap on a POI that is a route point shows the POI
+                if (marker >= 0 && press == MapGestures.Press.HOLD) return act(null)
+                (mark?.toPoi() ?: shownPois.at(map, screen.x, screen.y))?.let { return act(it) }
+                // The list has no POI here. Where a POI would change what the press does, it waits for the map's next
+                // idle and asks the map there (never inside the press), bounded: a stale list must not lose a drawn symbol.
+                fun plan(hit: Boolean) = MapGestures.decide(edit, press, vm.placeMenus.mapOverlayOpen, marker, hit, vm.plan.points.isEmpty())
+                val plain = plan(false)
+                if (plain == plan(true)) return act(null)
+                val wait = shownPois.askMapAtNextIdle(map, screen.x, screen.y) { found -> act(found) } ?: return act(null)
+                mapView.postDelayed({ shownPois.pressTimedOut(wait) }, com.onpath.app.poi.PoiHit.PRESS_WAIT_MS)
+                return edit || plain != MapGestures.Action.None
             }
             map.addOnMapClickListener { ll ->
                 // A hold of HOLD_MS (ring under the finger, vibration) ends as a click with lastHoldMs ≥ HOLD_MS.
@@ -321,6 +335,7 @@ fun MapHost(
         // only clear what is ours: another (short-lived) map host must never switch off this one
         onDispose {
             idleListener?.let { mapView.removeOnDidBecomeIdleListener(it) }
+            shownPois.dropWaitingPress()
             host.disposed()
             ctrlRef.clear(host)
             gestureFrames?.cancel()
