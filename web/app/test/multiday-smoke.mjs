@@ -184,7 +184,10 @@ async function run(lang, viewport, shotPrefix) {
   check(await page.evaluate(() => Object.values(window.__days.h.tour().nights)[0]?.hotel?.name === 'Gasthof Test'), 'the hotel keeps its name');
   const hotelRows = await dayRows();
   console.log('day rows with the hotel:', JSON.stringify(hotelRows));
-  check(hotelRows.every((r) => r.places == null || r.places.split(' – ').length === 2), 'the hotel day: its places line is „von – nach“ or none');
+  // „von – nach“, or a hotel at the day's only known end: „ab Gasthof Test“ / „bis Gasthof Test“ (owner 2026-11-21)
+  const hotelLine = (s) => s.split(' – ').length === 2 || /^(ab|bis|from|to) Gasthof Test$/.test(s);
+  check(hotelRows.every((r) => r.places == null || hotelLine(r.places)), `the hotel day: its places line is „von – nach“, „ab / bis Hotel“ or none (${hotelRows.map((r) => r.places).join(' | ')})`);
+  check(hotelRows.some((r) => r.places != null && r.places.includes('Gasthof Test')), 'the hotel day: the hotel\'s name is on a places line');
 
   // 7 · Hotel entfernen (R4: the night stays, blue)
   await page.click('.pin.night');
