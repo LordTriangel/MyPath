@@ -16,6 +16,25 @@ Fränkische Schweiz / Pottenstein 49.77, 11.41, Mittenwald / Garmisch), tell IR;
 - **CELL_SCHEMA 9 on main and on TEST** (suggest layer content 2); donald has the publish commands; cell list `tools/dev/areas/owner-test-cells.txt`.
 - Next for the laptop: follow mehrtage's / IR's web merges (parity, check-web, deploy when green); donald's cleanup may move more shared files.
 
+## State 2026-11-21 ~01:00 – the next laptop session starts HERE
+Planner block **closed** (owner 2026-11-21 „Block abschließen“: only logic mirrors count; look / style / browser stay).
+On main, **not deployed** (deploy needs the owner – Actions → Web planner → Run workflow deploy+quick, or his word; the
+auto-mode classifier blocks `gh workflow run` here): line under „Waiting for the owner“ with the sha.
+- Shared code now in the planner: PlanEditState (WebPlanChain in the routing worker on WebApi's history; edit-order
+  cancel + robust-smoke (d)), PlaceAddState / PlaceMenusState (WebPlaceAdd, HoldMeasure measured in the worker),
+  SearchState (WebSearch), PlanRecalcState route + findReach + the run head (RouteRun; askLong = !multiDay, run memory +
+  epoch in historyExport, page-session „Plan anyway“ set → RoutedBefore), TrackToPlanState (WebTrackToPlan), core
+  SearchLines / RoundTrip, RouteWait.legLabels. Mirrors 49 entries.
+- Stay mirrors on purpose: Save (async IndexedDB, planner-only steps), wait window (one window map+route), list rules,
+  ProfileRules / CellCards / ThumbRules / MapCredits / DEBOUNCE_MS / CellMath / Format … (needed synchronously on the page).
+- Owner's word on „Ganz neu berechnen“: last row of the ▾ beside „Speichern“ (app: plan menu), shown only while the
+  plan holds stitched detours (picture: onpath-data/pictures/ganz-neu-berechnen-2026-11-21/).
+- **Next:** long-tour speed-ups 2–3 (`items/2026-11-20-add-point-speed.md`): design the stitch format (detour = field of
+  the point), propose it in the backlog to [umbau] / [donald] before code, then app + planner together.
+- Smokes: call each exactly as `web/parity/check-web.sh` does (segments folder only, except search/kept/poipin/routes) –
+  a second argument breaks some of them silently. routes-smoke „a real scroll … closes the menu“ and poipin (d) are flaky.
+- umbau's current session: session_01167zC6FhPGtEQkbxks3vH9 (messages work both ways).
+
 ## State 2026-11-20 ~14:30 – the next laptop session starts HERE
 Planner live 6dcdfbb54 (CI green). 0.18.2 released 10:01 (planner deployed by release.yml, then the slices branch merged).
 - Since the release: 55 mirrors (RoutesState, SaveDialog, KeptPlacesSlice, RouteSort / RoutesTab, PlanPoints drag,
