@@ -120,7 +120,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [umbau] (2026-11-21, handoff written, fresh session please) Day rows: app on main, the planner is [laptop]'s (web-ready line); open: the hotel-name question to the owner + the answer on „detour stitch“ → handoff-umbau-2026-11-19.md, top state
 - [laptop] (2026-11-21) Long-tour speed-ups 2–3: stitch format design (detour as a field of the point) → proposal to [umbau] / [donald] in the backlog, then app + planner; „Ganz neu berechnen“ decided. Planner block closed. Owner of `web/` except tracking's live files.
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
-- [donald] (fresh session 2026-11-21 08:30): **owner's bug 11-21: tap / hold on a POI symbol finds nothing (`ShownPois`, helper on the emulator)**; in review: route past an unreachable stop, off-route sentence; far-start warning + cancel building; then: arrival with an unreachable stop
+- [donald] (fresh session 2026-11-21 08:30): **owner's bug 11-21: tap / hold on a POI symbol finds nothing (`ShownPois`, helper on the emulator)**; off-route sentence: review fixes running; far-start building; route past an unreachable stop stopped by review (wip branch, owner's word); eye on suggestions on main; save dialog after a ride: picture shown; then: arrival with an unreachable stop
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
