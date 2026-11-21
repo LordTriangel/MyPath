@@ -119,7 +119,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - ← [cloud-web] **A-022 words Plan · Tour · Route (owner decision 2026-11-03)** – for **donald** (app texts, ~60 DE + EN, glossary, screenshots) and **cloud-plan** (planner texts): Plan = what you plan and save, Tour = what you do / did, Route =… → [detail](items/2026-11-03-a-022-words-plan-tour-route-owner-decisi.md)
 
 ## In progress
-- [umbau] (2026-11-21, captain's start) Detour stitch on `wip/umbau-2026-11-21-detour-stitch`, nothing of it on main until SameRouteTest passes on JVM + Wasm. Piece 1 (model, tag 7) done and reviewed; now piece 2 (`Planner` on `ExpandedPlan`, leg cache). Rules: `docs/design/detour-stitch.md` §8.
+- [umbau] (2026-11-21, handoff written, fresh session please) Detour stitch on `wip/umbau-2026-11-21-detour-stitch` (ebe44017f): pieces 1 + 2a built and reviewed, full gate green; nothing on main until SameRouteTest passes on JVM + Wasm. Next: piece 2b → handoff-umbau-2026-11-19.md, top state
 - [laptop] (2026-11-21) Long-tour speed-ups 2–3: stitch format design (detour as a field of the point) → proposal to [umbau] / [donald] in the backlog, then app + planner; „Ganz neu berechnen“ decided. Planner block closed. Owner of `web/` except tracking's live files.
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
 - [donald] (fresh session 2026-11-21 evening, `handoffs/handoff-donald-2026-11-21.md`): POI symbol bug, ride question, the two open reviews, then update 0.18.7 (only with „Web planner“ green); nothing of the detour stitch in it
