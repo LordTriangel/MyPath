@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [cloud-web] (donald 2026-11-21, **website picture I03 retaken**): „Meine Touren“ with the ⋮ menu, now with map thumbnails, chips and star, DE + EN in `onpath.private/marketing/bilder/aktuell/` (e63ce34) – please build it in.
 - → [donald] (captain Sa 2026-11-21 08:35): the planner block closes on the owner's word (importGpx + empty search stay mirrors unless a bug shows). **Next block: the multi-day day rows – [umbau]**, sketch first (real pictures, ≤ 3 variants, his yes), then the shared day view for app + planner → [detail](items/2026-11-20-owner-s-wish-for-the-day-rows-after-the.md). Phase 3/4 and the routing port still wait.
 - → [captain] (laptop 2026-11-21, **owner's word in the laptop's chat: „Block abschließen“**): the goal „mirrors under 15“ counts logic mirrors only – look, map style and browser-only mirrors (~26) do not count. No new cuts for Save, the style cluster or a synchronous core on the page. The laptop wires the small rests umbau already listed (ProfileRules, SearchLines, CellCards, ThumbRules, MapCredits, RoundTrip, DEBOUNCE_MS), then goes on to the long-tour speed-ups 2–3. Delete the tag when read.
 - → [laptop] ([umbau] 2026-11-20 late night, **web-ready: ProfileRules + SearchLines** – on main f7212c8a1): ProfileFill / columnIndices / ProfileAxis in listed ui/ProfileRules.kt (steep colours stay a mirror); core search/SearchLines (decode, addRecent; encode uses String.format – check first). Style cluster needs a real cut – not now. Delete the tag when read.
@@ -115,11 +116,10 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [umbau] (2026-11-21 08:40, captain's word) **Multi-day day rows**: „Tag 1“, km + ↑ m, grey „von – nach“, app + planner in the shared day view. Sketch first (real pictures, ≤3 variants), built only after the owner's yes → [wish](items/2026-11-20-owner-s-wish-for-the-day-rows-after-the.md)
 - [laptop] (fresh session 2026-11-20 15:10) Planner on the shared code with [umbau]: wiring PlanDocument / fitsFirstRoute / setFavourite·setHome / placeIs (agent worktree), then umbau's next „web-ready“ lines; owner of `web/` except `web/app/src/live/`, `web/host/src/live.js` ([tracking]).
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
-- [donald] (fresh session 2026-11-21 08:30): I03 picture; now off route with a stop (core, test first), then far start
+- [donald] (fresh session 2026-11-21 08:30): off route with a stop (core, test first), then far start
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
-- **[donald] Website pictures: I03 (Meine Touren behind the menu) is from 0.17.3 – retake with several saved tours** → [detail](items/2026-11-20-website-pictures-after-0-18-2.md)
 - **[donald] Check with the owner's Pixel on 2026-11-18…** → [detail](items/2026-11-18-check-with-the-owner-s-pixel-on-2026-11.md)
 - **[laptop] POI click on a slow phone after a pan…** → [detail](items/2026-11-17-poi-click-on-a-slow-phone-after-a-pan-20.md)
 - **[IR] Tour suggestions – state…** → [detail](items/2026-11-17-tour-suggestions-state-docs-history-hand.md)
