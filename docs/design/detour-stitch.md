@@ -1,6 +1,6 @@
 # Detour stitch + long-half cuts – design proposal (2026-11-21)
 
-Status: **agreed 2026-11-21 ([umbau] + laptop, owner's three answers at the end); §8 is binding and wins over older text.** Built on `wip/umbau-2026-11-21-detour-stitch`; nothing of tag 7 or the anchors reaches `main` until `SameRouteTest` passes on JVM and Wasm (captain). Input: `docs/team/items/2026-11-20-add-point-speed.md` (measurements + owner's decisions).
+Status: **agreed 2026-11-21 ([umbau] + laptop, owner's three answers at the end); §8 is binding and wins over older text.** Built on `wip/umbau-2026-11-21-detour-stitch` (piece 1, data model + tag 7: done, reviewed, full gate green at abc8ac5b3); nothing of tag 7 or the anchors reaches `main` until `SameRouteTest` passes on JVM and Wasm (captain). Input: `docs/team/items/2026-11-20-add-point-speed.md` (measurements + owner's decisions).
 Goal: a point added to a long leg routes in ~0.3 s instead of 4–15 s, and **every device gives the same route for the same
 plan** (phone, browser, sync, plan link, GPX export, saved route reload).
 
@@ -61,12 +61,7 @@ All decisions (stitch or not, where the anchors go) are made **once, on the edit
 Other devices only read data – no device-dependent geometry decides a route.
 
 ## 3. Transport and storage
-- **Plan code** (`PlanCode`, still VERSION 1): optional tag 7 = anchors: varint point index, varint count before,
-  varint count after, then each anchor as zigzag deltas in 1e-6° to the previous one (first: to the point ×10). Reader
-  drops an entry whose index is out of range, more than 8 per side, or an anchor > 200 km from its point; a plan holds at most 500 anchors (§8.8). Tag 7 also carries the exact points (§8.10). **Older apps
-  skip tag 7** (existing rule "unknown tags skipped") → they show the same points, route in full (slower, possibly a
-  slightly different route), never lose the plan. An older app that re-saves the plan writes it without tag 7 – the plan
-  then degrades to plain routing everywhere (consistent, never broken). Readers ship one release before writers (§6).
+- **Plan code** (`PlanCode`, still VERSION 1): optional tag 7, layout as built on the wip branch (`PlanCode.kt` is the reference): varint format (1, any other = tag ignored), varint point count (must match), per point its remainder to 1e-6° (zigzag lat, lon, each −5…+5), then entries, each `varint byte length + entry` (varint index, count before, count after, the anchors as zigzag deltas in 1e-6°, the first to the point's exact value). Extra bytes at the end of an entry are skipped, so later formats can add fields. When tag 7 is written, base and remainder both come from the point rounded to 1e-6°, so `encode(decode(x)) == x`. An entry is dropped when its index is out of range, it is empty, has more than 8 per side, or an anchor's lat or lon is over 30° from its point (integer check, the same on JVM and Wasm; wide enough for speed-up 3's cuts). A plan holds at most 500 anchors (§8.8). **A code that would pass `MAX_TEXT − 256` with tag 7 is written without it**: the plan stays openable. **Older apps skip tag 7** → they show the same points, route in full (slower, possibly a slightly different route), never lose the plan. An older app that re-saves the plan writes it without tag 7 – the plan then degrades to plain routing everywhere (consistent, never broken). Readers ship one release before writers (§6).
 - **Sync**: the item carries the plan code → anchors travel for free; merge stays "newer wins, older stays as a copy"
   (whole plan, no field merge). `SyncItem.routing` / `routingData` keep telling when two sides route on different data.
 - **Saved route** (`Tour`): one new JSON column `anchors` (schema +1, like `days` in `MultiDay`; unreadable = none,
@@ -134,6 +129,8 @@ Other devices only read data – no device-dependent geometry decides a route.
 8. **Cap.** At most 500 anchors per plan (writer and reader); `LegCache.CAPACITY` 1,000; `StoredLine`'s temporary cache takes the expanded size; the planner's store and memory cache follow.
 9. **Cuts stay out of plain plans.** A stitch's cut legs live under their own key (`LegCache.Key.cut`, also in `LegFiles` / `WebLegs` names and files), read only for a leg of an `ExpandedPlan` that touches an anchor. Routed legs stay under plain keys.
 10. **Exact points (found while building).** `PlanCode` stores points in 1e-5°, the leg cache and anchors work in 1e-6°: after a link or sync a cold device would route `a→P` to a point up to ~0.7 m away, under another key. A plan with anchors therefore carries, first in tag 7, each point's remainder to 1e-6° (two small zigzag values, each −5…+5; out of range = the whole tag is dropped). Older readers skip it.
+11. **`follow` never guesses.** Outside the common start and end, a point is matched by value only when that value occurs once on each side; otherwise it counts as new and loses its anchors. Losing anchors is safe (full routing), a wrong anchor is not. A rotated closed loop keeps its edges' anchors; a rotation with stops before the loop loses those of the affected sides (accepted).
+12. **For the web wiring (laptop).** `WebApi.planParse` writes points with 5 decimals, which throws away the exact values of tag 7: it must keep 6. `web/app/src/share.ts` calls `qr.make()` without a guard and anchors make the link longer: check what it does on overflow before writers ship.
 
 ## Questions for the owner
 1. Do speed-up 3's cut points also count for „Ganz neu berechnen" (row shows whenever the route keeps any point of an
