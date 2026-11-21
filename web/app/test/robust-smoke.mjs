@@ -404,7 +404,11 @@ const planFromLink = async (c) => {
   const p = await c.newPage();
   await p.goto(url + 'index.html#p=' + LINK);
   await p.waitForFunction(() => document.body.dataset.engine === 'ready' && document.querySelector('#summary .big') && document.body.dataset.planning !== '1', null, { timeout: 120_000 });
-  await p.waitForFunction(() => !document.getElementById('waitwin') && !window.__wait.overlay().active, null, { timeout: 60_000 }).catch(() => {}); // the first map's wait is over too
+  // the first map's wait is over too – its tiles teach the map's shares when they end (rightly); on a slow runner they can
+  // take over a minute, and a wait still open here would write them during the step below (CI 2026-11-21: mapSteps
+  // learned in „a failed plan“). So the shares are cleared only once no wait is open.
+  const over = await p.waitForFunction(() => !document.getElementById('waitwin') && !window.__wait.overlay().active, null, { timeout: 240_000 }).then(() => true, () => false);
+  check(over, 'the link\'s first wait is over before the wait checks start');
   await p.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith('onpath.progress.')) localStorage.removeItem(k); });
   return p;
 };
