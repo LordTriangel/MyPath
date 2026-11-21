@@ -118,7 +118,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [umbau] (2026-11-21 08:40, captain's word) **Multi-day day rows**: „Tag 1“, km + ↑ m, grey „von – nach“, app + planner in the shared day view. Sketch first (real pictures, ≤3 variants), built only after the owner's yes → [wish](items/2026-11-20-owner-s-wish-for-the-day-rows-after-the.md)
 - [laptop] (2026-11-21) Long-tour speed-ups 2–3: stitch format design (detour as a field of the point) → proposal to [umbau] / [donald] in the backlog, then app + planner; „Ganz neu berechnen“ decided. Planner block closed. Owner of `web/` except tracking's live files.
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
-- [donald] (fresh session 2026-11-21 08:30): checking what is left without the owner; for him, bundled: far-start box, T1 detour past an unreachable stop
+- [donald] (fresh session 2026-11-21 08:30): owner's words 11-21: route past a stop the level cannot reach (`core/routing`, helper) + off-route sentence with side and metres (helper); far-start box open
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next

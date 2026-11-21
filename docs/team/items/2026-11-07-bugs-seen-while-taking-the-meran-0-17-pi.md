@@ -8,3 +8,5 @@
   Pictures: onpath.private/marketing/bilder/aktuell/.
 
 **(7) measured 2026-11-21 (donald, real data, current code) – still there, an owner decision:** Vellau → Mutkopf → Leiteralm at T1 = **30.3 km**, ↑ 1882 m, 38 % of the line runs twice, ② stays 552 m off; at T2 the same plan is 10.8 km with nothing above T2. Cause: at T1 the route goes round the mountain to the nearest T1 way under ② and back. The sheet says so („② erst ab T2 erreichbar“), but the line is a long detour to a point one cannot reach. The „1 Abschnitt über T1“ (151 m each way, T2): the profile makes ways above the limit very expensive, not forbidden (`SAC_access_penalty`), and the sheet reports them honestly. **Open for the owner:** keep this line, or plan past a stop the level cannot reach (Vellau → Leiteralm direct, ② stays a red line + grey piece)? Shared planner code: same route in the app and the planner.
+
+**Owner 2026-11-21 (donald's chat): „Am Punkt vorbei“.** A stop the chosen level cannot reach no longer pulls the route on a detour: Vellau → Leiteralm direct, ② stays in the plan with its red line „erst ab T2 erreichbar“. App and planner alike.
