@@ -3461,6 +3461,10 @@
     "app/src/main/assets/style/f2/onpath.json": {
       "blob": "1c409cb28ff79aaf7c56578053c9e792a41f66c0",
       "perf": []
+    },
+    "core/src/main/kotlin/com/onpath/app/navigation/StopsBesideRoute.kt": {
+      "blob": "6f0876c195c3c85988f749a77d354b5c8a99f29b",
+      "perf": []
     }
   }
 }
