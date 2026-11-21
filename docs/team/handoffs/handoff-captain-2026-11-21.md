@@ -3,6 +3,8 @@
 Start sentence: „Du bist mein OnPath-Captain im Wochenend-Modus. Lies `CLAUDE.md`, `docs/team/roles/captain.md`,
 `docs/team/owner-preferences.md` (Night jobs, Tokens), `docs/team/items/2026-11-20-after-the-release.md` und diese Datei.“
 
+**Taken over by `session_01167zC4wv2gKUDADAAUNFEH` (claude-captain), Sa ~10:55.**
+
 ## The job this weekend
 The owner tries the app himself and writes remarks and bugs to the captain; the captain passes each to the right role.
 Work goes on one block after the other, to the end. The captain writes no product code.
