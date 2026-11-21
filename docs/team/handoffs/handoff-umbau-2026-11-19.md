@@ -5,7 +5,11 @@ Start sentence: „Du bist die Einheit **umbau** (OnPath) auf donald. Lies `docs
 „For the roles“ line of 2026-11-18 (owner's go) – each piece own worktree, `gate --full`, fresh Opus review, then main;
 a tag `umbau-phase-N` per phase after unit CI + planner run + full E2E; lines for the captain under „For the captain“.
 
-## State 2026-11-21 – DAY ROWS: APP ON MAIN, FOR THE FRESH SESSION (NEWEST – read this first)
+## State 2026-11-21 midday – HOTEL NAME DONE, STITCH ANSWERED (NEWEST – read this first)
+- **Hotel name (owner's choice, question box):** a hotel at the day's only known end reads „ab …“ / „bis …“; on main 68c08b08e, full gate green, no E2E run (weekend token rule). The planner's two flags are the laptop's (line in „For the roles“). Pictures: branch `sketch/umbau-2026-11-21-hotel-name`. The owner does not want pictures for a choice like this one: a plain list was enough.
+- **Detour stitch answered:** `docs/team/items/2026-11-21-detour-stitch-answer.md` (nine points, split, order). **No code until the captain starts the block.** [umbau] has no open claim.
+
+## State 2026-11-21 – DAY ROWS: APP ON MAIN, FOR THE FRESH SESSION
 - **Captain now:** session `session_01167zC4wv2gKUDADAAUNFEH` (send captain messages there). Laptop: `session_01167zC7LQg1C8EKQypPNApf` (its session is long; a fresh laptop session may take the wiring).
 - **The owner chose (question boxes, own words in this chat):** variant A – bold „Tag n“, values right, grey „von – nach“ only when both places are known, no running km; the planner KEEPS the day's time. Pictures: branch `sketch/umbau-2026-11-21-day-rows`, `docs/sketches/2026-11-21-day-rows/README.md`.
 - **On main (ff4d1174f, f4d8b189d):** `DayRowText` (core), `DayRowUi.places`, `MultiDaySlice.daysUi()` (name order: stop → hotel → nearby → index), `DayRow`. Full gate green; one Opus review (values no longer cut at a large font, blank names fall through); `MultiDayTourE2ETest` green on GitHub (branch `ci/umbau-day-rows` – prune it with the owner's yes).
