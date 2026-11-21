@@ -50,7 +50,11 @@ same voice; "smart, clever sentences, not too much". Built after the feature sto
    one; a sentence whose junction is already passed is dropped. **A turn's "now" never waits and is never swallowed**
    (owner 2026-11-07, §9): it cuts what is being said, a waiting sentence waits for it, a turn said as "danach" gets its
    own "now", and only a turn really passed (its word could not be heard 1 s before it) stays quiet.
-8. **Questions stay on the screen:** the voice never asks; it says "bitte aufs Handy schauen" once.
+8. **Questions stay on the screen:** the voice never asks. Off the route it says where the route lies – side and metres
+   ("Die Route liegt rechts, 40 Meter.", owner 2026-11-21) – but only when sure (`OffRouteSay`): a fresh good fix
+   (≤ 15 m, ≤ 3 s old, GPS not lost), moving, a straight path for the heading (no U-turn / corner just taken, no GPS
+   gap), the GPS bearing agreeing within 45°, the route ≥ 15 m away and the hint the nearest point. Every doubt keeps
+   „Abseits der Route. Bitte aufs Handy schauen." – a wrong side is worse than none.
 9. **Quiet** while paused, during a phone call, while the user is off the route and the question is open (said once;
    again only where the phone would vibrate – the first reminder, a way found after none, asked again after Keep –
    and a question after one answered with a new route is news: said, not held back by the 2-minute guard – owner

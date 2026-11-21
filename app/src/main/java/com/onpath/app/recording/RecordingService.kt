@@ -100,7 +100,6 @@ import com.onpath.app.setup.Felt
 import com.onpath.app.time.Factors
 import com.onpath.app.navigation.OffRouteSteps
 import com.onpath.app.data.TerrainHeights
-import com.onpath.app.navigation.GoalSide
 import com.onpath.app.navigation.JogRule
 import com.onpath.app.navigation.VoiceText
 import com.onpath.app.data.AppRouting
@@ -239,14 +238,8 @@ class RecordingService : Service() {
     /** The voice memory last written to [TRIP_FILE] (written again when it changes). */
     private var voiceSaved: VoiceGuide.Memory? = null
     private var speaker: Speaker? = null
-    /**
-     * The last GPS fix for the voice (owner field ride 2026-11-07): how old it was when it came, where it is and the
-     * heading ridden over the last metres ([com.onpath.app.navigation.GoalSide.heading]; null while standing) – set
-     * on every fix before it is used.
-     */
-    private var voiceFixAgeMs = 0L
-    private var voiceHere: GeoPoint? = null
-    private var voiceHeading: Double? = null
+    /** The last GPS fix for the voice: its age, place, heading, and the off-route numbers ([VoiceFix]). */
+    private val voiceFix = VoiceFix()
     /** `nav-session.json` + `follow.json`: every write of the service goes through it ([FollowStore]). */
     private val followStore by lazy { FollowStore(filesDir) }
     private val routeExec = Executors.newSingleThreadExecutor()
@@ -649,8 +642,8 @@ class RecordingService : Service() {
         try { if (routeChecked) checkOffRoute(p, loc.accuracy.toDouble(), nowEl) else navigator?.onGpsLost() } catch (e: Exception) {
             Problems.error("navigation", "Off-route check failed on a GPS fix; the track is still recorded", e)
         }
-        try { voiceFix(loc, p.toGeo()) } catch (e: Exception) {
-            voiceFixAgeMs = 0; voiceHeading = null
+        try { voiceFix.onFix(loc, p.toGeo(), track.snapshot().lastOrNull().orEmpty()) } catch (e: Exception) {
+            voiceFix.clear()
             Problems.warn("voice", "Fix age / heading for the voice not read; turns timed without them this time", e)
         }
         try { checkArrived(p.toGeo(), loc.accuracy.toDouble()) } catch (e: Exception) {
@@ -1069,7 +1062,10 @@ class RecordingService : Service() {
     private fun voiceQuestionAgain() {
         if (!GuidanceGate.voiceSteps(voiceOn(), arrived) || paused) return
         try {
-            voice.questionAgain(SystemClock.elapsedRealtime(), standingStill(), voiceHeading, navigator?.toRoute?.distanceM, navigator?.toRoute?.bearingDeg)?.let { say(it) }
+            val now = SystemClock.elapsedRealtime()
+            val off = navigator?.state?.let { voiceFix.off.numbers(it, now, gpsLost()) }
+            voice.questionAgain(now, standingStill(), headingDeg = off?.headingDeg, routeM = off?.routeM,
+                routeBearingDeg = off?.bearingDeg)?.let { say(it) }
             saveVoice()
         } catch (e: Exception) {
             Problems.warn("voice", "Off-route question not said again", e)
@@ -1198,6 +1194,7 @@ class RecordingService : Service() {
     /** What the voice gets for this fix / tick ([com.onpath.app.navigation.VoiceGuide.Input]). */
     private fun voiceInput(st: NavState, nowEl: Long): VoiceGuide.Input {
         val s = navigator?.session
+        val off = voiceFix.off.numbers(st, nowEl, gpsLost())
         return VoiceGuide.Input(
             nowMs = nowEl, line = st.line, version = st.version, alongM = st.shownAlongM,
             onRoute = st.prompt?.offRoute != true && st.shownAlongM != null, speedMps = junctionSpeeds.speedOrNull(nowEl),
@@ -1207,22 +1204,11 @@ class RecordingService : Service() {
             skipped = s?.skipped.orEmpty(),
             toGoS = tripTime().toGoS, quiet = standingStill(),
             turnRound = st.uTurnAt != null,
-            fixAgeMs = voiceFixAgeMs,
+            fixAgeMs = voiceFix.ageMs,
             speechStartMs = speaker?.startMs ?: VoiceGuide.SPEECH_START_MS,
-            here = voiceHere, headingDeg = voiceHeading, routeM = st.toRoute?.distanceM, routeBearingDeg = st.toRoute?.bearingDeg,
+            here = voiceFix.here, headingDeg = voiceFix.heading,
+            routeHeadingDeg = off?.headingDeg, routeM = off?.routeM, routeBearingDeg = off?.bearingDeg,
         )
-    }
-
-    /**
-     * The fix as the voice needs it: its age when it came (the rider is that much further on – owner field ride
-     * 2026-11-07, "Jetzt abbiegen" too late), the position and the heading of the last metres ridden (the goal's side).
-     */
-    private fun voiceFix(loc: Location, here: GeoPoint) {
-        val fixNs = loc.elapsedRealtimeNanos
-        voiceFixAgeMs = if (fixNs > 0) ((SystemClock.elapsedRealtimeNanos() - fixNs) / 1_000_000L).coerceAtLeast(0) else 0
-        voiceHere = here
-        voiceHeading = GoalSide.heading(track.snapshot().lastOrNull().orEmpty(), here,
-            if (loc.hasSpeed()) loc.speed.toDouble() else null)
     }
 
     /** What the voice said this tour goes with the tour ([TRIP_FILE]): written when it changed ("Los geht's" once). */

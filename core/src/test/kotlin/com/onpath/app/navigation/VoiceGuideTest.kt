@@ -217,7 +217,7 @@ class VoiceGuideTest {
         g.update(base)
         // walking east, the route 40 m to the south (bearing 180) = on the right
         assertEquals(Phrase.OffRoute(RouteSide.RIGHT, 40.0), g.update(base.copy(nowMs = 2_000, onRoute = false, offRoute = true,
-            headingDeg = 90.0, routeM = 40.0, routeBearingDeg = 180.0)))
+            routeHeadingDeg = 90.0, routeM = 40.0, routeBearingDeg = 180.0)))
         g.update(base.copy(nowMs = 30_000, onRoute = false, offRoute = true))
         // asked again: the numbers of now, the route is behind
         assertEquals(Phrase.OffRoute(RouteSide.BEHIND, 85.0), g.questionAgain(45_000, quiet = false, headingDeg = 90.0, routeM = 85.0, routeBearingDeg = 270.0))
@@ -230,7 +230,7 @@ class VoiceGuideTest {
         for ((h, m, b) in listOf(Triple(null, 40.0, 180.0), Triple(90.0, null, 180.0), Triple(90.0, 40.0, null))) {
             val g = VoiceGuide(); g.update(base)
             assertEquals(Phrase.OffRoute(), g.update(base.copy(nowMs = 2_000, onRoute = false, offRoute = true,
-                headingDeg = h, routeM = m, routeBearingDeg = b)))
+                routeHeadingDeg = h, routeM = m, routeBearingDeg = b)))
         }
     }
 
