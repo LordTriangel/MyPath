@@ -50,6 +50,6 @@ class RecordingWireTest {
             assertEquals("${w.name} in RecordingWire", w.literal, w.inWire)
             assertEquals("${w.name} on RecordingService", w.literal, w.inService)
         }
-        assertEquals("every name once", 28, all.map { it.name }.toSet().size)
+        assertEquals("every name once", 29, all.map { it.name }.toSet().size)
     }
 }

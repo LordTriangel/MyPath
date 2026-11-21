@@ -70,7 +70,7 @@ class RecordingClientTest {
         val companion = contract.substringAfter("companion object")
         assertEquals("actions without a typed command", emptySet<String>(), declared.filterNot { companion.contains("RecordingWire.$it") }.toSet())
         val wireNames = Regex("""const val ((?:ACTION|EXTRA|SAY)_\w+) = """).findAll(wire).map { it.groupValues[1] }.toSet()
-        assertEquals("18 actions, 8 extras, 2 SAY values", 28, wireNames.size)
+        assertEquals("19 actions, 8 extras, 2 SAY values", 29, wireNames.size)
         assertEquals("a wire string the service has no alias for", emptySet<String>(),
             wireNames.filterNot { svc.contains("const val $it = RecordingWire.$it") }.toSet())
         // … and each is taken by onStartCommand: a control action in its set and its branch (START is the fall-through)
