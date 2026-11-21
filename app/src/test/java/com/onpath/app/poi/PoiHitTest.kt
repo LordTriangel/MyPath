@@ -110,14 +110,6 @@ class PoiHitTest {
         assertTrue(t.mapIdle(ready = true))
     }
 
-    @Test fun idleEndsWithACameraMoveOrAStyleChange() {
-        val t = PoiHit.IdleTracker()
-        assertFalse("before the first idle", t.idleNow())
-        t.became(); assertTrue(t.idleNow())
-        t.moved(); assertFalse("a camera move / style change: busy until the next idle", t.idleNow())
-        t.became(); assertTrue(t.idleNow())
-    }
-
     /** A press the list missed waits once; whoever comes first finishes it, and it is finished exactly once. */
     @Test fun aWaitingPressIsFinishedExactlyOnce() {
         val w = PoiHit.PressWait<String>()
@@ -138,16 +130,57 @@ class PoiHitTest {
         assertEquals("second", w.expire(t4))
     }
 
-    /** One repaint at a time, none while the camera follows, and a lost idle cannot block repaints for good. */
-    @Test fun repaintOnlyWhenNotFollowingAndNotAlreadyOnItsWay() {
+    /** A camera stop asks for one repaint, none on a follow step, and a lost idle cannot block repaints for good. */
+    @Test fun repaintAfterACameraStopNotOnAFollowStep() {
         val g = PoiHit.RepaintGate(staleMs = 1_000)
-        assertFalse("following: the map repaints by itself", g.mayAsk(0, following = true))
-        assertTrue(g.mayAsk(0, following = false))
-        assertFalse("one is on its way", g.mayAsk(10, following = false))
+        assertFalse("a follow step repaints by itself", g.mayAskAfterCameraStop(0, following = true))
+        assertTrue(g.mayAskAfterCameraStop(0, following = false))
+        assertFalse("one is on its way", g.mayAskAfterCameraStop(10, following = false))
         g.idleCame()
-        assertTrue("its idle came", g.mayAsk(20, following = false))
-        assertFalse(g.mayAsk(1_019, following = false))
-        assertTrue("no idle came for a second: not stuck", g.mayAsk(1_020, following = false))
+        assertTrue("its idle came", g.mayAskAfterCameraStop(20, following = false))
+        assertFalse(g.mayAskAfterCameraStop(1_019, following = false))
+        assertTrue("no idle came for a second: not stuck", g.mayAskAfterCameraStop(1_020, following = false))
+        g.idleCame()
+        assertFalse("a style load while following", g.mayAskAfterStyleLoad(2_000, following = true))
+        assertTrue(g.mayAskAfterStyleLoad(2_000, following = false))
+    }
+
+    /** Review 2026-11-21: a still follow camera draws nothing by itself, so a press must get its one frame. */
+    @Test fun aPressGetsItsFrameWhileTheCameraFollows() {
+        val g = PoiHit.RepaintGate(staleMs = 1_000)
+        assertFalse(g.mayAskAfterCameraStop(0, following = true))
+        assertTrue("the press asks although the camera follows", g.mayAskForPress(10))
+        assertFalse("but not twice before its idle", g.mayAskForPress(20))
+        g.idleCame()
+        assertTrue(g.mayAskForPress(30))
+    }
+
+    /** Review 2026-11-21: a pinch keeps following; the map then stands still and the list of the old zoom must be read again. */
+    @Test fun aFingerOnAFollowingCameraStillGetsARepaintForTheRead() {
+        val g = PoiHit.RepaintGate(staleMs = 1_000)
+        g.fingerMoved()
+        assertTrue("after the pinch", g.mayAskAfterCameraStop(0, following = true))
+        g.idleCame()
+        assertFalse("the next follow step is no finger", g.mayAskAfterCameraStop(10, following = true))
+    }
+
+    /** Review 2026-11-21: what a waiting press does was decided at the press; a hold that closes a menu never adds a point. */
+    @Test fun aWaitingPressRunsWhatWasDecidedAtThePress() {
+        fun decide(menuOpen: Boolean, poi: Boolean) =
+            com.onpath.app.domain.MapGestures.decide(true, com.onpath.app.domain.MapGestures.Press.HOLD, menuOpen, -1, poi, planEmpty = false)
+        val plan = PoiHit.PressPlan(true, decide(menuOpen = true, poi = false), decide(menuOpen = true, poi = true))
+        assertEquals(com.onpath.app.domain.MapGestures.Action.CloseMenu, plan.action(found = false, canEditNow = true))
+        assertEquals("the live rule would add a point now", com.onpath.app.domain.MapGestures.Action.AddPoint, decide(menuOpen = false, poi = false))
+        assertEquals(com.onpath.app.domain.MapGestures.Action.PoiMenu, plan.action(found = true, canEditNow = true))
+        assertNull("the map stopped being editable while it waited: dropped", plan.action(found = false, canEditNow = false))
+    }
+
+    /** Review 2026-11-21: only a hold on a list known to be behind waits longer – it would change the plan. */
+    @Test fun aHoldWaitsLongerOnlyWhileTheListIsBehind() {
+        assertEquals(700L, PoiHit.pressWaitMs(hold = true, listBehind = true))
+        assertEquals(150L, PoiHit.pressWaitMs(hold = true, listBehind = false))
+        assertEquals(150L, PoiHit.pressWaitMs(hold = false, listBehind = true))
+        assertEquals(150L, PoiHit.pressWaitMs(hold = false, listBehind = false))
     }
 
     @Test fun readRunsNoTimer() {
@@ -166,7 +199,7 @@ class PoiHitTest {
         assertTrue("the press path is there", press.contains("fun askMapAtNextIdle("))
         assertFalse("a press reads only the list", press.contains("queryRenderedFeatures") || press.contains("queryAtFinger"))
         val onIdle = tap.substringAfter("fun onMapIdle(").substringBefore("fun at(")
-        assertTrue("the map is asked on its idle", onIdle.contains("resolveWaitingPress(map)"))
+        assertTrue("the map is asked on its idle", onIdle.contains("resolveWaitingPress(map, view)"))
         assertEquals("and from nowhere else", 2, Regex("resolveWaitingPress\\(").findAll(tap).count())
         assertFalse("no test hook in production", tap.contains("ForTest") || tap.contains("var current"))
     }

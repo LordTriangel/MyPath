@@ -65,9 +65,61 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
         device.pressBack()
         waitFor("the details closed") { read { it.selectedPoi } == null }
         val second = drawUnlistedPoi("unlisted-2", (symbol.first + 80 * dp) to (symbol.second + 90 * dp))
+        com.onpath.app.debug.Problems.clear()
         hold(second.first, second.second)
         waitFor("the POI menu of a symbol the list lacks, hold at ${at(second)}") { read { it.placeMenus.poiMenu?.id } == "unlisted-2" }
         assertNull("the POI menu, not the plain first-point menu", read { it.placeAdd.firstPointMenu })
+        assertTrue("the hold came through the map, the list did not have it", listMissedLogged())
+    }
+
+    /**
+     * a3) the same while the camera follows the position and stands still (review 2026-11-21): nothing repaints such a
+     * map, so the press itself must ask for its one frame – else no idle comes and the hold sets a route point.
+     */
+    @Test fun aHoldOnASymbolMissingFromTheListWorksWhileTheCameraFollows() {
+        val ids = (1..3).map { "unlisted-follow-$it" }
+        ids.forEach { addUnlistedLayer(it) }
+        try {
+            gpsAt(POI_LAT, POI_LON)
+            waitUntil("a GPS fix in the app", 20_000) { read { it.tracker.location.value != null } }
+            val (w, h) = mapSize()
+            var viaMap = false
+            // a follow step may read the list just before the hold: then the list has the symbol and the case was not
+            // tested – once more with the next symbol (opening the POI menu ends following, so it is switched on again)
+            for ((i, id) in ids.withIndex()) {
+                scenario.onActivity { vm(it).map.followMe = true }
+                waitUntil("the camera follows", 10_000) { cameraMode() != org.maplibre.android.location.modes.CameraMode.NONE }
+                pause(2_500, "the follow camera landed and stands still")
+                val p = showUnlistedPoi(id, (w * 0.35f) to (h * (0.25f + 0.06f * i)))
+                com.onpath.app.debug.Problems.clear()
+                assertTrue("the camera follows at the press", cameraMode() != org.maplibre.android.location.modes.CameraMode.NONE)
+                hold(p.first, p.second)
+                waitFor("the POI menu of a symbol the list lacks, following, hold at ${at(p)}") { read { it.placeMenus.poiMenu?.id } == id }
+                assertNull("the POI menu, not the plain first-point menu", read { it.placeAdd.firstPointMenu })
+                assertEquals("the hold set no route point", 0, waypointCount())
+                viaMap = listMissedLogged()
+                if (viaMap) break
+                device.pressBack()
+                waitFor("the POI menu closed") { read { it.placeMenus.poiMenu } == null }
+            }
+            assertTrue("at least one hold came through the map, the list did not have the symbol", viaMap)
+        } finally {
+            device.executeShellCommand("cmd location providers remove-test-provider gps")
+        }
+    }
+
+    private fun cameraMode(): Int {
+        var mode = org.maplibre.android.location.modes.CameraMode.NONE
+        val done = java.util.concurrent.CountDownLatch(1)
+        scenario.onActivity { a ->
+            mapView(a)!!.getMapAsync { m ->
+                val c = m.locationComponent
+                if (c.isLocationComponentActivated) mode = c.cameraMode
+                done.countDown()
+            }
+        }
+        done.await(5, java.util.concurrent.TimeUnit.SECONDS)
+        return mode
     }
 
     /** b) a real hold on the drawn symbol in Plan → the POI menu; „Start here“ there sets the plan's start on the POI. */
@@ -183,25 +235,40 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
 
     /**
      * Draws one more POI symbol at the screen point [p] in a layer of its own named like the style's POI layers – no camera
-     * move and no style change, so the app's list of shown POIs does not learn of it. Returns where it is drawn.
+     * move and no style change after the layer is known, so the app's list of shown POIs does not learn of it.
      */
     private fun drawUnlistedPoi(id: String, p: Pair<Float, Float>): Pair<Float, Float> {
+        addUnlistedLayer(id)
+        return showUnlistedPoi(id, p)
+    }
+
+    /** The empty layer of [id]; one small camera move lets the app's next read see that the layer exists. */
+    private fun addUnlistedLayer(id: String) {
+        onMap { m ->
+            val style = m.style!!
+            val icon = "e2e-$id"
+            style.addImage(icon, android.graphics.Bitmap.createBitmap(48, 48, android.graphics.Bitmap.Config.ARGB_8888).apply { eraseColor(android.graphics.Color.RED) })
+            style.addSource(org.maplibre.android.style.sources.GeoJsonSource("e2e-src-$id", org.maplibre.geojson.FeatureCollection.fromFeatures(emptyArray<org.maplibre.geojson.Feature>())))
+            style.addLayer(org.maplibre.android.style.layers.SymbolLayer("poi-e2e-$id", "e2e-src-$id").withProperties(
+                org.maplibre.android.style.layers.PropertyFactory.iconImage(icon),
+                org.maplibre.android.style.layers.PropertyFactory.iconAllowOverlap(true),
+                org.maplibre.android.style.layers.PropertyFactory.iconIgnorePlacement(true)))
+            m.moveCamera(org.maplibre.android.camera.CameraUpdateFactory.zoomBy(0.001)) // scrollBy reports no camera idle
+        }
+        pause(1_500, "the camera stop's read has seen the new, still empty layer")
+    }
+
+    /** Puts the symbol of [id] at the screen point [p]: the map draws it, nothing reads the list. */
+    private fun showUnlistedPoi(id: String, p: Pair<Float, Float>): Pair<Float, Float> {
         scenario.onActivity { a ->
             val mv = mapView(a)!!
             val loc = IntArray(2).also { mv.getLocationOnScreen(it) }
             mv.getMapAsync { m ->
                 val ll = m.projection.fromScreenLocation(android.graphics.PointF(p.first - loc[0], p.second - loc[1]))
-                val style = m.style!!
-                val icon = "e2e-$id"
-                style.addImage(icon, android.graphics.Bitmap.createBitmap(48, 48, android.graphics.Bitmap.Config.ARGB_8888).apply { eraseColor(android.graphics.Color.RED) })
                 val f = org.maplibre.geojson.Feature.fromGeometry(org.maplibre.geojson.Point.fromLngLat(ll.longitude, ll.latitude)).apply {
                     addStringProperty("id", id); addStringProperty("kind", "restaurant"); addStringProperty("name", "Unlisted $id")
                 }
-                style.addSource(org.maplibre.android.style.sources.GeoJsonSource("e2e-src-$id", f))
-                style.addLayer(org.maplibre.android.style.layers.SymbolLayer("poi-e2e-$id", "e2e-src-$id").withProperties(
-                    org.maplibre.android.style.layers.PropertyFactory.iconImage(icon),
-                    org.maplibre.android.style.layers.PropertyFactory.iconAllowOverlap(true),
-                    org.maplibre.android.style.layers.PropertyFactory.iconIgnorePlacement(true)))
+                m.style!!.getSourceAs<org.maplibre.android.style.sources.GeoJsonSource>("e2e-src-$id")!!.setGeoJson(f)
             }
         }
         waitFor("the extra symbol $id drawn at ${at(p)}") { drawnAround(p, "poi-e2e-$id", id) }
