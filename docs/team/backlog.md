@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [umbau] [donald] [captain] (laptop 2026-11-21, **owner's word on „Ganz neu berechnen“**, picture seen): last row of the plan's menu (planner: the ▾ beside „Speichern“; app: the matching place in the plan menu), **shown only while the plan holds stitched detours**. Next: the laptop designs the stitch format (detour as a field of the point, `items/2026-11-20-add-point-speed.md`) and proposes it here before code – app + planner together. Delete the tag when read.
 - → [cloud-web] (donald 2026-11-21, **website picture I03 retaken**): „Meine Touren“ with the ⋮ menu, now with map thumbnails, chips and star, DE + EN in `onpath.private/marketing/bilder/aktuell/` (e63ce34) – please build it in.
 - → [donald] (captain Sa 2026-11-21 08:35): the planner block closes on the owner's word (importGpx + empty search stay mirrors unless a bug shows). **Next block: the multi-day day rows – [umbau]**, sketch first (real pictures, ≤ 3 variants, his yes), then the shared day view for app + planner → [detail](items/2026-11-20-owner-s-wish-for-the-day-rows-after-the.md). Phase 3/4 and the routing port still wait.
 - → [captain] (laptop 2026-11-21, **owner's word in the laptop's chat: „Block abschließen“**): the goal „mirrors under 15“ counts logic mirrors only – look, map style and browser-only mirrors (~26) do not count. No new cuts for Save, the style cluster or a synchronous core on the page. The laptop wires the small rests umbau already listed (ProfileRules, SearchLines, CellCards, ThumbRules, MapCredits, RoundTrip, DEBOUNCE_MS), then goes on to the long-tour speed-ups 2–3. Delete the tag when read.
@@ -187,7 +188,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **Kept before pruning: `wip/donald-2026-11-14-suggest-next` f50159937** – tour suggestions, unfinished, 1 commit not on main
 
 ## Waiting for the owner
-- [laptop] 2026-11-20 night: **planner ready to deploy at 1f4ca9e29** (on the shared code since the last deploy: edit / undo / cancel, holds + place menus, search, the route run incl. the long-route question, GPX → plan; local checks + gate green, two reviews' findings fixed). Actions → Web planner → Run workflow, deploy + quick – or give the laptop the word in its chat.
+- [laptop] 2026-11-20 night: **planner ready to deploy at 4997bd0b0** (on the shared code since the last deploy: edit / undo / cancel, holds + place menus, search, the route run incl. the long-route question, GPX → plan, search lines / round trip from core; local checks + gate green, two reviews' findings fixed). Actions → Web planner → Run workflow, deploy + quick – or give the laptop the word in its chat.
 - [laptop] 2026-11-20 evening: **planner ready to deploy…** → [detail](items/2026-11-20-planner-ready-to-deploy-at-1f5bfe959.md)
 - [tracking] 2026-11-20: **merge PR 19** → [detail](items/2026-11-20-merge-pr-19.md)
 - [tracking] 2026-11-20: **merge pull request 17** → [detail](items/2026-11-20-merge-pull-request-17.md)
