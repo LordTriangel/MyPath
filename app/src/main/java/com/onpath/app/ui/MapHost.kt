@@ -292,7 +292,7 @@ fun MapHost(
                 fun timedOut(waited: Long) {
                     shownPois.pressTimedOut(wait, waited)?.let { more -> mapView.postDelayed({ timedOut(waited + more) }, more) }
                 }
-                mapView.postDelayed({ timedOut(0) }, shownPois.pressWaitMs(press == MapGestures.Press.HOLD))
+                mapView.postDelayed({ timedOut(0) }, com.onpath.app.poi.PoiHit.PRESS_WAIT_MS)
                 return edit || plan.plain != MapGestures.Action.None
             }
             map.addOnMapClickListener { ll ->

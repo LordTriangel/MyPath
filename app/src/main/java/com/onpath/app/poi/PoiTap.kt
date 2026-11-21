@@ -40,13 +40,12 @@ object PoiHit {
             .minByOrNull { c -> (fx - c.x) * (fx - c.x) + (fy - c.y) * (fy - c.y) }?.poi
     }
 
-    /** How long a press the list has no POI for waits for the map; after that it is a plain press. */
-    const val PRESS_WAIT_MS = 150L
-
-    /** A hold while the list is known to be behind: as a plain press it would change the plan, so it waits longer. */
-    const val HOLD_WAIT_BEHIND_MS = 700L
-
-    fun pressWaitMs(hold: Boolean, listBehind: Boolean): Long = if (hold && listBehind) HOLD_WAIT_BEHIND_MS else PRESS_WAIT_MS
+    /**
+     * How long a press the list has no POI for waits for the map; after that it is a plain press. The idle normally comes
+     * in ~10 ms, so this only counts on a busy map or a slow phone – where a shorter bound turned a hold on a drawn symbol
+     * into a route point (GitHub's emulator 2026-11-21: the idle came after 160–650 ms).
+     */
+    const val PRESS_WAIT_MS = 1_000L
 
     /** A read has asked the map and only its result is on the way: the press waits for it this much longer, at most. */
     const val READ_LAND_MS = 1_000L
@@ -270,9 +269,6 @@ class ShownPois {
         if (repaint.mayAskForPress(SystemClock.uptimeMillis())) repaintNow(map, "list miss")
         return token
     }
-
-    /** How long the press may wait for the map. */
-    fun pressWaitMs(hold: Boolean): Long = PoiHit.pressWaitMs(hold, listBehind)
 
     /**
      * The wait of [token] ran out (a busy map): the press goes on as a plain press – unless a read is under way, then it
