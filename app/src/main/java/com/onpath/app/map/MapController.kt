@@ -105,7 +105,7 @@ class MapController(private val context: Context, val map: MapLibreMap, val styl
          */
         val ROUTE_OVERLAY_LAYERS = NAV_LAYERS + listOf(
             "planned-route-casing", "planned-route", "planned-straight-casing", "planned-straight",
-            "$SRC_GPX-casing", SRC_GPX, SRC_RIDES, SRC_LIFTS, "highlight-dot", "waypoints-pin", LAYER_WPT, LAYER_TURN, SRC_UTURN,
+            "$SRC_GPX-casing", SRC_GPX, "$SRC_SUGGEST-casing", SRC_SUGGEST, SRC_RIDES, SRC_LIFTS, "highlight-dot", "waypoints-pin", LAYER_WPT, LAYER_TURN, SRC_UTURN,
             "planned-route-arrows", "$SRC_GPX-arrows", SRC_GAPS, SRC_SPOT, SRC_MARK_JOIN,
         )
         private const val ARROW_IMAGE = "route-arrow"

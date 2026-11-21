@@ -1486,7 +1486,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** What the map column's greyed buttons need to know ([MapControlsEnabled]). */
     internal fun controlsIn(layer: AppMode, pointsOpen: Boolean) = MapControlsEnabled.In(layer, pointsOpen,
         planLine = map.hasPlanLine(), shownLine = map.hasShownLine(), shownOpen = routesFlow.shown != null, followLine = map.hasFollowLine(),
-        canUndo = plan.canUndo, canRedo = plan.canRedo)
+        canUndo = plan.canUndo, canRedo = plan.canRedo, suggestLine = (suggest.loop?.size ?: 0) >= 2)
 
     /** A spot in the list tapped: the list closes, following stops, the map shows that piece (drawn amber). */
     fun showSpot(s: RouteSpot) {
