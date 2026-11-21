@@ -1,6 +1,6 @@
 # Detour stitch + long-half cuts – design proposal (2026-11-21)
 
-Status: proposal, nothing built. Input: `docs/team/items/2026-11-20-add-point-speed.md` (measurements + owner's decisions).
+Status: **agreed 2026-11-21 ([umbau] + laptop, owner's three answers at the end); §8 is binding and wins over older text.** Built on `wip/umbau-2026-11-21-detour-stitch`; nothing of tag 7 or the anchors reaches `main` until `SameRouteTest` passes on JVM and Wasm (captain). Input: `docs/team/items/2026-11-20-add-point-speed.md` (measurements + owner's decisions).
 Goal: a point added to a long leg routes in ~0.3 s instead of 4–15 s, and **every device gives the same route for the same
 plan** (phone, browser, sync, plan link, GPX export, saved route reload).
 
@@ -63,7 +63,7 @@ Other devices only read data – no device-dependent geometry decides a route.
 ## 3. Transport and storage
 - **Plan code** (`PlanCode`, still VERSION 1): optional tag 7 = anchors: varint point index, varint count before,
   varint count after, then each anchor as zigzag deltas in 1e-6° to the previous one (first: to the point ×10). Reader
-  drops an entry whose index is out of range, more than 8 per side, or an anchor > 200 km from its point. **Older apps
+  drops an entry whose index is out of range, more than 8 per side, or an anchor > 200 km from its point; a plan holds at most 500 anchors (§8.8). Tag 7 also carries the exact points (§8.10). **Older apps
   skip tag 7** (existing rule "unknown tags skipped") → they show the same points, route in full (slower, possibly a
   slightly different route), never lose the plan. An older app that re-saves the plan writes it without tag 7 – the plan
   then degrades to plain routing everywhere (consistent, never broken). Readers ship one release before writers (§6).
@@ -85,14 +85,13 @@ Other devices only read data – no device-dependent geometry decides a route.
 ## 4. Where it lives
 - **core/routing** (shared, the planner compiles it): `PlanAnchors.kt` – `Anchors`, `expand(points, anchors, pinned)`
   → expanded list + index map back; `forInsert(legLine, prev, next, p)` (stitch / cut rule, the thresholds as constants);
-  `follow(before, after, …)` (§2). `Planner.plan(…, anchors)` and `PlanResult.plan(…, anchors)` expand inside and map
-  `snapped` / `skipped` / gaps back to visible indices – callers cannot forget it. `LegSplit.seed` learns to cut any
+  `follow(before, after, …)` (§2). `Planner` and `PlanResult` take an `ExpandedPlan` (§8.1) and map `snapped` / `skipped` / gaps back to visible indices. `LegSplit.seed` learns to cut any
   line point of a known **chain** of legs and to concatenate two legs (for transfers). `PlanCode` tag 7, `SharedPlan.anchors`.
   No `PLANNER_VERSION` bump (plans without anchors route as before).
 - **core/data, gpx, plansync**: storage fields (§3).
 - **state** (app): `PlanDocument` / `PlanHistory` hold anchors; the add-point flow calls `forInsert`; `PlanRecalcSlice`
   passes anchors; "Ganz neu berechnen" action + `hasAnchors` for the menu row.
-- **app**: the menu row (last row of the plan menu, only while `hasAnchors`; picture to the owner first), Room migration.
+- **app**: the menu row (last row of the plan menu, only while `hasAnchors`; picture to the owner first), `TourDb` `onUpgrade` (plain SQLite).
 - **planner (web/)**: `WebApi` / `WebPlanChain` pass anchors (page state + its undo), `WebLegSplit` replaced by core
   `LegSplit`, the same menu row with the app's string, `parity.json` entry.
 
@@ -102,27 +101,39 @@ Other devices only read data – no device-dependent geometry decides a route.
 2. `SameRouteTest` (core, real BRouter, where the rd5 tiles are – `ONPATH_PERF`-style switch, laptop + the planner CI if
    it has the tile cache): corpus = München–Venedig Bike + Hike T2 and two more long tours; 20 adds ≤ 2 km, 10 adds
    5–10 km with cuts, then a night in a span, a delete, an undo. Per case: **warm** (old legs cached, stitch via
-   seed/cut) vs **cold** (empty cache, route the expanded list) → `RouteHash` (sha256 of the 1e-6 line + rounded
-   totals) must be equal. The planner runs the same test compiled to Wasm (web/engine test) and must hit the same hashes,
+   seed/cut) vs **cold** (empty cache, route the expanded list) → `RouteHash` (sha256 of the 1e-6 line only, §8.7) must be equal, distance within 0.5 %. The cold side reads the plan through `PlanCode` after the warm side's snap (§8.2, §8.10). The planner runs the same test compiled to Wasm (web/engine test) and must hit the same hashes,
    checked in as `core/src/test/resources/same-route/*.sha`. A mismatch fails the gate and turns on the §1 safety net.
 
 ## 6. Rollout
-1. Readers: core model, tag 7, expansion, storage – app + planner route anchors but never create them (one release).
-2. `SameRouteTest` green on JVM and Wasm.
-3. Writers: stitch on insert + transfers + „Ganz neu berechnen" (owner picture), app and planner in the same release.
-4. Speed-up 3 cuts (same field, own corpus run).
-5. Only if §5 found mismatches: idle re-route of cut legs.
+1. Core with `forInsert`, no UI, on the wip branch.
+2. `SameRouteTest` green on JVM and Wasm – before any release reads tag 7 (§8.6).
+3. Readers: tag 7, expansion, storage – app + planner route anchors but never create them (one release).
+4. Writers: stitch on insert + transfers + „Ganz neu berechnen" (owner picture), app and planner in the same release.
+5. Speed-up 3 cuts (same field, own corpus run).
+6. Only if §5 found mismatches: idle re-route of cut legs.
 
 ## 7. Risks
 - Sub-path invariant fails somewhere (BRouter heuristics, turn costs at the anchor) → warm and cold lines differ by a
   bit; caught by §5, healed by the safety net.
 - A forgotten caller routes without anchors (navigation, `SyncedRouting`, `TrackToPlan`, thumbnails) → another line;
-  mitigated by putting the expansion inside `Planner` / `PlanResult`, plus a test that every `Planner.plan` call site
+  mitigated by the one `ExpandedPlan` (§8.1), plus a test that every `Planner.plan` call site
   passes the plan's anchors.
 - Routing-data update under an anchor (the way moved) → the route still passes the stored coordinate (a small bump);
   „Ganz neu berechnen" fixes it; acceptable.
 - UI shows hidden points by mistake – they never enter the visible point list, only the Planner's input.
 - Pre-feature apps silently drop anchors on re-save (Q2).
+
+## 8. Agreed before code (2026-11-21; reasons: `docs/team/items/2026-11-21-detour-stitch-answer.md`)
+1. **One list of legs.** `PlanAnchors.expand` returns `ExpandedPlan(points, pins, visibleIndex)`. `Planner`, `LegSplit.seed`, the planner's fetch list, „all legs fresh?“, `StoredLine.preview` and both alias steps all take it.
+2. **Snap.** The alias runs over the expanded lists, old and new. §5's warm side is compared after the snap.
+3. **Tour.** `TourEdits.followAhead`: the first point ahead loses its `before` anchors, all others keep theirs. `SyncedRoutingSlice` passes the tour's anchors. Own test (core feature).
+4. **Visible numbers.** Error texts and the wait card count visible points and legs only.
+5. **An anchor never makes a route worse.** A sub-leg without a route → that visible leg is routed once without its anchors and reported to `Problems`; the anchors stay stored until the next edit. The full leg enters the cache under its plain key only after it routed.
+6. **Test before readers** (§6).
+7. **Hash = the line only**; distance within 0.5 %. `LegSplit` shares totals in proportion, a cold device gets the router's own.
+8. **Cap.** At most 500 anchors per plan (writer and reader); `LegCache.CAPACITY` 1,000; `StoredLine`'s temporary cache takes the expanded size; the planner's store and memory cache follow.
+9. **Cuts stay out of plain plans.** A stitch's cut legs live under their own key (`LegCache.Key.cut`, also in `LegFiles` / `WebLegs` names and files), read only for a leg of an `ExpandedPlan` that touches an anchor. Routed legs stay under plain keys.
+10. **Exact points (found while building).** `PlanCode` stores points in 1e-5°, the leg cache and anchors work in 1e-6°: after a link or sync a cold device would route `a→P` to a point up to ~0.7 m away, under another key. A plan with anchors therefore carries, first in tag 7, each point's remainder to 1e-6° (two small zigzag values, each −5…+5; out of range = the whole tag is dropped). Older readers skip it.
 
 ## Questions for the owner
 1. Do speed-up 3's cut points also count for „Ganz neu berechnen" (row shows whenever the route keeps any point of an
