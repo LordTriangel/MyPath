@@ -98,4 +98,45 @@ class EditedRidesShowEverywhereTest {
         RideApply.edit(db, 1, RideChoice.AS_RECORDED)
         assertEquals("back to the first look: the first key", a, RouteLineKey.of(db.tour))
     }
+
+    private fun saved(r: Ride, c: RideChoice) = Db(Tour(1, TourKind.RECORDED, "T", 1, "HIKE", 2, recorded.distanceM, recorded.ascentM, recorded.descentM,
+        recorded.durationS, "done", emptyList(), "u1", rides = RideRecord(listOf(r), c, recorded, 1_540_000L)))
+
+    @Test fun aPictureFromBeforeTheUpdateOfATourWithAChoiceIsMadeAgainOnce() {
+        val t = saved(ride, RideChoice.UNTIL).tour
+        val lineKey = "10:460.045:110.000"
+        // the app before 2026-11-21: the key had no ride tag and the picture showed the whole line
+        val old = ThumbRules.sig(t) + "|" + lineKey
+        val plan = ThumbRules.plan(listOf(t), { old }, { lineKey })
+        assertEquals("a new picture, not just a new key on the old one", listOf(1L), plan.make.map { it.first.id })
+        assertTrue(plan.rekey.isEmpty())
+        val made = plan.make.single().second
+        assertTrue("once: its new key needs nothing more", ThumbRules.plan(listOf(t), { made }, { lineKey }).let { it.make.isEmpty() && it.rekey.isEmpty() && it.queried == 0 })
+    }
+
+    @Test fun aPictureFromBeforeTheUpdateOfAnUntouchedTourStays() {
+        val asRecorded = savedAsRecorded().tour
+        val noRecord = asRecorded.copy(rides = null)
+        val noPoints = noRecord.copy(id = 2, uuid = "u2")
+        val old = mapOf("u1" to ThumbRules.sig(asRecorded) + "|10:460.045:110.000", "u2" to ThumbRules.sig(noPoints) + "|none")
+        for (tours in listOf(listOf(asRecorded), listOf(noRecord, noPoints))) {
+            val plan = ThumbRules.plan(tours, { old[it] }, { error("no database work for an unchanged tour") })
+            assertTrue("no redraw, no key read", plan.make.isEmpty() && plan.rekey.isEmpty() && plan.queried == 0)
+        }
+    }
+
+    @Test fun aGondolaAtTheStartLeavesNoLonePointInTheDrawnLine() {
+        val db = saved(Ride(0, 4, RideKind.LIFT), RideChoice.NOT_COUNTED)
+        assertEquals("the valley station stays a kept point of its own", listOf(1, 6),
+            com.onpath.app.rides.RideView.keptSegments(listOf(pts), db.tour.rides).map { it.size })
+        val line = RoutesState(db).line(db.tour) { emptyList() }
+        assertEquals("the line starts where the walk starts", listOf(6), line.map { it.size })
+        assertEquals(pts[4].lat, line.single().first().lat, 1e-9)
+    }
+
+    @Test fun aTourThatIsOneRideStillHasItsLine() {
+        val db = saved(Ride(0, 9, RideKind.VEHICLE), RideChoice.NOT_COUNTED)
+        assertEquals("only lone points are kept: the whole track is drawn", listOf(10),
+            RoutesState(db).line(db.tour) { emptyList() }.map { it.size })
+    }
 }

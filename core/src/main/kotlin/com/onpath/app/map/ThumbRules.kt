@@ -81,11 +81,21 @@ object ThumbRules {
         return " r${r.choice.name}:${r.rides.size}:${r.rides.sumOf { it.from + it.to }}"
     }
 
+    /**
+     * The [rideTag] a stored key was made with ("" = none: a tour without a choice, or a picture from before the tag). The
+     * line part has no space of its own. A tour with a choice and an older picture is drawn again once; the others stay.
+     */
+    private fun storedRideTag(key: String): String {
+        val line = key.substringAfter('|', "")
+        val at = line.indexOf(" r")
+        return if (at < 0) "" else line.substring(at)
+    }
+
     /** What a pass does: [make] these pictures (in this order), only [rekey] these (same line, new signature); [queried] = line keys read. */
     data class Plan(val make: List<Pair<Tour, String>>, val rekey: List<Pair<Tour, String>>, val queried: Int)
 
     /**
-     * A pass over My routes' [tours]: a tour whose stored key ([stored], by uuid) has its current [sig] needs nothing – no
+     * A pass over My routes' [tours]: a tour whose stored key ([stored], by uuid) has its current [sig] and [rideTag] needs nothing – no
      * database work; only for the others the line key is read ([lineKey]) – a new line → a picture, the same line → the key
      * only. [first] (just saved / ended) first, then newest first. A tour being recorded, one without a uuid, and keys in
      * [skip] (failed in this run) wait.
@@ -97,7 +107,7 @@ object ThumbRules {
             if (t.state != "done" || t.uuid.isEmpty()) continue
             val have = stored(t.uuid)
             val sig = sig(t)
-            if (have != null && have.substringBefore('|') == sig) continue
+            if (have != null && have.substringBefore('|') == sig && storedRideTag(have) == rideTag(t)) continue
             queried++
             val key = key(t, lineKey(t))
             if (key in skip) continue

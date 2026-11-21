@@ -104,7 +104,7 @@ private fun RideWarnBox(summary: RideView.Summary, zone: ZoneId) {
         Icon(Icons.Filled.Warning, null, tint = OnPathColors.Warn, modifier = Modifier.size(24.dp))
         Spacer(Modifier.width(12.dp))
         Column {
-            Text(str(if (summary.atEnd) Res.string.nav_ride_q_end else Res.string.nav_ride_q_along),
+            Text(str(if (summary.rideAtEnd) Res.string.nav_ride_q_end else Res.string.nav_ride_q_along),
                 style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = OnPathColors.OnWarnContainer)
             Text(line, style = MaterialTheme.typography.bodyMedium, color = OnPathColors.OnWarnContainer)
         }
