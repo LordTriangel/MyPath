@@ -9,7 +9,10 @@ the change's tests, no further question. The Pixel is not on USB. Picture first 
 POI fix, ride question and the review fixes are on main and in the release; the `wip/…-poi-lookup*`, `…-ride-question*` and
 `…-offroute-fixes` branches are merged in content (prune them through the normal list). The planner was **not** deployed with it
 (areas-smoke red in the release run, green on the commit before): the laptop has it. `release.yml` publishes the app before its
-planner check ends, so a green push run on the commit before is not the same as green on the release commit. Go on at item 4 / 5.
+planner check ends, so a green push run on the commit before is not the same as green on the release commit.
+**Item 5 is done and on main (cb49cbc22), not released:** arrival no longer waits for a stop the route cannot reach; reviewed, its
+five findings fixed, gate + `CoreFieldE2ETest` + real-data replay green, no device run with such a stop. Its limits:
+`items/2026-11-21-review-rests-off-route-ride-question.md`. Go on at item 4.
 
 ## Order of work
 1. **POI symbol bug (owner's, first).** Tap / hold on a drawn symbol in Plan finds nothing, „wieder das gleiche Problem“.
