@@ -74,7 +74,8 @@ same voice; "smart, clever sentences, not too much". Built after the feature sto
 | … then a long quiet stretch | „In 100 Metern rechts, dann 3 Kilometer geradeaus." | "In 100 meters turn right, then 3 kilometers straight on." |
 | Roundabout | „Im Kreisverkehr die zweite Ausfahrt." | "At the roundabout, take the second exit." |
 | Turn round (U-turn on the route) | „Bitte wenden." | "Please turn round." |
-| Off route (the question appears) | „Abseits der Route. Bitte aufs Handy schauen." | "Off the route. Please look at your phone." |
+| Off route (the question appears; again when it is asked again – the numbers of that moment) | „Abseits der Route. Die Route liegt rechts, 40 Meter." · „… liegt links, …" · „… liegt vor dir, …" · „… liegt hinter dir, …" (side = bearing to the nearest route point against the walking direction, four sectors ±45° / ±135° – `RouteSide`; metres as on the screen, 10 m steps, from 950 m kilometres) | "Off the route. The route is on your right, 40 meters." · "… on your left, …" · "… ahead of you, …" · "… behind you, …" |
+| … no walking direction (standing, too little track) or no distance known | „Abseits der Route. Bitte aufs Handy schauen." | "Off the route. Please look at your phone." |
 | Back on the route by yourself | „Wieder auf der Route." | "Back on the route." |
 | New route taken | „Neue Route. In 200 Metern rechts." (the next junction) | "New route. In 200 meters, turn right." |
 | Stop reached | „Gasthof Hochmuth erreicht. Weiter nach Algund, 4 Kilometer." (no name → „Stopp 3 erreicht.") | "Gasthof Hochmuth reached. On to Algund, 4 kilometers." |

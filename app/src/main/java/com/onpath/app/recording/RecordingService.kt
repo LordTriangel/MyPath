@@ -1069,7 +1069,7 @@ class RecordingService : Service() {
     private fun voiceQuestionAgain() {
         if (!GuidanceGate.voiceSteps(voiceOn(), arrived) || paused) return
         try {
-            voice.questionAgain(SystemClock.elapsedRealtime(), standingStill())?.let { say(it) }
+            voice.questionAgain(SystemClock.elapsedRealtime(), standingStill(), voiceHeading, navigator?.toRoute?.distanceM, navigator?.toRoute?.bearingDeg)?.let { say(it) }
             saveVoice()
         } catch (e: Exception) {
             Problems.warn("voice", "Off-route question not said again", e)
@@ -1209,7 +1209,7 @@ class RecordingService : Service() {
             turnRound = st.uTurnAt != null,
             fixAgeMs = voiceFixAgeMs,
             speechStartMs = speaker?.startMs ?: VoiceGuide.SPEECH_START_MS,
-            here = voiceHere, headingDeg = voiceHeading,
+            here = voiceHere, headingDeg = voiceHeading, routeM = st.toRoute?.distanceM, routeBearingDeg = st.toRoute?.bearingDeg,
         )
     }
 

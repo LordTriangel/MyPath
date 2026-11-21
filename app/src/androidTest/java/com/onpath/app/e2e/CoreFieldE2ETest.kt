@@ -1489,7 +1489,8 @@ class CoreFieldE2ETest : E2EBase() {
             assertNotNull("step 1: the \"$offRoute\" card on Navigate", findFresh(card, 10_000))
             // told either – or: said with a voice, vibrated without one (GitHub's emulator has no voice – 2d06b5e6: a
             // voiceless tour vibrates; E2E 2026-11-07 waited for a sentence that is never said there)
-            val said = "To say: " + com.onpath.app.navigation.VoiceText.of(com.onpath.app.navigation.Phrase.OffRoute)
+            // the sentence may carry the side and the metres ("… Die Route liegt rechts, 40 Meter."): both start alike
+            val said = "To say: " + com.onpath.app.navigation.VoiceText.of(com.onpath.app.navigation.Phrase.OffRoute()).substringBefore('.') + "."
             val buzz = com.onpath.app.recording.GuidanceGate.OFF_ROUTE_VIBRATED
             fun saidNow() = com.onpath.app.debug.Problems.events().any { it.area == "voice" && it.message == said }
             fun vibratedNow() = com.onpath.app.debug.Problems.events().firstOrNull { it.area == "navigation" && it.message.startsWith(buzz) }
