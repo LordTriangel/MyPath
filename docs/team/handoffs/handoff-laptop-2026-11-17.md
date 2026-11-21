@@ -16,6 +16,19 @@ Fränkische Schweiz / Pottenstein 49.77, 11.41, Mittenwald / Garmisch), tell IR;
 - **CELL_SCHEMA 9 on main and on TEST** (suggest layer content 2); donald has the publish commands; cell list `tools/dev/areas/owner-test-cells.txt`.
 - Next for the laptop: follow mehrtage's / IR's web merges (parity, check-web, deploy when green); donald's cleanup may move more shared files.
 
+## State 2026-11-21 ~17:30 – the next laptop session starts HERE
+- Since ~01:00: robust-smoke step 10 race fixed (083dcc17b – the link's first map wait must end before the shares are
+  cleared); day rows variant A in the planner (df0cf81eb, WebDays + multiday.ts; picture in
+  onpath-data/pictures/day-rows-planner-2026-11-21/); hotel „ab / bis …“ at a day's only known end (24809e72f + smoke
+  f18cffd8b); donald's eye-on-suggestion parity stamped. Deploy line under „Waiting for the owner“ (move it to the newest
+  green sha; the owner deploys or gives the word – `gh workflow run` is blocked here).
+- Detour stitch: proposal `docs/design/detour-stitch.md` + owner's 3 answers; umbau's answer
+  `items/2026-11-21-detour-stitch-answer.md` (9 points: ExpandedPlan for the 5 places outside Planner, followAhead,
+  SameRouteTest before the reader release, hash over the line only, cut legs never in normal plans). Split: core + state
+  umbau, app donald, web laptop. **No code until the captain starts the block.**
+- Lesson: never chain a push after a smoke whose rc you don't check (24809e72f went out with a stale smoke expectation).
+- Captain session: session_01167zC4wv2gKUDADAAUNFEH; umbau: session_01167zC68cVGgexER3YQGGWG (latest).
+
 ## State 2026-11-21 ~01:00 – the next laptop session starts HERE
 Planner block **closed** (owner 2026-11-21 „Block abschließen“: only logic mirrors count; look / style / browser stay).
 On main, **not deployed** (deploy needs the owner – Actions → Web planner → Run workflow deploy+quick, or his word; the
