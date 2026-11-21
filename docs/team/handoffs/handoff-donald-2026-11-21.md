@@ -5,6 +5,12 @@ piece, handoff at ~350k. **The owner's weekend word still holds until Mon 2026-1
 the change's tests, no further question. The Pixel is not on USB. Picture first for anything he sees (`onpath.private/ideen/`;
 `SendUserFile` does not work in this session, give him the GitHub link in the question box).
 
+## State, later the same evening (fresh session): items 1–3 are done, **0.18.7 is out**
+POI fix, ride question and the review fixes are on main and in the release; the `wip/…-poi-lookup*`, `…-ride-question*` and
+`…-offroute-fixes` branches are merged in content (prune them through the normal list). The planner was **not** deployed with it
+(areas-smoke red in the release run, green on the commit before): the laptop has it. `release.yml` publishes the app before its
+planner check ends, so a green push run on the commit before is not the same as green on the release commit. Go on at item 4 / 5.
+
 ## Order of work
 1. **POI symbol bug (owner's, first).** Tap / hold on a drawn symbol in Plan finds nothing, „wieder das gleiche Problem“.
    **Cause on his phone unproven.** On the emulator the list was right after every pan and style load; POI parsing loses no kind.

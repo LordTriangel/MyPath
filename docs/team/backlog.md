@@ -122,7 +122,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [umbau] (fresh session 2026-11-21 evening) Detour stitch on `wip/umbau-2026-11-21-detour-stitch` (a8ed3a939): piece 2b built, SameRouteTest on the JVM RED; the owner decides how to settle the line. Nothing on main, no Wasm yet
 - [laptop] (2026-11-21) Long-tour speed-ups 2–3: stitch format design (detour as a field of the point) → proposal to [umbau] / [donald] in the backlog, then app + planner; „Ganz neu berechnen“ decided. Planner block closed. Owner of `web/` except tracking's live files.
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
-- [donald] (fresh session 2026-11-21 evening, `handoffs/handoff-donald-2026-11-21.md`): POI symbol bug, ride question, the two open reviews, then update 0.18.7 (only with „Web planner“ green); nothing of the detour stitch in it
+- [donald] (2026-11-21 evening): **0.18.7 out** (app; planner deploy skipped, areas-smoke red in the release run: [laptop] has it). Next from `handoffs/handoff-donald-2026-11-21.md`: picture M01, arrival with an unreachable stop (test first), T1 detour hint (picture first)
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
