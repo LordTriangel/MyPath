@@ -437,6 +437,9 @@ class TourSession(
     /** "Route starts 31 km away" – Just record: quiet until the route is reached. */
     fun justRecord(questionId: Int) = recording.justRecord(questionId)
 
+    /** "Route starts 630 km away" – Cancel while the way there is searched: back to the same question. */
+    fun cancelLead(questionId: Int) = recording.cancelLead(questionId)
+
     /** "Du stehst mitten auf der Route" – Hier einsteigen: start here, the points before count as passed (owner 2026-11-03). */
     fun joinHere(questionId: Int) = recording.joinHere(questionId)
 

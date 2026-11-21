@@ -26,6 +26,7 @@ class RecordingWireTest {
         Wire("ACTION_TAKE_VIA", "com.onpath.app.TAKE_VIA", RecordingWire.ACTION_TAKE_VIA, RecordingService.ACTION_TAKE_VIA),
         Wire("ACTION_LEAD_THERE", "com.onpath.app.LEAD_THERE", RecordingWire.ACTION_LEAD_THERE, RecordingService.ACTION_LEAD_THERE),
         Wire("ACTION_JUST_RECORD", "com.onpath.app.JUST_RECORD", RecordingWire.ACTION_JUST_RECORD, RecordingService.ACTION_JUST_RECORD),
+        Wire("ACTION_CANCEL_LEAD", "com.onpath.app.CANCEL_LEAD", RecordingWire.ACTION_CANCEL_LEAD, RecordingService.ACTION_CANCEL_LEAD),
         Wire("ACTION_LEAD_FAILED_OK", "com.onpath.app.LEAD_FAILED_OK", RecordingWire.ACTION_LEAD_FAILED_OK, RecordingService.ACTION_LEAD_FAILED_OK),
         Wire("ACTION_JOIN_HERE", "com.onpath.app.JOIN_HERE", RecordingWire.ACTION_JOIN_HERE, RecordingService.ACTION_JOIN_HERE),
         Wire("EXTRA_QUESTION", "question", RecordingWire.EXTRA_QUESTION, RecordingService.EXTRA_QUESTION),

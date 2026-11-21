@@ -495,6 +495,18 @@ class Navigator(session: NavSession, offRouteM: Double = 40.0) {
         return clearPrompt()
     }
 
+    /**
+     * "Cancel" while the way to the start is searched (far-start question [id]): the search stops and the same question
+     * is asked again (Just record / Guide me). The recording goes on, nothing is said; a late result is ignored.
+     */
+    fun cancelLead(id: Int): Step {
+        val pr = prompt as? NavPrompt.FarStart ?: return Step()
+        if (pr.id != id || !pr.searching) return Step()
+        prompt = pr.copy(searching = false)
+        runningJob = -1
+        return Step(cancelJob = true)
+    }
+
     /** OK on "No way to the route found – recording continues" ([id]): quiet like "Just record". */
     fun leadFailedOk(id: Int): Step {
         val pr = prompt as? NavPrompt.LeadFailed ?: return Step()
@@ -775,5 +787,9 @@ class Navigator(session: NavSession, offRouteM: Double = 40.0) {
          */
         const val LEAD_REQUEST_MS = 20_000L
         const val LEAD_TOTAL_MS = 30_000L
+
+        /** From this straight-line distance to the start the far-start box warns that the search can take long. */
+        const val FAR_SEARCH_WARN_M = 25_000.0
+        fun searchMayTakeLong(distanceM: Double) = distanceM >= FAR_SEARCH_WARN_M
     }
 }

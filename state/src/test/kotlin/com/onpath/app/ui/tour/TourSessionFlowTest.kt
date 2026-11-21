@@ -808,10 +808,10 @@ class TourSessionFlowTest {
         val before = Triple(session.mode, filesNow(), plan.points.toList())
         ui {
             session.takeNewRoute(1); session.takeViaRoute(2); session.keepOriginalRoute(3); session.leadToStart(4)
-            session.justRecord(5); session.joinHere(6); session.leadFailedOk(7)
+            session.justRecord(5); session.joinHere(6); session.leadFailedOk(7); session.cancelLead(8)
         }
         assertEquals(listOf(RecordingCommand.takeRoute(1), RecordingCommand.takeVia(2), RecordingCommand.keepRoute(3), RecordingCommand.leadThere(4),
-            RecordingCommand.justRecord(5), RecordingCommand.joinHere(6), RecordingCommand.leadFailedOk(7)), client.sent.toList())
+            RecordingCommand.justRecord(5), RecordingCommand.joinHere(6), RecordingCommand.leadFailedOk(7), RecordingCommand.cancelLead(8)), client.sent.toList())
         assertEquals("the app is as it was", before, Triple(session.mode, filesNow(), plan.points.toList()))
     }
 

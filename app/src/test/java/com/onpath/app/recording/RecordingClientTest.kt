@@ -42,7 +42,7 @@ class RecordingClientTest {
         val answers = listOf<Pair<(Int) -> Unit, String>>(
             client::takeRoute to "TAKE_ROUTE", client::takeVia to "TAKE_VIA", client::keepRoute to "KEEP_ROUTE",
             client::leadThere to "LEAD_THERE", client::justRecord to "JUST_RECORD", client::joinHere to "JOIN_HERE",
-            client::leadFailedOk to "LEAD_FAILED_OK")
+            client::leadFailedOk to "LEAD_FAILED_OK", client::cancelLead to "CANCEL_LEAD")
         answers.forEachIndexed { i, (answer, action) ->
             answer(40 + i)
             assertEquals("com.onpath.app.$action" to mapOf<String, Any>("question" to 40 + i), last())

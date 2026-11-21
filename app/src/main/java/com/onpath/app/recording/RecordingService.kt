@@ -310,7 +310,8 @@ class RecordingService : Service() {
     private fun startCommand(intent: Intent?, startId: Int): Int {
         val control = intent?.action in setOf(ACTION_PAUSE, ACTION_RESUME, ACTION_STOP, ACTION_FOLLOW_CHANGED, ACTION_NAVIGATING,
             ACTION_SETTINGS, ACTION_TAKE_ROUTE, ACTION_TAKE_VIA, ACTION_KEEP_ROUTE, ACTION_CHECK_NOW, ACTION_PROPOSE_SWITCH,
-            ACTION_LEAD_THERE, ACTION_JUST_RECORD, ACTION_LEAD_FAILED_OK, ACTION_JOIN_HERE, ACTION_SAY, ACTION_ACTIVITY_CHANGED)
+            ACTION_LEAD_THERE, ACTION_JUST_RECORD, ACTION_CANCEL_LEAD, ACTION_LEAD_FAILED_OK, ACTION_JOIN_HERE, ACTION_SAY,
+            ACTION_ACTIVITY_CHANGED)
         // (a SAY sent just before End reaches a service that finish() now keeps for a newer start: it must stop too)
         if (control && tourId < 0) { stopSelf(startId); return START_NOT_STICKY } // nothing is recording
         when (intent?.action) {
@@ -379,20 +380,18 @@ class RecordingService : Service() {
                 navigator?.let { handle(it.keep(intent.getIntExtra(EXTRA_QUESTION, -1))) }
                 return START_STICKY
             }
-            ACTION_LEAD_THERE -> {
-                navigator?.let { handle(it.leadThere(intent.getIntExtra(EXTRA_QUESTION, -1))) }
-                return START_STICKY
-            }
-            ACTION_JUST_RECORD -> {
-                navigator?.let { handle(it.justRecord(intent.getIntExtra(EXTRA_QUESTION, -1))) }
-                return START_STICKY
-            }
-            ACTION_LEAD_FAILED_OK -> {
-                navigator?.let { handle(it.leadFailedOk(intent.getIntExtra(EXTRA_QUESTION, -1))) }
-                return START_STICKY
-            }
-            ACTION_JOIN_HERE -> {
-                navigator?.let { handle(it.joinHere(intent.getIntExtra(EXTRA_QUESTION, -1))) }
+            // the answers to the far-start / mid-route questions: each one step of the navigator, id-checked there
+            ACTION_LEAD_THERE, ACTION_JUST_RECORD, ACTION_CANCEL_LEAD, ACTION_LEAD_FAILED_OK, ACTION_JOIN_HERE -> {
+                val id = intent.getIntExtra(EXTRA_QUESTION, -1)
+                navigator?.let { nav ->
+                    handle(when (intent.action) {
+                        ACTION_LEAD_THERE -> nav.leadThere(id)
+                        ACTION_JUST_RECORD -> nav.justRecord(id)
+                        ACTION_CANCEL_LEAD -> nav.cancelLead(id)
+                        ACTION_LEAD_FAILED_OK -> nav.leadFailedOk(id)
+                        else -> nav.joinHere(id)
+                    })
+                }
                 return START_STICKY
             }
             ACTION_PROPOSE_SWITCH -> {
@@ -1688,6 +1687,7 @@ class RecordingService : Service() {
         /** Never on the route yet (owner 2026-10-31): "Route starts 31 km away" – Guide me / Just record; OK on "no way". */
         const val ACTION_LEAD_THERE = RecordingWire.ACTION_LEAD_THERE
         const val ACTION_JUST_RECORD = RecordingWire.ACTION_JUST_RECORD
+        const val ACTION_CANCEL_LEAD = RecordingWire.ACTION_CANCEL_LEAD
         const val ACTION_LEAD_FAILED_OK = RecordingWire.ACTION_LEAD_FAILED_OK
         const val ACTION_JOIN_HERE = RecordingWire.ACTION_JOIN_HERE
         const val EXTRA_QUESTION = RecordingWire.EXTRA_QUESTION

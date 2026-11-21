@@ -102,6 +102,7 @@ class GermanScreenshotTest {
     @Test fun navigateNotRecording() = shots.navigateNotRecording()
     @Test fun navigateRerouteQuestion() = shots.navigateRerouteQuestion()
     @Test fun navigateFarStart() = shots.navigateFarStart()
+    @Test fun navigateFarStartSearching() = shots.navigateFarStartSearching()
     @Test fun navigateLeadFailed() = shots.navigateLeadFailed()
     @Test fun navigateRerouteSkipStop() = shots.navigateRerouteSkipStop()
     @Test fun navigateRerouteSkipStopNamed() = shots.navigateRerouteSkipStopNamed()
