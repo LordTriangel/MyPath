@@ -66,7 +66,7 @@ class RecordingClientTest {
         val contract = File("../core/src/main/kotlin/com/onpath/app/recording/RecordingClient.kt").readText()
         val wire = contract.substringAfter("object RecordingWire").substringBefore("\n}\n")
         val declared = Regex("""const val (ACTION_\w+) = "com\.onpath\.app\.""").findAll(wire).map { it.groupValues[1] }.toSet()
-        assertEquals("the service's actions", 18, declared.size)
+        assertEquals("the service's actions", 19, declared.size)
         val companion = contract.substringAfter("companion object")
         assertEquals("actions without a typed command", emptySet<String>(), declared.filterNot { companion.contains("RecordingWire.$it") }.toSet())
         val wireNames = Regex("""const val ((?:ACTION|EXTRA|SAY)_\w+) = """).findAll(wire).map { it.groupValues[1] }.toSet()

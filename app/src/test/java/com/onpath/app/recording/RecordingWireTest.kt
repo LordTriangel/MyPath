@@ -45,7 +45,7 @@ class RecordingWireTest {
     )
 
     @Test fun everyActionAndExtraStringIsWhatItAlwaysWas() {
-        assertEquals("18 actions + 8 extras + 2 SAY values", 28, all.size)
+        assertEquals("19 actions + 8 extras + 2 SAY values", 29, all.size)
         for (w in all) {
             assertEquals("${w.name} in RecordingWire", w.literal, w.inWire)
             assertEquals("${w.name} on RecordingService", w.literal, w.inService)
