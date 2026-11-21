@@ -321,7 +321,7 @@
       "web": [
         "web/app/src/routethumbs.ts"
       ],
-      "blob": "bc73cfafc52b58ba498d22cf1dcd2ab40bf1adc7"
+      "blob": "1aa06a9dcce8d93ee160c8eaf0f6e54234518be1"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/routes/ActivityFilter.kt",
@@ -1345,7 +1345,7 @@
       ]
     },
     "core/src/main/kotlin/com/onpath/app/map/ThumbRules.kt": {
-      "blob": "bc73cfafc52b58ba498d22cf1dcd2ab40bf1adc7",
+      "blob": "1aa06a9dcce8d93ee160c8eaf0f6e54234518be1",
       "perf": []
     },
     "core/src/main/kotlin/com/onpath/app/navigation/ActivityCheck.kt": {
