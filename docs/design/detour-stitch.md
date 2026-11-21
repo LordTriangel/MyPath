@@ -132,3 +132,8 @@ Other devices only read data – no device-dependent geometry decides a route.
    **Recommendation: yes.**
 3. Moving a stitched point: re-stitch when it stays ≤ 2 km of the line (fast), or always route in full (slow on long
    legs)? **Recommendation: re-stitch** – a move is an insert at another spot.
+
+## Owner's answers (2026-11-21, laptop's chat)
+1. Older apps: **yes** – readers ship one release before writers; an older app routes a stitched plan in full and drops the anchors on re-save (the plan is never lost).
+2. A stitched point moved but still ≤ 2 km from the line: **stitched again** (a move = an insert at another spot).
+3. Speed-up 3's cut points: **one rule** – „Ganz neu berechnen“ shows while the plan holds detours OR cut points and clears both.
