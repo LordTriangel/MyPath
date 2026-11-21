@@ -144,7 +144,9 @@ const magenta = ([r, g, b]) => r - g > 50 && b - g > 40;
     if (window.__bLog.at(-1)?.s !== s) window.__bLog.push({ t: Math.round(performance.now() - t0), s }); }, 100); });
   const win = () => page.evaluate(() => { const w = document.getElementById('waitwin'); return w ? { title: w.querySelector('.wwtitle').textContent, pct: +w.dataset.pct,
     rows: [...w.querySelectorAll('.wwsteps li')].map((l) => l.className + ':' + l.textContent), line: w.querySelector('.wwline').textContent } : null; });
-  const came = await page.waitForFunction(() => !!document.getElementById('waitwin') && document.querySelectorAll('#waitwin .wwsteps li').length > 0, null, { timeout: 30_000 }).then(() => true, () => false);
+  // this area's window, by its own first row: the page's first map may still have a window of its own that is closing
+  // (CI 2026-11-21: a window was there, one call later none, then this one)
+  const came = await page.waitForFunction(() => { const r = document.querySelector('#waitwin .wwsteps li'); return r?.className === 'now' && r.textContent === 'being prepared'; }, null, { timeout: 30_000 }).then(() => true, () => false);
   const w1 = await win();
   check(came && w1?.title === 'Map for your area' && w1.rows[0] === 'now:being prepared', `the own area is requested: the wait window ${JSON.stringify(w1)}`);
   const bLog = await page.evaluate(() => { clearInterval(window.__bTimer); return window.__bLog; });
@@ -156,6 +158,10 @@ const magenta = ([r, g, b]) => r - g > 50 && b - g > 40;
   {
     const at = answeredAt;
     const lines = await page.evaluate(() => { clearInterval(window.__lTimer); return window.__lines; });
+    // once up, this area's window stays: no gap in it (what a first map's closing window must not be mistaken for)
+    const ownAt = lines.findIndex((x) => x.rows.startsWith('now:being prepared'));
+    const gaps = ownAt < 0 ? -1 : lines.slice(ownAt).filter((x) => !x.rows).length;
+    check(gaps === 0, `the area's window stays up once it is there (${gaps} samples without it, of ${lines.length - ownAt})`);
     // no time text (a stalled bar may say „taking a bit longer…“ – that is no number; CI 2026-11-20 on two cores: the
     // page's first map still loading said „about 5 seconds left“ by its tiles' assumed size)
     const early = lines.filter((x) => at != null && x.t < at && /left/.test(x.line));
