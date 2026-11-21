@@ -622,8 +622,9 @@ class Navigator(session: NavSession, offRouteM: Double = 40.0) {
         val id = ++jobId
         runningJob = id; refreshing = refresh; this.vibrateOnResult = vibrateOnResult
         jobFrom = f.point
-        return Job(id, Rerouter.Request(f.point, original, leftAtM, session.stops, session.visited, session.activity, session.sac,
-            recent = recent.toList()))
+        // a stop passed by is behind the rider (never a target), though not "reached"
+        return Job(id, Rerouter.Request(f.point, original, leftAtM, session.stops, session.visited + session.passedBy,
+            session.activity, session.sac, recent = recent.toList()))
     }
 
     /** A new question: remember its way back and the cost from where it was asked; then catch up with the rider. */
@@ -707,10 +708,10 @@ class Navigator(session: NavSession, offRouteM: Double = 40.0) {
      */
     private fun markVisited(p: GeoPoint, accuracyM: Double): Step {
         val s = session
-        if (s.stops.isEmpty() || accuracyM > NavSession.VISITED_MAX_ACCURACY_M) return Step()
+        if (s.stops.isEmpty()) return Step()
         val radius = NavSession.visitedM(s.activity)
         var v: MutableSet<Int>? = null
-        for (i in s.stops.indices) {
+        if (accuracyM <= NavSession.VISITED_MAX_ACCURACY_M) for (i in s.stops.indices) {
             if (i in s.visited) continue
             // owner 2026-11-03 ("every tour starts at point 1 and skips nothing"): a stop counts only in plan order
             if (!s.inOrder(i, v ?: s.visited, detector.progressM)) continue
@@ -722,7 +723,8 @@ class Navigator(session: NavSession, offRouteM: Double = 40.0) {
             if (reached) (v ?: s.visited.toMutableSet().also { v = it }).add(i)
         }
         val nv = v ?: s.visited
-        val by = beside.passedNow(s, original, p, nv) { s.inOrder(it, nv, detector.progressM) }
+        val now = if (s.rerouted) detector.line ?: original else original
+        val by = beside.passedNow(s, original, now, p, accuracyM, detector.progressM, nv) { s.inOrder(it, nv, detector.progressM) }
         if (v == null && by.isEmpty()) return Step()
         session = s.copy(visited = nv, passedBy = s.passedBy + by)
         return Step(sessionChanged = true)
