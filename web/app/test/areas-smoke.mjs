@@ -213,6 +213,9 @@ const magenta = ([r, g, b]) => r - g > 50 && b - g > 40;
 // ---- D: the sheet's waits while planning (zoom 8: no prefetch, so the plan downloads its routing data) ----
 {
   const { page, ctx, server } = await open({}, '11.25,46.6,8', {});
+  // the window comes 400 ms into a map's wait and a faster route rightly shows none (no flash): the routing data takes
+  // a moment here, as it does on the network – on a fast machine this server's answer alone can beat the 400 ms
+  await page.route(/\.rd5/, async (r) => { await new Promise((f) => setTimeout(f, 700)); await r.continue().catch(() => {}); });
   const clickAt = async (lon, lat) => {
     const p = await page.evaluate(([lo, la]) => { const q = window.__map.project([lo, la]); return [q.x, q.y]; }, [lon, lat]);
     await page.mouse.click(p[0], p[1]);
@@ -275,6 +278,16 @@ const magenta = ([r, g, b]) => r - g > 50 && b - g > 40;
   check(came && /^\d{1,3} %$/.test(sign.text) && sign.inMap, `the route's areas: the sign beside the map – a ring and one percent (${JSON.stringify(sign)})`);
   check(pcts.every((v, i) => !i || v >= pcts[i - 1]) && pcts.at(-1) > pcts[0], `its percent moves on, never back (${pcts.join(' ')})`);
   check(!(await page.evaluate(() => !!document.getElementById('waitwin'))) && !(await strip(page)).includes('Preparing'), 'no window and no strip line for them (they load beside)');
+  // a late answer about a spot the map has already left (CI 2026-11-21 on two cores): at zoom 11 the page asks whether
+  // this spot has a detailed map; the view is back at zoom 9 before the answer comes. The old answer must not turn the
+  // sign into a window over a view that has its map
+  let held = 0;
+  await page.route(/current\.json/, async (r) => { held++; await new Promise((f) => setTimeout(f, 1500)); await r.continue().catch(() => {}); });
+  await page.evaluate(() => { const m = window.__map; m.jumpTo({ center: [11.9, 47.2], zoom: 11 }); m.jumpTo({ zoom: 9 }); });
+  await page.waitForTimeout(3500);
+  await page.unroute(/current\.json/);
+  const late = await page.evaluate(() => ({ win: !!document.getElementById('waitwin'), sign: window.__wait.beside() }));
+  check(held > 0 && !late.win && late.sign >= 0, `a late answer about a spot already left: the sign stays, no window (${JSON.stringify({ held, ...late })})`);
   if (process.env.SHOTS) await page.screenshot({ path: process.env.SHOTS + '-sign.png' });
   await page.click('#besidesign');
   const d = await page.evaluate(() => { const x = document.querySelector('.besidedetails'); return x && { title: x.querySelector('.bdtitle').textContent,
