@@ -81,8 +81,8 @@ class WebDaysTest {
         val grey = DayEnd(DayEndKind.PROPOSAL, 12000.0, 25, GeoPoint(46.72, 11.2), null)
         val near = { q: GeoPoint -> if (q.lat == 46.7) "Ehrwald" else null }
         val rows = WebDays.rowPlaces(plan, listOf(hotel, blue, grey, null), plan.points.first(), plan.points.last(), near)
-        assertEquals(DayRowText.places("Lermoos", "Gasthof Krone"), rows[0])
-        assertEquals("a point with no name of its own: the place near it", DayRowText.places("Gasthof Krone", "Ehrwald"), rows[1])
+        assertEquals(DayRowText.places("Lermoos", "Gasthof Krone", false, true), rows[0])
+        assertEquals("a point with no name of its own: the place near it", DayRowText.places("Gasthof Krone", "Ehrwald", true, false), rows[1])
         assertNull("a grey proposal with no place: unknown, no second line (not the finish's name)", rows[2])
         assertNull(rows[3])
         // no names anywhere: no line, never „Start“ / „Ziel“ or a km position
@@ -91,6 +91,10 @@ class WebDaysTest {
         // a blank name falls through to the next source
         val blank = WebDays.rowPlaces(plan.copy(names = mapOf(0 to "  ", 3 to "Biberwier")), listOf(null), plan.points.first(), plan.points.last()) { "Garmisch" }
         assertEquals(DayRowText.places("Garmisch", "Biberwier"), blank[0])
+        // a hotel at the day's only known end (owner 2026-11-21): „ab Gasthof Krone“, as the app's isHotel
+        val fromHotel = WebDays.rowPlaces(plan, listOf(hotel, grey, null), plan.points.first(), plan.points.last()) { null }
+        assertEquals(DayRowText.places("Gasthof Krone", null, true, false), fromHotel[1])
+        assertTrue("„ab …“ is a line, not nothing", fromHotel[1] != null && fromHotel[1]!!.contains("Gasthof Krone"))
     }
 
     @Test fun aPastedHotelLink() {

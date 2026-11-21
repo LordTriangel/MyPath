@@ -149,8 +149,13 @@ object WebDays {
         fun named(s: String?) = s?.trim()?.takeIf { it.isNotEmpty() }
         fun rawAt(index: Int?, g: GeoPoint): String? =
             (index?.let { i -> named(p.names[i]) ?: p.nights[i]?.hotel?.let { h -> named(h.name) ?: named(h.address) } }) ?: named(nameNear(g))
+        // a hotel with its own name, stop name or address (not a place found nearby) – the app's MultiDaySlice isHotel:
+        // at the day's only known end it reads „ab …“ / „bis …“ (owner 2026-11-21)
+        fun hotelAt(index: Int?): Boolean = index != null &&
+            p.nights[index]?.hotel?.let { h -> named(p.names[index]) ?: named(h.name) ?: named(h.address) } != null
+        val idx = listOf<Int?>(0) + dayEnds.map { e -> if (e == null) p.points.lastIndex else e.planIndex }
         val at = listOf(rawAt(0, first)) + dayEnds.map { e -> if (e == null) rawAt(p.points.lastIndex, finish) else rawAt(e.planIndex, e.point) }
-        return dayEnds.indices.map { k -> DayRowText.places(at[k], at[k + 1]) }
+        return dayEnds.indices.map { k -> DayRowText.places(at[k], at[k + 1], hotelAt(idx[k]), hotelAt(idx[k + 1])) }
     }
 
     private fun viewJson(p: SharedPlan, l: DayLine): String {

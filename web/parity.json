@@ -80,7 +80,7 @@
         "web/app/src/gpximport.ts",
         "web/app/src/poipin.ts"
       ],
-      "blob": "23f8a62b64ffe02d2c2e9401cc5f7f0fd2fdd5b6"
+      "blob": "4aa4f9ff456fc6aabd473a164f106ae6042e101a"
     },
     {
       "app": "core/src/main/kotlin/com/onpath/app/poi/PinnedPoiKinds.kt",
@@ -178,7 +178,7 @@
         "web/engine/src/main/kotlin/com/onpath/web/WebApi.kt",
         "web/app/src/plans.ts"
       ],
-      "blob": "d256fb5e5afa75c8efb1777bc83b3a04f0b3c5d3"
+      "blob": "53e04c34b00d31c2c08352721f414284054089e7"
     },
     {
       "app": "app/src/main/java/com/onpath/app/ui/Panels.kt",
