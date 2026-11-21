@@ -1,6 +1,7 @@
 package com.onpath.app.e2e
 
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -22,6 +23,7 @@ class CorePoiTapStillMapE2ETest : E2EBase() {
         val dx = (90 * dp).toInt()
         val x0 = s.first.toInt() - dx
         com.onpath.app.debug.Problems.clear()
+        var taps = 0
         for (i in 1..8) { // pans back and forth over cached tiles, slow and fast; each ends on a map that stands still
             val steps = if (i % 2 == 0) 4 else 30
             val right = symbolOnScreen().first < mapSize().first / 2 // always toward the middle, the symbol stays on screen
@@ -30,13 +32,27 @@ class CorePoiTapStillMapE2ETest : E2EBase() {
             pause(2_500, "the map stands still after the pan, nothing repaints it")
             val p = symbolOnScreen()
             if (p.first < mapSize().first * 0.1f || p.first > mapSize().first * 0.9f) continue // flung to the edge: no finger there
+            // a button over the map takes the finger there, not the map (the map controls on the right edge)
+            val over = controlOver(p)
+            if (over != null) { android.util.Log.i("OnPathE2E", "TEST no tap at $p: under the control $over"); continue }
             android.util.Log.i("OnPathE2E", "TEST tap at $p")
+            taps++
             press(p.first, p.second, 60)
             waitUntil("swipe $i: the POI details after a tap on the symbol at ${p.first.toInt()}, ${p.second.toInt()}", 6_000) { poiId() == CorePoiTapE2ETest.POI_ID }
             assertFalse("swipe $i: the list of shown POIs had the symbol – ${listMissed()}", listMissed().isNotEmpty())
             device.pressBack()
             waitUntil("swipe $i: the details closed", 5_000) { poiId() == null }
         }
+        assertTrue("most of the pans ended in a real tap on the symbol, not under a control ($taps of 8)", taps >= 5)
+    }
+
+    /** The small clickable control (button) over the screen point [p], or null when the finger reaches the map there. */
+    private fun controlOver(p: Pair<Float, Float>): String? {
+        val w = mapSize().first
+        return device.findObjects(androidx.test.uiautomator.By.clickable(true)).firstOrNull { o ->
+            val b = o.visibleBounds
+            b.width() < w / 2 && b.contains(p.first.toInt(), p.second.toInt())
+        }?.let { "${it.className} ${it.contentDescription ?: it.text} ${it.visibleBounds}" }
     }
 
     /** The field log's lines of a press that found a drawn POI missing from the list. */
