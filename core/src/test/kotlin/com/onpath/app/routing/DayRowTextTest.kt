@@ -21,4 +21,20 @@ class DayRowTextTest {
         assertNull(DayRowText.places("München", null)); assertNull(DayRowText.places(null, "Brixen"))
         assertNull(DayRowText.places("", "Brixen")); assertNull(DayRowText.places("München", "  ")); assertNull(DayRowText.places(null, null))
     }
+
+    @Test fun aHotelAtTheOnlyKnownEndShowsWhereTheDayStartsOrEnds() {
+        Locale.setDefault(Locale.GERMANY)
+        assertEquals("ab Gasthof Krone", DayRowText.places("Gasthof Krone", null, fromIsHotel = true))
+        assertEquals("bis Hotel Post", DayRowText.places(" ", "Hotel Post", toIsHotel = true))
+        Locale.setDefault(Locale.ENGLISH)
+        assertEquals("from Gasthof Krone", DayRowText.places("Gasthof Krone", null, fromIsHotel = true))
+        assertEquals("to Hotel Post", DayRowText.places(null, "Hotel Post", toIsHotel = true))
+    }
+
+    @Test fun theHotelRuleChangesNothingElse() {
+        assertEquals("both known: von – nach, hotel or not", "Krone – Post", DayRowText.places("Krone", "Post", fromIsHotel = true, toIsHotel = true))
+        assertNull("the known end is no hotel, the other end is", DayRowText.places("München", null, toIsHotel = true))
+        assertNull("the known end is no hotel, the other end is", DayRowText.places(null, "Brixen", fromIsHotel = true))
+        assertNull("a hotel without a name", DayRowText.places("  ", null, fromIsHotel = true, toIsHotel = true))
+    }
 }

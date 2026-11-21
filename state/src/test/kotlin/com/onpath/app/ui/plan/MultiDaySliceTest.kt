@@ -1182,12 +1182,15 @@ class MultiDaySliceTest {
         val shown = app.multiDay.daysUi()!!
         assertEquals("Drei Tage", shown.name); assertEquals(3, shown.count); assertEquals(2..2, shown.selected)
         assertEquals(listOf(1, 2, 3), shown.rows.map { it.n })
-        assertEquals("no name at the start or the first end: no second line, no km", listOf(null, null, null), shown.rows.map { it.places })
+        assertEquals("no name at the start or the first end: no second line, no km; the hotel at the only known end shows",
+            listOf(null, com.onpath.app.routing.DayRowText.places(null, "Gasthof Post", toIsHotel = true),
+                com.onpath.app.routing.DayRowText.places("Gasthof Post", null, fromIsHotel = true)), shown.rows.map { it.places })
         app.names[A] = "Start"; app.names[C] = "Bad Tölz"
         val named = app.multiDay.daysUi()!!.rows
         assertEquals("Start – Bad Tölz", named[0].places)
         assertEquals("a stop with a name of its own ends day 2 and starts day 3", "Bad Tölz – Gasthof Post", named[1].places)
-        assertNull("the finish has no name: day 3 has no second line", named[2].places)
+        assertEquals("the finish has no name: day 3 starts at the hotel",
+            com.onpath.app.routing.DayRowText.places("Gasthof Post", null, fromIsHotel = true), named[2].places)
         assertEquals("the night of day 1 is a night out, day 2's a hotel", listOf(com.onpath.app.routing.DayEndKind.OVERNIGHT, com.onpath.app.routing.DayEndKind.HOTEL, null),
             shown.rows.map { it.end })
         assertEquals(2, shown.borders.size)
@@ -1202,6 +1205,13 @@ class MultiDaySliceTest {
         assertEquals("Gasthof Post – Ziel", rows[2].places)
     }
 
+    @Test fun aPlainStopAtTheOnlyKnownEndStaysWithoutASecondLine() {
+        val app = App(); app.openOverview()
+        app.names.remove(D); app.names[A] = "Start"
+        val rows = app.multiDay.daysUi()!!.rows
+        assertNull("day 1 knows only its start, and that is no hotel", rows[0].places)
+    }
+
     @Test fun theDayEndsAreNamedFromTheOfflineIndexOnceAndNeverTwiceAtTheSameTime() {
         val app = App(); app.openOverview()
         app.multiDay.daysUi()
@@ -1214,7 +1224,8 @@ class MultiDaySliceTest {
         val after = app.multiDay.daysUi()!!
         assertEquals("the day's start and end are named", "Start – Bad Tölz", after.rows[0].places)
         assertEquals("and the next day starts there", "Bad Tölz – Gasthof Post", after.rows[1].places)
-        assertNull("an end the index does not know: no second line", after.rows[2].places)
+        assertEquals("an end the index does not know: no „von – nach“, only the hotel the day starts at",
+            com.onpath.app.routing.DayRowText.places("Gasthof Post", null, fromIsHotel = true), after.rows[2].places)
         app.settle()
         assertEquals("every end has an answer now (even an empty one): nothing is looked up again", 1, app.namerCalls)
     }

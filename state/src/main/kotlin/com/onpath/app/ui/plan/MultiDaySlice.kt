@@ -361,9 +361,11 @@ class MultiDaySlice(
         fun known(s: String?) = s?.trim()?.takeIf { it.isNotEmpty() }
         fun nameAt(p: GeoPoint): String? = known(stopName(p)) ?: flow.marks[p]?.hotel?.let { h -> known(h.name) ?: known(h.address) }
             ?: known(nearbyNames()[p]) ?: known(endNames[p.lat to p.lon])
+        // a hotel with a name of its own (not just a place found near it): shown even when the day's other end has none
+        fun isHotel(p: GeoPoint?): Boolean = p != null && flow.marks[p]?.hotel?.let { h -> known(stopName(p)) ?: known(h.name) ?: known(h.address) } != null
         val ends = listOf(pts.firstOrNull()) + v.days.days.map { d -> d.end?.let { e -> e.planIndex?.let { pts.getOrNull(it) } ?: e.point } ?: pts.lastOrNull() }
         val rows = v.days.days.mapIndexed { i, d ->
-            val places = com.onpath.app.routing.DayRowText.places(ends[i]?.let(::nameAt), ends[i + 1]?.let(::nameAt))
+            val places = com.onpath.app.routing.DayRowText.places(ends[i]?.let(::nameAt), ends[i + 1]?.let(::nameAt), isHotel(ends[i]), isHotel(ends[i + 1]))
             DayRowUi(d.number, places, d.distanceM, d.ascentM, d.end?.kind, d.over.isNotEmpty())
         }
         lookUpEndNames(ends.filterNotNull())
