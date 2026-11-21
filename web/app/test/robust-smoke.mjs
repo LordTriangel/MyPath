@@ -418,14 +418,25 @@ const planFromLink = async (c) => {
   const p = await planFromLink(c);
   await p.evaluate(() => { window.__pcts = []; // the plan is asked, the window comes, the plan then fails
     window.__engine.plan = (pts, a, s, pin, onProgress) => new Promise((res) => { onProgress({ phase: 'download', done: 10, bytes: 1000 }); setTimeout(() => res({ ok: false, error: 'boom' }), 3000); }); });
+  // every end of a wait from here on: finished or not, and what it wrote (a map wait of its own that starts later – tiles
+  // on a slow runner – rightly teaches the map's shares; CI 2026-11-21 twice: mapSteps learned beside the failed plan)
+  await p.evaluate(() => { const o = window.__wait.overlay(); window.__ends = []; const end = o.end.bind(o);
+    o.end = (f) => { const r = end(f); window.__ends.push({ f, ls: Object.keys(localStorage).filter((k) => k.startsWith('onpath.progress.')).map((k) => k + '=' + localStorage.getItem(k)) }); return r; }; });
   await p.click('#reverse');
   const came = await p.waitForSelector('#waitwin', { timeout: 10_000 }).then(() => true, () => false);
   await p.waitForFunction(() => document.body.dataset.planning !== '1', null, { timeout: 10_000 }).catch(() => {});
   await p.waitForTimeout(1000);
   const r = await p.evaluate(() => ({ max: Math.max(0, ...window.__pcts), left: !!document.getElementById('waitwin'), err: document.getElementById('status').classList.contains('error') }));
+  const ends = await p.evaluate(() => window.__ends);
   const ls = await learned(p);
   check(came && r.max < 100 && !r.left, `a failed plan: the window never shows 100 % (${JSON.stringify(r)}, came ${came})`);
-  check(ls.length === 0, `a failed plan: no learned shares written (${ls.join(' ')})`);
+  // the failed plan's wait (the first to end after the click) ends unfinished and writes nothing
+  check(ends.length > 0 && ends[0].f === false && ends[0].ls.filter((x) => UNTAUGHT[x.split('=')[0].replace('onpath.progress.', '')] !== x.split('=').slice(1).join('=')).length === 0,
+    `a failed plan: its wait ends unfinished and writes no shares (${JSON.stringify(ends)})`);
+  // nothing of the route is learned at all; the map's shares only by a later wait of its own that finished
+  const routeLs = ls.filter((x) => !x.startsWith('onpath.progress.mapSteps='));
+  const mapOk = ls.every((x) => !x.startsWith('onpath.progress.mapSteps=')) || ends.slice(1).some((e) => e.f);
+  check(routeLs.length === 0 && mapOk, `a failed plan: no learned shares written (${ls.join(' ')}; ends ${JSON.stringify(ends.map((e) => e.f))})`);
   await c.close();
 }
 { // (b)
