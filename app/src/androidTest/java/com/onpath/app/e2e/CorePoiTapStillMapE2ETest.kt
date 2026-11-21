@@ -40,6 +40,8 @@ class CorePoiTapStillMapE2ETest : E2EBase() {
             press(p.first, p.second, 60)
             waitUntil("swipe $i: the POI details after a tap on the symbol at ${p.first.toInt()}, ${p.second.toInt()}", 6_000) { poiId() == CorePoiTapE2ETest.POI_ID }
             assertFalse("swipe $i: the list of shown POIs had the symbol – ${listMissed()}", listMissed().isNotEmpty())
+            org.junit.Assert.assertNotNull("swipe $i: the sheet is up before Back",
+                findFresh(androidx.test.uiautomator.By.text(CorePoiTapE2ETest.POI_NAME), 5_000))
             device.pressBack()
             waitUntil("swipe $i: the details closed", 5_000) { poiId() == null }
         }

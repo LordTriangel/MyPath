@@ -289,7 +289,10 @@ fun MapHost(
                     if (a == null || vm.routePeek || vm.suggest.searching) Problems.trace("map", "Press dropped: the map's mode changed while it waited")
                     else run(a, found)
                 } ?: return run(plan.plain, null)
-                mapView.postDelayed({ shownPois.pressTimedOut(wait) }, shownPois.pressWaitMs(press == MapGestures.Press.HOLD))
+                fun timedOut(waited: Long) {
+                    shownPois.pressTimedOut(wait, waited)?.let { more -> mapView.postDelayed({ timedOut(waited + more) }, more) }
+                }
+                mapView.postDelayed({ timedOut(0) }, shownPois.pressWaitMs(press == MapGestures.Press.HOLD))
                 return edit || plan.plain != MapGestures.Action.None
             }
             map.addOnMapClickListener { ll ->

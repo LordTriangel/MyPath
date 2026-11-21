@@ -48,6 +48,16 @@ object PoiHit {
 
     fun pressWaitMs(hold: Boolean, listBehind: Boolean): Long = if (hold && listBehind) HOLD_WAIT_BEHIND_MS else PRESS_WAIT_MS
 
+    /** A read has asked the map and only its result is on the way: the press waits for it this much longer, at most. */
+    const val READ_LAND_MS = 1_000L
+    const val READ_STEP_MS = 40L
+
+    /**
+     * The press's time ran out while a read is under way: it waits for that read, because a plain press now would turn a
+     * hold on a drawn symbol into a route point (GitHub's slow emulator 2026-11-21: read done, timer 3 ms before it landed).
+     */
+    fun keepWaitingForRead(readRunning: Boolean, waitedMs: Long): Boolean = readRunning && waitedMs < READ_LAND_MS
+
     /**
      * What a waiting press does, decided when the finger pressed ([plain] without a POI there, [onPoi] with one): what
      * opened or closed meanwhile cannot turn a hold that closes a menu into a new route point. Null = drop it, the map's
@@ -72,6 +82,9 @@ object PoiHit {
         fun put(p: P): Pair<Int, P?> { val old = press; press = p; return ++token to old }
 
         fun take(): P? = press.also { press = null }
+
+        /** The press of token [t] is still waiting. */
+        fun waits(t: Int): Boolean = t == token && press != null
 
         /** The wait of [t] ran out: its press, unless it was already finished (or a newer one waits). */
         fun expire(t: Int): P? = if (t == token) take() else null
@@ -155,6 +168,7 @@ class ShownPois {
     private val trigger = PoiHit.ReadTrigger()
     private var seq = 0
     private var doneSeq = 0
+    private var readRunning = false
     private val repaint = PoiHit.RepaintGate()
     private val waiting = PoiHit.PressWait<WaitingPress>()
     private var readAt = 0L
@@ -208,7 +222,7 @@ class ShownPois {
     /** A new style / map data: forget the old list (it belongs to another style); the next map idle reads. */
     fun styleChanged() {
         finishWaitingPress()
-        entries = emptyList(); symbolLayers = null; seq++; styleLoadsSinceRead++; trigger.changed()
+        entries = emptyList(); symbolLayers = null; seq++; readRunning = false; styleLoadsSinceRead++; trigger.changed()
     }
 
     /** Other POI settings (kinds shown): the next map idle reads. */
@@ -260,12 +274,18 @@ class ShownPois {
     /** How long the press may wait for the map. */
     fun pressWaitMs(hold: Boolean): Long = PoiHit.pressWaitMs(hold, listBehind)
 
-    /** The wait of [token] ran out (a busy map): the press goes on as a plain press. */
-    fun pressTimedOut(token: Int) {
+    /**
+     * The wait of [token] ran out (a busy map): the press goes on as a plain press – unless a read is under way, then it
+     * waits for that read's result, bounded ([PoiHit.keepWaitingForRead]). Returns the ms after which the caller asks
+     * again with [waitedMs] grown by them, or null when the press is finished.
+     */
+    fun pressTimedOut(token: Int, waitedMs: Long = 0): Long? {
+        if (waiting.waits(token) && PoiHit.keepWaitingForRead(readRunning, waitedMs)) return PoiHit.READ_STEP_MS
         waiting.expire(token)?.let {
             Problems.trace("poi", "No map idle in time for a press (${listInfo()}), plain press")
             finish(it, null)
         }
+        return null
     }
 
     /** A press still waiting goes on as a plain press (a newer press, a finger on the camera, a new style). */
@@ -365,6 +385,7 @@ class ShownPois {
             val ms = SystemClock.uptimeMillis() - t0
             if (ms > 100) Problems.trace("poi", "Shown POIs read in $ms ms on the main thread (map idle)")
             val mine = ++seq
+            readRunning = true
             worker.execute {
                 val list = try {
                     val icons = iconFeatures.mapNotNull { Poi.fromFeature(it) }.distinctBy { it.id }
@@ -376,6 +397,7 @@ class ShownPois {
                 }
                 view.post {
                     if (mine != seq || gone) return@post // a newer read or style answers the press
+                    readRunning = false
                     if (list == null) { finishWaitingPress(); return@post }
                     entries = list; doneSeq = mine; readAt = SystemClock.uptimeMillis(); styleLoadsSinceRead = 0
                     // a newer read is wanted (the camera stopped since this one began): this list is of the old view, a
@@ -385,6 +407,7 @@ class ShownPois {
             }
             return true
         } catch (e: Exception) {
+            readRunning = false
             Problems.warn("poi", "Shown POIs not read (map idle), a tap or hold uses the last list", e)
             return false
         }

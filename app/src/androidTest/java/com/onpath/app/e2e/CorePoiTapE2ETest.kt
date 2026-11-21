@@ -62,6 +62,7 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
         press(first.first, first.second, 60)
         waitFor("the details of a symbol the list lacks, tap at ${at(first)}") { read { it.selectedPoi?.id } == "unlisted-1" }
         assertTrue("the field log says the list missed it", listMissedLogged())
+        assertNotNull("the sheet is up before Back", findFresh(By.text("Unlisted unlisted-1"), 5_000))
         device.pressBack()
         waitFor("the details closed") { read { it.selectedPoi } == null }
         val second = drawUnlistedPoi("unlisted-2", (symbol.first + 80 * dp) to (symbol.second + 90 * dp))
@@ -99,6 +100,7 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
                 assertEquals("the hold set no route point", 0, waypointCount())
                 viaMap = listMissedLogged()
                 if (viaMap) break
+                assertNotNull("the menu is up before Back", findFresh(By.text("Unlisted $id"), 5_000))
                 device.pressBack()
                 waitFor("the POI menu closed") { read { it.placeMenus.poiMenu } == null }
             }

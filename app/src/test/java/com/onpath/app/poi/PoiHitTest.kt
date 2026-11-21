@@ -130,6 +130,19 @@ class PoiHitTest {
         assertEquals("second", w.expire(t4))
     }
 
+    /** The press's time runs out while a read is under way: it waits for that read (slow emulator: 3 ms short), bounded. */
+    @Test fun aPressWaitsForAReadUnderWayButNotForever() {
+        assertTrue(PoiHit.keepWaitingForRead(readRunning = true, waitedMs = 0))
+        assertTrue(PoiHit.keepWaitingForRead(readRunning = true, waitedMs = PoiHit.READ_LAND_MS - 1))
+        assertFalse("bounded", PoiHit.keepWaitingForRead(readRunning = true, waitedMs = PoiHit.READ_LAND_MS))
+        assertFalse("no read: a plain press at once", PoiHit.keepWaitingForRead(readRunning = false, waitedMs = 0))
+        val w = PoiHit.PressWait<String>()
+        val (t, _) = w.put("hold")
+        assertTrue(w.waits(t))
+        w.take()
+        assertFalse("finished: nothing to keep waiting for", w.waits(t))
+    }
+
     /** A camera stop asks for one repaint, none on a follow step, and a lost idle cannot block repaints for good. */
     @Test fun repaintAfterACameraStopNotOnAFollowStep() {
         val g = PoiHit.RepaintGate(staleMs = 1_000)
