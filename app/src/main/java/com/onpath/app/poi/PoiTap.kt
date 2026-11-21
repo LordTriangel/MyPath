@@ -378,7 +378,9 @@ class ShownPois {
                     if (mine != seq || gone) return@post // a newer read or style answers the press
                     if (list == null) { finishWaitingPress(); return@post }
                     entries = list; doneSeq = mine; readAt = SystemClock.uptimeMillis(); styleLoadsSinceRead = 0
-                    answerFromLandedRead(map)
+                    // a newer read is wanted (the camera stopped since this one began): this list is of the old view, a
+                    // miss in it says nothing – the press waits for that read, bounded by its timeout
+                    if (!trigger.pending) answerFromLandedRead(map)
                 }
             }
             return true
