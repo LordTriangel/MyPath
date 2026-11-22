@@ -118,7 +118,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [umbau] (2026-11-22, handoff written) Detour stitch on `wip/umbau-2026-11-21-detour-stitch` (be183a93f): SameRouteTest GREEN on the JVM, the owner chose settling. Nothing on main; next the Wasm part (laptop), the captain orders it → handoff-umbau-2026-11-19.md, top state
 - [laptop] (2026-11-21) Long-tour speed-ups 2–3: stitch format design (detour as a field of the point) → proposal to [umbau] / [donald] in the backlog, then app + planner; „Ganz neu berechnen“ decided. Planner block closed. Owner of `web/` except tracking's live files.
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
-- [donald] (2026-11-22): 0.18.8 out; POI hold while following fixed on main, **not released** (asked the captain). Now: the detour hint's review + the line on his Mutkopf plan, picture to him before any merge. Top of `handoffs/handoff-donald-2026-11-21.md`
+- [donald] (2026-11-22): 0.18.8 out. **Do not release main yet:** the POI wait fix (be2e6c159) makes a plan edit or second hold during the wait go wrong more often (review); the captain decides fix or revert. Then the detour hint. Top of `handoffs/handoff-donald-2026-11-21.md`
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next

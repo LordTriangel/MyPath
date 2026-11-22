@@ -6,6 +6,10 @@ the change's tests, no further question. The Pixel is not on USB. Picture first 
 `SendUserFile` does not work in this session, give him the GitHub link in the question box).
 
 ## State, Sunday 2026-11-22 late: the follow-camera hold is settled, **fix on main, NOT released**
+**DO NOT RELEASE main as it is (review of be2e6c159, the captain's condition for 0.18.9).** The longer wait (up to 2 s) widens two windows,
+read in the code, not run: (1) a plan edit during the wait (Neu planen, Undo) does not end the waiting press, so the held point lands on
+the changed plan afterwards; (2) a second hold during the wait starts the first hold's measure and cancels it at once, so the first
+hold is lost silently. Both exist within the first second already (0.18.8); this change makes them likelier. The captain decides: fix forward or revert.
 - **Real bug, fixed (be2e6c159):** in Plan with the walking direction up, the finger-down ends following, the camera stops and a read is
   due. On a slow map (GitHub: two frames in 770 ms) no idle came within the press's second and the hold on a drawn symbol became a plain
   press. A due read now gets the same bounded wait as a running one (at most 2 s in all). Unit test red before, green after.
