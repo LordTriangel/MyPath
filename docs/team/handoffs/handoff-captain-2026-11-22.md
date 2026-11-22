@@ -3,6 +3,30 @@
 Start sentence: „Du bist mein OnPath-Captain im Wochenend-Modus. Lies `CLAUDE.md`, `docs/team/roles/captain.md`,
 `docs/team/owner-preferences.md` (Night jobs, Tokens), `docs/team/items/2026-11-20-after-the-release.md` und diese Datei.“
 
+## RESTART after the shutdown of Sunday 2026-11-22 ~23:15 – READ THIS FIRST
+The owner shut down donald and hp. **Every session id in this file is dead.** The state below is what the sessions left.
+
+**Start again, in this order**
+1. The owner starts donald and hp and opens a captain session with the start sentence at the top of this file.
+2. The captain pulls, checks CI and asks him the open questions (list at the end), one short plain-text list.
+3. The captain starts only the roles that have a next step, on Opus, each from its handoff (top section):
+   - **donald:** `docs/team/roles/start.md` + `handoffs/handoff-donald-2026-11-21.md`
+   - **laptop:** `docs/team/roles/start.md` + `cloud-plan.md` + `handoffs/handoff-laptop-2026-11-17.md`
+   - **umbau:** only for the writers stage, `handoffs/handoff-umbau-2026-11-19.md`
+   - **tracking:** only after pull requests 17 + 19, `handoffs/handoff-tracking-2026-11-20.md`
+
+**Work in order**
+1. POI symbols: does 0.18.9 answer in his hand? If not: his export, `[poi] Press …` with `frames=` and `end=`.
+2. Long plan links (live bug): `wip/laptop-2026-11-22-long-link`, on his yes to main and online. Then `wip/laptop-2026-11-22-pair-link` (needs its one review).
+3. Detour hint: `wip/donald-2026-11-22-detour-hint`, merge after his yes to the picture.
+4. Fast detours, readers: `wip/donald-2026-11-22-stitch-readers-all`. Before main: his word on „Zuletzt“, a second read of the last fixes, a full E2E, the long-link merge (`linkCode` is on both, conflict in `share-smoke.mjs`). Then one release, then writers, then speed-up 3.
+5. The compass keeps the map repainting (cause unknown, battery): limiting the dot's updates only after he has seen it.
+6. Then the old order: rebuild phase 3/4, routing port.
+
+**Limits that end soon:** donald's standing word for 0.18.x runs out **Monday 2026-11-23**: after that a release needs his word again. The weekly token warning lasts until Tuesday 2026-11-24 03:00.
+
+**On the disks:** worktrees survive the shutdown; `/tmp` does not (only logs; the results are written here and in the handoffs). 208 worktrees on donald, 109 of them with commits that are not on GitHub, nearly all old helper work; six hold uncommitted probes or old experiments. Nothing was pushed or deleted for them: tidying needs his word. His diagnostics exports stay in `~/.claude/uploads/` (his location, never into git).
+
 ## The job
 The owner tries the app and writes remarks, bugs and diagnostics exports to the captain; the captain passes each to the
 right role. No product code. **His word 2026-11-22: „Feel free to reduce token usage but don't hold off anything.“**
