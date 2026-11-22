@@ -113,7 +113,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - ← [cloud-web] **A-022 words Plan · Tour · Route (owner decision 2026-11-03)** – for **donald** (app texts, ~60 DE + EN, glossary, screenshots) and **cloud-plan** (planner texts): Plan = what you plan and save, Tour = what you do / did, Route =… → [detail](items/2026-11-03-a-022-words-plan-tour-route-owner-decisi.md)
 
 ## In progress
-- [umbau] (fresh session 2026-11-21 evening) Detour stitch on `wip/umbau-2026-11-21-detour-stitch` (a8ed3a939): piece 2b built, SameRouteTest on the JVM RED; the owner decides how to settle the line. Nothing on main, no Wasm yet
+- [umbau] (2026-11-22, handoff written) Detour stitch on `wip/umbau-2026-11-21-detour-stitch` (be183a93f): SameRouteTest GREEN on the JVM, the owner chose settling. Nothing on main; next the Wasm part (laptop), the captain orders it → handoff-umbau-2026-11-19.md, top state
 - [laptop] (2026-11-21) Long-tour speed-ups 2–3: stitch format design (detour as a field of the point) → proposal to [umbau] / [donald] in the backlog, then app + planner; „Ganz neu berechnen“ decided. Planner block closed. Owner of `web/` except tracking's live files.
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
 - [donald] (2026-11-22, stopped on the captain's word, tokens): 0.18.7 out, planner online. Open: **POI hold while following** (E2E red on main, maybe a real bug), detour hint parked on its branch. Top of `handoffs/handoff-donald-2026-11-21.md`
