@@ -5,7 +5,20 @@ piece, handoff at ~350k. **The owner's weekend word still holds until Mon 2026-1
 the change's tests, no further question. The Pixel is not on USB. Picture first for anything he sees (`onpath.private/ideen/`;
 `SendUserFile` does not work in this session, give him the GitHub link in the question box).
 
-## State, Sunday 2026-11-22 night: **the POI press rebuilt, on main, NOT released (the captain decides)** – read this first
+## State, Sunday 2026-11-22, 20:40: **0.18.9 is out, the planner deployed with it** – read this first
+Release run green at f9bfa79d4, all planner smokes included. The session stopped on the captain's word; a fresh donald takes the detour hint and
+the readers' app part. **Whether his delay is gone is for him to confirm.** His next export shows it: `[poi] Press …` with `frames=` and `end=`.
+
+**Open from the POI work:**
+1. **The cause of the repainting is unknown.** Each compass value on the dot brings ~300 ms of frames; the dot's bearing transition is already 0
+   and setting it changes nothing. The map still repaints while the compass moves: a **battery cost** that stays.
+2. **Limiting the compass updates to the dot** is the remaining lever, not built. It changes how the dot turns, so **he must see it first**.
+3. **No device test for a second press during the wait.** Only the rule table (`PoiHit.afterWaiting`) is tested; the wait is too short to force.
+4. **The fixes after the big review (a33fa2d5f in the branch, 91bb1b8c1 on main) were not reviewed again.**
+5. **The 2.5 s case:** a map that draws nothing for 2.5 s still turns a hold on a symbol into a plain press, so it can set a route point.
+6. That the compass is what his Pixel did is an inference. Measured on the emulator only.
+
+## The POI press rebuilt (now in 0.18.9)
 **His bug, from his two exports (19:16, 19:21):** taps on drawn symbols got no answer; no map idle for 30 s and more, smooth frames, the list
 stale. **Reproduced on the emulator:** a compass value changing on the position dot keeps the map repainting (182 frames, all fully drawn,
 0 idles in 6 s). That this is what his Pixel did is an inference: his exports hold no frame or compass data. The new press line will show it (`frames=`).
