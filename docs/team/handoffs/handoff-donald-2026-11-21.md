@@ -5,7 +5,16 @@ piece, handoff at ~350k. **The owner's weekend word still holds until Mon 2026-1
 the change's tests, no further question. The Pixel is not on USB. Picture first for anything he sees (`onpath.private/ideen/`;
 `SendUserFile` does not work in this session, give him the GitHub link in the question box).
 
-## State, Sunday 2026-11-22 late evening: detour hint waits for his yes, readers' app part built – read this first
+## State, Sunday 2026-11-22 night: the owner shut donald down, everything is saved – read this first
+**Saved, nothing uncommitted:** `wip/donald-2026-11-22-detour-hint` 31a123de7 · `wip/donald-2026-11-22-stitch-readers` f19fa7866 (app part alone) · `wip/donald-2026-11-22-stitch-readers-all` ac64075d3 (all three reader parts, **the one to go on from**). None is on main. Helper worktree `agent-a06e95b0ca1e9485f` is clean, at f19fa7866.
+**Next, in this order:**
+1. **His answer on the detour line** („Waiting for the owner“). On yes: merge the detour branch with main, `gate --full`, compile androidTest, Web planner green, push, then the line for the laptop (below). A test merge of the two branches has 2 conflict(s): resolve them at the second merge.
+2. **His answer on the Zuletzt change** („Waiting for the owner“; the captain asked him). It rides on the readers branch.
+3. **The captain's exact Wasm check on ac64075d3.** Nothing of the readers goes to main before the captain says so.
+4. Then the check on the Pixel (point 7 of the readers' list) and a stitched plan really run in the app: neither has been done.
+5. Writer stage, later: the `anchors` columns need the profile and a hash of the row's points first.
+
+### Details of this state
 **1. Detour hint, `wip/donald-2026-11-22-detour-hint` (31a123de7), NOT on main.** Now also on his Mutkopf plan: „② erst ab T2 erreichbar · 17,4 km Umweg“
 (real route; T1 30.3 km, T2 10.8 km). Picture: `onpath.private/ideen/2026-11-22-umweg-mutkopf/`; **he has not answered.** One big review: fixed a false hint without
 routing data, the check now gives way to a hold and a tour start and ends with the screen. Gate full, real-data replay green. **Not checked:** E2E, a device, the fixes
