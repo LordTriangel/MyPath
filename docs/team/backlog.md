@@ -118,7 +118,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [umbau] (2026-11-22, stopped on the captain's word) Detour stitch readers on `wip/umbau-2026-11-22-stitch-readers` (c4ef54cd5): core + state green, NOT releasable, nothing on main. Web: fresh laptop session; app: donald after his POI fix. Open: review fixes not re-read, Zuletzt change undecided → handoff-umbau-2026-11-19.md, top state
 - [laptop] (2026-11-21) Long-tour speed-ups 2–3: stitch format design (detour as a field of the point) → proposal to [umbau] / [donald] in the backlog, then app + planner; „Ganz neu berechnen“ decided. Planner block closed. Owner of `web/` except tracking's live files.
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
-- [donald] (2026-11-22, stopped, handoff written): **0.18.9 out**, planner deployed. POI rests (repaint cause, compass limit, second-press test) at the top of `handoffs/handoff-donald-2026-11-21.md`. Next, a fresh donald: detour hint + the readers' app part.
+- [donald] (2026-11-22 evening) Detour hint ready on `wip/donald-2026-11-22-detour-hint` (31a123de7), waits for the owner's yes. Readers' app part on `wip/donald-2026-11-22-stitch-readers` (f19fa7866), nothing on main until the captain says → top of `handoffs/handoff-donald-2026-11-21.md`.
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
@@ -192,7 +192,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## Waiting for the owner
 - [laptop] 2026-11-22: **long plan links on a fresh page:** may the fix go online (`wip/laptop-2026-11-22-long-link`, green, nothing else changes)? Recommended: yes.
-- [donald] 2026-11-22: **detour hint on his Mutkopf plan:** at T1 the line still says „② erst ab T2 erreichbar“, not the detour (30 km against 11 km). Say the detour there too? Recommended: yes. `wip/donald-2026-11-22-detour-hint`.
+- [donald] 2026-11-22: **detour line on his Mutkopf plan:** „② erst ab T2 erreichbar · 17,4 km Umweg“, built, picture `onpath.private/ideen/2026-11-22-umweg-mutkopf/`. Keep it? Recommended: yes. Then merge `wip/donald-2026-11-22-detour-hint` + a line for the laptop (`PlanDetour.find`, `PlanGaps.detourText`, `reachText`).
 - [laptop] 2026-11-22: wait window modal as in the app (owner's idea). Cancel: like the app (closes, area loads on beside the map; recommended) or back to the old state?
 - [laptop] 2026-11-20 night: **planner ready to deploy at 8a04b05cf** (on the shared code since the last deploy: edit / undo / cancel, holds + place menus, search, the route run incl. the long-route question, GPX → plan, search lines / round trip from core, the day rows variant A + „ab / bis Hotel“; GitHub run green after the robust-smoke race fix 083dcc17b; local checks + gate green, two reviews' findings fixed). Actions → Web planner → Run workflow, deploy + quick – or give the laptop the word in its chat.
 - [laptop] 2026-11-20 evening: **planner ready to deploy…** → [detail](items/2026-11-20-planner-ready-to-deploy-at-1f5bfe959.md)
