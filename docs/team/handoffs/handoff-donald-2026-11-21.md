@@ -5,6 +5,19 @@ piece, handoff at ~350k. **The owner's weekend word still holds until Mon 2026-1
 the change's tests, no further question. The Pixel is not on USB. Picture first for anything he sees (`onpath.private/ideen/`;
 `SendUserFile` does not work in this session, give him the GitHub link in the question box).
 
+## State, Sunday 2026-11-22 late: the follow-camera hold is settled, **fix on main, NOT released**
+- **Real bug, fixed (be2e6c159):** in Plan with the walking direction up, the finger-down ends following, the camera stops and a read is
+  due. On a slow map (GitHub: two frames in 770 ms) no idle came within the press's second and the hold on a drawn symbol became a plain
+  press. A due read now gets the same bounded wait as a running one (at most 2 s in all). Unit test red before, green after.
+- **North up, the still follow camera works:** the press's own repaint brings an idle in 12–20 ms. The old forcing was wrong: removing the
+  test GPS provider let the emulator's own far-away fix fly the camera off, which closed the menu (6e0308905 keeps the provider).
+- **Checks:** gate; `CorePoiTapE2ETest` 16 of 16 on GitHub at 6e0308905; `CorePoiTapStillMapE2ETest` green at be2e6c159. No big-model review
+  (a two-line rule). Limit: on a very slow map an ordinary hold beside a symbol can now take up to 2 s when a read is due.
+- **Not touched:** the second press ending a waiting one, and nothing on screen during the wait (below). Whether this is the owner's delay
+  is still open: his export decides.
+- Replaces item 1 below and `wip/donald-2026-11-22-poi-follow-test`. Probe branches for the normal prune list: `ci/donald-poi-diag`,
+  `ci/donald-poi-wait`, `ci/donald-poi-follow` (this one holds throwaway probe code, never to merge).
+
 ## State, Sunday 2026-11-22 evening: **0.18.8 is out** (fresh session; the captain's word: lean, nothing held back)
 **The owner's report (0.18.7):** a tap on a symbol sometimes waits, a second tap gets no answer, then the other places work. He will
 export Diagnostics next time. **0.18.8 writes one `[poi] Press …` line per press** (e0603c68f, no change in behaviour): `nth` since the
