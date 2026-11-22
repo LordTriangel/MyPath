@@ -104,10 +104,8 @@ class CorePoiTapE2ETest(private val format: Int) : E2EBase() {
             scenario.onActivity { vm(it).map.followMe = true }
             waitUntil("the camera follows", 10_000) { cameraMode() != org.maplibre.android.location.modes.CameraMode.NONE }
             pause(2_500, "the follow camera landed and stands still")
-            // No further fix, so no follow step moves the camera and nothing reads the list again (2026-11-22: GitHub's
-            // red run had a read just before each hold, so the case was never tested). The camera mode stays tracking.
-            device.executeShellCommand("cmd location providers remove-test-provider gps")
-            pause(1_500, "no more fixes arrive; the last follow step's read is done")
+            // gpsAt gave one fix, so no follow step moves the camera now. The test provider stays until the end: without it
+            // the emulator's own GPS sends a far-away fix and the following camera flies there (seen 2026-11-22).
             val p = showUnlistedPoi(id, (w * 0.35f) to (h * 0.25f))
             com.onpath.app.debug.Problems.clear()
             assertTrue("the camera follows at the press", cameraMode() != org.maplibre.android.location.modes.CameraMode.NONE)
