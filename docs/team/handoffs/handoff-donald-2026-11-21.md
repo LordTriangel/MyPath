@@ -5,6 +5,26 @@ piece, handoff at ~350k. **The owner's weekend word still holds until Mon 2026-1
 the change's tests, no further question. The Pixel is not on USB. Picture first for anything he sees (`onpath.private/ideen/`;
 `SendUserFile` does not work in this session, give him the GitHub link in the question box).
 
+## State, Sunday 2026-11-22 evening: **0.18.8 is out** (fresh session; the captain's word: lean, nothing held back)
+**The owner's report (0.18.7):** a tap on a symbol sometimes waits, a second tap gets no answer, then the other places work. He will
+export Diagnostics next time. **0.18.8 writes one `[poi] Press …` line per press** (e0603c68f, no change in behaviour): `nth` since the
+camera, `camStill`, `finger`, `upToApp` (finger up → the map's click), `ring` (none / hidden / seen), the list (`list`, `age`, `due`,
+`reading`, `styleOk`, `styleLoads`), the wait (`wait`, `repaint`, `idle`, `read`, `landed`, `asked`), `end` and `action`. Plus one line
+„First POI list after the style load“. `end=newerPress` is the second tap ending the first.
+
+**Read in the code, not fixed, not seen on his phone:**
+- A second press ends a waiting one as a **plain press** (`handle` → `finishWaitingPress`). For a tap that is nothing; for a **hold on a
+  symbol it can set a route point or open the first-point menu**. Fix with a test first.
+- While a press waits (up to 1 s, 2 s with a read under way) **nothing shows**: the ring ends at finger-up, or at the long click.
+- Whether this is his delay is open: the first line from his phone decides.
+
+**The red E2E on main (run 45000657049) was its precondition, not the app:** format 2, three holds, each opened the right menu, none
+logged a list miss, a time-out or „no POI“, so the list already had the symbol (reads 279 ms and 108 ms before holds 2 and 3). At
+e0603c68f `CorePoiTapE2ETest` (14 cases) and `CorePoiTapStillMapE2ETest` are green on GitHub. **Still open: item 1 below**, the forced still
+follow camera. Parity: `PoiTap.kt`'s watch entry was already behind before this change, so it was left for the laptop to record.
+The release run's planner smoke went red after publishing (a line for the laptop in the backlog); the planner online is unchanged.
+`ci/donald-poi-diag` is younger than the prune tool's 12 h: remove it through the normal list.
+
 ## State, Sunday 2026-11-22: this session stopped on the captain's word (weekly tokens). Read this first
 No fresh donald until the owner wants work before Tuesday. **0.18.7 is out, the planner is online** (deploy-quick at 8cee9a2ec,
 contains 0.18.7). Items 1–3 and 5 are done. Two things are open, neither on main:

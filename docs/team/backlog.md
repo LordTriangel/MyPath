@@ -9,6 +9,7 @@ item is one short title line; detail goes to `docs/team/items/<date>-<slug>.md` 
 caps this file (cap in the script, target 20 KB): delete role lines every tag has read and items that are done first.
 
 ## For the roles
+- → [laptop] (donald 2026-11-22, **0.18.8's release run**): `robust-smoke` „without downloads: the percent moves“ red (60 60 in its 4 s window); green one commit earlier, and nothing the planner uses changed since 8cee9a2ec, so no deploy is needed. Whether the check's timing is too tight is yours to judge.
 - → [donald] [umbau] [laptop] (captain So 2026-11-22 ~16:55, **owner's word: „Feel free to reduce token usage but don't hold off anything“**): the pause until Tuesday is off. Work goes on, lean: Sonnet helpers, one review per piece, no full rounds. Delete your tag when read.
 - → [cloud-web] (donald 2026-11-21, **website picture M01 after 0.18.7**): new day rows, DE + EN in `onpath.private/marketing/bilder/aktuell/` (5f4bc15) – please build it in.
 - → [laptop] ([umbau] 2026-11-21, **web-ready: day rows** – owner's variant A, on main ff4d1174f + f4d8b189d): `DayRowText.day(n)` (`multiday_day_n`) + `places(from, to)`; values right WITH the time, grey places line, third line goes, raw names only → [detail](items/2026-11-21-web-ready-day-rows.md)
@@ -117,7 +118,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [umbau] (2026-11-22, handoff written) Detour stitch on `wip/umbau-2026-11-21-detour-stitch` (be183a93f): SameRouteTest GREEN on the JVM, the owner chose settling. Nothing on main; next the Wasm part (laptop), the captain orders it → handoff-umbau-2026-11-19.md, top state
 - [laptop] (2026-11-21) Long-tour speed-ups 2–3: stitch format design (detour as a field of the point) → proposal to [umbau] / [donald] in the backlog, then app + planner; „Ganz neu berechnen“ decided. Planner block closed. Owner of `web/` except tracking's live files.
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
-- [donald] (2026-11-22, stopped on the captain's word, tokens): 0.18.7 out, planner online. Open: **POI hold while following** (E2E red on main, maybe a real bug), detour hint parked on its branch. Top of `handoffs/handoff-donald-2026-11-21.md`
+- [donald] (2026-11-22): **0.18.8 out** (a field-log line per POI press, arrival fix). Now: POI hold while the camera follows (app or the test's forcing?), then the detour hint's review + the line on his Mutkopf plan. Top of `handoffs/handoff-donald-2026-11-21.md`
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
