@@ -16,6 +16,15 @@ Fränkische Schweiz / Pottenstein 49.77, 11.41, Mittenwald / Garmisch), tell IR;
 - **CELL_SCHEMA 9 on main and on TEST** (suggest layer content 2); donald has the publish commands; cell list `tools/dev/areas/owner-test-cells.txt`.
 - Next for the laptop: follow mehrtage's / IR's web merges (parity, check-web, deploy when green); donald's cleanup may move more shared files.
 
+## State 2026-11-22 late – the next laptop session starts HERE
+Three branches, **none on main, nothing online**. Every planner deploy needs the owner's own yes in the laptop chat.
+- **Readers (web part):** `wip/laptop-2026-11-22-stitch-readers` (641429f22; code 727aa939d, Web planner green). Exact Wasm check on donald at 0c31e817e: 112 of 112 (after it only an `areas-smoke` check and docs). Stays off main until the captain says so. State and open points: `docs/team/items/2026-11-22-stitch-readers-web-state.md` on that branch.
+- **Long-link fix:** `wip/laptop-2026-11-22-long-link` (f59badf40), reviewed, Web planner green, mechanism proven (`PlanCode.parse`'s Regex overflows the stack in Wasm's slow tier). **Waits for the owner's yes** (asked in the laptop chat). On yes: to main, then deploy. Planner code on main equals the live 8cee9a2ec, so only this fix goes out.
+- **Pairing-link fix:** `wip/laptop-2026-11-22-pair-link` (af0aef505), in `core`, so it reaches the app. Goes to main **only after the long-link piece**. No separate review: compared with the old Regex on 50,000 texts.
+- **When merging:** `Engine.linkCode` is on both the readers and the long-link branch: **keep one copy** (also its test: `WebLinkCodeTest` and the one in `WebAnchorsTest`). The share-smoke steps both add a „5.“.
+- **Must be tested before the writer stage:** the wait window counting only visible legs on a **cold** plan with anchors (the browser check ran with finished legs).
+- Still open from before: `WebLegStore.remove` does not delete from IndexedDB; the modal wait window waits for the owner's answer about Cancel (do not ask again, do not build).
+
 ## State 2026-11-22 evening – the next laptop session starts HERE
 - **Stitch in Wasm:** branch `wip/laptop-2026-11-22-stitch-wasm` = 2a47fffb8 (worktree `onpath-stitch`). `WebLegStore` has `_cut` / `_settled` / exact; `web/app/test/same-route-wasm.mjs` compares the exact hashes and refuses other data (DATA.txt). On the laptop's other E10_N45: JVM and Wasm byte-identical on all 112 lines (55 match the files, as expected not all). **The exact check is GREEN on donald (captain's run at 2a47fffb8, recorded data file, no NEIGHBOURS): 112 of 112 hash-equal, peak 2.9 GB, 242 s.** A fresh umbau session builds the readers on `wip/umbau-2026-11-22-stitch-readers` from this commit; nothing of the stitch on main yet. The captain starts a fresh laptop session for the web part of the readers and the modal window.
 - Still open for the web once green: `WebLegStore.remove` does not delete from IndexedDB yet (no worker wiring), `planParse` writes 5 decimals (needs 6), `share.ts` qr limit.
