@@ -48,6 +48,12 @@ Environments: donald `env_01J9Bt5em2qaQ7qKdXzuiDFs`, hp `env_01QJbBwr5875K3VDN8m
   `systemd-run --user --scope -q -p MemoryMax=6G -p MemorySwapMax=0 -- env OMP_NUM_THREADS=1 nice -n 19 ionice -c3 node
   --max-old-space-size=4096 test/same-route-wasm.mjs /home/development/onpath-routing/segments`.
 
+## Update Sunday ~22:30 (newest)
+- **Readers together, not on main:** `wip/donald-2026-11-22-stitch-readers-all` = ac64075d3 (core + state + app + web). Gate full and Web planner green; exact Wasm check **112/112** (peak 3.18 GB); `TourDbMigrationTest`, `CoreBackupE2ETest`, `CorePlanE2ETest`, `CorePlanLinkE2ETest` green one commit before (only `web/parity.json` differs). Not checked: Pixel, a stitched plan in the app, the other E2E classes, the last review fixes.
+- **Before the readers go to main:** the owner's word on „Zuletzt“ (it also changes plans without anchors), a second read of the last fixes, the full E2E once.
+- **Separate, waiting:** `wip/laptop-2026-11-22-long-link` (f59badf40, a bug in the live planner: waits for his yes in the newest „claude-plan“ chat; merging it onto the readers conflicts in `share-smoke.mjs`, and `linkCode` exists on both) · `wip/laptop-2026-11-22-pair-link` (af0aef505, after the long link, no own review yet) · `wip/donald-2026-11-22-detour-hint` (31a123de7, waits for his yes to the picture).
+- donald `session_01167zC8mNt5zArXMqTEQxwK` and laptop `session_01167zC7KDVXu8wFyGtzCU9i` have stopped and wait; both handoffs are on main.
+
 ## Things that bit us
 - `release.yml` publishes the app **before** its planner check ends. Green on the commit before is not green on the release.
 - An app change to a mirrored or new shared file turns „Web planner“ red at parity, and the smokes then do not run at all.
