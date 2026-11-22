@@ -25,7 +25,7 @@ The owner shut down donald and hp. **Every session id in this file is dead.** Th
 
 **Limits that end soon:** donald's standing word for 0.18.x runs out **Monday 2026-11-23**: after that a release needs his word again. The weekly token warning lasts until Tuesday 2026-11-24 03:00.
 
-**On the disks:** worktrees survive the shutdown; `/tmp` does not (only logs; the results are written here and in the handoffs). 208 worktrees on donald, 109 of them with commits that are not on GitHub, nearly all old helper work; six hold uncommitted probes or old experiments. Nothing was pushed or deleted for them: tidying needs his word. His diagnostics exports stay in `~/.claude/uploads/` (his location, never into git).
+**On the disks:** worktrees survive the shutdown; `/tmp` does not (only logs; the results are written here and in the handoffs). 208 worktrees on donald, 109 of them with commits that are not on GitHub, nearly all old helper work; six hold uncommitted probes or old experiments. Nothing was pushed or deleted for them: tidying needs his word. On hp the laptop saved 37 otherwise unsaved pieces to `wip/laptop-2026-11-22-saved-work` (46e291aa4, list in `SAVED-WORK-2026-11-22.md`, **not for merging**). His diagnostics exports stay in `~/.claude/uploads/` (his location, never into git).
 
 ## The job
 The owner tries the app and writes remarks, bugs and diagnostics exports to the captain; the captain passes each to the
