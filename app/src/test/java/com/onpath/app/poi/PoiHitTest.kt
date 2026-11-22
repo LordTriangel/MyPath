@@ -188,6 +188,26 @@ class PoiHitTest {
         assertNull("the map stopped being editable while it waited: dropped", plan.action(found = false, canEditNow = false))
     }
 
+    /** Owner 2026-11-22 („it's waiting, I tap again“): one line per press tells the whole wait, and only once. */
+    @Test fun aPressLineTellsTheWholeWaitOnce() {
+        val c = PoiHit.PressCounter()
+        c.cameraStopped(1_000)
+        val first = c.next(4_000, "TAP", 60, 310, PoiHit.ringWord(true, 60), "list=0")
+        first.repaint = "asked"; first.sawIdle(4_180); first.sawIdle(4_300); first.readMs = 12; first.readLanded(4_220); first.action = "None"
+        assertEquals("Press 1 TAP nth=1 camStill=3000 finger=60 upToApp=310 ring=hidden list=0 | " +
+            "wait=412 repaint=asked idle=180 read=12 landed=220 | end=newerPress action=None", first.line("newerPress", 4_412))
+        assertNull("written once", first.line("timeout", 5_000))
+        val second = c.next(4_412, "TAP", 400, 300, PoiHit.ringWord(true, 400), "list=0")
+        assertEquals("the second press since the camera stopped", 2, second.nthSinceCamera)
+        assertEquals("seen", second.ring)
+        c.cameraMoved()
+        val after = c.next(9_000, "HOLD", 500, -1, PoiHit.ringWord(false, 500), "list=9")
+        assertEquals("first again after a camera move", 1, after.nthSinceCamera)
+        assertEquals(-1L, after.cameraStillMs)
+        assertEquals("none", after.ring)
+        assertEquals(3, after.no)
+    }
+
     /** GitHub's emulator 2026-11-21: the idle came after up to 650 ms; a shorter bound made a hold on a symbol a route point. */
     @Test fun aPressOutwaitsASlowMapIdle() {
         assertTrue(PoiHit.PRESS_WAIT_MS >= 1_000L)
