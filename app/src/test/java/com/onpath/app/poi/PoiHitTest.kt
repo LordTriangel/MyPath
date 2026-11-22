@@ -143,6 +143,18 @@ class PoiHitTest {
         assertFalse("finished: nothing to keep waiting for", w.waits(t))
     }
 
+    /**
+     * GitHub's emulator 2026-11-22: a finger ended following, the map drew two frames in 770 ms and no idle came within the
+     * press's second. The list was known to be behind (a read due, not yet running), so a plain press turned a hold on a
+     * drawn symbol into the first-point menu. A due read gets the same bounded wait as a running one.
+     */
+    @Test fun aPressWaitsForADueReadButNotForever() {
+        assertTrue(PoiHit.keepWaitingForRead(readRunning = false, waitedMs = 0, readDue = true))
+        assertTrue(PoiHit.keepWaitingForRead(readRunning = false, waitedMs = PoiHit.READ_LAND_MS - 1, readDue = true))
+        assertFalse("bounded", PoiHit.keepWaitingForRead(readRunning = false, waitedMs = PoiHit.READ_LAND_MS, readDue = true))
+        assertFalse("the list is current: a plain press at once", PoiHit.keepWaitingForRead(readRunning = false, waitedMs = 0, readDue = false))
+    }
+
     /** A camera stop asks for one repaint, none on a follow step, and a lost idle cannot block repaints for good. */
     @Test fun repaintAfterACameraStopNotOnAFollowStep() {
         val g = PoiHit.RepaintGate(staleMs = 1_000)

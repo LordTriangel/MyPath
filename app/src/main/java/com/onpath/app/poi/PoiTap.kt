@@ -47,15 +47,18 @@ object PoiHit {
      */
     const val PRESS_WAIT_MS = 1_000L
 
-    /** A read has asked the map and only its result is on the way: the press waits for it this much longer, at most. */
+    /** A read is due or only its result is on the way: the press waits for it this much longer, at most. */
     const val READ_LAND_MS = 1_000L
     const val READ_STEP_MS = 40L
 
     /**
-     * The press's time ran out while a read is under way: it waits for that read, because a plain press now would turn a
-     * hold on a drawn symbol into a route point (GitHub's slow emulator 2026-11-21: read done, timer 3 ms before it landed).
+     * The press's time ran out while a read is under way or still due (the list is known to be behind the map): it waits
+     * for that read, because a plain press now would turn a hold on a drawn symbol into a route point (GitHub's slow
+     * emulator 2026-11-21: read done, timer 3 ms before it landed; 2026-11-22: a finger ended following, two frames in
+     * 770 ms, the read not begun yet).
      */
-    fun keepWaitingForRead(readRunning: Boolean, waitedMs: Long): Boolean = readRunning && waitedMs < READ_LAND_MS
+    fun keepWaitingForRead(readRunning: Boolean, waitedMs: Long, readDue: Boolean = false): Boolean =
+        (readRunning || readDue) && waitedMs < READ_LAND_MS
 
     /**
      * What a waiting press does, decided when the finger pressed ([plain] without a POI there, [onPoi] with one): what
@@ -358,12 +361,12 @@ class ShownPois {
     }
 
     /**
-     * The wait of [token] ran out (a busy map): the press goes on as a plain press – unless a read is under way, then it
-     * waits for that read's result, bounded ([PoiHit.keepWaitingForRead]). Returns the ms after which the caller asks
+     * The wait of [token] ran out (a busy map): the press goes on as a plain press – unless a read is under way or due, then
+     * it waits for that read's result, bounded ([PoiHit.keepWaitingForRead]). Returns the ms after which the caller asks
      * again with [waitedMs] grown by them, or null when the press is finished.
      */
     fun pressTimedOut(token: Int, waitedMs: Long = 0): Long? {
-        if (waiting.waits(token) && PoiHit.keepWaitingForRead(readRunning, waitedMs)) return PoiHit.READ_STEP_MS
+        if (waiting.waits(token) && PoiHit.keepWaitingForRead(readRunning, waitedMs, trigger.pending)) return PoiHit.READ_STEP_MS
         waiting.expire(token)?.let {
             Problems.trace("poi", "No map idle in time for a press (${listInfo()}), plain press")
             finish(it, null, "timeout")
