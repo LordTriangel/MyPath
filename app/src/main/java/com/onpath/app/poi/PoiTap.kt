@@ -595,7 +595,7 @@ class ShownPois {
             val iconFeatures = query(iconIds)
             val nameFeatures = query(nameIds)
             val ms = SystemClock.uptimeMillis() - t0
-            if (ms > 100) Problems.trace("poi", "Shown POIs read in $ms ms on the main thread (map idle)")
+            if (ms > 100) Problems.trace("poi", "Shown POIs read in $ms ms on the main thread")
             waiting.peek()?.note?.readMs = ms
             val mine = ++seq
             readRunning = true
