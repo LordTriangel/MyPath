@@ -116,7 +116,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## In progress
 - [umbau] (2026-11-22, stopped on the captain's word) Detour stitch readers on `wip/umbau-2026-11-22-stitch-readers` (c4ef54cd5): core + state green, NOT releasable, nothing on main. Web: fresh laptop session; app: donald after his POI fix. Open: review fixes not re-read, Zuletzt change undecided → handoff-umbau-2026-11-19.md, top state
-- [laptop] (2026-11-21) Long-tour speed-ups 2–3: stitch format design (detour as a field of the point) → proposal to [umbau] / [donald] in the backlog, then app + planner; „Ganz neu berechnen“ decided. Planner block closed. Owner of `web/` except tracking's live files.
+- [laptop] (free, shut down 2026-11-22) Detour stitch, the planner's readers on `wip/laptop-2026-11-22-stitch-readers`, off main until the captain says so; a fresh laptop session takes it: top of `handoffs/handoff-laptop-2026-11-17.md`.
 - [tracking] **free – no session runs** (stopped 2026-11-22). „Standort teilen“ on main, off for users; waits for PR 19 + PR 17 + the owner's real share from his Pixel, then `FOR_EVERYONE = true`. A fresh session takes it: end of `docs/team/handoffs/handoff-tracking-2026-11-20.md`
 - [donald] (2026-11-22, stopped, owner shut donald down; free for a fresh donald) Detour hint `wip/donald-2026-11-22-detour-hint` waits for his yes; readers together on `wip/donald-2026-11-22-stitch-readers-all` (ac64075d3), not on main → top of `handoffs/handoff-donald-2026-11-21.md`.
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
@@ -192,6 +192,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## Waiting for the owner
 - [laptop] 2026-11-22: **long plan links on a fresh page:** may the fix go online (`wip/laptop-2026-11-22-long-link`, green, nothing else changes)? Recommended: yes.
+- [laptop] 2026-11-22: **planner's wait window as a dialog, what does Cancel do?** Like the app (window closes, the area loads on beside the map) or back to the old state? Recommended: like the app. Not built.
 - [donald] 2026-11-22: **detour line on his Mutkopf plan:** „② erst ab T2 erreichbar · 17,4 km Umweg“, built, picture `onpath.private/ideen/2026-11-22-umweg-mutkopf/`. Keep it? Recommended: yes. Then merge `wip/donald-2026-11-22-detour-hint` + a line for the laptop (`PlanDetour.find`, `PlanGaps.detourText`, `reachText`).
 - [donald] 2026-11-22: **Zuletzt with a replaced plan:** it now goes there with its own activity and T level (on main: the new route's), also for plans without detours; on `wip/donald-2026-11-22-stitch-readers-all` only. Keep it? Recommended: yes, named in the release notes. The captain has asked him.
 - [laptop] 2026-11-22: wait window modal as in the app (owner's idea). Cancel: like the app (closes, area loads on beside the map; recommended) or back to the old state?
