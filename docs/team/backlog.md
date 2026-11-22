@@ -192,7 +192,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 
 ## Waiting for the owner
 - [donald] 2026-11-22: **detour hint on his Mutkopf plan:** at T1 the line still says „② erst ab T2 erreichbar“, not the detour (30 km against 11 km). Say the detour there too? Recommended: yes. `wip/donald-2026-11-22-detour-hint`.
-- [laptop] 2026-11-22: wait bar: a map area joins a window at 94 % and the bar stands for minutes. Keep the number, or a fresh window from 0? Recommendation: fresh window with its own bar (handoff-laptop-2026-11-17).
+- [laptop] 2026-11-22: wait window modal as in the app (owner's idea). Cancel: like the app (closes, area loads on beside the map; recommended) or back to the old state?
 - [laptop] 2026-11-20 night: **planner ready to deploy at 8a04b05cf** (on the shared code since the last deploy: edit / undo / cancel, holds + place menus, search, the route run incl. the long-route question, GPX → plan, search lines / round trip from core, the day rows variant A + „ab / bis Hotel“; GitHub run green after the robust-smoke race fix 083dcc17b; local checks + gate green, two reviews' findings fixed). Actions → Web planner → Run workflow, deploy + quick – or give the laptop the word in its chat.
 - [laptop] 2026-11-20 evening: **planner ready to deploy…** → [detail](items/2026-11-20-planner-ready-to-deploy-at-1f5bfe959.md)
 - [tracking] 2026-11-20: **merge PR 19** → [detail](items/2026-11-20-merge-pr-19.md)
