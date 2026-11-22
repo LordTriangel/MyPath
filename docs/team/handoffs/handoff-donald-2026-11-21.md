@@ -23,7 +23,8 @@ he must see it first.
 **Checked:** gate; `CorePoiTapE2ETest` 18 of 18 on GitHub and locally at a33fa2d5f, including a new compass test that was red before. Query with the
 compass running on GitHub's slow emulator: 1, 20, 110, 112 ms (four presses); full read 103 ms. One big review (8 findings, all addressed).
 **Not checked:** the review's fixes were not reviewed again; no device test for a second press during the wait (only the rule table, the wait
-is too short to force); nothing on his Pixel. `CorePoiTapStillMapE2ETest` last ran before the rebuild (be2e6c159): run it before a release.
+is too short to force); nothing on his Pixel. 
+**At 348e558ef, all green:** unit tests, Web planner, `CorePoiTapStillMapE2ETest` on GitHub. **Next session:** the captain's word on 0.18.9, then the detour hint.
 Probe branches for the normal prune list, never to merge: `ci/donald-poi-follow`, `ci/donald-poi-timing`; also `ci/donald-poi-diag`, `-wait`, `-frame`, `-frame-2`.
 The detour hint waits behind this (`wip/donald-2026-11-22-detour-hint`; its Mutkopf line is not built).
 
