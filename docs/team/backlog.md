@@ -116,7 +116,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - [umbau] (fresh session 2026-11-21 evening) Detour stitch on `wip/umbau-2026-11-21-detour-stitch` (a8ed3a939): piece 2b built, SameRouteTest on the JVM RED; the owner decides how to settle the line. Nothing on main, no Wasm yet
 - [laptop] (2026-11-21) Long-tour speed-ups 2–3: stitch format design (detour as a field of the point) → proposal to [umbau] / [donald] in the backlog, then app + planner; „Ganz neu berechnen“ decided. Planner block closed. Owner of `web/` except tracking's live files.
 - [tracking] (fresh session 2026-11-20 15:00) Share UI on main (dev tools only); next: privacy-text PR, owner's Pixel share, then FOR_EVERYONE = true + line for [donald]; state `docs/team/handoffs/handoff-tracking-2026-11-20.md`
-- [donald] (2026-11-21 evening): **0.18.7 out** (app; planner deploy skipped, areas-smoke red in the release run: [laptop] has it). Arrival with an unreachable stop on main (not released). Building the detour hint: owner chose „② macht 4,2 km Umweg“ (2026-11-22)
+- [donald] (2026-11-22, stopped on the captain's word, tokens): 0.18.7 out, planner online. Open: **POI hold while following** (E2E red on main, maybe a real bug), detour hint parked on its branch. Top of `handoffs/handoff-donald-2026-11-21.md`
 <!-- - [donald|laptop|captain|cloud-web] short description – since YYYY-MM-DD -->
 
 ## Next
@@ -189,6 +189,7 @@ caps this file (cap in the script, target 20 KB): delete role lines every tag ha
 - **[umbau] A fresh device and the editing device can show a slightly different line, also without detours…** → [detail](items/2026-11-21-fresh-device-vs-editing-device.md)
 
 ## Waiting for the owner
+- [donald] 2026-11-22: **detour hint on his Mutkopf plan:** at T1 the line still says „② erst ab T2 erreichbar“, not the detour (30 km against 11 km). Say the detour there too? Recommended: yes. `wip/donald-2026-11-22-detour-hint`.
 - [laptop] 2026-11-22: wait bar: a map area joins a window at 94 % and the bar stands for minutes. Keep the number, or a fresh window from 0? Recommendation: fresh window with its own bar (handoff-laptop-2026-11-17).
 - [laptop] 2026-11-20 night: **planner ready to deploy at 8a04b05cf** (on the shared code since the last deploy: edit / undo / cancel, holds + place menus, search, the route run incl. the long-route question, GPX → plan, search lines / round trip from core, the day rows variant A + „ab / bis Hotel“; GitHub run green after the robust-smoke race fix 083dcc17b; local checks + gate green, two reviews' findings fixed). Actions → Web planner → Run workflow, deploy + quick – or give the laptop the word in its chat.
 - [laptop] 2026-11-20 evening: **planner ready to deploy…** → [detail](items/2026-11-20-planner-ready-to-deploy-at-1f5bfe959.md)
