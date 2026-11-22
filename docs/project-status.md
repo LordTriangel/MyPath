@@ -6,14 +6,13 @@ release's notes) and the git history – this file keeps only the current state 
 
 ## Where things are
 <!-- Kept by the captain every round (docs/team/roles/captain.md). -->
-- **GitHub release:** v0.17.2 (2026-11-07 ~07:45, 7dd730f5, donald): calmer look (walnut, paper, ink blue), plan and tour
-  apart with "Zuletzt", hold to unlock, route previews, the night's code audit. Before it: gate --full, GitHub E2E
-  CoreField / CorePlan / CorePlanLink / Release-Rundgang green, unit.yml green. Details: the git history of that day.
-- **Planner (plan.onpath.earth):** live 78f5a4a6 (laptop, 2026-11-06/07: plan bar, list km / ↑↓, 3D flyover, big profile
-  range). **Not deployed with v0.17.2:** "Web planner" (`web.yml`) is red on parity since 2026-11-06 22:39 – 17 mirrors of
-  the new app look; the laptop's catch-up is on branch `wip/laptop-2026-11-07-parity-colours` (backlog "Next laptop
-  session – start here"), then Actions → Web planner → Run workflow → deploy.
-- **Pixel:** not checked after v0.17.2 – ask the owner / check About.
+- **GitHub release:** v0.18.7 (2026-11-21 19:35 UTC, 75c6bdcb1, donald): POI press, ride question when saving, off-route
+  sentence with side and metres, far-start warning, day rows, eye on round-trip suggestions. Device test 106/106 on the
+  commit before it. Its release run is red only in the planner part (a test, deploy skipped). On main, not released:
+  arrival with a stop the route cannot reach (cb49cbc22).
+- **Planner (plan.onpath.earth):** deployed 8cee9a2ec (2026-11-22 ~01:00, laptop, on the owner's yes in its chat), with the
+  day rows. The deploy's live smoke was skipped (no Access token in the repo), so the live page is not machine-checked.
+- **Pixel:** the owner gets updates from GitHub this weekend (not on USB); whether 0.18.7 is installed is not known.
 - **Google Play internal test (owner 2026-11-07): live.** App `com.onpath.app`, Play App Signing (Google holds the app key),
   upload key only on donald in `.secrets/` (gitignored), `tools/dev/play_bundle.sh` → `dist/onpath-<version>.aab`,
   uploaded by hand (`docs/play-build.md`); first release 0.17.3 (versionCode 1703), 0.17.4 (1704) live 2026-11-07, 3–4 testers by email list. Every new
